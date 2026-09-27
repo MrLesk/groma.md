@@ -37,7 +37,7 @@ groma.md scans your code into a first [C4](https://c4model.com) architecture map
 
 Free, MIT-licensed, and local. No account or backend, and groma.md itself calls no AI service: curation uses the coding agent you already work with.
 
-Want automatic architecture diffs on your PRs? **[This PR shows you how.](https://github.com/MrLesk/groma.md-action/pull/2)**
+Want automatic architecture diffs on your PRs? **[Add them to your repository.](https://github.com/MrLesk/groma.md-action/pull/4)**
 
 <p align="center">
   <picture>
