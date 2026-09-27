@@ -24,7 +24,7 @@ function startBacklog(
 ) {
   const shim = process.platform === 'win32' && command.toLowerCase().endsWith('.cmd')
   const args = shim
-    ? ['/d', '/s', '/c', `""${command}" ${arguments_.join(' ')}"`]
+    ? ['/d', '/s', '/c', `""${command}" ${arguments_.map(argument => `"${argument}"`).join(' ')}"`]
     : arguments_
   return spawn(shim ? 'cmd.exe' : command, args, {
     cwd: repositoryRoot,
@@ -62,10 +62,11 @@ function runBacklog(command: string, arguments_: string[], repositoryRoot: strin
 
 type BacklogTaskSummary = Omit<WorkItem, 'updatedAt'> & { updatedAt: string | null }
 
-/** Backlog emits complete JSON objects, which can span or share stdout chunks. */
+/** Backlog emits complete JSON objects, which can span or share stdout chunks; noise around them is skipped instead of killing the stream. */
 function taskListStream(onTasks: (tasks: BacklogTaskSummary[]) => void): (chunk: string) => void {
   let buffer = ''
   let position = 0
+  let start = -1
   let depth = 0
   let quoted = false
   let escaped = false
@@ -75,25 +76,63 @@ function taskListStream(onTasks: (tasks: BacklogTaskSummary[]) => void): (chunk:
       escaped = false
       return false
     }
-    if (quoted && character === '\\') {
-      escaped = true
+    if (quoted) {
+      if (character === '\\') escaped = true
+      else if (character === '"') quoted = false
       return false
     }
-    if (character === '"') quoted = !quoted
-    if (quoted) return false
+    if (character === '"') {
+      quoted = true
+      return false
+    }
     if (character === '{') depth++
     return character === '}' && --depth === 0
+  }
+
+  /** Consumes one character: top-level noise is skipped, in-region structure updates the scanner, and a completed region is reported. */
+  function consume(character: string): boolean {
+    if (start < 0) {
+      // Everything outside an object is noise: stray braces, quotes, or log lines never reach the parser.
+      if (character !== '{') return false
+      start = position - 1
+      depth = 1
+      quoted = false
+      escaped = false
+      return false
+    }
+    return endsObject(character)
+  }
+
+  /** Delivers the completed region's snapshot, or drops a malformed one; either way the region leaves the buffer. */
+  function deliverRegion(): void {
+    const region = buffer.slice(start, position)
+    buffer = buffer.slice(position)
+    position = 0
+    start = -1
+    try {
+      const { tasks } = JSON.parse(region) as { tasks: BacklogTaskSummary[] }
+      if (Array.isArray(tasks)) onTasks(tasks)
+    } catch { return }
+  }
+
+  /** Drops everything the scanner already walked past, keeping any in-flight region. */
+  function trimScanned(): void {
+    if (start < 0) {
+      buffer = buffer.slice(position)
+      position = 0
+    } else if (start > 0) {
+      buffer = buffer.slice(start)
+      position -= start
+      start = 0
+    }
   }
 
   return chunk => {
     buffer += chunk
     while (position < buffer.length) {
-      if (!endsObject(buffer[position++]!)) continue
-      const { tasks } = JSON.parse(buffer.slice(0, position)) as { tasks: BacklogTaskSummary[] }
-      buffer = buffer.slice(position)
-      position = 0
-      onTasks(tasks)
+      if (consume(buffer[position++]!)) deliverRegion()
     }
+    trimScanned()
   }
 }
 
@@ -125,6 +164,20 @@ function watchBacklog(command: string, repositoryRoot: string, onTasks: (tasks: 
   }
   async function close(): Promise<void> {
     if (!closed) { closed = true; stopProcess() }
+    let escalation: NodeJS.Timeout | undefined
+    try {
+      // A group that ignored SIGTERM gets one unignorable signal after a grace period; a genuinely unkillable child still blocks close.
+      await Promise.race([finished, new Promise<void>(resolve => {
+        escalation = setTimeout(() => {
+          try {
+            if (process.platform !== 'win32' && child.pid !== undefined) process.kill(-child.pid, 'SIGKILL')
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'ESRCH') report(error)
+          }
+          resolve()
+        }, 5000)
+      })])
+    } finally { clearTimeout(escalation) }
     await finished
   }
   const receive = taskListStream(tasks => { if (!closed) onTasks(tasks) })
@@ -148,6 +201,34 @@ type BacklogTaskDetails = Omit<WorkItemDetails,
   comments: { body: string; createdAt: string | null; author: string | null }[]
 }
 
+/** Backlog ids are simple tokens; anything else is rejected before it can reach a shell. */
+const safeTaskId = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
+
+/** Field-by-field normalization: one null or oddly typed field from a non-conforming CLI must not kill the work chain. */
+const asText = (value: unknown): string => value == null ? '' : String(value)
+
+const asCount = (value: unknown): number => {
+  const count = Number(value)
+  return Number.isFinite(count) ? count : 0
+}
+
+function asList<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[]
+  return value == null ? [] : [value as T]
+}
+
+const asStrings = (value: unknown): string[] => asList<unknown>(value).map(asText)
+
+const asChecklist = (value: unknown): { text: string; checked: boolean }[] =>
+  asList<{ text?: unknown; checked?: unknown }>(value).map(item => ({ text: asText(item.text), checked: item.checked === true }))
+
+const asComments = (value: unknown): { body: string; createdAt: string; author: string }[] =>
+  asList<{ body?: unknown; createdAt?: unknown; author?: unknown }>(value).map(comment => ({
+    body: asText(comment.body),
+    createdAt: asText(comment.createdAt),
+    author: asText(comment.author),
+  }))
+
 function createBacklogSource(
   repositoryRoot: string,
   command: string,
@@ -163,34 +244,31 @@ function createBacklogSource(
         run(['config', 'get', 'defaultStatus']),
       ])
       const items = (watchedTasks ?? tasks).map(task => ({
-        id: task.id,
-        title: task.title,
-        status: task.status,
-        assignees: task.assignees,
-        references: task.references,
-        modifiedFiles: task.modifiedFiles,
-        acceptanceCriteriaCompleted: task.acceptanceCriteriaCompleted,
-        acceptanceCriteriaCount: task.acceptanceCriteriaCount,
-        updatedAt: task.updatedAt ?? '',
+        id: asText(task.id),
+        title: asText(task.title),
+        status: asText(task.status),
+        assignees: asStrings(task.assignees),
+        references: asStrings(task.references),
+        modifiedFiles: asStrings(task.modifiedFiles),
+        acceptanceCriteriaCompleted: asCount(task.acceptanceCriteriaCompleted),
+        acceptanceCriteriaCount: asCount(task.acceptanceCriteriaCount),
+        updatedAt: asText(task.updatedAt),
       }))
       const statuses = statusesText.split(',').map(status => status.trim()).filter(Boolean)
       return { statuses, defaultStatus: defaultStatusText.trim(), items }
     },
     async readItem(id) {
+      if (!safeTaskId.test(id)) throw new Error(`Invalid task id: ${id}`)
       const output = await run(['task', 'view', id, '--json'])
       const { task } = JSON.parse(output) as { task: BacklogTaskDetails }
       return {
-        id: task.id,
-        description: task.description ?? '',
-        acceptanceCriteria: task.acceptanceCriteria.map(({ text, checked }) => ({ text, checked })),
-        definitionOfDone: task.definitionOfDone.map(({ text, checked }) => ({ text, checked })),
-        implementationPlan: task.implementationPlan ?? '',
-        implementationNotes: task.implementationNotes ?? '',
-        comments: task.comments.map(comment => ({
-          body: comment.body,
-          createdAt: comment.createdAt ?? '',
-          author: comment.author ?? '',
-        })),
+        id: asText(task.id),
+        description: asText(task.description),
+        acceptanceCriteria: asChecklist(task.acceptanceCriteria),
+        definitionOfDone: asChecklist(task.definitionOfDone),
+        implementationPlan: asText(task.implementationPlan),
+        implementationNotes: asText(task.implementationNotes),
+        comments: asComments(task.comments),
       }
     },
     watch(onChange) {
