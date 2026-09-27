@@ -282,10 +282,10 @@ These findings were recorded on 6 September 2026 from an uncommitted working
 tree. They are investigation evidence, not a reproducible benchmark tied to
 the published main branch, a complete reference, or regression-test targets.
 
-groma.md's 99 authored directed pairs overlapped with 66 of 330 automatically
-projected source pairs. A temporary local-workspace resolver recovered nine
-additional authored pairs and seven other pairs: 346 candidates, with 75
-authored matches. Matching endpoints does not validate the relationship text.
+groma.md's 99 authored directed pairs at that snapshot overlapped with 66 of
+330 automatically projected source pairs. A temporary local-workspace resolver
+recovered nine additional authored pairs and seven other pairs: 346 candidates,
+with 75 authored matches. Matching endpoints does not validate the relationship text.
 
 Of the original 264 additional pairs, 77 had type-use evidence only, 185 had
 calls or other value use, and two had re-export evidence only. Removing type
@@ -311,7 +311,7 @@ relationship. Counts are sensitive to ownership granularity and file structure.
 
 The durable conclusions are to improve provider and wiring evidence, keep
 strength metrics diagnostic initially, and review architectural meaning
-separately. The existing 99 statements are useful examples, not a count to fit.
+separately. The existing 42 authored statements are useful examples, not a count to fit.
 
 ## Evaluation and recording decisions
 
@@ -425,7 +425,7 @@ Markdown in both repositories. These raw scans contain no authored statements.
 
 | Project | Source files | Elements | Relationships | CLI launch to painted map |
 | --- | ---: | ---: | ---: | ---: |
-| Curated groma.md | 220 | 83 | 113: 99 authored, 14 derived | 0.59 s |
+| Curated groma.md (re-measured against this tree) | 428 | 119 | 63: 42 authored, 21 derived | 0.59 s† |
 | Raw Backlog.md | 212 | 275 | 4 derived | 0.72 s |
 | Raw OpenClaw | 3,164 | 3,200 | 220 derived | 4.59 s |
 
@@ -436,6 +436,10 @@ two animation frames, and a browser paint event. The times include scanning,
 model loading, placement, routing, browser rendering, and the harness overhead.
 They are measurements of this relationship set, not a latency guarantee for
 broader inference.
+† The launch time was not re-measured; 0.59 s remains the 6 September 2026
+figure. The re-measured groma.md counts are the distinct files named in
+stored `groma.code` entries and the element and relationship rows in the
+current architecture Markdown.
 
 OpenClaw exposed repeated expansion of identical callback bindings through
 forwarding functions. The resolver now reuses parameter results at the same

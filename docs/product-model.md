@@ -99,9 +99,10 @@ operation before opening a map.
    creation controls.
 2. Publish a snapshot with `groma export <directory>`. The generated static
    site contains the current project profile, architecture map and flows,
-   mapped Backlog work with task details and diffs, and architecture-owned
-   source inspection. It has no editor and never reads the repository or a
-   running groma.md server. Everything in the output directory is public data.
+   and read-only architecture-owned source inspection. It contains no
+   Backlog task data and no pins. It has no editor and never reads the
+   repository or a running groma.md server. Everything in the output
+   directory is public data.
    Export reads stored architecture without starting a scanner, writes one
    snapshot, and exits. Run it again to publish updated data. Hosting and
    access control belong to the chosen static host, outside groma.md.

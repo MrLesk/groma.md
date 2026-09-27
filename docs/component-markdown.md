@@ -388,5 +388,5 @@ TypeScript, NestJS, and PostgreSQL.
 
 ```
 
-The live [groma.md system](../groma/systems/groma/system.md) and
-[MVP draft](../groma/drafts/mvp.md) are a complete package example.
+The live [groma.md system](../groma/systems/groma-md/system.md) is a
+complete package example.

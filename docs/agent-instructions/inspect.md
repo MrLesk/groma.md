@@ -64,7 +64,8 @@ footer.
 owner, or draft it describes; consecutive pages, read in order, print the
 complete answer once. `groma scan` is not paged: its report counts
 findings and names `groma lint`. The complete Markdown record of
-`groma view <id>` and every `--json` result stay whole.
+`groma view <id>` stays whole. Only `groma scanner discover` accepts
+`--json`; the other paging commands have no JSON output.
 
 ## Scanner coverage
 
