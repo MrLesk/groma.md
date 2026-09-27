@@ -50,7 +50,7 @@ Actor: an agent or person scanning/cloning an untrusted repository, running the 
 Entry points: groma scan/view/lint, the web viewer endpoints, the backlog work source, and the agent-facing docs.
 Observable result: attacker-controlled repository content can no longer execute code, escape the repository root, mangle architecture files, or inject into the web viewer; CLI failures report cleanly; docs match the implementation; CI third-party actions are SHA-pinned.
 
-This task tracks the remediation PR: 29 code/doc fixes plus CI pinning; 8 design-level findings are reported for maintainer decision rather than fixed here.
+This task tracks the remediation PR: 28 findings fixed in code/docs plus CI action pinning; 9 findings are reported for maintainer decision rather than fixed here.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
