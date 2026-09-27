@@ -84,7 +84,7 @@ the workspace-only development dependencies are not part of the published packag
 
 After every successful groma.md release, update the `groma.md@<version>` pin in
 [`groma.md-action/action.yml`](https://github.com/MrLesk/groma.md-action/blob/main/action.yml) and follow the
-[Action release checklist](https://github.com/MrLesk/groma.md-action#releases). This final release step verifies the new
+[Action release checklist](https://github.com/MrLesk/groma.md-action/blob/main/CONTRIBUTING.md#releases). This final release step verifies the new
 groma.md version in the Action, publishes an approved Action release, and updates its major-version pointer. It is manual;
 groma.md's release workflow does not update the Action repository.
 
