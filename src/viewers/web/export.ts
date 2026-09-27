@@ -7,6 +7,7 @@ import { olderFirst, readGitRevision, type GitRevision } from '../../history/rev
 import { atRevision, readSourceTexts } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
 import { readSnapshotCodeStructure } from '../source/structure.ts'
+import { containedReference } from './containment.ts'
 import { renderPage } from './page.ts'
 import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'
 import type { PublishedView, WebBootPayload } from './payload.ts'
@@ -34,6 +35,8 @@ function emptyWork(generation: number) {
 async function snapshotView(repositoryRoot: string, root: string, revision: GitRevision | null, revisions: GitRevision[],
   generation: number, map: Awaited<ReturnType<typeof loadMapRoot>>, files: string[]): Promise<PublishedView> {
   if (map.project === null) throw new Error('No Groma architecture in this snapshot')
+  const escaping = [...new Set([...files, ...ownedFiles(map.world)])].find(file => !containedReference(repositoryRoot, file))
+  if (escaping !== undefined) throw new Error(`Code reference ${escaping} escapes the repository`)
   const code: PublishedView['reads']['code'] = []
   for (const element of map.world.elements) {
     if (element.kind !== 'component') continue

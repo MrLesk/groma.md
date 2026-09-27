@@ -17,6 +17,7 @@ import type { WebMapPayload, WebPayload, WebRevision, WebWorkPayload } from './p
 import { bundleRenderer, loadMapRoot } from './runtime.ts'
 import { coverThemes, generateCovers, type CoverImages } from './sharing/images.ts'
 import { coverFile } from './sharing/metadata.ts'
+import { containedReference } from './containment.ts'
 import { readSource } from '../source/read.ts'
 import { readCodeStructure } from '../source/structure.ts'
 import { readTaskDiff } from '../source/diff.ts'
@@ -27,6 +28,13 @@ async function structureResponse(
   selected: Pick<WebPayload, 'world' | 'revision'>,
   element: string,
 ): Promise<Response> {
+  const component = selected.world.elements.find(candidate => (
+    candidate.kind === 'component' && candidate.representationId === element
+  ))
+  if (component === undefined) return new Response('Component not found', { status: 404 })
+  if (component.code.some(reference => !containedReference(repositoryRoot, reference.file))) {
+    return new Response('Source file not found', { status: 404 })
+  }
   try {
     const structure = await readCodeStructure(repositoryRoot, selected.world, selected.revision?.id ?? null, element)
     return structure === undefined
@@ -44,6 +52,7 @@ async function sourceResponse(
   file: string | null,
 ): Promise<Response> {
   if (file === null) return new Response('Source selection required', { status: 400 })
+  if (!containedReference(repositoryRoot, file)) return new Response('Source file not found', { status: 404 })
   try {
     const source = await readSource(repositoryRoot, selected.world, selected.revision?.id ?? null, element, file)
     return source === undefined
