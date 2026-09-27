@@ -72,9 +72,15 @@ async function scanProject(root: string, directory: string, programs: readonly A
   for (const file of new Set([...sourceUnits.flatMap(unit => unit.files), ...operations])) {
     if (!observed.has(file)) files.push({ file, symbols: [] })
   }
-  const manifest = JSON.parse(readFileSync(path.join(root, directory, 'package.json'), 'utf8'))
+  // A malformed manifest names no package; the scan reports the project unnamed rather than failing.
+  let manifest: { name?: string } = {}
+  try { manifest = JSON.parse(readFileSync(path.join(root, directory, 'package.json'), 'utf8')) } catch {
+    evidence.diagnostics.push({ severity: 'warning', code: 'angular-unreadable-manifest',
+      file: relative(root, path.join(directory, 'package.json')),
+      message: 'The package manifest was unreadable; the project is reported unnamed.' })
+  }
   return createScanObservation({ scanner: { id: 'angular', technology: 'typescript/angular', engine: '@angular/compiler', engineVersion: VERSION.full },
-    roots: [{ id: 'angular-project', kind: 'package', name: manifest.name, file: path.posix.join(directory, 'package.json') }],
+    roots: [{ id: 'angular-project', kind: 'package', name: manifest.name ?? directory, file: path.posix.join(directory, 'package.json') }],
     files: files.map(file => ({ ...file, roots: ['angular-project'] })),
     sourceUnits, operations: [...evidence.operations.values()], invocations: evidence.invocations, diagnostics: evidence.diagnostics,
     ...(httpRequests.length ? { httpRequests } : {}) })

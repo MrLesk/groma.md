@@ -77,7 +77,13 @@ export interface ReactProject {
  */
 export function reactProject(directory: string, repositoryRoot: string, typescriptSources: ReadonlySet<string>,
   configs: ReadonlySet<string>, packages: readonly string[]): ReactProject | undefined {
-  const manifest = JSON.parse(readFileSync(path.join(directory, 'package.json'), 'utf8'))
+  // A malformed manifest names no package and owns no components; the package is skipped, as for a missing one.
+  let manifest: { name: string }
+  try {
+    manifest = JSON.parse(readFileSync(path.join(directory, 'package.json'), 'utf8')) as { name: string }
+  } catch {
+    return undefined
+  }
   const configFile = packageConfig(directory, repositoryRoot, configs)
   try {
     const project = relative(repositoryRoot, directory)

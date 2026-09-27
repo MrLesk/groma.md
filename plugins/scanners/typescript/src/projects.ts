@@ -52,10 +52,22 @@ export async function typescriptProjects(api: API, root: string, sources: string
       message: `The extended TypeScript config is absent; source uses the available settings. ${error.text}`,
     })))
     configurations.set(file, config)
-    for (const reference of config.projectReferences ?? []) {
-      const target = (await stat(reference.path)).isDirectory() ? path.join(reference.path, 'tsconfig.json') : reference.path
-      await read(target)
+    for (const reference of config.projectReferences ?? []) await followReference(file, reference)
+  }
+  async function followReference(file: string, reference: { path: string }): Promise<void> {
+    let target: string
+    try {
+      target = (await stat(reference.path)).isDirectory() ? path.join(reference.path, 'tsconfig.json') : reference.path
+    } catch {
+      diagnostics.push({ severity: 'warning', code: 'typescript-missing-project-reference',
+        file: path.relative(root, file).split(path.sep).join('/'),
+        message: `The referenced TypeScript config is absent: ${reference.path}. The project still scans.` })
+      return
     }
+    // A reference outside the repository, such as a generated one into an installed package, is not scanned.
+    const inside = path.relative(root, path.resolve(target))
+    if (inside.startsWith('..') || path.isAbsolute(inside)) return
+    await read(target)
   }
   for (const file of files.filter(file => path.posix.basename(file) === 'tsconfig.json')) await read(path.join(root, file))
   const selected = new Set(sources.map(file => path.resolve(root, file)))

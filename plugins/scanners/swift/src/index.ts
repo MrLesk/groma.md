@@ -29,8 +29,8 @@ function sources(files: readonly string[]): string[] {
 
 function readEvidence(root: string, files: string[]): Promise<FileEvidence[]> {
   return new Promise((resolve, reject) => {
-    // Evidence grows with the source, so its output has no fixed limit.
-    const child = execFile(worker, [], { cwd: root, maxBuffer: Infinity }, (error, stdout, stderr) => {
+    // Evidence grows with the source, so its output has no fixed limit, but a runaway worker is still bounded.
+    const child = execFile(worker, [], { cwd: root, maxBuffer: 268435456 }, (error, stdout, stderr) => {
       if (error) reject(new Error(stderr.trim() || (error.signal ? `Swift worker stopped by ${error.signal}` : error.message)))
       else {
         try { resolve(JSON.parse(stdout)) } catch (error) { reject(error) }

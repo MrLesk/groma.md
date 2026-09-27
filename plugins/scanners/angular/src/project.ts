@@ -59,7 +59,13 @@ export function projectConfigs(root: string, directories: readonly string[],
       code: 'angular-unreadable-config', file: relative(root, file),
       message: `The scanner's TypeScript cannot read a setting; the rest of the config applies. ${ts.flattenDiagnosticMessageText(error.messageText, ' ')}` }] : []))
     configs.set(file, { file, config })
-    for (const reference of config.projectReferences ?? []) read(ts.resolveProjectReferencePath(reference))
+    for (const reference of config.projectReferences ?? []) {
+      // A reference outside the repository, such as into an installed package, is not read.
+      const target = ts.resolveProjectReferencePath(reference)
+      const inside = path.relative(path.resolve(root), path.resolve(path.dirname(file), target))
+      if (inside.startsWith('..') || path.isAbsolute(inside)) continue
+      read(target)
+    }
   }
   const inProject = (file: string) => directories.some(directory => directory === '.' || file.startsWith(`${directory}/`))
   for (const file of files.filter(file => path.posix.basename(file) === 'tsconfig.json' && inProject(file))) read(path.join(root, file))
