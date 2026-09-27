@@ -38,6 +38,7 @@ jobs:
           echo "pulls=$pulls" >> "$GITHUB_OUTPUT"
 
   compare:
+    name: 'Compare PR #${{ matrix.pull.number }}'
     needs: pulls
     if: needs.pulls.outputs.open != '[]'
     runs-on: ubuntu-latest
