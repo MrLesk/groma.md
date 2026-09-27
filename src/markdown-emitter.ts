@@ -170,6 +170,21 @@ export function renderDraftDocument(input: {
   }, `\n\n${input.outcome.trim()}\n`)
 }
 
+/** A stored cell keeps its row intact: a raw pipe would split it, and a newline has no Markdown escape, so it becomes visible text that a later read stores verbatim. */
+function escapeCell(text: string): string {
+  return text.replaceAll('|', '\\|').replaceAll('\n', '\\n').replaceAll('\r', '\\r')
+}
+
+/** A link name may not close the link early or form a nested link. Emphasis characters stay raw so common names keep their stored bytes. */
+function escapeName(name: string): string {
+  return escapeCell(name.replaceAll('\\', '\\\\').replaceAll('[', '\\[').replaceAll(']', '\\]'))
+}
+
+/** The loader percent-decodes stored links (relationshipTargetFilename), the way curate-rename repoints them, so unsafe characters survive as escapes. */
+function escapeHref(href: string): string {
+  return href.split('/').map(encodeURIComponent).join('/').replaceAll('(', '%28').replaceAll(')', '%29')
+}
+
 export function withRelationship(
   source: string,
   relationship: {
@@ -184,7 +199,7 @@ export function withRelationship(
   },
 ): string {
   source = normalizeNewlines(source)
-  const row = `| [${relationship.sourceName}](${relationship.sourceHref}) | [${relationship.targetName}](${relationship.targetHref}) | ${relationship.description} | ${relationship.technology} |`
+  const row = `| [${escapeName(relationship.sourceName)}](${escapeHref(relationship.sourceHref)}) | [${escapeName(relationship.targetName)}](${escapeHref(relationship.targetHref)}) | ${escapeCell(relationship.description)} | ${escapeCell(relationship.technology)} |`
   const lines = source.trimEnd().split('\n')
   const section = relationshipSection(relationship)
   const heading = lines.indexOf(section)
@@ -209,12 +224,12 @@ export function withoutRelationship(
 ): string {
   source = normalizeNewlines(source)
   const lines = source.trimEnd().split('\n')
-  const tail = `](${row.targetHref}) | ${row.description} | ${row.technology} |`
+  const tail = `](${escapeHref(row.targetHref)}) | ${escapeCell(row.description)} | ${escapeCell(row.technology)} |`
   const sectionStart = lines.indexOf(relationshipSection(row))
   let sectionEnd = sectionStart + 1
   while (sectionEnd < lines.length && !lines[sectionEnd]?.startsWith('## ')) sectionEnd++
   const rowIndex = lines.findIndex((line, index) => index > sectionStart && index < sectionEnd
-    && line.startsWith('| [') && line.includes(`](${row.sourceHref}) | [` ) && line.endsWith(tail))
+    && line.startsWith('| [') && line.includes(`](${escapeHref(row.sourceHref)}) | [`) && line.endsWith(tail))
   if (rowIndex === -1) throw new Error('relationship row is missing')
   lines.splice(rowIndex, 1)
 
