@@ -5,6 +5,7 @@ import type { Dirent } from 'node:fs'
 import {
   mkdir,
   readdir,
+  rename,
   readFile,
   realpath,
   unlink,
@@ -113,7 +114,16 @@ export class GromaFileSystem {
   async write(relative: string, source: string): Promise<void> {
     const filename = this.absolute(relative)
     await mkdir(path.dirname(filename), { recursive: true })
-    await writeFile(filename, source)
+    // Write to a same-directory temp file and rename over the target so a crash
+    // mid-write can never leave a truncated document behind.
+    const temporary = `${filename}.tmp-${process.pid}-${Math.random().toString(36).slice(2)}`
+    try {
+      await writeFile(temporary, source)
+      await rename(temporary, filename)
+    } catch (error) {
+      await unlink(temporary).catch(() => {})
+      throw error
+    }
   }
 
   writeSource(sourceFilename: string, source: string): Promise<void> {
