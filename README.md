@@ -122,6 +122,34 @@ The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](ht
 
 More languages arrive as [scanner plugins](docs/scanners/creating-a-plugin.md); add your own with `groma scanner add`. Each scanner's page describes what it reads. See [which relationships groma.md detects](docs/relationship-inference.md#current-inference-rule).
 
+## FAQ
+
+> ### Why can't I just ask my agent to draw an architecture diagram?
+
+You can, and the diagram will be right on the day it is drawn. After that it is a static picture: it falls behind with every commit, and asking again gives you a new drawing that you cannot compare with the old one.
+
+groma.md keeps the architecture live. Your agent's curation is saved as Markdown in your repository, and the map follows the code from there: saving a file updates it, later scans keep what your agent wrote, and you can compare any two commits, or your uncommitted changes, to see how the architecture changed.
+
+> ### Does groma.md send my code anywhere?
+
+No. groma.md runs on your machine and needs no account. It reads your repository, writes Markdown into it, and serves the map on localhost. It calls no AI service; curation runs in the coding agent you already use. Its only network requests look up and download the scanner packages you install.
+
+> ### Won't the next scan overwrite what my agent wrote?
+
+No. Once a document exists, scans refresh only its code references: the symbols in the files it owns. Names, descriptions, groups, the files your agent combined, and the relationships it added stay as written. New files arrive as new components for your agent to place.
+
+> ### Can I see architecture changes in pull requests?
+
+Yes. The architecture is Markdown in the same repository, so its changes are part of the pull request. On public repositories, the groma.md GitHub Action comments on every pull request with the number of changed components and relationships and a link to a before and after map. [Add it to your repository.](https://github.com/MrLesk/groma.md-action/pull/4)
+
+> ### What happens if I stop using groma.md?
+
+Nothing breaks. The architecture stays in your repository as ordinary Markdown in the Open Knowledge Format: one document per element, linked to each other, readable on GitHub or in any editor. To remove groma.md, delete the `groma/` folder and the block between `<!-- groma:start -->` and `<!-- groma:end -->` in your AGENTS.md or CLAUDE.md.
+
+> ### Which languages does it support?
+
+TypeScript, JavaScript, Angular, React, Vue, C#/.NET, Go, Java, Python, Rust, PHP, and Swift, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
+
 ## Experimental
 
 groma.md is an early prototype. Review the first scan before treating it as your architecture, expect rough edges, and check exports before sharing them, since they include source code. Report problems in [Issues](https://github.com/MrLesk/Groma.md/issues).
