@@ -24,8 +24,8 @@ function foldRow(world: TerminalViewModel, current: ViewerState, row: TreeRow): 
 function openRow(world: TerminalViewModel, current: ViewerState, row: TreeRow): ViewerState {
   const element = world.elements.find(item => item.representationId === row.id)
   if (element === undefined) return current
-  return syncTree(world, {
-    ...current, tree: row.hasChildren && !row.expanded ? expandRow(current.tree, row.id) : current.tree,
+  return syncTree(world, current, {
+    tree: row.hasChildren && !row.expanded ? expandRow(current.tree, row.id) : current.tree,
     level: levelFor(element), currentId: element.representationId,
   })
 }

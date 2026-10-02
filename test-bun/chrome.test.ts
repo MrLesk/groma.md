@@ -3,12 +3,11 @@ import { detailsScrollOffset } from '../src/viewers/tui/panes/screen.ts'
 import { test } from 'bun:test'
 
 import { detailsContentWidth, fitPanes, panesForWidth, terminalLayout } from '../src/viewers/tui/layout.ts'
-import type { Bounds } from '../src/types.ts'
 import { initialState, reduceViewer } from '../src/viewers/tui/navigation.ts'
 import { projectWorld } from '../src/viewers/tui/projection.ts'
 import { navigationWorld, paneLayout } from './helpers.ts'
 
-test.concurrent('details changes pane width and the selection stays centred in either map width', () => {
+test.concurrent('details changes pane width without changing shared map geometry', () => {
   const model = navigationWorld()
   let state = initialState(model)
   state = reduceViewer(model, state, 'toggle-details')
@@ -18,17 +17,11 @@ test.concurrent('details changes pane width and the selection stays centred in e
   assert.equal(state.panes.details, false)
   assert.equal(reduceViewer(model, state, 'toggle-hierarchy').focus, 'hierarchy')
 
-  const centre = (viewport: Bounds) => {
-    const projection = projectWorld(model, { viewport, currentId: 'observed:alpha' })
-    const subject = projection.worldBounds.width <= viewport.width
-      ? projection.worldBounds
-      : projection.items.find(item => item.representationId === 'observed:alpha')!.worldBounds
-    return subject.x + subject.width / 2 - projection.camera.x
-  }
   const narrow = paneLayout(120, 36).mapViewport
   const wide = paneLayout(120, 36, { hierarchy: true, details: false }).mapViewport
-  assert.ok(Math.abs(centre(narrow) - narrow.width / 2) <= 1)
-  assert.ok(Math.abs(centre(wide) - wide.width / 2) <= 1)
+  const geometry = (viewport: typeof narrow) => projectWorld(model, { viewport, currentId: 'observed:alpha' })
+    .items.map(item => [item.key, item.worldBounds])
+  assert.deepEqual(geometry(narrow), geometry(wide))
 })
 
 test.concurrent('reading reserves 80 text columns when possible without changing saved pane choices', () => {

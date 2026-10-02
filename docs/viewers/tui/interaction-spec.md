@@ -6,7 +6,9 @@ root and container views. Human understanding of architecture, relationships
 and flows takes priority.
 
 When an architect opens `groma view`, they can follow architecture and work
-without losing their place. Web and TUI share meaning and work data, not geometry.
+without losing their place. Web 2D and TUI share nested map placement, relationships and work data.
+The terminal draws that placement as a plan sized for its text, zooms by opening one container
+at a time, and follows selection with its camera.
 
 ## Pane focus and reading
 
@@ -30,15 +32,18 @@ columns. On narrow terminals the reading pane uses the available width instead
 of keeping an unreadable map beside it. Closing it restores the normal layout.
 Reading every record row and returning from a file preserve the reading position.
 
-Neighbouring containers appear only as narrow edge strips. Their names read
-vertically at the left/right and horizontally above/below. The active container
-uses most of the map viewport; empty neighbouring interiors never take half of it.
+Neighbouring containers keep their side of the shared sheet. Entering a container
+opens it in place while its neighbours stay collapsed around it with their names
+and counts; it never redraws them as strips. Component names are centered in
+boxes. A quiet dotted grid sits on the ground around the islands.
 
 Use the real project at 120x36 and 200x60, then shrink an open view to 80x30:
 
 1. Open root, enter a container, navigate all four directions, and return.
-2. Move through central and edge cards. The camera follows within the displayed
-   map bounds. Cards, groups, routes and labels keep their world positions.
+2. Move through central and edge cards and across collapsed groups. The camera
+   follows within the displayed map bounds. Within one depth, cards, groups,
+   routes and labels keep their world positions; opening a group or container
+   animates into its new layout.
 3. Verify rectangle proximity: B is just right of A and overlaps its bottom by
    one terminal row; C is farther right. Right from A selects B.
 4. Move between map, hierarchy and details using explicit keys. Architecture
@@ -61,7 +66,7 @@ Use the real project at 120x36 and 200x60, then shrink an open view to 80x30:
    Read a record and a source file at 80 text columns on a wide terminal and at
    the available width on a narrow one, then return to the normal map layout.
 8. Distinguish systems, containers, groups and components using shape, frame
-   weight, spacing and glyphs. Every surface is plain. Solid versus dashed lines
+   weight and spacing. Islands and boxes are plain inside; the ground keeps the quiet grid. Solid versus dashed lines
    indicate origin, including group frames.
 
 9. Compare task file facts and their opened diffs: file status and line totals

@@ -1,89 +1,110 @@
 import assert from 'node:assert/strict'
 import { test } from 'bun:test'
 
-import { projectWorld } from '../src/viewers/tui/projection.ts'
-import { routeBetween } from '../src/viewers/tui/projection-routes.ts'
-import { box, mapViewportOf, uses, worldOf } from './helpers.ts'
+import { projectWorld, type ProjectedMapRoute, type TerminalProjection } from '../src/viewers/tui/projection.ts'
+import { terminalRoutes } from '../src/viewers/tui/projection-routes.ts'
+import { placeSheet } from '../src/viewers/tui/projection-sheet.ts'
+import type { Bounds, Point } from '../src/types.ts'
+import { box, largeWorldFixtureRoot, mapViewportOf, openclawFixtureRoot, terminalModel, uses, worldOf } from './helpers.ts'
 
-function assertOrthogonal(points: readonly { x: number; y: number }[]): void {
-  for (let index = 1; index < points.length; index += 1) {
-    const previous = points[index - 1]!
-    const point = points[index]!
-    assert.ok(previous.x === point.x || previous.y === point.y)
-  }
+const CELL = { x: 0, y: 0, width: 1, height: 1 }
+
+function twoSystems() {
+  return worldOf([
+    box('system', 'system', CELL, { children: ['observed:left', 'observed:other'] }),
+    box('left', 'container', CELL, { parent: 'observed:system', children: ['observed:a', 'observed:d'] }),
+    box('other', 'container', CELL, { parent: 'observed:system', children: ['observed:c'] }),
+    box('far', 'system', CELL, { children: ['observed:right'] }),
+    box('right', 'container', CELL, { parent: 'observed:far', children: ['observed:b'] }),
+    box('a', 'component', CELL, { parent: 'observed:left' }),
+    box('d', 'component', CELL, { parent: 'observed:left' }),
+    box('b', 'component', CELL, { parent: 'observed:right' }),
+    box('c', 'component', CELL, { parent: 'observed:other' }),
+  ], [uses('a-uses-b', 'a', 'b'), uses('d-uses-b', 'd', 'b'), uses('a-uses-c', 'a', 'c'), uses('c-uses-d', 'c', 'd'), uses('a-uses-d', 'a', 'd')])
 }
 
-test.concurrent('a route runs orthogonally from outside its source to outside its target', () => {
-  const source = { x: 0, y: 0, width: 10, height: 6 }
-  const target = { x: 30, y: 10, width: 10, height: 6 }
-  const route = routeBetween(source, target)
+function onFrame(point: Point, bounds: Bounds): boolean {
+  const right = bounds.x + bounds.width - 1
+  const bottom = bounds.y + bounds.height - 1
+  const side = (point.x === bounds.x || point.x === right) && point.y > bounds.y && point.y < bottom
+  const edge = (point.y === bounds.y || point.y === bottom) && point.x > bounds.x && point.x < right
+  return side || edge
+}
 
-  assertOrthogonal(route)
-  assert.equal(route[0]!.x, source.x + source.width)
-  assert.equal(route.at(-1)!.x, target.x - 1)
+function assertDrawable(route: ProjectedMapRoute, projection: TerminalProjection): void {
+  for (let index = 1; index < route.worldRoute.length; index += 1) {
+    const previous = route.worldRoute[index - 1]!
+    const point = route.worldRoute[index]!
+    assert.ok(previous.x === point.x || previous.y === point.y, 'every run is orthogonal')
+  }
+  const bounds = (key: string) => projection.items.find(item => item.key === key)!.worldBounds
+  assert.ok(onFrame(route.worldRoute[0]!, bounds(route.source)), 'the route leaves its source frame away from the corners')
+  assert.ok(onFrame(route.worldRoute.at(-1)!, bounds(route.target)), 'the route meets its target frame away from the corners')
+}
+
+test.concurrent('root routes join the drawn containers, one route carrying every relationship between them', () => {
+  const model = twoSystems()
+  const projection = projectWorld(model, { viewport: mapViewportOf({ width: 200, height: 60 }) })
+  const pairs = projection.relationships.map(route => [route.source, route.target, [...route.ids].sort()])
+  assert.deepEqual(pairs.sort(), [
+    ['observed:left', 'observed:other', ['a-uses-c', 'c-uses-d']],
+    ['observed:left', 'observed:right', ['a-uses-b', 'd-uses-b']],
+  ].sort())
+  assert.equal(projection.relationships.find(route => route.target === 'observed:other')?.twoWay, true)
+  assert.equal(projection.relationships.find(route => route.target === 'observed:right')?.twoWay, false)
+  for (const route of projection.relationships) assertDrawable(route, projection)
 })
 
-test.concurrent('routes avoid foreign cards and do not re-enter their endpoints', () => {
-  const source = { x: 0, y: 0, width: 10, height: 6 }
-  const target = { x: 40, y: 12, width: 10, height: 6 }
-  const foreign = { x: 15, y: 0, width: 20, height: 18 }
-  const route = routeBetween(source, target, [foreign])
-  assert.ok(route.length >= 3)
-  assertOrthogonal(route)
-  for (let index = 1; index < route.length; index += 1) {
-    const from = route[index - 1]!
-    const to = route[index]!
-    const length = Math.abs(to.x - from.x) + Math.abs(to.y - from.y)
-    for (let step = 0; step <= length; step += 1) {
-      const x = from.x + Math.sign(to.x - from.x) * step
-      const y = from.y + Math.sign(to.y - from.y) * step
-      assert.ok([source, target, foreign].every(box => x < box.x || x >= box.x + box.width || y < box.y || y >= box.y + box.height))
+test.concurrent('an open container routes its components exactly and its relationships outward to collapsed peers', () => {
+  const model = twoSystems()
+  const projection = projectWorld(model, { viewport: mapViewportOf({ width: 200, height: 60 }), level: 'components', currentId: 'observed:a' })
+  const pairs = projection.relationships.map(route => `${route.source} ${route.target}`).sort()
+  assert.deepEqual(pairs, [
+    'observed:a observed:d',
+    'observed:a observed:other',
+    'observed:a observed:right',
+    'observed:d observed:right',
+    'observed:other observed:d',
+  ])
+  for (const route of projection.relationships) assertDrawable(route, projection)
+})
+
+test.concurrent('projecting a depth leaves the shared sheet untouched', () => {
+  const model = twoSystems()
+  const original = structuredClone(model.sheet)
+  projectWorld(model, { viewport: mapViewportOf({ width: 120, height: 36 }), level: 'components', currentId: 'observed:d' })
+  assert.deepEqual(model.sheet, original)
+})
+
+test.concurrent('at every depth of real fixtures, routes end on their frames and never pass through a box', async () => {
+  for (const root of [openclawFixtureRoot, largeWorldFixtureRoot]) {
+    const model = await terminalModel(root)
+    const depths = [undefined, ...model.sheet.slabs.flatMap(slab => [
+      { container: slab.representationId, open: 'all' },
+      ...model.sheet.zones.filter(zone => zone.parent === slab.representationId).map(zone => ({ container: slab.representationId, open: zone.key })),
+    ])]
+    for (const depth of depths) {
+      const items = placeSheet(model, depth)
+      const bounds = new Map(items.map(item => [item.key, item.worldBounds]))
+      const boxes = items.filter(item => item.shape === 'card' || item.collapsed).map(item => item.worldBounds)
+      for (const route of terminalRoutes(model, items)) {
+        const where = `${route.source} -> ${route.target} at ${depth?.container ?? 'root'}`
+        assert.ok(onFrame(route.cells[0]!, bounds.get(route.source)!) && onFrame(route.cells.at(-1)!, bounds.get(route.target)!), where)
+        for (const cell of cellsOf(route.cells)) {
+          assert.ok(!boxes.some(box => cell.x > box.x && cell.x < box.x + box.width - 1 && cell.y > box.y && cell.y < box.y + box.height - 1), where)
+        }
+      }
     }
   }
 })
 
-test.concurrent('root routes promote hidden endpoints to their rows and skip rows of one island', () => {
-  const cell = { x: 0, y: 0, width: 1, height: 1 }
-  const model = worldOf([
-    box('system', 'system', cell, { children: ['observed:left', 'observed:other'] }),
-    box('left', 'container', cell, { parent: 'observed:system', children: ['observed:a'] }),
-    box('other', 'container', cell, { parent: 'observed:system', children: ['observed:c'] }),
-    box('far', 'system', cell, { children: ['observed:right'] }),
-    box('right', 'container', cell, { parent: 'observed:far', children: ['observed:b'] }),
-    box('a', 'component', cell, { parent: 'observed:left' }),
-    box('b', 'component', cell, { parent: 'observed:right' }),
-    box('c', 'component', cell, { parent: 'observed:other' }),
-  ], [uses('a-uses-b', 'a', 'b'), uses('a-uses-c', 'a', 'c')])
-
-  const projection = projectWorld(model, { viewport: mapViewportOf({ width: 120, height: 36 }) })
-  assert.equal(projection.relationships.length, 1)
-  const route = projection.relationships[0]!
-  assert.equal(route.source, 'observed:left')
-  assert.equal(route.target, 'observed:right')
-  assertOrthogonal(route.worldRoute)
-  const row = projection.items.find(item => item.representationId === 'observed:left')!.worldBounds
-  assert.ok(route.worldRoute[0]!.y >= row.y && route.worldRoute[0]!.y < row.y + row.height)
-})
-
-test.concurrent('repeated route promotion preserves the shared sheet and relationship identities', () => {
-  const cell = { x: 0, y: 0, width: 1, height: 1 }
-  const model = worldOf([
-    box('system', 'system', cell, { children: ['observed:left'] }),
-    box('left', 'container', cell, { parent: 'observed:system', children: ['observed:a', 'observed:c'] }),
-    box('far', 'system', cell, { children: ['observed:right'] }),
-    box('right', 'container', cell, { parent: 'observed:far', children: ['observed:b'] }),
-    box('a', 'component', cell, { parent: 'observed:left' }),
-    box('b', 'component', cell, { parent: 'observed:right' }),
-    box('c', 'component', cell, { parent: 'observed:left' }),
-  ], [uses('ab', 'a', 'b'), uses('cb', 'c', 'b')])
-  model.sheet.routes.find(route => route.id === 'ab')!.relationshipIds = ['ab', 'ba']
-  const original = structuredClone(model.sheet)
-  const options = { viewport: mapViewportOf({ width: 120, height: 36 }) }
-
-  const first = projectWorld(model, options)
-  const second = projectWorld(model, options)
-
-  assert.deepEqual(model.sheet, original)
-  assert.deepEqual(second.relationships, first.relationships)
-  assert.deepEqual(first.relationships.flatMap(route => route.ids).sort(), ['ab', 'ba', 'cb'])
-})
+function cellsOf(points: readonly Point[]): Point[] {
+  return points.slice(1).flatMap((point, index) => {
+    const from = points[index]!
+    const length = Math.abs(point.x - from.x) + Math.abs(point.y - from.y)
+    return Array.from({ length: length + 1 }, (_, step) => ({
+      x: from.x + Math.sign(point.x - from.x) * step,
+      y: from.y + Math.sign(point.y - from.y) * step,
+    }))
+  })
+}

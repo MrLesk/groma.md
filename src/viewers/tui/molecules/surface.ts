@@ -1,68 +1,76 @@
 import { TextAttributes } from '@opentui/core'
-import type { OptimizedBuffer, RGBA } from '@opentui/core'
+import type { OptimizedBuffer } from '@opentui/core'
 
-import { borderCharacters, drawBorder } from '../atoms/border.ts'
-import type { BorderCharacters } from '../atoms/border.ts'
-import { kindGlyph } from '../../atoms/kind.ts'
-import { text } from '../atoms/text.ts'
+import type { LineLook } from '../atoms/lines.ts'
+import { centred, text } from '../atoms/text.ts'
 import type { ViewerTheme } from '../atoms/theme.ts'
-import type { Bounds } from '../../../types.ts'
 import type { ProjectedMapItem } from '../projection.ts'
 
-/** Frame weight distinguishes zones, containers and root islands. */
-function frameWeight(item: ProjectedMapItem): number {
-  if (item.kind === 'group') return TextAttributes.DIM
-  return item.kind === 'container' ? 0 : TextAttributes.BOLD
+/** How lit a shape is: selected or a lit end draws in the accent, off a lit flow it recedes. */
+export interface ShapeState {
+  accented: boolean
+  selected: boolean
+  dimmed: boolean
 }
 
-/** A plain interior masks the routes and surfaces behind it. */
-export function fillSurface(buffer: OptimizedBuffer, item: ProjectedMapItem, viewport: Bounds, theme: ViewerTheme): void {
-  const bounds = item.cellBounds
-  const left = Math.max(bounds.x + 1, viewport.x)
-  const top = Math.max(bounds.y + 1, viewport.y)
-  const right = Math.min(bounds.x + bounds.width - 1, viewport.x + viewport.width)
-  const bottom = Math.min(bounds.y + bounds.height - 1, viewport.y + viewport.height)
-  if (right <= left || bottom <= top) return
-  buffer.fillRect(left, top, right - left, bottom - top, theme.background)
-}
+/** Which frame owns a cell two frames share: containers over islands over groups; anything lit over all three. */
+const RANK = { slab: 12, island: 11, group: 10, card: 20 } as const
 
-/** How a surface's frame and name draw: at its depth's weight, or heavy in the accent when selected or touched. */
-interface FrameLook {
-  characters: BorderCharacters
-  color: RGBA
-  attributes: number
-}
-
-function frameLook(item: ProjectedMapItem, theme: ViewerTheme, accented: boolean): FrameLook {
+/** Islands and zones stay quiet, containers carry the foreground; the selection draws heavy in the accent. */
+export function surfaceLook(item: ProjectedMapItem, theme: ViewerTheme, state: ShapeState): LineLook {
+  const lit = state.selected || state.accented
+  const resting = item.shape === 'slab' ? theme[item.origin] : theme.quiet
+  const receding = state.dimmed || item.shape === 'group'
   return {
-    characters: borderCharacters(item.origin, item.kind === 'group' ? 'zone' : 'surface', accented),
-    color: accented ? theme.selected : theme.foreground,
-    attributes: accented ? TextAttributes.BOLD : frameWeight(item),
+    color: lit ? theme.selected : resting,
+    attributes: lit ? TextAttributes.BOLD : receding ? TextAttributes.DIM : 0,
+    heavy: state.selected,
+    dashed: item.origin !== 'observed',
+    rounded: item.shape !== 'group',
+    rank: state.selected ? 30 : lit ? 25 : RANK[item.shape],
   }
 }
 
-/** The name and kind glyph right after the top corner; a zone shows its name alone, dim. */
-function drawSurfaceTitle(buffer: OptimizedBuffer, item: ProjectedMapItem, look: FrameLook, theme: ViewerTheme, viewport: Bounds): void {
-  const bounds = item.cellBounds
-  if (item.preview === 'vertical') {
-    const top = Math.max(bounds.y + 1, viewport.y)
-    const bottom = Math.min(bounds.y + bounds.height - 1, viewport.y + viewport.height)
-    const letters = [...item.title].slice(0, Math.max(0, bottom - top))
-    const y = top + Math.floor((bottom - top - letters.length) / 2)
-    for (const [index, letter] of letters.entries()) {
-      text(buffer, letter, bounds.x + 1, y + index, 1, look.color, theme.background, TextAttributes.DIM)
-    }
+/** The free stretch of a frame row nearest its middle that no route crosses. */
+function freeSpan(y: number, left: number, right: number, width: number, crossings: (x: number, y: number) => boolean): number | undefined {
+  const centre = Math.floor((left + right - width) / 2)
+  const clear = (start: number) => start >= left && start + width <= right
+    && Array.from({ length: width }, (_, offset) => crossings(start + offset, y)).every(crossed => !crossed)
+  const starts = Array.from({ length: right - left + 1 }, (_, shift) => [centre - shift, centre + shift]).flat()
+  return starts.find(clear)
+}
+
+/** An open surface writes its name into its front edge, as the web plan does below its boundary. */
+export function drawSurfaceName(
+  buffer: OptimizedBuffer,
+  item: ProjectedMapItem,
+  look: LineLook,
+  theme: ViewerTheme,
+  crossings: (x: number, y: number) => boolean,
+): void {
+  if (item.collapsed) {
+    drawCollapsed(buffer, item, look, theme)
     return
   }
-  // A zone and the shared actors and external islands show their name alone.
-  const title = item.kind === 'group' || item.representationId === undefined ? item.title : `${kindGlyph(item.kind)} ${item.title}`
-  const attributes = item.kind === 'group' ? TextAttributes.DIM : TextAttributes.BOLD
-  text(buffer, ` ${title} `, bounds.x + 1, bounds.y, Math.max(0, bounds.width - 2), look.color, theme.background, attributes)
+  const bounds = item.cellBounds
+  const name = ` ${item.title} `
+  const width = [...name].length
+  const y = bounds.y + bounds.height - 1
+  // Names always show; one that no free stretch fits covers the crossing instead.
+  const start = freeSpan(y, bounds.x + 2, bounds.x + bounds.width - 2, width, crossings)
+    ?? bounds.x + Math.floor((bounds.width - width) / 2)
+  const attributes = item.shape === 'group' ? look.attributes : look.attributes | TextAttributes.BOLD
+  const color = item.shape === 'group' || look.color === theme.selected ? look.color : theme[item.origin]
+  text(buffer, name, start, y, width, color, theme.background, attributes)
 }
 
-/** The frame at its look, then the name. */
-export function drawSurfaceFrame(buffer: OptimizedBuffer, item: ProjectedMapItem, theme: ViewerTheme, accented: boolean, viewport: Bounds): void {
-  const look = frameLook(item, theme, accented)
-  drawBorder(buffer, item.cellBounds, look.characters, look.color, theme.background, look.attributes)
-  drawSurfaceTitle(buffer, item, look, theme, viewport)
+/** A collapsed container or group: its name over its count, like a building that stands for its contents. */
+function drawCollapsed(buffer: OptimizedBuffer, item: ProjectedMapItem, look: LineLook, theme: ViewerTheme): void {
+  const bounds = item.cellBounds
+  if (bounds.height < 4 || bounds.width < 5) return
+  const top = bounds.y + Math.floor((bounds.height - 2) / 2)
+  const lit = look.color === theme.selected
+  const name = lit ? theme.selected : item.shape === 'group' ? theme.foreground : theme[item.origin]
+  centred(buffer, item.title, bounds.x + 2, top, bounds.width - 4, name, theme.background, item.shape === 'group' ? 0 : TextAttributes.BOLD)
+  centred(buffer, item.note ?? '', bounds.x + 2, top + 1, bounds.width - 4, theme.quiet, theme.background)
 }

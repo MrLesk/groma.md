@@ -65,12 +65,12 @@ title: Architecture relationships
 | [src/scanner/source-watch.ts](../src/scanner/source-watch.ts) | [src/cli.ts](../src/cli.ts) | Invokes supplied callback: onError | typescript |
 | [src/scanner/source-watch.ts](../src/scanner/source-watch.ts) | [src/scanner.ts](../src/scanner.ts) | Invokes supplied callback: onObservations | typescript |
 | [src/scanner/source-watch.ts](../src/scanner/source-watch.ts) | [src/scanner/session.ts](../src/scanner/session.ts) | Invokes supplied callbacks: onError, onObservations | typescript |
-| [src/viewers/tui/panes/screen.ts](../src/viewers/tui/panes/screen.ts) | [src/viewers/tui/terminal-viewer.ts](../src/viewers/tui/terminal-viewer.ts) | Invokes supplied callbacks: onHierarchyRow, onMapCell | typescript |
+| [src/viewers/tui/panes/screen.ts](../src/viewers/tui/panes/screen.ts) | [src/viewers/tui/terminal-viewer.ts](../src/viewers/tui/terminal-viewer.ts) | Invokes supplied callbacks: onHierarchyRow, onMapCell, onMapPan | typescript |
 | [src/viewers/web/atoms/settings-dialog.ts](../src/viewers/web/atoms/settings-dialog.ts) | [src/viewers/web/review/control.ts](../src/viewers/web/review/control.ts) | Invokes supplied callback: onClose | typescript |
 | [src/viewers/web/authoring.ts](../src/viewers/web/authoring.ts) | [src/viewers/web/render.ts](../src/viewers/web/render.ts) | Invokes supplied callbacks: live, world | typescript |
 | [src/viewers/web/iso/camera/layer.ts](../src/viewers/web/iso/camera/layer.ts) | [src/viewers/web/iso/painting/map.ts](../src/viewers/web/iso/painting/map.ts) | Invokes supplied callbacks: drawCamera, moveStarted, settled | typescript |
 | [src/viewers/web/iso/camera/pointer.ts](../src/viewers/web/iso/camera/pointer.ts) | [src/viewers/web/render.ts](../src/viewers/web/render.ts) | Invokes supplied callbacks: editProject, orbit, orbiting, select | typescript |
-| [src/viewers/web/iso/camera/session.ts](../src/viewers/web/iso/camera/session.ts) | [src/viewers/web/render.ts](../src/viewers/web/render.ts) | Invokes supplied callbacks: bounds, frame, move | typescript |
+| [src/viewers/web/iso/camera/session.ts](../src/viewers/web/iso/camera/session.ts) | [src/viewers/web/render.ts](../src/viewers/web/render.ts) | Invokes supplied callbacks: bounds, focus, frame, move | typescript |
 | [src/viewers/web/review/control.ts](../src/viewers/web/review/control.ts) | [src/viewers/web/render.ts](../src/viewers/web/render.ts) | Invokes supplied callback: world | typescript |
 | [src/viewers/web/search/session.ts](../src/viewers/web/search/session.ts) | [src/viewers/web/render.ts](../src/viewers/web/render.ts) | Invokes supplied callbacks: anchorOf, apply, openTask, previewMap, snapshot, taskElements | typescript |
 | [src/viewers/web/source/control.ts](../src/viewers/web/source/control.ts) | [src/viewers/web/render.ts](../src/viewers/web/render.ts) | Invokes supplied callbacks: comparison, element, from, repaint, revision | typescript |

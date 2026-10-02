@@ -25,7 +25,8 @@ export function paintMap(
     step: ProjectedFlowStep | undefined
     workFocus?: WorkFocus
     workList?: WorkListSettings
-    animationPhase: number
+    /** Advances while a lit flow pulses; absent keeps the map still. */
+    animationPhase?: number
   },
 ): void {
   buffer.clear(theme.background)
@@ -43,6 +44,6 @@ export function paintMap(
     work: world.flows.some(flow => flow.id === options.lit.id)
       ? { corners: [], touched: new Set() }
       : projectWork(world, projection, options.workFocus, options.workList),
-    animationPhase: options.animationPhase,
+    ...(options.animationPhase === undefined ? {} : { animationPhase: options.animationPhase }),
   })
 }

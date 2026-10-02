@@ -4,7 +4,6 @@ import { test } from 'bun:test'
 import type { TerminalViewModel } from '../src/viewers/tui/model.ts'
 import { canEnter, enterView } from '../src/viewers/tui/navigation-spatial.ts'
 import { initialState, reduceViewer, type MapDirection, type ViewerState } from '../src/viewers/tui/navigation.ts'
-import { encloses, type TerminalCamera } from '../src/viewers/tui/projection-camera.ts'
 import { paintedWorld } from '../src/viewers/tui/organisms/world.ts'
 import { routeTouches, visibleIn } from '../src/viewers/tui/projection-camera.ts'
 import { mapAnchors, projectWorld } from '../src/viewers/tui/projection.ts'
@@ -35,18 +34,18 @@ function reachableByArrows(world: TerminalViewModel, start: ViewerState): Set<st
 }
 
 
-test.concurrent('arrow keys reach every element of the root map and of every container map', async () => {
+test.concurrent('arrow keys reach every box of the root map and every component of every container', async () => {
   const world = structuredClone(await template)
   const root = initialState(world)
-  const rootAnchors = [...mapAnchors(world, 'context', undefined, root.mapWidth).keys()]
+  const rootAnchors = [...mapAnchors(world, 'context', undefined, root.mapSize).keys()]
   const rootReached = reachableByArrows(world, root)
   assert.deepEqual(rootAnchors.filter(id => !rootReached.has(id)), [])
 
   for (const container of world.elements.filter(canEnter)) {
     const start = { ...root, ...enterView(world, container) }
-    const anchors = [...mapAnchors(world, 'components', start.currentId, start.mapWidth).keys()]
     const reached = reachableByArrows(world, start)
-    assert.deepEqual(anchors.filter(id => !reached.has(id)), [], `container ${container.id}`)
+    // Collapsed groups open as the arrows reach them, so every component is reachable.
+    assert.deepEqual(container.children.filter(id => !reached.has(id)), [], `container ${container.id}`)
   }
 })
 
@@ -69,37 +68,24 @@ test.concurrent('a route is painted when a segment crosses the viewport, not whe
   assert.equal(routeTouches(around, viewport), false)
 })
 
-test.concurrent('arrow navigation keeps root framing and bounds component follow', async () => {
+test.concurrent('arrow navigation keeps the selection visible and moves no shape within one depth', async () => {
   const world = structuredClone(await template)
   const viewport = { x: 0, y: 0, width: 100, height: 20 }
-  let state = { ...initialState(world), mapWidth: viewport.width }
-  let camera: TerminalCamera | undefined
+  let state = initialState(world)
   let previousProjection: ReturnType<typeof projectWorld> | undefined
   const walk = ['down', 'down', 'down', 'right', 'right', 'down', 'down', 'down', 'down', 'down', 'down', 'up', 'left', 'enter',
     'right', 'right', 'right', 'right', 'right', 'down', 'down', 'right', 'right', 'up', 'left', 'left', 'left', 'left', 'left', 'left', 'left'] as const
   for (const action of walk) {
-    const before = state
-    state = reduceViewer(world, state, action)
-    if (state.level !== before.level) camera = undefined
-    const projection = projectWorld(world, { viewport, level: state.level, currentId: state.currentId, camera })
+    state = reduceViewer(world, { ...state, mapSize: viewport }, action)
+    const projection = projectWorld(world, { viewport, level: state.level, currentId: state.currentId, camera: previousProjection?.camera })
     const selected = projection.items.find(item => item.representationId === projection.currentId)!
-    const holder = projection.items.find(item => (item.shape === 'island' || item.shape === 'slab') && encloses(item.worldBounds, selected.worldBounds))!
-    if (state.level === 'components') {
-      const bounds = projection.worldBounds
-      assert.ok(projection.camera.x >= bounds.x && projection.camera.x + viewport.width <= bounds.x + bounds.width)
-      assert.ok(projection.camera.y >= bounds.y && projection.camera.y + viewport.height <= bounds.y + bounds.height)
-    } else if (projection.worldBounds.width > viewport.width) {
-      assert.ok(Math.abs(holder.cellBounds.x + holder.cellBounds.width / 2 - viewport.width / 2) <= 1, `${action}: ${holder.title} off centre`)
+    const bounds = projection.worldBounds
+    if (bounds.width > viewport.width) assert.ok(projection.camera.x >= bounds.x && projection.camera.x + viewport.width <= bounds.x + bounds.width)
+    if (bounds.height > viewport.height) assert.ok(projection.camera.y >= bounds.y && projection.camera.y + viewport.height <= bounds.y + bounds.height)
+    assert.ok(visibleIn(selected.cellBounds, viewport), `${action}: ${selected.title} hidden`)
+    if (previousProjection?.depth === projection.depth) {
+      assert.deepEqual(projection.items.map(item => [item.key, item.worldBounds]), previousProjection.items.map(item => [item.key, item.worldBounds]))
     }
-    assert.ok(selected.cellBounds.y >= 0 && selected.cellBounds.y + selected.cellBounds.height <= viewport.height, `${action}: ${selected.title} hidden`)
-    if (previousProjection?.scope === projection.scope) {
-      assert.deepEqual(
-        projection.items.map(item => [item.key, item.worldBounds]),
-        previousProjection.items.map(item => [item.key, item.worldBounds]),
-        `${action}: world layout moved`,
-      )
-    }
-    camera = projection.camera
     previousProjection = projection
   }
 })

@@ -8,11 +8,13 @@ import {
   initialState,
   litAction,
   reduceViewer,
+  selectMapItem,
   type ViewerState,
 } from '../src/viewers/tui/navigation.ts'
 import { reduceSearch } from '../src/viewers/tui/navigation-search.ts'
 import { selectedWorkId } from '../src/viewers/tui/work/model.ts'
 import { nearestInDirection } from '../src/viewers/tui/navigation-spatial.ts'
+import { itemAt, projectWorld } from '../src/viewers/tui/projection.ts'
 import { taskRecordView } from '../src/viewers/tui/panes/details.ts'
 import { detailsContentWidth } from '../src/viewers/tui/layout.ts'
 import { viewerTheme } from '../src/viewers/tui/atoms/theme.ts'
@@ -45,7 +47,32 @@ function actionWorld() {
   ])
 }
 
-/** Four buildings that wrap into two lines of two at a 40-column map. */
+test.concurrent('a map click selects the innermost drawn box, and a collapsed group opens on its first member', () => {
+  const model = navigationWorld()
+  const state = initialState(model)
+  const root = projectWorld(model, { viewport: { x: 0, y: 0, width: 120, height: 36 }, currentId: state.currentId })
+  const container = root.items.find(item => item.representationId === 'observed:cleft')!.cellBounds
+  const hit = itemAt(root.items, container.x + 1, container.y + 1)!
+  assert.equal(hit.representationId, 'observed:cleft', 'the collapsed container wins over its system island')
+  const opened = reduceViewer(model, selectMapItem(model, state, hit.representationId!), 'enter')
+  const inside = projectWorld(model, { viewport: { x: 0, y: 0, width: 120, height: 36 }, level: opened.level, currentId: opened.currentId })
+  const card = inside.items.find(item => item.representationId === 'observed:pmid')!.cellBounds
+  const picked = selectMapItem(model, opened, itemAt(inside.items, card.x + 1, card.y + 1)!.representationId!)
+  assert.deepEqual([picked.level, picked.currentId], ['components', 'observed:pmid'])
+
+  const grouped = worldOf([
+    box('system', 'system', { x: 0, y: 0, width: 1, height: 1 }, { children: ['observed:service'] }),
+    box('service', 'container', { x: 0, y: 0, width: 1, height: 1 }, { parent: 'observed:system', children: ['observed:read', 'observed:write'] }),
+    box('read', 'component', { x: 0, y: 0, width: 1, height: 1 }, { parent: 'observed:service', group: 'Queries' }),
+    box('write', 'component', { x: 0, y: 0, width: 1, height: 1 }, { parent: 'observed:service', group: 'Commands' }),
+  ])
+  const narrow = projectWorld(grouped, { viewport: { x: 0, y: 0, width: 20, height: 8 }, level: 'components', currentId: 'observed:read' })
+  const group = narrow.items.find(item => item.members?.includes('observed:write'))!.cellBounds
+  const member = itemAt(narrow.items, group.x + 1, group.y + 1)!
+  assert.deepEqual(member.members, ['observed:write'], 'the collapsed group wins over the open container behind it')
+})
+
+/** Four buildings in two rows of two on the shared sheet. */
 function laneNavigationWorld() {
   const ids = ['a', 'b', 'c', 'd']
   const cell = { x: 0, y: 0, width: 1, height: 1 }
@@ -60,41 +87,7 @@ function laneNavigationWorld() {
       ...model.sheet,
       buildings: model.sheet.buildings.map(building => ({
         ...building,
-        rect: { gx: ids.indexOf(building.id) * 10, gy: 0, w: 6, d: 4 },
-      })),
-    },
-  }
-}
-
-function containmentNavigationWorld() {
-  const model = worldOf([
-    box('system', 'system', { x: 0, y: 0, width: 1, height: 1 }, {
-      children: ['observed:upper', 'observed:lower'],
-    }),
-    box('upper', 'container', { x: 0, y: 0, width: 1, height: 1 }, {
-      parent: 'observed:system',
-    }),
-    box('lower', 'container', { x: 0, y: 0, width: 1, height: 1 }, {
-      parent: 'observed:system',
-    }),
-    box('north', 'system', { x: 0, y: 0, width: 1, height: 1 }),
-    box('south', 'system', { x: 0, y: 0, width: 1, height: 1 }),
-    box('actor', 'actor', { x: 0, y: 0, width: 1, height: 1 }),
-    box('external', 'system', { x: 0, y: 0, width: 1, height: 1 }, { external: true }),
-  ])
-  return {
-    ...model,
-    sheet: {
-      ...model.sheet,
-      islands: model.sheet.islands.map(island => {
-        const gx = { actors: 0, north: 20, system: 40, south: 60, external: 80 }[island.element?.id ?? island.kind]
-        return gx === undefined ? island : { ...island, rect: { ...island.rect, gx, gy: 0 } }
-      }),
-      slabs: model.sheet.slabs.map(slab => ({
-        ...slab,
-        rect: slab.id === 'upper'
-          ? { gx: 22, gy: 24, w: 18, d: 14 }
-          : { gx: 22, gy: 70, w: 37, d: 14 },
+        rect: { gx: (ids.indexOf(building.id) % 2) * 10, gy: Math.floor(ids.indexOf(building.id) / 2) * 8, w: 6, d: 4 },
       })),
     },
   }
@@ -151,7 +144,7 @@ test.concurrent('map edges preserve map focus until an explicit pane key', () =>
 
 test.concurrent('container arrows select only buildings in the pressed direction', () => {
   const model = laneNavigationWorld()
-  const state: ViewerState = { ...initialState(model), level: 'components', currentId: 'observed:a', mapWidth: 40 }
+  const state: ViewerState = { ...initialState(model), level: 'components', currentId: 'observed:a' }
 
   assert.equal(reduceViewer(model, state, 'right').currentId, 'observed:b')
   assert.equal(reduceViewer(model, state, 'down').currentId, 'observed:c')
@@ -165,24 +158,21 @@ test.concurrent('container arrows select only buildings in the pressed direction
   assert.equal(noRightCandidate.focus, 'architecture')
 })
 
-test.concurrent('root arrows walk the rows of an island and cross to its neighbours', () => {
-  const model = containmentNavigationWorld()
-  const start: ViewerState = { ...initialState(model), currentId: 'observed:lower' }
-
-  const up = reduceViewer(model, start, 'up')
-  assert.equal(up.currentId, 'observed:upper')
-  const island = reduceViewer(model, up, 'up')
-  assert.equal(island.currentId, 'observed:system')
-  assert.equal(reduceViewer(model, island, 'up').currentId, 'observed:system')
-  assert.equal(reduceViewer(model, island, 'down').currentId, 'observed:upper')
-  assert.equal(reduceViewer(model, start, 'down').currentId, 'observed:lower')
-
+test.concurrent('root arrows choose the nearest box that way across the islands of the shared map', () => {
+  const model = navigationWorld()
+  const viewport = { x: 0, y: 0, width: 200, height: 60 }
+  const root = projectWorld(model, { viewport })
+  const bounds = (id: string) => root.items.find(item => item.representationId === id)!.worldBounds
+  const start: ViewerState = { ...initialState(model), currentId: 'observed:cleft' }
   const west = reduceViewer(model, start, 'left')
-  assert.equal(west.currentId, 'observed:north')
-  assert.equal(reduceViewer(model, west, 'left').currentId, 'observed:actor')
+  assert.equal(west.currentId, 'observed:ann')
   const east = reduceViewer(model, start, 'right')
-  assert.equal(east.currentId, 'observed:south')
-  assert.equal(reduceViewer(model, east, 'right').currentId, 'observed:external')
+  assert.equal(east.currentId, 'observed:cright')
+  assert.ok(bounds('observed:cright').x >= bounds('observed:cleft').x + bounds('observed:cleft').width)
+  const empty = reduceViewer(model, east, 'right')
+  assert.equal(empty.currentId, 'observed:empty', 'a system with nothing on it is a stop of its own')
+  assert.equal(reduceViewer(model, empty, 'right').currentId, 'observed:cfar')
+  assert.equal(reduceViewer(model, west, 'right').currentId, 'observed:cleft')
 })
 
 test.concurrent('Escape returns to the map without changing pane visibility, scope or selection', () => {
@@ -369,4 +359,15 @@ test.concurrent('How navigates declarations while What follows a selected relati
   state = reduceViewer(model, state, 'enter')
   assert.equal(state.activeActionId, 'read')
   assert.equal(state.currentId, 'observed:ann')
+})
+
+test.concurrent('a newly opened element starts on its first details tab while a key that keeps the selection keeps the tab', () => {
+  const model = navigationWorld()
+  const onHow: ViewerState = { ...initialState(model), level: 'components', currentId: 'observed:pleft', detailsTab: 'how' }
+  const neighbour = reduceViewer(model, onHow, 'right')
+  assert.equal(neighbour.currentId, 'observed:pmid')
+  assert.equal(neighbour.detailsTab, 'what')
+  const stayed = reduceViewer(model, onHow, 'up')
+  assert.equal(stayed.currentId, 'observed:pleft')
+  assert.equal(stayed.detailsTab, 'how')
 })

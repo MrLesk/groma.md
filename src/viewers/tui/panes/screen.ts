@@ -58,7 +58,12 @@ export interface ScreenHandlers {
   onHierarchyRow(id: string): void
   /** A click on the map, in the map's own cells. */
   onMapCell(x: number, y: number): void
+  /** The wheel or a drag moved the map by this many cells. */
+  onMapPan(dx: number, dy: number): void
 }
+
+/** Cells one wheel notch moves the map: columns are narrower than rows are tall. */
+const WHEEL = { x: 6, y: 3 }
 
 const noFill = { shouldFill: false } as const
 
@@ -162,13 +167,29 @@ export function mountScreen(renderer: CliRenderer, theme: ViewerTheme, handlers:
   const mapBox = new BoxRenderable(renderer, {
     flexGrow: 1, height: '100%', flexDirection: 'column', border: true, borderStyle: 'rounded', borderColor: theme.selected, ...noFill,
   })
+  let dragFrom: { x: number; y: number } | undefined
   const map = new FrameBufferRenderable(renderer, {
     width: 1,
     height: 1,
     flexGrow: 1,
     onSizeChange: handlers.onMapResize,
     onMouseDown(event) {
+      dragFrom = { x: event.x, y: event.y }
       handlers.onMapCell(event.x - map.x, event.y - map.y)
+    },
+    onMouseDrag(event) {
+      if (dragFrom !== undefined) handlers.onMapPan(dragFrom.x - event.x, dragFrom.y - event.y)
+      dragFrom = { x: event.x, y: event.y }
+    },
+    onMouseUp() {
+      dragFrom = undefined
+    },
+    onMouseScroll(event) {
+      const direction = event.scroll?.direction
+      const sideways = direction === 'left' || direction === 'right' || event.modifiers.shift
+      const sign = direction === 'up' || direction === 'left' ? -1 : 1
+      if (sideways) handlers.onMapPan(sign * WHEEL.x, 0)
+      else handlers.onMapPan(0, sign * WHEEL.y)
     },
   })
   map.width = '100%'
