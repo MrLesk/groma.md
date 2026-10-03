@@ -77,7 +77,6 @@ export function leaveSource(host: HTMLElement): void {
 }
 
 export const sourceCss = `
-  #details.file-open { background: var(--paper); backdrop-filter: none; }
   #details .file-stepper { display: flex; align-items: center; gap: 4px; flex: none; font-variant-numeric: tabular-nums; }
   #details .file-stepper span { white-space: nowrap; }
 
