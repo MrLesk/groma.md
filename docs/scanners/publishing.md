@@ -104,21 +104,23 @@ bun scripts/scanner-release.ts catalog /tmp/scanner-release
 bun run build
 ```
 
-The catalog command reads each exact version back from npm and fails if it is
-not published. It embeds those published detection rules into the build checkout.
+The catalog command waits for each exact version to appear in npm, then embeds
+its published detection rules into the build checkout. It checks missing versions
+every ten seconds, with one thirty-minute wait limit shared by the complete catalog.
+Registry request errors stop the command immediately.
 At installation time, groma.md resolves a suitable release from npm again; it never
 uses a development manifest version as proof of availability. Publishing
 never silently changes an existing project's recorded scanner selection.
 
-A newly accepted npm upload may take time to appear in registry reads. If the
-catalog step reports a missing version immediately after successful publication,
-confirm that exact version is visible with `npm view <package>@<version> version`,
-then rerun the failed workflow jobs. Keep the existing release and package versions.
+A newly accepted npm upload may take time to appear in registry reads. The catalog
+waits automatically for that delay. If it reaches its wait limit, confirm that the
+missing exact version is visible with `npm view <package>@<version> version`, then
+rerun the failed workflow jobs. Keep the existing release and package versions.
 
 Record exact public package versions, built targets, manually exercised targets,
 and the fresh-install and second-checkout restore results in the release task.
-The existing Java/Angular/TypeScript acceptance project is `../callforpapers`;
-use a disposable source-only copy and record its revision and scanner versions.
+Use a disposable source-only copy of the existing Java/Angular/TypeScript acceptance
+project and record its revision and scanner versions.
 Each release host runs the packaged fresh-checkout suite before uploading:
 
 ```sh
