@@ -33,9 +33,12 @@
   <a href="https://mrlesk.github.io/groma.md/architecture/auto/"><img src=".github/assets/explore-live-map.svg" alt="Explore the live map" width="232" height="48"></a>
 </p>
 
-groma.md scans your code into a first [C4](https://c4model.com) architecture map. Your coding agent curates it into the architecture you would explain to a new teammate, and the map stays open while you and your agents work. Save a file and the map updates. Work on a [Backlog.md](https://github.com/MrLesk/Backlog.md) task and it appears pinned to the components it touches. Everything is plain Markdown in your repository, so architecture changes are reviewed in the same pull request as the code.
+groma.md scans your code into a first [C4](https://c4model.com) architecture map. You can curate it into the architecture you would explain to a new teammate, either yourself or with your coding agent. The map stays open while you work. Save a file and the map updates. Work on a [Backlog.md](https://github.com/MrLesk/Backlog.md) task and it appears pinned to the components it touches. Everything is plain Markdown in your repository, so architecture changes are reviewed in the same pull request as the code.
 
-Free, MIT-licensed, and local. No account or backend, and groma.md itself calls no AI service: curation uses the coding agent you already work with.
+> [!NOTE]
+> groma.md is free, MIT-licensed, and runs locally with no account or backend. Scans run offline once the scanners are installed. They use deterministic code analysis (fixed rules) and call no AI service. The initial map is limited to what the scanners can detect.
+>
+> We recommend reviewing and curating the map at least once after the first scan to check its names, responsibilities, boundaries, and relationships. You can do this yourself with groma.md's commands, or ask your coding agent to help and review its changes. **You can use groma.md entirely without AI.**
 
 Want automatic architecture diffs on your PRs? **[Add them to your repository.](https://github.com/MrLesk/groma.md-action/pull/4)**
 
@@ -43,13 +46,13 @@ Want automatic architecture diffs on your PRs? **[Add them to your repository.](
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/assets/workflow-dark.png">
     <source media="(prefers-color-scheme: light)" srcset=".github/assets/workflow-light.png">
-    <img src=".github/assets/workflow-light.png" alt="groma.md scans your repository with a deterministic scan into a first map, a starting point. Your coding agent curates it: it names, merges and connects components into your architecture, stored as C4 Markdown in Git. The map stays live as your code changes, and later scans keep your agent's work." width="100%">
+    <img src=".github/assets/workflow-light.png" alt="groma.md scans your repository with a deterministic scan into a first map, a starting point. You or your coding agent curate it: name, merge and connect components into your architecture, stored as C4 Markdown in Git. The map stays live as your code changes, and later scans keep your curation." width="100%">
   </picture>
 </p>
 
 ## Get started
 
-Three steps. The scan gives you a first map; your agent turns it into your architecture.
+Three steps. Scan your code, then review and curate the map yourself or with your coding agent.
 
 ### 1. Install
 
@@ -66,17 +69,17 @@ cd your-repo
 groma web     # browser map on http://localhost:4747
 ```
 
-On a new project, `groma web` walks you through project setup and scanner selection, then runs the first scan. The scan is deterministic: it turns your source into components and the relationships a scanner can detect. That first map is a starting point you can recognize and navigate, not your architecture yet.
+On a new project, `groma web` walks you through project setup and scanner selection, then runs the first scan and opens the map.
 
-### 3. Curate with your agent
+### 3. Review and curate
 
-Your coding agent turns the first scan into architecture. It reads the code, names responsibilities, merges records that belong together, and adds the relationships the scanner cannot see. Keep the map open while it works: every change it makes appears on the map. Ask your agent:
+Compare the map with your code and your knowledge of the system. Name responsibilities, combine records that belong together, and add missing descriptions and relationships. Run `groma instructions` for the human guides and use `--help` for each command. Keep the map open while you work: your changes appear on it. If you use a coding agent, you can ask it:
 
 ```text
 Read the current groma.md architecture with `groma agent-instructions` and `groma view --plain`. Compare it with the source code, then annotate the architecture so it reflects the code: combine records that share a responsibility, add missing overviews and relationships, and keep Backlog.md task links current. Use groma.md's CLI for architecture changes, then summarize what you changed.
 ```
 
-Setup registers groma.md in your `AGENTS.md` or `CLAUDE.md`, so your agent knows where to start. Later scans keep what your agent wrote.
+Setup registers groma.md in your `AGENTS.md` or `CLAUDE.md`, so your agent knows where to start. Later scans keep your curation, whether you or an agent made the changes.
 
 ## Work with your agent
 
@@ -132,7 +135,7 @@ groma.md keeps the architecture live. Your agent's curation is saved as Markdown
 
 > ### Does groma.md send my code anywhere?
 
-No. groma.md runs on your machine and needs no account. It reads your repository, writes Markdown into it, and serves the map on localhost. It calls no AI service; curation runs in the coding agent you already use. Its only network requests look up and download the scanner packages you install.
+No. groma.md runs on your machine and needs no account. It reads your repository, writes Markdown into it, and serves the map on localhost. It calls no AI service. You can curate the map yourself; if you use a coding agent, check how that agent handles your code. groma.md's only network requests look up and download the scanner packages you install.
 
 > ### Won't the next scan overwrite what my agent wrote?
 
