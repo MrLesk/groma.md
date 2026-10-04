@@ -35,11 +35,6 @@
 
 groma.md scans your code into a first [C4](https://c4model.com) architecture map. You can curate it into the architecture you would explain to a new teammate, either yourself or with your coding agent. The map stays open while you work. Save a file and the map updates. Work on a [Backlog.md](https://github.com/MrLesk/Backlog.md) task and it appears pinned to the components it touches. Everything is plain Markdown in your repository, so architecture changes are reviewed in the same pull request as the code.
 
-> [!NOTE]
-> groma.md is free, MIT-licensed, and runs locally with no account or backend. Scans run offline once the scanners are installed. They use deterministic code analysis (fixed rules) and call no AI service. The initial map is limited to what the scanners can detect.
->
-> We recommend reviewing and curating the map at least once after the first scan to check its names, responsibilities, boundaries, and relationships. You can do this yourself with groma.md's commands, or ask your coding agent to help and review its changes. **You can use groma.md entirely without AI.**
-
 Want automatic architecture diffs on your PRs? **[Add them to your repository.](https://github.com/MrLesk/groma.md-action/pull/4)**
 
 <p align="center">
@@ -49,6 +44,11 @@ Want automatic architecture diffs on your PRs? **[Add them to your repository.](
     <img src=".github/assets/workflow-light.png" alt="groma.md scans your repository with a deterministic scan into a first map, a starting point. You or your coding agent curate it: name, merge and connect components into your architecture, stored as C4 Markdown in Git. The map stays live as your code changes, and later scans keep your curation." width="100%">
   </picture>
 </p>
+
+> [!NOTE]
+> groma.md is free, MIT-licensed, and runs locally with no account or backend. Scans run offline once the scanners are installed. They use deterministic code analysis (fixed rules) and call no AI service. The initial map is limited to what the scanners can detect.
+>
+> We recommend reviewing and curating the map at least once after the first scan to check its names, responsibilities, boundaries, and relationships. You can do this yourself with groma.md's commands, or ask your coding agent to help and review its changes. **You can use groma.md entirely without AI.**
 
 ## Get started
 
