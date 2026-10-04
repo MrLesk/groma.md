@@ -192,8 +192,8 @@ function topologicalOrder(constraints: readonly Constraint[], links: Links): num
  */
 function spacings(items: readonly Item[], constraints: readonly Constraint[], links: Links, order: readonly number[]): number[] {
   const gaps = constraints.map(constraint => constraint.spaced ? BUNDLE_SPACING : 0)
-  // Each round shrinks the chains that are still too tight; a few rounds settle every map, 16 only bounds the loop.
-  for (let round = 0; round < 16; round += 1) {
+  // Shared chains can need many rounds; stop when no gap can shrink further.
+  for (;;) {
     const { earliest, via } = earliestPositions(items, constraints, order, links.incoming, gaps)
     const tight = constraints.flatMap((constraint, index) => !movable(items[constraint.right]!)
       && earliest[constraint.left]! + gaps[index]! > items[constraint.right]!.at + EPSILON ? [index] : [])
