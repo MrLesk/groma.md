@@ -9,7 +9,7 @@ import { createScanObservation, type ScanOperation } from '@groma/scanner'
 import { addScanner } from '../src/scanner/modules/inventory.ts'
 import manifest from '../plugins/scanners/typescript/package.json'
 import { scanTypeScriptSource } from '../plugins/scanners/typescript/src/scan.ts'
-import { copiesOf, detectDuplicatedLogic, findingsForOwner, rememberArchitectureFindings } from '../src/architecture-findings.ts'
+import { copiesOf, detectDuplicatedLogic, findingsForOwner, prepareArchitectureFindings, rememberArchitectureFindings } from '../src/architecture-findings.ts'
 
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import { scanRepository } from '../src/scanner.ts'
@@ -146,6 +146,12 @@ test.concurrent('a body is not a copy of a helper it declares, while bodies on o
     new Map<string, string>())).toEqual([])
   expect(detectDuplicatedLogic([observation([at('describe', 1, 1, describe), at('help', 1, 1, ruleTokens)])],
     new Map<string, string>())[0]?.match).toBe('similar')
+  const copied = detectDuplicatedLogic([observation([
+    at('describe', 1, 12, describe), at('help', 2, 6, ruleTokens),
+    operation('src/b.ts', 'independentHelp', ruleTokens),
+  ])], new Map<string, string>())
+  expect(copied).toHaveLength(1)
+  expect(namesOf(copied[0]!)).toEqual(['describe', 'help', 'independentHelp'])
 })
 
 test.concurrent('unrelated computation is not clustered with readiness', () => {
@@ -260,15 +266,22 @@ test.concurrent('duplicate comparisons retain the similarity threshold and unequ
   expect(findingsFor([shorter, spread('abcdefghijklmno')])).toEqual([])
 })
 
-test.concurrent('transitive similarity keeps every copy even when the endpoints do not match', () => {
+test.concurrent('transitive similarity keeps every copy even when the endpoints do not match', async () => {
   const first = spread('abcdefghij')
   const bridge = spread('abcdefgXYZ')
   const last = spread('abcdUVWXYZ')
   expect(findingsFor([first, last])).toEqual([])
-  const findings = findingsFor([first, bridge, [...bridge], last])
-  expect(findings).toHaveLength(1)
-  expect(findings[0]?.match).toBe('similar')
-  expect(findings[0]?.instances.map(instance => instance.file)).toEqual(['0.ts', '1.ts', '2.ts', '3.ts'])
+  const scanned = observation([first, bridge, [...bridge], last].map((tokens, index) =>
+    operation(`${index}.ts`, `rule${index}`, tokens)))
+  const job = prepareArchitectureFindings([scanned])
+  try {
+    const findings = await job.complete(new Map([['0.ts', 'first'], ['3.ts', 'last']]))
+    expect(findings).toHaveLength(1)
+    expect(findings[0]?.match).toBe('similar')
+    expect(findings[0]?.instances.map(instance => [instance.file, instance.owner])).toEqual([
+      ['0.ts', 'first'], ['1.ts', undefined], ['2.ts', undefined], ['3.ts', 'last'],
+    ])
+  } finally { await job.close() }
 })
 
 test.concurrent('shared tokens still require matching multiplicity and sequence order', () => {

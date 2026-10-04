@@ -79,7 +79,7 @@ const compile: Bun.CompileBuildOptions = {
 await mkdir(path.dirname(outfile), { recursive: true })
 try {
   await Bun.build({
-    entrypoints: ['src/cli.ts'],
+    entrypoints: ['src/cli.ts', 'src/architecture-findings-worker.ts'],
     target: 'bun',
     format: 'esm',
     compile,

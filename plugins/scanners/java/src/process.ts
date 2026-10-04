@@ -1,4 +1,3 @@
-import { execFile } from 'node:child_process'
 import path from 'node:path'
 
 export function javaCommand(): string {
@@ -6,15 +5,24 @@ export function javaCommand(): string {
   return process.env.JAVA_HOME ? path.join(process.env.JAVA_HOME, 'bin', executable) : executable
 }
 
-export function run(command: string, args: string[], root: string, input = '', timeout = 120000): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const child = execFile(command, args, {
-      cwd: root, encoding: 'utf8', timeout, killSignal: 'SIGKILL', maxBuffer: 64 * 1024 * 1024,
-    }, (error, stdout, stderr) => {
-      if (error) reject(new Error(stderr.trim() || stdout.trim() || error.message))
-      else resolve(stdout)
-    })
-    child.stdin?.on('error', () => { /* execFile reports early process termination. */ })
-    child.stdin?.end(input)
+export async function run(command: string, args: string[], root: string, input = '', timeout = 120000): Promise<string> {
+  const child = Bun.spawn([command, ...args], {
+    cwd: root, stdin: new TextEncoder().encode(input), stdout: 'pipe', stderr: 'pipe', timeout, killSignal: 'SIGKILL',
   })
+  const [stdout, stderr, code] = await Promise.all([
+    new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited,
+  ])
+  if (code !== 0) throw new Error(stderr.trim() || stdout.trim() || `${command} exited ${code}`)
+  return stdout
+}
+
+/** The Java host worker owns this wait; Groma's main thread keeps serving and running other scanners. */
+export function runCompiler(command: string, args: string[], root: string, input: string, timeout = 120000): string {
+  const child = Bun.spawnSync([command, ...args], {
+    cwd: root, stdin: new TextEncoder().encode(input), stdout: 'pipe', stderr: 'pipe',
+    timeout, killSignal: 'SIGKILL', maxBuffer: Infinity,
+  })
+  const stdout = child.stdout.toString()
+  if (child.exitCode !== 0) throw new Error(child.stderr.toString().trim() || stdout.trim() || `${command} exited ${child.exitCode}`)
+  return stdout
 }

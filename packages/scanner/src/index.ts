@@ -179,12 +179,12 @@ function compare(...values: string[]): string {
 
 function uniqueBy<T>(values: T[], key: (value: T) => string, label: string): T[] {
   const seen = new Set<string>()
-  for (const value of values) {
-    const id = key(value)
+  const keyed = values.map(value => ({ id: key(value), value }))
+  for (const { id } of keyed) {
     if (seen.has(id)) throw new Error(`duplicate ${label}: ${id}`)
     seen.add(id)
   }
-  return [...values].sort((left, right) => key(left).localeCompare(key(right)))
+  return keyed.sort((left, right) => left.id.localeCompare(right.id)).map(entry => entry.value)
 }
 
 export function createScanObservation(input: ObservationInput): ScanObservation {
@@ -196,9 +196,7 @@ export function createScanObservation(input: ObservationInput): ScanObservation 
     symbols: [...new Map(file.symbols.map(symbol => [
       compare(symbol.id, symbol.kind),
       symbol,
-    ])).values()].sort((left, right) => {
-      return compare(left.id, left.kind).localeCompare(compare(right.id, right.kind))
-    }),
+    ]))].sort(([left], [right]) => left.localeCompare(right)).map(([, symbol]) => symbol),
   })), file => file.file, 'file path')
   const filePaths = new Set(files.map(file => file.file))
   for (const file of files) {
@@ -207,8 +205,6 @@ export function createScanObservation(input: ObservationInput): ScanObservation 
       if (!rootIds.has(root)) throw new Error(`file references unknown root: ${root}`)
     }
   }
-  for (const diagnostic of input.diagnostics) diagnosticLocation(diagnostic)
-
   return {
     schemaVersion: 1,
     scanner: input.scanner,
@@ -218,13 +214,15 @@ export function createScanObservation(input: ObservationInput): ScanObservation 
     ...entryPoints(input.entryPoints, filePaths),
     ...operationEvidence(input, filePaths),
     ...httpEvidence(input.httpEndpoints, input.httpRequests, input.operations && new Set(input.operations.map(operation => operation.id))),
-    diagnostics: [...new Map(input.diagnostics.map(diagnostic => [
-      diagnosticKey(diagnostic),
-      diagnostic,
-    ])).values()].sort((left, right) => {
-      return diagnosticKey(left).localeCompare(diagnosticKey(right))
-    }),
+    diagnostics: normalizeScanDiagnostics(input.diagnostics),
   }
+}
+
+/** Validate and order changed diagnostics without rebuilding source facts that were already checked. */
+export function normalizeScanDiagnostics(diagnostics: ScanDiagnostic[]): ScanDiagnostic[] {
+  for (const diagnostic of diagnostics) diagnosticLocation(diagnostic)
+  return [...new Map(diagnostics.map(diagnostic => [diagnosticKey(diagnostic), diagnostic]))]
+    .sort(([left], [right]) => left.localeCompare(right)).map(([, diagnostic]) => diagnostic)
 }
 
 function entryPoints(input: unknown, paths: Set<string>): Pick<ScanObservation, 'entryPoints'> {
@@ -416,10 +414,12 @@ function operationTokens(operation: Record<string, unknown>): Pick<ScanOperation
   const startLine = Number(operation.startLine)
   const endLine = Number(operation.endLine)
   if (endLine < startLine) throw new Error('operation.endLine must be at or after startLine')
+  const tokens = array(operation.tokens, 'operation.tokens')
+  tokens.forEach(token => { string(token, 'operation.token') })
   return {
     startLine,
     endLine,
-    tokens: array(operation.tokens, 'operation.tokens').map(token => string(token, 'operation.token')),
+    tokens: tokens as string[],
   }
 }
 

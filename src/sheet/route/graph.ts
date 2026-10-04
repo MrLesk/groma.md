@@ -77,11 +77,10 @@ function overlap(a0: number, a1: number, b0: number, b1: number): number {
 
 /** Free vertical intervals of the open strip between x0 and x1, skipping boxes that intrude into it. */
 function freeIntervals(boxes: readonly Box[], x0: number, x1: number, bounds: Box): [number, number][] {
-  const intruders = boxes.filter(box => box.x0 < x1 - EPSILON && box.x1 > x0 + EPSILON)
-    .sort((a, b) => a.y0 - b.y0)
   const free: [number, number][] = []
   let top = bounds.y0
-  for (const box of intruders) {
+  for (const box of boxes) {
+    if (box.x0 >= x1 - EPSILON || box.x1 <= x0 + EPSILON) continue
     if (box.y0 > top + EPSILON) free.push([top, box.y0])
     top = Math.max(top, box.y1)
   }
@@ -93,17 +92,17 @@ function freeIntervals(boxes: readonly Box[], x0: number, x1: number, bounds: Bo
  * The narrowest vertical channels beside `box` on one side: empty rectangles whose sides touch this box and the nearest
  * facing box (or the bounds) along a common stretch.
  */
-function sideChannels(box: Box, boxes: readonly Box[], bounds: Box, rightward: boolean): Box[] {
-  const facing = boxes.filter(other => rightward ? other.x0 >= box.x1 - EPSILON : other.x1 <= box.x0 + EPSILON)
-    .sort((a, b) => rightward ? a.x0 - b.x0 : b.x1 - a.x1)
+function sideChannels(box: Box, facing: readonly Box[], bounds: Box, rightward: boolean,
+  freeBetween: (x0: number, x1: number) => [number, number][]): Box[] {
   const edge: Box = rightward
     ? { x0: bounds.x1, x1: bounds.x1, y0: bounds.y0, y1: bounds.y1 }
     : { x0: bounds.x0, x1: bounds.x0, y0: bounds.y0, y1: bounds.y1 }
-  for (const other of [...facing, edge]) {
+  for (let index = 0; index <= facing.length; index += 1) {
+    const other = facing[index] ?? edge
     const x0 = rightward ? box.x1 : other.x1
     const x1 = rightward ? other.x0 : box.x0
     if (x1 - x0 < EPSILON) continue
-    const channels = freeIntervals(boxes, x0, x1, bounds)
+    const channels = freeBetween(x0, x1)
       .filter(([y0, y1]) => overlap(y0, y1, box.y0, box.y1) > EPSILON && overlap(y0, y1, other.y0, other.y1) > EPSILON)
       .map(([y0, y1]) => ({ x0, x1, y0, y1 }))
     if (channels.length > 0) return channels
@@ -114,9 +113,21 @@ function sideChannels(box: Box, boxes: readonly Box[], bounds: Box, rightward: b
 /** Centre lines of the vertical channels on both sides of every box, each channel once. */
 function channelLines(boxes: readonly Box[], bounds: Box): Line[] {
   const channels = new Map<string, Box>()
+  const byY = [...boxes].sort((a, b) => a.y0 - b.y0)
+  const sides = [[...boxes].sort((a, b) => a.x0 - b.x0), [...boxes].sort((a, b) => b.x1 - a.x1)]
+  const intervals = new Map<string, [number, number][]>()
+  const freeBetween = (x0: number, x1: number): [number, number][] => {
+    const key = `${x0},${x1}`
+    let free = intervals.get(key)
+    if (free === undefined) {
+      free = freeIntervals(byY, x0, x1, bounds)
+      intervals.set(key, free)
+    }
+    return free
+  }
   for (const box of boxes) {
-    for (const rightward of [true, false]) {
-      for (const channel of sideChannels(box, boxes, bounds, rightward)) {
+    for (const [index, rightward] of [true, false].entries()) {
+      for (const channel of sideChannels(box, sides[index]!, bounds, rightward, freeBetween)) {
         channels.set(`${channel.x0},${channel.x1},${channel.y0},${channel.y1}`, channel)
       }
     }

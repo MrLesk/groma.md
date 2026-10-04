@@ -1,4 +1,4 @@
-import { createScanObservation, type ScanDiagnostic, type ScanObservation } from '@groma/scanner'
+import { normalizeScanDiagnostics, type ScanDiagnostic, type ScanObservation } from '@groma/scanner'
 
 // The worker requests Locale.ROOT, whose text for compiler.err.doesnt.exist is "package {0} does not exist".
 const PACKAGE = /^package (\S+) does not exist$/
@@ -32,5 +32,5 @@ export function summarizeMissingTypes(observation: ScanObservation | undefined):
   const count = `${missing.length} symbol and package references are unresolved (project dependencies and generated sources are not loaded).`
   const message = frequent.length === 0 ? count : `${count} Most frequently missing packages: ${frequent.join(', ')}.`
   const summary = { ...missing[0]!, severity: 'info', code: 'JAVA_MISSING_EXTERNAL_TYPES', message }
-  return createScanObservation({ ...observation, diagnostics: [...observation.diagnostics.filter(item => !unresolvedName(item)), summary] })
+  return { ...observation, diagnostics: normalizeScanDiagnostics([...observation.diagnostics.filter(item => !unresolvedName(item)), summary]) }
 }
