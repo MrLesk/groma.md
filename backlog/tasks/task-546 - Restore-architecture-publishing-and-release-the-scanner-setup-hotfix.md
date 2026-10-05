@@ -1,11 +1,11 @@
 ---
 id: TASK-546
 title: Restore architecture publishing and release the scanner setup hotfix
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-05 10:57'
-updated_date: '2026-10-05 11:14'
+updated_date: '2026-10-05 11:39'
 labels: []
 dependencies: []
 references:
@@ -27,49 +27,46 @@ The architecture workflow rebuilds optional comparisons for each open PR. Some P
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A successful architecture build deploys even when a comparison job fails, while failed builds and canceled runs do not deploy.
-- [ ] #2 Optional PR comparison failures remain reported in their job logs without failing the main architecture publishing workflow; successful comparison artifacts still join the site.
-- [ ] #3 Groma 0.6.5 includes TASK-545 and the workflow deployment fix, publishes all current platform packages and assets, and uses concise release notes matching 0.6.4.
+- [x] #1 A successful architecture build deploys even when a comparison job fails, while failed builds and canceled runs do not deploy.
+- [x] #2 Optional PR comparison failures remain reported in their job logs without failing the main architecture publishing workflow; successful comparison artifacts still join the site.
+- [x] #3 Groma 0.6.5 includes TASK-545 and the workflow deployment fix, publishes all current platform packages and assets, and uses concise release notes matching 0.6.4.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Keep deployment explicitly conditional on a successful build and a non-canceled run. Make optional comparison jobs continue on error, matching the existing workflow contract that missing comparisons do not block the main site. A pushed main commit is the entry point and a published current map is the required result. 2. Use the existing repository check and real GitHub executions to verify successful build/deploy through a failed comparison; add no source-text tests or architecture-format compatibility. 3. Commit and push only main workflow changes and the task record, then verify the complete main publishing workflow. No further PR branch changes are authorized. 4. Complete the already-started 0.6.5 publication from its tested release commit, verify assets and npm packages, and adopt the hotfix in the Action main release whose examples already use @v1.
+1. Keep deployment explicitly conditional on a successful build and a non-canceled run. Make optional comparison jobs continue on error, matching the existing workflow contract that missing comparisons do not block the main site. A pushed main commit is the entry point and a published current map is the required result.
+2. Use the existing repository check and real GitHub executions to verify successful build/deploy through a failed comparison; add no source-text tests or architecture-format compatibility.
+3. Commit and push only main workflow changes and the task record, then verify the complete main publishing workflow.
+4. Publish Groma 0.6.5 from its tested release commit and verify assets, npm packages and a fresh installation. Track Action adoption separately as Action TASK-5.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Deployment now explicitly requires a successful build and a non-canceled run. This bypasses the comparison failure in the ancestor chain without publishing failed builds. The workflow already states that a failed comparison must not block the main map; a real GitHub run will verify that behavior. TASK-545 passed CI on Linux, macOS and Windows. PR 110 is mergeable; PR 113 has real conflicts and will need a reviewed merge of current main in an isolated checkout. Alex also asked to update the Action examples, so inspect its latest main and make a separately tracked adoption change there.
+Main architecture publishing is owned by .github/workflows/architecture.yml. Optional comparison jobs use continue-on-error, and deploy runs only when the main build succeeded and the run was not canceled. Successful comparison artifacts still join the site; a failed comparison remains visible in its job logs. This restores the existing delivery contract. Markdown, OKF metadata, C4 semantics and scanner behavior are unchanged.
 
-bun run check passed: 16 Node tests, 760 Bun tests, 48 skips, zero failures; log /private/tmp/groma-546-check.log. git diff --check passed and groma/ is unchanged. Own specification and quality review of the one-line condition confirms that only a successful build in a non-canceled run can deploy, regardless of earlier comparison failures. Ownership stays in the deployment job and no helper, dependency, source-text test or model change is added. The Action examples already use @v1; adoption is tracked as Action TASK-5 in its clean checkout.
+Verification: bun run check passed after the complete change with 16 Node tests, 760 Bun tests, 48 skips and zero failures; log /private/tmp/groma-546-main-check.log. git diff --check passed and groma/ was unchanged. Main CI 37301650512 passed on Linux, macOS and Windows. Architecture run https://github.com/MrLesk/groma.md/actions/runs/37301650527 passed on 94a46a11: one comparison succeeded, the other failed visibly, and build, deploy and comment succeeded. Existing tests and real workflow executions cover the supported result, so no source-text tests were added.
 
-The isolated merge of main into PR 113 has three conflicts: architecture.yml must retain the author SHA pins while adding main comparison jobs; GromaFileSystem.write must retain the author atomic-write sequence followed by the current root-index refresh; the author relationship escaping must move from obsolete markdown-emitter helpers into the current relationship-storage writer. Imported upstream architecture already supplies current-format relationships. These are PR-branch integration changes only; the release branch keeps the small workflow fix. Preserve the original PR head as an ancestor and adapt its existing escaping regression to the current writer instead of restoring removed APIs.
+The implementer's specification and quality reviews found no blocking issues. The two conditions live in the jobs that own comparison and deployment. A reader can follow a main push through optional exports, site build and deployment without an added helper, dependency or model concept.
 
-Architecture workflow 37300228193 proves the deployment fix: both old comparisons failed, but build, deploy and comment all succeeded. The PR 113 workflow conflict now keeps main comparison jobs and the deploy guard plus the original audit SHA pin for the Pages upload action.
+Scope correction: PR 110 had already been updated to current main before Alex stopped other-PR work. PR 113 was never pushed; its isolated local integration and interrupted check were archived. All subsequent work stayed on main and the separately authorized Action release.
 
-Resolved the PR 113 filesystem conflict by keeping the existing audit temporary-file/rename write, then refreshing the bundle root index when the write adds a top-level entry. No new filesystem behavior was added to main or the hotfix.
+Groma 0.6.5 was released from 05d91e53 after local checks and Linux/macOS/Windows CI passed. It includes TASK-545 and the deployment guard, with concise Fixes notes matching 0.6.4. The later optional-comparison condition is delivery-only and is active on main. Release run https://github.com/MrLesk/groma.md/actions/runs/37300984928 passed. All five platform packages and groma.md report 0.6.5 on npm. The GitHub release contains five binaries and SHA256SUMS. A fresh isolated npm installation reports 0.6.5; its macOS binary SHA256 matches the release checksum. Main was fast-forwarded to the release workflow's version sync commit 507900a3.
 
-Resolved markdown-emitter in PR 113 to the current main implementation. Its only audit changes were escaping inside the removed relationship helpers; those same escaping rules are being retained in relationship-storage, which now owns row writing. This removes obsolete code rather than adding compatibility APIs.
-
-PR 113 relationship-storage now uses the exact three escaping helpers from its original emitter change. Rows keep source ownership and the current four-column Markdown shape; ordinary readers still see links and prose, and C4 endpoints and direction are unchanged. No legacy document is restored.
-
-The PR 113 escaping tests now use the current withStoredRelationships writer and source-owned component rows. Existing round-trip, ordinary endpoints, escaped-row removal, derived HTTP labels and full-model scenarios remain. Tests read the existing relationship-pairs fixture and identify only the hostile-source relationship in the complete model, leaving unrelated fixture rows intact. No legacy record or added scenario is introduced.
-
-Alex explicitly stopped other-PR work. PR 110 had already been updated through the GitHub update-branch API to 604a20a7507f560910976879baca727efd00c24b. Nothing was pushed to PR 113; its isolated integration is no longer in scope and its running full check was interrupted. Preserve this correction history, but limit the final modified-file list and release scope to main architecture.yml. Add job-level continue-on-error for optional comparisons: the existing build contract already permits a failed comparison to leave that preview out while publishing the main map.
-
-The optional comparison matrix now sets job-level continue-on-error. Failed exports retain their job errors and produce no preview; successful artifacts still join the main site. Deployment still requires a successful build and a non-canceled run. This restores the already-documented delivery behavior without reading old architecture formats or changing another PR.
-
-The isolated PR 113 checkout is archived with a recoverable local snapshot and no push. PR artifacts were unlinked from this chat after Alex stopped that scope. The second main-only condition uses GitHub job-level continue-on-error, confirmed by the official workflow syntax documentation: it prevents a failed optional job from failing the workflow run. The first real run already demonstrated successful main deployment through failed comparisons; the next main run will verify the overall workflow succeeds too.
-
-The complete main-only change passes bun run check again: 16 Node tests, 760 Bun tests, 48 skips and zero failures (/private/tmp/groma-546-main-check.log). git diff --check passes and groma/ has no changes. Own quality review finds two job-owned conditions only: optional comparison failure does not fail the main workflow, and deploy requires a successful build in a non-canceled run. The artifact collection, successful previews and main CLI behavior are unchanged. Groma 0.6.5 was published from 05d91e53 after its Linux/macOS/Windows CI passed; its existing release pipeline is now building the platform binaries.
+Action adoption is tracked separately as TASK-5. Action v1.0.2 and @v1 point to 766bf95a1c51ff50f113aabaa843e30d6aa3758a, whose 17 local tests and current-map/comparison Check workflow passed. Marketplace shows v1.0.2 as latest. Both example workflows already use @v1, so they receive the new CLI without file changes.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Restored successful main architecture publication while keeping optional comparison failures visible. Released Groma 0.6.5 with the shared first-scan setup fix and deployment guard; all platform packages, six assets and the fresh-install checksum are verified. Full local checks, three-platform CI and the real architecture workflow pass. Action v1.0.2 adopts the release through the existing @v1 examples. Scope correction and verification are recorded above.
+<!-- SECTION:FINAL_SUMMARY:END -->
