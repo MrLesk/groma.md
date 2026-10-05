@@ -298,7 +298,8 @@ viewer sees it. The sheet gives both maps their surfaces, buildings, groups,
 and route paths. Each viewer only projects those fixed cells for its own
 screen. It never reads the architecture files or creates another world layout.
 The package
-requires `groma/index.md` with only the OKF v0.2 declaration and
+requires `groma/index.md` with the OKF v0.2 declaration and a generated
+listing of immediate Markdown files and directories, and
 `groma/project.md` with the explicit groma.md architecture marker.
 
 Core also counts the lines of each element's `groma.code` files; an unreadable

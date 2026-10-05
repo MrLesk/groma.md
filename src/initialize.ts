@@ -72,14 +72,6 @@ async function requiredDirectory(
   return directory
 }
 
-async function writeMissing(
-  filesystem: GromaFileSystem,
-  relative: string,
-  source: string,
-): Promise<void> {
-  if (!filesystem.exists(relative)) await filesystem.write(relative, source)
-}
-
 export async function initializeGroma(
   repositoryRoot: string,
   input: GromaInitInput = {},
@@ -102,7 +94,6 @@ export async function initializeGroma(
     existing === undefined ? requestedDirectory : input.directory,
   )
 
-  await writeMissing(filesystem, 'index.md', '---\nokf_version: "0.2"\n---\n')
   const status = storedProfile === undefined
     ? 'initialized'
     : storedProfile.title === projectName ? 'unchanged' : 'updated'
@@ -118,6 +109,7 @@ export async function initializeGroma(
       overview: storedProfile.overview,
     })
   }
+  await filesystem.refreshIndex()
   await initializeAgentInstructions(repositoryRoot)
 
   return {

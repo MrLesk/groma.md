@@ -14,16 +14,30 @@ unmarked, generic OKF bundle as a groma.md project.
 The bundle root is the `groma/` or `.groma/` directory selected by
 `groma init`. groma.md resolves that choice once and every architecture command
 uses the same root. In the paths below, `<groma-root>` means that selected
-directory. Its reserved `index.md` contains exactly:
+directory. Its reserved `index.md` declares the OKF version and lists the
+directory's immediate contents. A newly initialized bundle starts with:
 
-```yaml
+```markdown
 ---
 okf_version: "0.2"
 ---
+
+# Contents
+
+- [project.md](<project.md>)
 ```
 
-The root index has no body. `<groma-root>/project.md` identifies the application
-profile:
+Groma maintains this root index from the actual Markdown filenames and
+subdirectories, sorted by name. Links are relative to the bundle root; the
+index does not list itself or non-Markdown files. Initialization regenerates
+the listing, and document writes and removals refresh it when a top-level
+entry changes. Nested documents remain behind their directory link rather
+than being repeated in the root index. Other directory indexes are optional
+and are not generated or overwritten.
+
+The index is OKF navigation, not a C4 element. Ordinary Markdown readers can
+browse its links; Groma's architecture model still reads concept metadata.
+`<groma-root>/project.md` identifies the application profile:
 
 ```markdown
 ---
