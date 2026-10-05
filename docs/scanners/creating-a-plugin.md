@@ -151,6 +151,9 @@ and are not listed.
   function, function expression, or lambda) assigned directly to a top-level
   name. Wrapped values such as `memo(...)`, `forwardRef(...)`, or
   `partial(...)` are not listed.
+- `kind: 'program'` is a top-level named program, such as COBOL `PROGRAM-ID`.
+  It has no `members` list. Programs are Code declarations, not C4 containers;
+  nested programs are omitted.
 - `kind: 'type'` is a top-level class, interface, struct, record, enum, trait,
   or protocol, or a Go defined type such as `type X struct{}` or `type X int`.
   A named type whose form is a function, such as a C# `delegate` or a Go

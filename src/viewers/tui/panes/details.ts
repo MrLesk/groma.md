@@ -59,7 +59,7 @@ function declarationRows(
   findings: readonly ArchitectureFinding[],
   indent = '',
 ): PaneLines {
-  const facts = [declaration.entry ? 'entry' : undefined, declaration.visibility, declaration.kind === 'type' ? 'type' : undefined, `line ${declaration.line}`].filter(fact => fact !== undefined).join(' · ')
+  const facts = [declaration.entry ? 'entry' : undefined, declaration.visibility, declaration.kind === 'function' ? undefined : declaration.kind, `line ${declaration.line}`].filter(fact => fact !== undefined).join(' · ')
   const name = declaration.kind === 'function' ? `${declaration.name}()` : declaration.name
   const key = outlineRowKey(file, symbols.indexOf(declaration))
   const lines: Line[] = [styleRow(theme, [plain(theme, `${indent}${name}`), dim(theme, ` · ${facts}`)], width, false, key === actionCursor)]

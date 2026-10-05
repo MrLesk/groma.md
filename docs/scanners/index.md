@@ -213,6 +213,7 @@ authored relationships remain intact.
 - [TypeScript](typescript/index.md)
 - [Python](python/index.md)
 - [PHP](php/index.md)
+- [COBOL](cobol/index.md)
 - [C#/.NET](dotnet-csharp/index.md)
 - [Shared contract](creating-a-plugin.md)
 

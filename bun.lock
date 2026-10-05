@@ -48,6 +48,13 @@
         "@angular/core": "22.2.0",
       },
     },
+    "plugins/scanners/cobol": {
+      "name": "@groma/scanner-cobol",
+      "version": "0.1.0",
+      "dependencies": {
+        "@groma/scanner": "workspace:*",
+      },
+    },
     "plugins/scanners/csharp": {
       "name": "@groma/scanner-csharp",
       "version": "0.2.1",
@@ -246,6 +253,8 @@
     "@groma/scanner": ["@groma/scanner@workspace:packages/scanner"],
 
     "@groma/scanner-angular": ["@groma/scanner-angular@workspace:plugins/scanners/angular"],
+
+    "@groma/scanner-cobol": ["@groma/scanner-cobol@workspace:plugins/scanners/cobol"],
 
     "@groma/scanner-csharp": ["@groma/scanner-csharp@workspace:plugins/scanners/csharp"],
 

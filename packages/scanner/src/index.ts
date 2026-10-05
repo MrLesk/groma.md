@@ -115,7 +115,7 @@ export type ScannerSettings = Readonly<Record<string, unknown>>
  */
 export type CodeVisibility = 'public' | 'protected' | 'internal' | 'private'
 
-/** One named declaration in a source outline: a top-level function or type, or a type's method. */
+/** One named declaration in a source outline: a top-level function, program or type, or a type's method. */
 export interface CodeSymbol {
   name: string
   /** 1-based line of the declared name. */
@@ -137,7 +137,12 @@ export interface CodeType extends CodeSymbol {
   members: CodeSymbol[]
 }
 
-export type CodeDeclaration = CodeFunction | CodeType
+/** A top-level named program, such as a COBOL PROGRAM-ID; not an architecture container. */
+export interface CodeProgram extends CodeSymbol {
+  kind: 'program'
+}
+
+export type CodeDeclaration = CodeFunction | CodeType | CodeProgram
 
 export interface CodeFile {
   file: string
