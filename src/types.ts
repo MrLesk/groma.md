@@ -52,7 +52,7 @@ export interface ArchitectureDocument {
 /** Every Markdown record under the Groma directory, read in one pass. */
 export interface ArchitectureRecords {
   flows: ArchitectureDocument[]
-  /** C4 elements and the optional supporting relationships record. */
+  /** C4 element documents, including their outgoing relationships. */
   documents: ArchitectureDocument[]
   /** Draft records under drafts/. */
   drafts: ArchitectureDocument[]

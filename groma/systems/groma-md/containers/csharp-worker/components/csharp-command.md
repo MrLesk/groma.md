@@ -19,3 +19,9 @@ description: Reads a C# scan request and writes the worker result
 ---
 
 Reads a scan or outline request as JSON on standard input and checks the repository paths it names. Writes the result in the scanner data format.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [plugins/scanners/csharp/dotnet/Command.cs](../../../../../../plugins/scanners/csharp/dotnet/Command.cs) | [plugins/scanners/csharp/dotnet/Scanner.cs](../../../../../../plugins/scanners/csharp/dotnet/Scanner.cs) | Runs compiler analysis | Function call |

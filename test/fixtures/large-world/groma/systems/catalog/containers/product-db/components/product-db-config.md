@@ -18,3 +18,10 @@ groma:
 ---
 
 Product Db config of Product Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/product-db/config.ts](../../../../../../src/catalog/product-db/config.ts) | [src/catalog/product-db/logger.ts](../../../../../../src/catalog/product-db/logger.ts) | Calls logger | HTTP |
+| [src/catalog/product-db/config.ts](../../../../../../src/catalog/product-db/config.ts) | [src/catalog/product-db/client.ts](../../../../../../src/catalog/product-db/client.ts) | Reads client | HTTP |

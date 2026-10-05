@@ -16,3 +16,10 @@ groma:
 ---
 
 Cdn Edge reader of Cdn Edge.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/cdn-edge/reader.ts](../../../../../../src/storefront/cdn-edge/reader.ts) | [src/storefront/cdn-edge/writer.ts](../../../../../../src/storefront/cdn-edge/writer.ts) | Calls writer | HTTP |
+| [src/storefront/cdn-edge/reader.ts](../../../../../../src/storefront/cdn-edge/reader.ts) | [src/storefront/cdn-edge/queue.ts](../../../../../../src/storefront/cdn-edge/queue.ts) | Reads queue | HTTP |

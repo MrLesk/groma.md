@@ -25,3 +25,10 @@ groma:
 ---
 
 Cdn Edge validator of Cdn Edge.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/cdn-edge/validator.ts](../../../../../../src/storefront/cdn-edge/validator.ts) | [src/storefront/cdn-edge/mapper.ts](../../../../../../src/storefront/cdn-edge/mapper.ts) | Calls mapper | HTTP |
+| [src/storefront/cdn-edge/validator.ts](../../../../../../src/storefront/cdn-edge/validator.ts) | [src/storefront/cdn-edge/reader.ts](../../../../../../src/storefront/cdn-edge/reader.ts) | Reads reader | HTTP |

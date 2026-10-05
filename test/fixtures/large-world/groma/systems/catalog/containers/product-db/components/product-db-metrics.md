@@ -15,3 +15,10 @@ groma:
 ---
 
 Product Db metrics of Product Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/product-db/metrics.ts](../../../../../../src/catalog/product-db/metrics.ts) | [src/catalog/product-db/config.ts](../../../../../../src/catalog/product-db/config.ts) | Calls config | HTTP |
+| [src/catalog/product-db/metrics.ts](../../../../../../src/catalog/product-db/metrics.ts) | [src/catalog/product-db/logger.ts](../../../../../../src/catalog/product-db/logger.ts) | Reads logger | HTTP |

@@ -22,3 +22,10 @@ groma:
 ---
 
 Directory queue of Directory.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/directory/queue.ts](../../../../../../src/identity/directory/queue.ts) | [src/identity/directory/worker.ts](../../../../../../src/identity/directory/worker.ts) | Calls worker | HTTP |
+| [src/identity/directory/queue.ts](../../../../../../src/identity/directory/queue.ts) | [src/identity/directory/scheduler.ts](../../../../../../src/identity/directory/scheduler.ts) | Reads scheduler | HTTP |

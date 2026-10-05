@@ -5,8 +5,10 @@ import { loadArchitecture } from './architecture-reader.ts'
 import { buildArchitectureModel, expectedParentKinds } from './architecture-model.ts'
 import { relocated, requireElement } from './curate-rewrites.ts'
 import type { CurationContext, DocumentWrite, Rewrite } from './curate-rewrites.ts'
-import { linkWrites, renamedTarget } from './curate-rename.ts'
+import { linkWrites, renamedTarget, withMovedLinks } from './curate-rename.ts'
 import { resolveFlows } from './flow-model.ts'
+import { storedRelationships } from './relationship-markdown.ts'
+import { withoutRelationshipSections, withStoredRelationships } from './relationship-storage.ts'
 import { moveBlocker } from './movable.ts'
 import { requireGromaMapping } from './okf-profile.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
@@ -58,7 +60,7 @@ interface CurationChange {
 }
 
 function requiresEmptyMeaning(source: string, id: string): void {
-  if (parseFrontmatter(source).content.trim() !== '') {
+  if (withoutRelationshipSections(parseFrontmatter(source).content).trim() !== '') {
     throw new Error(`cannot structurally replace "${id}" because it has authored meaning`)
   }
 }
@@ -335,11 +337,14 @@ async function combineElements(
   for (const child of movedChildren) {
     rewrites.push(...await relocated(context, child, target.sourceFilename, target.id))
   }
+  const documents = new Set([target.sourceFilename, ...sources.map(source => source.sourceFilename)])
+  const rows = storedRelationships(context.records.documents, context.model.elements, (_code, filename, message) => {
+    throw new Error(`${filename}: ${message}`)
+  }).filter(row => documents.has(row.document))
+  const concepts = new Map(context.model.elements.map(element => [element.id, element.sourceFilename]))
   return {
-    targetSource: withGromaCode(
-      targetSource,
-      combinedCode([target, ...sources]),
-    ),
+    targetSource: withStoredRelationships(withGromaCode(targetSource, combinedCode([target, ...sources])),
+      target.sourceFilename, rows, concepts),
     rewrites,
     removals: sources,
   }
@@ -374,7 +379,10 @@ export async function curateElement(
     ...await movedDescendants(context, target, renamed.destination, renamed.id),
   ]
   // Only a rename repoints links; requireLoadableResult refuses a move or combine that would break one.
-  const writes: DocumentWrite[] = input.newId === undefined ? rewrites : await linkWrites(context, rewrites)
+  const writes: DocumentWrite[] = input.newId === undefined
+    ? rewrites.map(rewrite => ({ ...rewrite, source: withMovedLinks(rewrite.source,
+      rewrite.sourceFilename, new Map(), rewrite.destinationFilename) }))
+    : await linkWrites(context, rewrites)
   validateDestinations(filesystem, writes)
   const removals = combined.removals.map(element => element.sourceFilename)
   await requireLoadableResult(context, target, writes, removals)

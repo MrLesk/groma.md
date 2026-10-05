@@ -16,3 +16,10 @@ groma:
 ---
 
 Sessions reader of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/reader.ts](../../../../../../src/identity/sessions/reader.ts) | [src/identity/sessions/writer.ts](../../../../../../src/identity/sessions/writer.ts) | Calls writer | HTTP |
+| [src/identity/sessions/reader.ts](../../../../../../src/identity/sessions/reader.ts) | [src/identity/sessions/queue.ts](../../../../../../src/identity/sessions/queue.ts) | Reads queue | HTTP |

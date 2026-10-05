@@ -13,3 +13,10 @@ groma:
 ---
 
 Media mapper of Media.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/media/mapper.ts](../../../../../../src/catalog/media/mapper.ts) | [src/catalog/media/reader.ts](../../../../../../src/catalog/media/reader.ts) | Calls reader | HTTP |
+| [src/catalog/media/mapper.ts](../../../../../../src/catalog/media/mapper.ts) | [src/catalog/media/writer.ts](../../../../../../src/catalog/media/writer.ts) | Reads writer | HTTP |

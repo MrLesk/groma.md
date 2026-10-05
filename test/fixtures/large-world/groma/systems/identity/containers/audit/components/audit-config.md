@@ -18,3 +18,10 @@ groma:
 ---
 
 Audit config of Audit.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/audit/config.ts](../../../../../../src/identity/audit/config.ts) | [src/identity/audit/logger.ts](../../../../../../src/identity/audit/logger.ts) | Calls logger | HTTP |
+| [src/identity/audit/config.ts](../../../../../../src/identity/audit/config.ts) | [src/identity/audit/client.ts](../../../../../../src/identity/audit/client.ts) | Reads client | HTTP |

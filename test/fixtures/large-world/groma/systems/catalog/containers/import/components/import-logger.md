@@ -21,3 +21,9 @@ groma:
 ---
 
 Import logger of Import.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/import/logger.ts](../../../../../../src/catalog/import/logger.ts) | [src/catalog/import/client.ts](../../../../../../src/catalog/import/client.ts) | Calls client | HTTP |

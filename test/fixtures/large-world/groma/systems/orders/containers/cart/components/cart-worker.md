@@ -25,3 +25,10 @@ groma:
 ---
 
 Cart worker of Cart.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/cart/worker.ts](../../../../../../src/orders/cart/worker.ts) | [src/orders/cart/scheduler.ts](../../../../../../src/orders/cart/scheduler.ts) | Calls scheduler | HTTP |
+| [src/orders/cart/worker.ts](../../../../../../src/orders/cart/worker.ts) | [src/orders/cart/metrics.ts](../../../../../../src/orders/cart/metrics.ts) | Reads metrics | HTTP |

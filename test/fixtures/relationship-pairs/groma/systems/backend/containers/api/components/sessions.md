@@ -11,3 +11,9 @@ groma:
 ---
 
 Stores sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/sessions.ts](../../../../../../src/sessions.ts) | [src/talks.ts](../../../../../../src/talks.ts) | Pushes schedule changes | Webhook |

@@ -21,3 +21,9 @@ groma:
 ---
 
 Web App logger of Web App.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/web-app/logger.ts](../../../../../../src/storefront/web-app/logger.ts) | [src/storefront/web-app/client.ts](../../../../../../src/storefront/web-app/client.ts) | Calls client | HTTP |

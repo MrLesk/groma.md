@@ -25,3 +25,10 @@ groma:
 ---
 
 Order Db validator of Order Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-db/validator.ts](../../../../../../src/orders/order-db/validator.ts) | [src/orders/order-db/mapper.ts](../../../../../../src/orders/order-db/mapper.ts) | Calls mapper | HTTP |
+| [src/orders/order-db/validator.ts](../../../../../../src/orders/order-db/validator.ts) | [src/orders/order-db/reader.ts](../../../../../../src/orders/order-db/reader.ts) | Reads reader | HTTP |

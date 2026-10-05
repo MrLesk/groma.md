@@ -21,3 +21,9 @@ groma:
 ---
 
 Mobile Api logger of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/logger.ts](../../../../../../src/storefront/mobile-api/logger.ts) | [src/storefront/mobile-api/client.ts](../../../../../../src/storefront/mobile-api/client.ts) | Calls client | HTTP |

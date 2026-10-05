@@ -19,3 +19,10 @@ groma:
 ---
 
 Product Db session of Product Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/product-db/session.ts](../../../../../../src/catalog/product-db/session.ts) | [src/catalog/product-db/cache.ts](../../../../../../src/catalog/product-db/cache.ts) | Calls cache | HTTP |
+| [src/catalog/product-db/session.ts](../../../../../../src/catalog/product-db/session.ts) | [src/catalog/product-db/validator.ts](../../../../../../src/catalog/product-db/validator.ts) | Reads validator | HTTP |

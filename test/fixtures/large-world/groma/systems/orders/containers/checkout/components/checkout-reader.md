@@ -16,3 +16,10 @@ groma:
 ---
 
 Checkout reader of Checkout.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/checkout/reader.ts](../../../../../../src/orders/checkout/reader.ts) | [src/orders/checkout/writer.ts](../../../../../../src/orders/checkout/writer.ts) | Calls writer | HTTP |
+| [src/orders/checkout/reader.ts](../../../../../../src/orders/checkout/reader.ts) | [src/orders/checkout/queue.ts](../../../../../../src/orders/checkout/queue.ts) | Reads queue | HTTP |

@@ -10,3 +10,9 @@ tags:
 ---
 
 Places orders in the shop.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [buyer](buyer.md) | [shop](../systems/shop/system.md) | Places orders | Browser |

@@ -16,3 +16,10 @@ groma:
 ---
 
 Audit router of Audit.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/audit/router.ts](../../../../../../src/identity/audit/router.ts) | [src/identity/audit/session.ts](../../../../../../src/identity/audit/session.ts) | Calls session | HTTP |
+| [src/identity/audit/router.ts](../../../../../../src/identity/audit/router.ts) | [src/identity/audit/cache.ts](../../../../../../src/identity/audit/cache.ts) | Reads cache | HTTP |

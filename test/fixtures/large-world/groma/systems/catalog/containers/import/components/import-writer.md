@@ -19,3 +19,10 @@ groma:
 ---
 
 Import writer of Import.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/import/writer.ts](../../../../../../src/catalog/import/writer.ts) | [src/catalog/import/queue.ts](../../../../../../src/catalog/import/queue.ts) | Calls queue | HTTP |
+| [src/catalog/import/writer.ts](../../../../../../src/catalog/import/writer.ts) | [src/catalog/import/worker.ts](../../../../../../src/catalog/import/worker.ts) | Reads worker | HTTP |

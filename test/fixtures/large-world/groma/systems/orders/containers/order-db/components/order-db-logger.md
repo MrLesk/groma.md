@@ -21,3 +21,9 @@ groma:
 ---
 
 Order Db logger of Order Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-db/logger.ts](../../../../../../src/orders/order-db/logger.ts) | [src/orders/order-db/client.ts](../../../../../../src/orders/order-db/client.ts) | Calls client | HTTP |

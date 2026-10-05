@@ -19,3 +19,10 @@ groma:
 ---
 
 Catalog Api session of Catalog Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/catalog-api/session.ts](../../../../../../src/catalog/catalog-api/session.ts) | [src/catalog/catalog-api/cache.ts](../../../../../../src/catalog/catalog-api/cache.ts) | Calls cache | HTTP |
+| [src/catalog/catalog-api/session.ts](../../../../../../src/catalog/catalog-api/session.ts) | [src/catalog/catalog-api/validator.ts](../../../../../../src/catalog/catalog-api/validator.ts) | Reads validator | HTTP |

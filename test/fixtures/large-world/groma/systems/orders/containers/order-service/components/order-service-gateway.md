@@ -13,3 +13,11 @@ groma:
 ---
 
 Order Service gateway of Order Service.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-service/gateway.ts](../../../../../../src/orders/order-service/gateway.ts) | [src/orders/order-service/router.ts](../../../../../../src/orders/order-service/router.ts) | Calls router | HTTP |
+| [src/orders/order-service/gateway.ts](../../../../../../src/orders/order-service/gateway.ts) | [src/orders/order-service/session.ts](../../../../../../src/orders/order-service/session.ts) | Reads session | HTTP |
+| [src/orders/order-service/gateway.ts](../../../../../../src/orders/order-service/gateway.ts) | [src/orders/order-db/gateway.ts](../../../../../../src/orders/order-db/gateway.ts) | Forwards requests | HTTP |

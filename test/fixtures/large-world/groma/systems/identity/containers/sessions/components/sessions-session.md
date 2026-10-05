@@ -19,3 +19,10 @@ groma:
 ---
 
 Sessions session of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/session.ts](../../../../../../src/identity/sessions/session.ts) | [src/identity/sessions/cache.ts](../../../../../../src/identity/sessions/cache.ts) | Calls cache | HTTP |
+| [src/identity/sessions/session.ts](../../../../../../src/identity/sessions/session.ts) | [src/identity/sessions/validator.ts](../../../../../../src/identity/sessions/validator.ts) | Reads validator | HTTP |

@@ -24,3 +24,9 @@ groma:
 ---
 
 Media client of Media.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [media-client](media-client.md) | [payments](../../../../../externals/payments.md) | Charges cards | HTTP |

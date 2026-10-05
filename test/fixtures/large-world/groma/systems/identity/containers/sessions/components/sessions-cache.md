@@ -22,3 +22,10 @@ groma:
 ---
 
 Sessions cache of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/cache.ts](../../../../../../src/identity/sessions/cache.ts) | [src/identity/sessions/validator.ts](../../../../../../src/identity/sessions/validator.ts) | Calls validator | HTTP |
+| [src/identity/sessions/cache.ts](../../../../../../src/identity/sessions/cache.ts) | [src/identity/sessions/mapper.ts](../../../../../../src/identity/sessions/mapper.ts) | Reads mapper | HTTP |

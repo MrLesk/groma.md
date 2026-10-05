@@ -15,3 +15,10 @@ groma:
 ---
 
 Pricing metrics of Pricing.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/pricing/metrics.ts](../../../../../../src/catalog/pricing/metrics.ts) | [src/catalog/pricing/config.ts](../../../../../../src/catalog/pricing/config.ts) | Calls config | HTTP |
+| [src/catalog/pricing/metrics.ts](../../../../../../src/catalog/pricing/metrics.ts) | [src/catalog/pricing/logger.ts](../../../../../../src/catalog/pricing/logger.ts) | Reads logger | HTTP |

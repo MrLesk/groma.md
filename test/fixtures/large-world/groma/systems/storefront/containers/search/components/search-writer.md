@@ -19,3 +19,10 @@ groma:
 ---
 
 Search writer of Search.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/search/writer.ts](../../../../../../src/storefront/search/writer.ts) | [src/storefront/search/queue.ts](../../../../../../src/storefront/search/queue.ts) | Calls queue | HTTP |
+| [src/storefront/search/writer.ts](../../../../../../src/storefront/search/writer.ts) | [src/storefront/search/worker.ts](../../../../../../src/storefront/search/worker.ts) | Reads worker | HTTP |

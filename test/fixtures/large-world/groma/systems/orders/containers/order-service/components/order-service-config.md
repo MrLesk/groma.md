@@ -18,3 +18,10 @@ groma:
 ---
 
 Order Service config of Order Service.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-service/config.ts](../../../../../../src/orders/order-service/config.ts) | [src/orders/order-service/logger.ts](../../../../../../src/orders/order-service/logger.ts) | Calls logger | HTTP |
+| [src/orders/order-service/config.ts](../../../../../../src/orders/order-service/config.ts) | [src/orders/order-service/client.ts](../../../../../../src/orders/order-service/client.ts) | Reads client | HTTP |

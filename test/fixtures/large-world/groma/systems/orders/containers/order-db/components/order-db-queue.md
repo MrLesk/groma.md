@@ -22,3 +22,10 @@ groma:
 ---
 
 Order Db queue of Order Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-db/queue.ts](../../../../../../src/orders/order-db/queue.ts) | [src/orders/order-db/worker.ts](../../../../../../src/orders/order-db/worker.ts) | Calls worker | HTTP |
+| [src/orders/order-db/queue.ts](../../../../../../src/orders/order-db/queue.ts) | [src/orders/order-db/scheduler.ts](../../../../../../src/orders/order-db/scheduler.ts) | Reads scheduler | HTTP |

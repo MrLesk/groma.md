@@ -25,3 +25,10 @@ groma:
 ---
 
 Catalog Api worker of Catalog Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/catalog-api/worker.ts](../../../../../../src/catalog/catalog-api/worker.ts) | [src/catalog/catalog-api/scheduler.ts](../../../../../../src/catalog/catalog-api/scheduler.ts) | Calls scheduler | HTTP |
+| [src/catalog/catalog-api/worker.ts](../../../../../../src/catalog/catalog-api/worker.ts) | [src/catalog/catalog-api/metrics.ts](../../../../../../src/catalog/catalog-api/metrics.ts) | Reads metrics | HTTP |

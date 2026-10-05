@@ -18,3 +18,10 @@ groma:
 ---
 
 Accounts config of Accounts.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/accounts/config.ts](../../../../../../src/identity/accounts/config.ts) | [src/identity/accounts/logger.ts](../../../../../../src/identity/accounts/logger.ts) | Calls logger | HTTP |
+| [src/identity/accounts/config.ts](../../../../../../src/identity/accounts/config.ts) | [src/identity/accounts/client.ts](../../../../../../src/identity/accounts/client.ts) | Reads client | HTTP |

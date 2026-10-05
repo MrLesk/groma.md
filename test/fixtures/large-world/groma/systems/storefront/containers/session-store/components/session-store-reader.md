@@ -16,3 +16,10 @@ groma:
 ---
 
 Session Store reader of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/reader.ts](../../../../../../src/storefront/session-store/reader.ts) | [src/storefront/session-store/writer.ts](../../../../../../src/storefront/session-store/writer.ts) | Calls writer | HTTP |
+| [src/storefront/session-store/reader.ts](../../../../../../src/storefront/session-store/reader.ts) | [src/storefront/session-store/queue.ts](../../../../../../src/storefront/session-store/queue.ts) | Reads queue | HTTP |

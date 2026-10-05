@@ -488,7 +488,7 @@ export async function reconcileScanObservations(
     const pending = await reconcileFiles(repositoryRoot, world, candidates, entryMemberFiles, summary)
     await placeEntries(repositoryRoot, world, observations, summary, pending)
     const owners = new Map([...world.byId.values()].flatMap(record => record.code.map(reference => [reference.file, record.id] as const)))
-    const conflicts = [...unitConflicts, ...await refreshDerivedRelationships(repositoryRoot, observations, owners, retained)]
+    const conflicts = [...unitConflicts, ...await refreshDerivedRelationships(repositoryRoot, observations)]
     if (conflicts.length > 0) summary.evidenceConflicts = conflicts
     const findings = await findingsJob.complete(owners)
     rememberArchitectureFindings(repositoryRoot, findings)

@@ -22,3 +22,10 @@ groma:
 ---
 
 Checkout cache of Checkout.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/checkout/cache.ts](../../../../../../src/orders/checkout/cache.ts) | [src/orders/checkout/validator.ts](../../../../../../src/orders/checkout/validator.ts) | Calls validator | HTTP |
+| [src/orders/checkout/cache.ts](../../../../../../src/orders/checkout/cache.ts) | [src/orders/checkout/mapper.ts](../../../../../../src/orders/checkout/mapper.ts) | Reads mapper | HTTP |

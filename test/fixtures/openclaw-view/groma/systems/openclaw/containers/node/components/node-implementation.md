@@ -9,3 +9,9 @@ groma:
     - scanner: typescript
       file: src/node-implementation.ts
 ---
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/node-implementation.ts](../../../../../../src/node-implementation.ts) | [src/gateway-implementation.ts](../../../../../../src/gateway-implementation.ts) | Connects as a paired device and serves canvas, camera, and local exec | Gateway WebSocket |

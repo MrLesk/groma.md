@@ -22,3 +22,10 @@ groma:
 ---
 
 Catalog Api cache of Catalog Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/catalog-api/cache.ts](../../../../../../src/catalog/catalog-api/cache.ts) | [src/catalog/catalog-api/validator.ts](../../../../../../src/catalog/catalog-api/validator.ts) | Calls validator | HTTP |
+| [src/catalog/catalog-api/cache.ts](../../../../../../src/catalog/catalog-api/cache.ts) | [src/catalog/catalog-api/mapper.ts](../../../../../../src/catalog/catalog-api/mapper.ts) | Reads mapper | HTTP |

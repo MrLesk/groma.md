@@ -25,3 +25,9 @@ description: Validates and applies explicit architecture write commands
 ---
 
 Applies add, edit, draft, accept, and remove actions. Checks each change before it writes the affected records.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/edit.ts](../../../../../../src/edit.ts) | [src/markdown-emitter.ts](../../../../../../src/markdown-emitter.ts) | Writes architecture records | Function call |

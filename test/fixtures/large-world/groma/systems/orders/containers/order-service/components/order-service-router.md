@@ -16,3 +16,10 @@ groma:
 ---
 
 Order Service router of Order Service.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-service/router.ts](../../../../../../src/orders/order-service/router.ts) | [src/orders/order-service/session.ts](../../../../../../src/orders/order-service/session.ts) | Calls session | HTTP |
+| [src/orders/order-service/router.ts](../../../../../../src/orders/order-service/router.ts) | [src/orders/order-service/cache.ts](../../../../../../src/orders/order-service/cache.ts) | Reads cache | HTTP |

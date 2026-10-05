@@ -16,3 +16,10 @@ groma:
 ---
 
 Search reader of Search.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/search/reader.ts](../../../../../../src/storefront/search/reader.ts) | [src/storefront/search/writer.ts](../../../../../../src/storefront/search/writer.ts) | Calls writer | HTTP |
+| [src/storefront/search/reader.ts](../../../../../../src/storefront/search/reader.ts) | [src/storefront/search/queue.ts](../../../../../../src/storefront/search/queue.ts) | Reads queue | HTTP |

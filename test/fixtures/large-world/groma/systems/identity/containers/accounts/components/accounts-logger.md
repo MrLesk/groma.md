@@ -21,3 +21,9 @@ groma:
 ---
 
 Accounts logger of Accounts.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/accounts/logger.ts](../../../../../../src/identity/accounts/logger.ts) | [src/identity/accounts/client.ts](../../../../../../src/identity/accounts/client.ts) | Calls client | HTTP |

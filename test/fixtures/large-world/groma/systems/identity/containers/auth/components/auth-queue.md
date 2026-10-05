@@ -22,3 +22,10 @@ groma:
 ---
 
 Auth queue of Auth.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/auth/queue.ts](../../../../../../src/identity/auth/queue.ts) | [src/identity/auth/worker.ts](../../../../../../src/identity/auth/worker.ts) | Calls worker | HTTP |
+| [src/identity/auth/queue.ts](../../../../../../src/identity/auth/queue.ts) | [src/identity/auth/scheduler.ts](../../../../../../src/identity/auth/scheduler.ts) | Reads scheduler | HTTP |

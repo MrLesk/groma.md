@@ -10,7 +10,10 @@ container.
 Scanners return temporary source and operation evidence. Core applies the
 [shared inference rules](https://github.com/MrLesk/Groma.md/blob/main/docs/relationship-inference.md#current-inference-rule)
 and writes the interactions it selects under `Derived relationships` in
-`relationships.md`. It does not store raw dependency graphs or put every used
+the source component document. Authored and draft rows use `Relationships` and
+`Draft relationships` in the source element document. Exact file endpoints let
+rows follow their source ownership through combine and rescan; a detached
+source waits in its old document until a scan assigns it an owner. It does not store raw dependency graphs or put every used
 import on the map. The rules cover concretely supplied named callbacks, and
 HTTP requests whose scanners report a certain endpoint match. Ordinary calls
 and unresolved wiring need your interpretation.

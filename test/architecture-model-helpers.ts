@@ -8,7 +8,7 @@ import type {
   MarkdownElement,
   MarkdownNode,
 } from '../src/types.ts'
-import { c4Type, RELATIONSHIPS_TYPE } from '../src/okf-profile.ts'
+import { c4Type } from '../src/okf-profile.ts'
 
 export const repositoryRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -79,7 +79,7 @@ export function elementDocument({
   return { sourceFilename, body: `${id} responsibility`, frontmatter, nodes }
 }
 
-export function relationshipDocument(relationships: RelationshipFixture[]): ArchitectureDocument {
+export function withRelationships(document: ArchitectureDocument, relationships: RelationshipFixture[]): ArchitectureDocument {
   const nodes: MarkdownNode[] = []
   if (relationships.length > 0) {
     nodes.push(
@@ -115,5 +115,5 @@ export function relationshipDocument(relationships: RelationshipFixture[]): Arch
     )
   }
 
-  return { sourceFilename: 'groma/relationships.md', body: '', frontmatter: { type: RELATIONSHIPS_TYPE, title: 'Relationships' }, nodes }
+  return { ...document, nodes: [...document.nodes, ...nodes] }
 }

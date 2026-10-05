@@ -25,3 +25,10 @@ groma:
 ---
 
 Sessions worker of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/worker.ts](../../../../../../src/identity/sessions/worker.ts) | [src/identity/sessions/scheduler.ts](../../../../../../src/identity/sessions/scheduler.ts) | Calls scheduler | HTTP |
+| [src/identity/sessions/worker.ts](../../../../../../src/identity/sessions/worker.ts) | [src/identity/sessions/metrics.ts](../../../../../../src/identity/sessions/metrics.ts) | Reads metrics | HTTP |

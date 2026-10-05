@@ -22,3 +22,10 @@ groma:
 ---
 
 Session Store cache of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/cache.ts](../../../../../../src/storefront/session-store/cache.ts) | [src/storefront/session-store/validator.ts](../../../../../../src/storefront/session-store/validator.ts) | Calls validator | HTTP |
+| [src/storefront/session-store/cache.ts](../../../../../../src/storefront/session-store/cache.ts) | [src/storefront/session-store/mapper.ts](../../../../../../src/storefront/session-store/mapper.ts) | Reads mapper | HTTP |

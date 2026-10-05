@@ -233,23 +233,25 @@ edits overview or owned metadata.
 
 ## Relationships
 
-Authored and automatically derived relationships live in `<groma-root>/relationships.md`, a supporting
-OKF concept with type `Groma Relationships`. It is not a C4 element, a parent,
-or another map level. Its ordinary Markdown links identify the exact endpoints:
+Authored and automatically derived outgoing relationships live in the source
+C4 element document: a component for a source file, or the named element for
+an actor/external-system declaration. They use ordinary Markdown tables and
+links inside the existing OKF concept. There is no separate relationship
+concept, C4 element, parent, or map level.
+
+For example, a component document may contain:
 
 ```markdown
----
-type: Groma Relationships
-title: Architecture relationships
----
-
 ## Relationships
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [Checkout client](../src/checkout-client.ts) | [Payment endpoint](../src/payment-endpoint.ts) | Requests payment authorization | HTTPS |
-| [Customer](actors/customer.md) | [Shop](systems/shop/system.md) | Places an order | Browser |
+| [Checkout client](../../../../../../src/checkout-client.ts) | [Payment endpoint](../../../../../../src/payment-endpoint.ts) | Requests payment authorization | HTTPS |
 ```
+
+An actor document stores its outgoing concept-addressed declarations in the
+same table, with links relative to that actor document. Both endpoints remain
+explicit even when the source file belongs to the containing component.
 
 Code-to-code declarations require exact repository-relative source files with
 known component owners. They never use internal component, container, or
@@ -259,8 +261,12 @@ use C4 concept links. Each ordered endpoint pair has one authored row.
 `Description` states the interaction; `Technology` states its mechanism or a
 required constraint. Both cells are required and non-empty. A stored row may
 name a file that currently has no component owner, for example after a detach:
-the row stays in `relationships.md`, stays off the map, and joins the map again
-once a scan gives that file an owner.
+the row stays in its previous document and stays off the map. Once a scan gives
+that file an owner, it transfers the row into the new owner document and the
+relationship joins the map again. Incoming rows stay with their own source;
+their target file links continue to resolve through current ownership. An empty
+former owner cannot be removed while it holds these waiting rows; scan first
+to place them, then remove the empty component.
 
 `groma add relation <source-file> <target-file> --description <text>
 --technology <text>` declares a current interaction. `groma edit relation`
@@ -306,10 +312,17 @@ to claim ownership. Source ownership does not establish runtime placement.
 Core projects file connections through their current owners. Several file
 pairs become one directed component connection while retaining their exact
 endpoints and individual claims. Connections inside one component add no map self-link. Regrouping preserves
-the stored rows; the next scan omits derived interactions whose providers
+the stored claims and transfers outgoing rows into the surviving source owner; the next scan omits derived interactions whose providers
 now have the same owner. Moving or
-combining empty components changes this projection without rewriting file
-interactions.
+combining empty components changes this projection while preserving the exact
+file endpoints and claim text. Document moves rebase outgoing links.
+
+Relationship placement uses a lookup from each endpoint to its current owner.
+A scan groups stored and refreshed rows by their destination document and only
+rewrites documents whose relationship claims changed. It preserves authored
+rows and rows from unavailable scanners, including temporarily unowned rows.
+This ownership rule and the lifecycle sections belong to the Groma application
+profile; OKF supplies readable links and C4 supplies the element boundaries.
 
 At container and system levels, an interaction keeps its original statement.
 A callback across assigned containers is still a source-code callback; it does

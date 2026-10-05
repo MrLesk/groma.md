@@ -16,3 +16,10 @@ groma:
 ---
 
 Accounts reader of Accounts.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/accounts/reader.ts](../../../../../../src/identity/accounts/reader.ts) | [src/identity/accounts/writer.ts](../../../../../../src/identity/accounts/writer.ts) | Calls writer | HTTP |
+| [src/identity/accounts/reader.ts](../../../../../../src/identity/accounts/reader.ts) | [src/identity/accounts/queue.ts](../../../../../../src/identity/accounts/queue.ts) | Reads queue | HTTP |

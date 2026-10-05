@@ -6,7 +6,7 @@ import { loadProjectProfile } from './project-profile.ts'
 import { readDocument } from './markdown-emitter.ts'
 import { missingOwnerReason } from './source-coverage.ts'
 import { listPage, listWindowFooter, type ListWindow } from './list-window.ts'
-import { RELATIONSHIPS_TYPE, requireGromaMapping } from './okf-profile.ts'
+import { requireGromaMapping } from './okf-profile.ts'
 import { ancestorIds, parentOfElements, showsRelationshipText } from './viewers/relationship-text.ts'
 import type {
   AnnotatedElement,
@@ -285,7 +285,6 @@ export async function renderPlainRecord(
   const element = plain ? model.elements.find(item => item.id === target) : undefined
   if (element !== undefined) return { ok: true, text: `${formatPlainElement(model, element, window)}\n` }
   const documents = [...records.documents, ...records.flows]
-    .filter(document => document.frontmatter.type !== RELATIONSHIPS_TYPE)
   const documentById = new Map(documents.map(document => [
     requireGromaMapping(document.frontmatter, document.sourceFilename).id,
     document,

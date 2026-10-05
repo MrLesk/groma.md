@@ -19,3 +19,10 @@ groma:
 ---
 
 Cart writer of Cart.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/cart/writer.ts](../../../../../../src/orders/cart/writer.ts) | [src/orders/cart/queue.ts](../../../../../../src/orders/cart/queue.ts) | Calls queue | HTTP |
+| [src/orders/cart/writer.ts](../../../../../../src/orders/cart/writer.ts) | [src/orders/cart/worker.ts](../../../../../../src/orders/cart/worker.ts) | Reads worker | HTTP |

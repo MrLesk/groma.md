@@ -25,3 +25,10 @@ groma:
 ---
 
 Order Service worker of Order Service.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-service/worker.ts](../../../../../../src/orders/order-service/worker.ts) | [src/orders/order-service/scheduler.ts](../../../../../../src/orders/order-service/scheduler.ts) | Calls scheduler | HTTP |
+| [src/orders/order-service/worker.ts](../../../../../../src/orders/order-service/worker.ts) | [src/orders/order-service/metrics.ts](../../../../../../src/orders/order-service/metrics.ts) | Reads metrics | HTTP |

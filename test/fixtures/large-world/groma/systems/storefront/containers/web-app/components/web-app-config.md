@@ -18,3 +18,10 @@ groma:
 ---
 
 Web App config of Web App.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/web-app/config.ts](../../../../../../src/storefront/web-app/config.ts) | [src/storefront/web-app/logger.ts](../../../../../../src/storefront/web-app/logger.ts) | Calls logger | HTTP |
+| [src/storefront/web-app/config.ts](../../../../../../src/storefront/web-app/config.ts) | [src/storefront/web-app/client.ts](../../../../../../src/storefront/web-app/client.ts) | Reads client | HTTP |

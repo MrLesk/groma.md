@@ -19,3 +19,10 @@ groma:
 ---
 
 Cart session of Cart.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/cart/session.ts](../../../../../../src/orders/cart/session.ts) | [src/orders/cart/cache.ts](../../../../../../src/orders/cart/cache.ts) | Calls cache | HTTP |
+| [src/orders/cart/session.ts](../../../../../../src/orders/cart/session.ts) | [src/orders/cart/validator.ts](../../../../../../src/orders/cart/validator.ts) | Reads validator | HTTP |

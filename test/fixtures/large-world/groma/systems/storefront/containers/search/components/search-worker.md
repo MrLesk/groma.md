@@ -25,3 +25,10 @@ groma:
 ---
 
 Search worker of Search.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/search/worker.ts](../../../../../../src/storefront/search/worker.ts) | [src/storefront/search/scheduler.ts](../../../../../../src/storefront/search/scheduler.ts) | Calls scheduler | HTTP |
+| [src/storefront/search/worker.ts](../../../../../../src/storefront/search/worker.ts) | [src/storefront/search/metrics.ts](../../../../../../src/storefront/search/metrics.ts) | Reads metrics | HTTP |

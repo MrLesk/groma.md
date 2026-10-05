@@ -1,4 +1,3 @@
-import path from 'node:path'
 import { buildArchitectureModel, draftRecordOf } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { annotateArchitecture } from './core.ts'
@@ -6,15 +5,12 @@ import {
   readDocument,
   removeDocument,
   withGromaField,
-  withoutRelationship,
   writeDocument,
 } from './markdown-emitter.ts'
 import { removeGroup } from './group.ts'
 import type { StructuralResult } from './curate.ts'
 import { isGroupAddress } from './naming.ts'
-import { GromaFileSystem } from './groma-filesystem.ts'
-import { storedConnections } from './relationship-markdown.ts'
-import type { ArchitectureDocument, ArchitectureElement } from './types.ts'
+import { storedRelationships } from './relationship-markdown.ts'
 import { removeRelation } from './relation.ts'
 import { draftRemovalBlocker, removalBlocker } from './removable.ts'
 
@@ -42,7 +38,13 @@ export async function removeThing(repositoryRoot: string, { id, relation, member
   if (element !== undefined) {
     const blocker = removalBlocker(graph, id)
     if (blocker !== undefined) throw new Error(blocker)
-    await removeOutgoingConnections(repositoryRoot, records.documents, model.elements, element)
+    const document = records.documents.find(record => record.sourceFilename === element.sourceFilename)!
+    const rows = storedRelationships([document], model.elements, (_code, filename, message) => {
+      throw new Error(`${filename}: ${message}`)
+    })
+    if (rows.some(row => row.source !== element.id && !element.code.some(reference => reference.file === row.source))) {
+      throw new Error(`cannot remove ${id}: detached source relationships are waiting here; run groma scan first`)
+    }
     await removeDocument(repositoryRoot, element.sourceFilename)
     return id
   }
@@ -57,28 +59,4 @@ export async function removeThing(repositoryRoot: string, { id, relation, member
   }
   await removeDocument(repositoryRoot, record.sourceFilename)
   return id
-}
-
-/** Deleting an allowed element also deletes the authored claims that it owns. */
-async function removeOutgoingConnections(
-  repositoryRoot: string,
-  documents: readonly ArchitectureDocument[],
-  elements: readonly ArchitectureElement[],
-  element: ArchitectureElement,
-): Promise<void> {
-  const endpoints = new Set([element.id, ...element.code.map(reference => reference.file)])
-  const connections = storedConnections(documents, elements, (_code, filename, message) => {
-    throw new Error(`${filename}: ${message}`)
-  }).filter(connection => endpoints.has(connection.source))
-  if (!connections.length) return
-  const filename = GromaFileSystem.open(repositoryRoot).sourceFilename('relationships.md')
-  const endpointPath = (value: string) => elements.find(candidate => candidate.id === value)?.sourceFilename ?? value
-  const href = (value: string) => path.posix.relative(path.posix.dirname(filename), endpointPath(value))
-  let source = await readDocument(repositoryRoot, filename)
-  for (const connection of connections) {
-    source = withoutRelationship(source, {
-      ...connection, sourceHref: href(connection.source), targetHref: href(connection.target),
-    })
-  }
-  await writeDocument(repositoryRoot, filename, source)
 }

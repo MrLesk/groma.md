@@ -25,3 +25,10 @@ groma:
 ---
 
 Pricing validator of Pricing.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/pricing/validator.ts](../../../../../../src/catalog/pricing/validator.ts) | [src/catalog/pricing/mapper.ts](../../../../../../src/catalog/pricing/mapper.ts) | Calls mapper | HTTP |
+| [src/catalog/pricing/validator.ts](../../../../../../src/catalog/pricing/validator.ts) | [src/catalog/pricing/reader.ts](../../../../../../src/catalog/pricing/reader.ts) | Reads reader | HTTP |

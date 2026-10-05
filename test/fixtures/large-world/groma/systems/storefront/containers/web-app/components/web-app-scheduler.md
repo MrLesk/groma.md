@@ -12,3 +12,10 @@ groma:
 ---
 
 Web App scheduler of Web App.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/web-app/scheduler.ts](../../../../../../src/storefront/web-app/scheduler.ts) | [src/storefront/web-app/metrics.ts](../../../../../../src/storefront/web-app/metrics.ts) | Calls metrics | HTTP |
+| [src/storefront/web-app/scheduler.ts](../../../../../../src/storefront/web-app/scheduler.ts) | [src/storefront/web-app/config.ts](../../../../../../src/storefront/web-app/config.ts) | Reads config | HTTP |

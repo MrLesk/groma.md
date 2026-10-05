@@ -22,3 +22,10 @@ groma:
 ---
 
 Mobile Api cache of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/cache.ts](../../../../../../src/storefront/mobile-api/cache.ts) | [src/storefront/mobile-api/validator.ts](../../../../../../src/storefront/mobile-api/validator.ts) | Calls validator | HTTP |
+| [src/storefront/mobile-api/cache.ts](../../../../../../src/storefront/mobile-api/cache.ts) | [src/storefront/mobile-api/mapper.ts](../../../../../../src/storefront/mobile-api/mapper.ts) | Reads mapper | HTTP |

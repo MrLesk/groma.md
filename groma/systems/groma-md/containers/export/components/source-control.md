@@ -19,3 +19,9 @@ description: Shows the selected source file with syntax and line emphasis
 ---
 
 Shows the source file selected from component details. Highlights its syntax and requested source lines.
+
+## Derived relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/viewers/web/source/control.ts](../../../../../../src/viewers/web/source/control.ts) | [src/viewers/web/render.ts](../../../../../../src/viewers/web/render.ts) | Invokes supplied callbacks: comparison, element, from, repaint, revision | typescript |

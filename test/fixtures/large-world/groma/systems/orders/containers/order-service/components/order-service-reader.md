@@ -16,3 +16,10 @@ groma:
 ---
 
 Order Service reader of Order Service.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-service/reader.ts](../../../../../../src/orders/order-service/reader.ts) | [src/orders/order-service/writer.ts](../../../../../../src/orders/order-service/writer.ts) | Calls writer | HTTP |
+| [src/orders/order-service/reader.ts](../../../../../../src/orders/order-service/reader.ts) | [src/orders/order-service/queue.ts](../../../../../../src/orders/order-service/queue.ts) | Reads queue | HTTP |

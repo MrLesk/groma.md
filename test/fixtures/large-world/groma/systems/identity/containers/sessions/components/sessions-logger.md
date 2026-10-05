@@ -21,3 +21,9 @@ groma:
 ---
 
 Sessions logger of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/logger.ts](../../../../../../src/identity/sessions/logger.ts) | [src/identity/sessions/client.ts](../../../../../../src/identity/sessions/client.ts) | Calls client | HTTP |

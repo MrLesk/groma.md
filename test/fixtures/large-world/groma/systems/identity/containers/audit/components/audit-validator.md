@@ -25,3 +25,10 @@ groma:
 ---
 
 Audit validator of Audit.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/audit/validator.ts](../../../../../../src/identity/audit/validator.ts) | [src/identity/audit/mapper.ts](../../../../../../src/identity/audit/mapper.ts) | Calls mapper | HTTP |
+| [src/identity/audit/validator.ts](../../../../../../src/identity/audit/validator.ts) | [src/identity/audit/reader.ts](../../../../../../src/identity/audit/reader.ts) | Reads reader | HTTP |

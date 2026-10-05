@@ -18,3 +18,10 @@ groma:
 ---
 
 Order Db config of Order Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-db/config.ts](../../../../../../src/orders/order-db/config.ts) | [src/orders/order-db/logger.ts](../../../../../../src/orders/order-db/logger.ts) | Calls logger | HTTP |
+| [src/orders/order-db/config.ts](../../../../../../src/orders/order-db/config.ts) | [src/orders/order-db/client.ts](../../../../../../src/orders/order-db/client.ts) | Reads client | HTTP |

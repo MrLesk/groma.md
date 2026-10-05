@@ -15,3 +15,10 @@ groma:
 ---
 
 Directory metrics of Directory.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/directory/metrics.ts](../../../../../../src/identity/directory/metrics.ts) | [src/identity/directory/config.ts](../../../../../../src/identity/directory/config.ts) | Calls config | HTTP |
+| [src/identity/directory/metrics.ts](../../../../../../src/identity/directory/metrics.ts) | [src/identity/directory/logger.ts](../../../../../../src/identity/directory/logger.ts) | Reads logger | HTTP |

@@ -21,3 +21,9 @@ groma:
 ---
 
 Audit logger of Audit.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/audit/logger.ts](../../../../../../src/identity/audit/logger.ts) | [src/identity/audit/client.ts](../../../../../../src/identity/audit/client.ts) | Calls client | HTTP |

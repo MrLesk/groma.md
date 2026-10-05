@@ -16,3 +16,10 @@ groma:
 ---
 
 Directory router of Directory.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/directory/router.ts](../../../../../../src/identity/directory/router.ts) | [src/identity/directory/session.ts](../../../../../../src/identity/directory/session.ts) | Calls session | HTTP |
+| [src/identity/directory/router.ts](../../../../../../src/identity/directory/router.ts) | [src/identity/directory/cache.ts](../../../../../../src/identity/directory/cache.ts) | Reads cache | HTTP |

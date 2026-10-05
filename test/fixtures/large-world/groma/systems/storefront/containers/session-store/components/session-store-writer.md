@@ -19,3 +19,10 @@ groma:
 ---
 
 Session Store writer of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/writer.ts](../../../../../../src/storefront/session-store/writer.ts) | [src/storefront/session-store/queue.ts](../../../../../../src/storefront/session-store/queue.ts) | Calls queue | HTTP |
+| [src/storefront/session-store/writer.ts](../../../../../../src/storefront/session-store/writer.ts) | [src/storefront/session-store/worker.ts](../../../../../../src/storefront/session-store/worker.ts) | Reads worker | HTTP |

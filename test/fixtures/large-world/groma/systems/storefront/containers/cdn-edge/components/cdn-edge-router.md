@@ -16,3 +16,10 @@ groma:
 ---
 
 Cdn Edge router of Cdn Edge.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/cdn-edge/router.ts](../../../../../../src/storefront/cdn-edge/router.ts) | [src/storefront/cdn-edge/session.ts](../../../../../../src/storefront/cdn-edge/session.ts) | Calls session | HTTP |
+| [src/storefront/cdn-edge/router.ts](../../../../../../src/storefront/cdn-edge/router.ts) | [src/storefront/cdn-edge/cache.ts](../../../../../../src/storefront/cdn-edge/cache.ts) | Reads cache | HTTP |

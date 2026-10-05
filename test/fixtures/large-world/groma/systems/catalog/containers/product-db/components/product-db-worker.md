@@ -25,3 +25,10 @@ groma:
 ---
 
 Product Db worker of Product Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/product-db/worker.ts](../../../../../../src/catalog/product-db/worker.ts) | [src/catalog/product-db/scheduler.ts](../../../../../../src/catalog/product-db/scheduler.ts) | Calls scheduler | HTTP |
+| [src/catalog/product-db/worker.ts](../../../../../../src/catalog/product-db/worker.ts) | [src/catalog/product-db/metrics.ts](../../../../../../src/catalog/product-db/metrics.ts) | Reads metrics | HTTP |

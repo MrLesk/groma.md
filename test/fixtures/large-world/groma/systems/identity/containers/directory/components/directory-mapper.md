@@ -13,3 +13,10 @@ groma:
 ---
 
 Directory mapper of Directory.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/directory/mapper.ts](../../../../../../src/identity/directory/mapper.ts) | [src/identity/directory/reader.ts](../../../../../../src/identity/directory/reader.ts) | Calls reader | HTTP |
+| [src/identity/directory/mapper.ts](../../../../../../src/identity/directory/mapper.ts) | [src/identity/directory/writer.ts](../../../../../../src/identity/directory/writer.ts) | Reads writer | HTTP |

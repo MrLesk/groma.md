@@ -21,3 +21,9 @@ groma:
 ---
 
 Session Store logger of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/logger.ts](../../../../../../src/storefront/session-store/logger.ts) | [src/storefront/session-store/client.ts](../../../../../../src/storefront/session-store/client.ts) | Calls client | HTTP |

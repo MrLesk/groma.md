@@ -22,3 +22,10 @@ groma:
 ---
 
 Import queue of Import.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/import/queue.ts](../../../../../../src/catalog/import/queue.ts) | [src/catalog/import/worker.ts](../../../../../../src/catalog/import/worker.ts) | Calls worker | HTTP |
+| [src/catalog/import/queue.ts](../../../../../../src/catalog/import/queue.ts) | [src/catalog/import/scheduler.ts](../../../../../../src/catalog/import/scheduler.ts) | Reads scheduler | HTTP |

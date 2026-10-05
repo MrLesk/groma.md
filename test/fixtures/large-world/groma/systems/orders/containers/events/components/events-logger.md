@@ -21,3 +21,9 @@ groma:
 ---
 
 Events logger of Events.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/events/logger.ts](../../../../../../src/orders/events/logger.ts) | [src/orders/events/client.ts](../../../../../../src/orders/events/client.ts) | Calls client | HTTP |

@@ -13,3 +13,10 @@ groma:
 ---
 
 Session Store mapper of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/mapper.ts](../../../../../../src/storefront/session-store/mapper.ts) | [src/storefront/session-store/reader.ts](../../../../../../src/storefront/session-store/reader.ts) | Calls reader | HTTP |
+| [src/storefront/session-store/mapper.ts](../../../../../../src/storefront/session-store/mapper.ts) | [src/storefront/session-store/writer.ts](../../../../../../src/storefront/session-store/writer.ts) | Reads writer | HTTP |

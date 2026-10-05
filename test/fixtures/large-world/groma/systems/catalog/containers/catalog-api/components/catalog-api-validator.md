@@ -25,3 +25,10 @@ groma:
 ---
 
 Catalog Api validator of Catalog Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/catalog-api/validator.ts](../../../../../../src/catalog/catalog-api/validator.ts) | [src/catalog/catalog-api/mapper.ts](../../../../../../src/catalog/catalog-api/mapper.ts) | Calls mapper | HTTP |
+| [src/catalog/catalog-api/validator.ts](../../../../../../src/catalog/catalog-api/validator.ts) | [src/catalog/catalog-api/reader.ts](../../../../../../src/catalog/catalog-api/reader.ts) | Reads reader | HTTP |

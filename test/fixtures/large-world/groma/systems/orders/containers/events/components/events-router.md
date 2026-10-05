@@ -16,3 +16,10 @@ groma:
 ---
 
 Events router of Events.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/events/router.ts](../../../../../../src/orders/events/router.ts) | [src/orders/events/session.ts](../../../../../../src/orders/events/session.ts) | Calls session | HTTP |
+| [src/orders/events/router.ts](../../../../../../src/orders/events/router.ts) | [src/orders/events/cache.ts](../../../../../../src/orders/events/cache.ts) | Reads cache | HTTP |

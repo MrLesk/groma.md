@@ -22,3 +22,10 @@ groma:
 ---
 
 Audit cache of Audit.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/audit/cache.ts](../../../../../../src/identity/audit/cache.ts) | [src/identity/audit/validator.ts](../../../../../../src/identity/audit/validator.ts) | Calls validator | HTTP |
+| [src/identity/audit/cache.ts](../../../../../../src/identity/audit/cache.ts) | [src/identity/audit/mapper.ts](../../../../../../src/identity/audit/mapper.ts) | Reads mapper | HTTP |

@@ -42,7 +42,7 @@ export interface RenamedTarget {
  * Repoints every link that resolves to a moved document, whatever spelling it uses, so the loader
  * resolves the same endpoints afterwards.
  */
-function withMovedLinks(
+export function withMovedLinks(
   source: string,
   sourceFilename: string,
   moves: ReadonlyMap<string, string>,

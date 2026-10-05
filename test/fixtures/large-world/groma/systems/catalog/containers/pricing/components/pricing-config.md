@@ -18,3 +18,10 @@ groma:
 ---
 
 Pricing config of Pricing.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/pricing/config.ts](../../../../../../src/catalog/pricing/config.ts) | [src/catalog/pricing/logger.ts](../../../../../../src/catalog/pricing/logger.ts) | Calls logger | HTTP |
+| [src/catalog/pricing/config.ts](../../../../../../src/catalog/pricing/config.ts) | [src/catalog/pricing/client.ts](../../../../../../src/catalog/pricing/client.ts) | Reads client | HTTP |

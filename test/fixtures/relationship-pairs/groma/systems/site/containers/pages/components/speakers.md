@@ -11,3 +11,9 @@ groma:
 ---
 
 Lists speakers.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/speakers.ts](../../../../../../src/speakers.ts) | [src/people.ts](../../../../../../src/people.ts) | Loads people | HTTPS |

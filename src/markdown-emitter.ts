@@ -170,65 +170,6 @@ export function renderDraftDocument(input: {
   }, `\n\n${input.outcome.trim()}\n`)
 }
 
-export function withRelationship(
-  source: string,
-  relationship: {
-    sourceName: string
-    sourceHref: string
-    targetName: string
-    targetHref: string
-    description: string
-    technology: string
-    status?: ElementStatus
-    authored?: boolean
-  },
-): string {
-  source = normalizeNewlines(source)
-  const row = `| [${relationship.sourceName}](${relationship.sourceHref}) | [${relationship.targetName}](${relationship.targetHref}) | ${relationship.description} | ${relationship.technology} |`
-  const lines = source.trimEnd().split('\n')
-  const section = relationshipSection(relationship)
-  const heading = lines.indexOf(section)
-  if (heading === -1) {
-    return `${source.trimEnd()}\n\n${section}\n\n| Source | Target | Description | Technology |\n| --- | --- | --- | --- |\n${row}\n`
-  }
-
-  const header = lines.indexOf('| Source | Target | Description | Technology |', heading)
-  if (header === -1 || lines[header + 1] !== '| --- | --- | --- | --- |') {
-    throw new Error('Relationships section requires the standard table')
-  }
-  let insert = header + 2
-  while (lines[insert]?.startsWith('|')) insert += 1
-  lines.splice(insert, 0, row)
-  return `${lines.join('\n')}\n`
-}
-
-/** Removes the row with this target link, description and technology; the link text may have aged since the target was renamed. */
-export function withoutRelationship(
-  source: string,
-  row: { sourceHref: string; targetHref: string; description: string; technology: string; status?: ElementStatus; authored?: boolean },
-): string {
-  source = normalizeNewlines(source)
-  const lines = source.trimEnd().split('\n')
-  const tail = `](${row.targetHref}) | ${row.description} | ${row.technology} |`
-  const sectionStart = lines.indexOf(relationshipSection(row))
-  let sectionEnd = sectionStart + 1
-  while (sectionEnd < lines.length && !lines[sectionEnd]?.startsWith('## ')) sectionEnd++
-  const rowIndex = lines.findIndex((line, index) => index > sectionStart && index < sectionEnd
-    && line.startsWith('| [') && line.includes(`](${row.sourceHref}) | [` ) && line.endsWith(tail))
-  if (rowIndex === -1) throw new Error('relationship row is missing')
-  lines.splice(rowIndex, 1)
-
-  const heading = lines.lastIndexOf(relationshipSection(row), rowIndex)
-  const header = lines.indexOf('| Source | Target | Description | Technology |', heading)
-  const hasRows = lines[header + 2]?.startsWith('|') === true
-  if (heading !== -1 && header !== -1 && !hasRows) {
-    let end = header + 2
-    while (end < lines.length && !lines[end]?.startsWith('## ')) end += 1
-    lines.splice(heading, end - heading)
-  }
-  return `${lines.join('\n').trimEnd()}\n`
-}
-
 export async function upsertCode(
   repositoryRoot: string,
   sourceFilename: string,
@@ -259,9 +200,4 @@ export async function removeDocument(
   sourceFilename: string,
 ): Promise<void> {
   await GromaFileSystem.open(repositoryRoot).removeSource(sourceFilename)
-}
-
-function relationshipSection(row: { authored?: boolean; status?: ElementStatus }): string {
-  if (row.authored === false) return '## Derived relationships'
-  return row.status === 'draft' ? '## Draft relationships' : '## Relationships'
 }

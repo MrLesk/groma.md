@@ -22,3 +22,10 @@ groma:
 ---
 
 Media queue of Media.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/media/queue.ts](../../../../../../src/catalog/media/queue.ts) | [src/catalog/media/worker.ts](../../../../../../src/catalog/media/worker.ts) | Calls worker | HTTP |
+| [src/catalog/media/queue.ts](../../../../../../src/catalog/media/queue.ts) | [src/catalog/media/scheduler.ts](../../../../../../src/catalog/media/scheduler.ts) | Reads scheduler | HTTP |

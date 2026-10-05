@@ -19,3 +19,10 @@ groma:
 ---
 
 Audit writer of Audit.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/audit/writer.ts](../../../../../../src/identity/audit/writer.ts) | [src/identity/audit/queue.ts](../../../../../../src/identity/audit/queue.ts) | Calls queue | HTTP |
+| [src/identity/audit/writer.ts](../../../../../../src/identity/audit/writer.ts) | [src/identity/audit/worker.ts](../../../../../../src/identity/audit/worker.ts) | Reads worker | HTTP |

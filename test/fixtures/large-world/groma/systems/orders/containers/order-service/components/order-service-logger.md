@@ -21,3 +21,9 @@ groma:
 ---
 
 Order Service logger of Order Service.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-service/logger.ts](../../../../../../src/orders/order-service/logger.ts) | [src/orders/order-service/client.ts](../../../../../../src/orders/order-service/client.ts) | Calls client | HTTP |

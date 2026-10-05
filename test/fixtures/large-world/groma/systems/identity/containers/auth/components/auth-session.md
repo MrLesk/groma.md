@@ -19,3 +19,10 @@ groma:
 ---
 
 Auth session of Auth.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/auth/session.ts](../../../../../../src/identity/auth/session.ts) | [src/identity/auth/cache.ts](../../../../../../src/identity/auth/cache.ts) | Calls cache | HTTP |
+| [src/identity/auth/session.ts](../../../../../../src/identity/auth/session.ts) | [src/identity/auth/validator.ts](../../../../../../src/identity/auth/validator.ts) | Reads validator | HTTP |

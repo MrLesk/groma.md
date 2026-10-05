@@ -16,3 +16,10 @@ groma:
 ---
 
 Cart reader of Cart.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/cart/reader.ts](../../../../../../src/orders/cart/reader.ts) | [src/orders/cart/writer.ts](../../../../../../src/orders/cart/writer.ts) | Calls writer | HTTP |
+| [src/orders/cart/reader.ts](../../../../../../src/orders/cart/reader.ts) | [src/orders/cart/queue.ts](../../../../../../src/orders/cart/queue.ts) | Reads queue | HTTP |

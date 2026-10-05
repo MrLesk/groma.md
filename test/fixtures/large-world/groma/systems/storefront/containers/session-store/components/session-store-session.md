@@ -19,3 +19,10 @@ groma:
 ---
 
 Session Store session of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/session.ts](../../../../../../src/storefront/session-store/session.ts) | [src/storefront/session-store/cache.ts](../../../../../../src/storefront/session-store/cache.ts) | Calls cache | HTTP |
+| [src/storefront/session-store/session.ts](../../../../../../src/storefront/session-store/session.ts) | [src/storefront/session-store/validator.ts](../../../../../../src/storefront/session-store/validator.ts) | Reads validator | HTTP |

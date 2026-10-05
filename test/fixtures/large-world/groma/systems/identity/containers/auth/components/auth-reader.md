@@ -16,3 +16,10 @@ groma:
 ---
 
 Auth reader of Auth.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/auth/reader.ts](../../../../../../src/identity/auth/reader.ts) | [src/identity/auth/writer.ts](../../../../../../src/identity/auth/writer.ts) | Calls writer | HTTP |
+| [src/identity/auth/reader.ts](../../../../../../src/identity/auth/reader.ts) | [src/identity/auth/queue.ts](../../../../../../src/identity/auth/queue.ts) | Reads queue | HTTP |

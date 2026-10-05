@@ -16,3 +16,9 @@ description: Lists Git architecture revisions and opens a snapshot
 ---
 
 Lists available Git revisions and opens the selected architecture snapshot.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/viewers/web/revision/control.ts](../../../../../../src/viewers/web/revision/control.ts) | [src/viewers/web/data.ts](../../../../../../src/viewers/web/data.ts) | Loads past revisions | Function call |

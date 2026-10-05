@@ -18,3 +18,10 @@ groma:
 ---
 
 Mobile Api config of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/config.ts](../../../../../../src/storefront/mobile-api/config.ts) | [src/storefront/mobile-api/logger.ts](../../../../../../src/storefront/mobile-api/logger.ts) | Calls logger | HTTP |
+| [src/storefront/mobile-api/config.ts](../../../../../../src/storefront/mobile-api/config.ts) | [src/storefront/mobile-api/client.ts](../../../../../../src/storefront/mobile-api/client.ts) | Reads client | HTTP |
