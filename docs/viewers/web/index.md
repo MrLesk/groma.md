@@ -169,6 +169,12 @@ visibility; the settings controller owns opening and closing the dialog.
 A world with existing architecture but no components keeps its map and navigation
 beneath a compact, dismissible notice pointing to `groma scanner setup`. The first
 component removes the notice without a reload. Historical views hide it.
+When components exist but no element has a description or overview, the First
+scan notice offers an agent prompt that points to `groma agent-instructions`
+and asks the agent to describe the existing architecture without changing
+application code. **Copy prompt** copies the displayed text and shows **Copied**
+for two seconds after the clipboard write succeeds. The notice can be dismissed;
+it disappears when curation adds a description or overview.
 
 The hierarchy Add button is hidden while creation controls are unfinished.
 The element details pane ends with a Remove control only where `groma remove` would
