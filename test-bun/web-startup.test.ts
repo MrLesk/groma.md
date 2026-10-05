@@ -260,6 +260,67 @@ test.concurrent('setup reports its real work and readiness waits for initializat
   }
 })
 
+test.concurrent('simultaneous scanner setup submissions share one initial scan and map', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-shared-setup-'))
+  const scanning = Promise.withResolvers<void>()
+  const release = Promise.withResolvers<void>()
+  let scans = 0
+  const gate = Bun.serve({ port: 0, async fetch() {
+    scans++
+    scanning.resolve()
+    await release.promise
+    return new Response(null, { status: 204 })
+  } })
+  let viewer: Awaited<ReturnType<typeof startWebViewer>> | undefined
+  let submissions: Promise<Response>[] = []
+  try {
+    await cp(path.resolve(import.meta.dir, '../test/fixtures/empty-project'), root, { recursive: true })
+    await rm(path.join(root, 'groma'), { recursive: true })
+    expect(await Bun.spawn(['git', 'init', '--quiet', root]).exited).toBe(0)
+    await mkdir(path.join(root, 'plugin'))
+    await writeFile(path.join(root, 'source.fixture'), 'source')
+    await writeFile(path.join(root, 'plugin/package.json'), JSON.stringify({ name: 'fixture', version: '1.0.0',
+      groma: { scanner: { id: 'fixture', entry: './index.ts', include: ['**/*.fixture'] } } }))
+    await writeFile(path.join(root, 'plugin/index.ts'), `export default {
+      id: 'fixture', async scan() {
+        await fetch('http://localhost:${gate.port}')
+        return { scanner: { id: 'fixture', technology: 'fixture', engine: 'fixture', engineVersion: '1' }, diagnostics: [],
+          roots: [{ id: 'root', name: 'Fixture', kind: 'package' }],
+          files: [{ file: 'source.fixture', roots: ['root'], symbols: [] }] }
+      }
+    }`)
+    viewer = await startWebViewer(root, { port: 0, workSource: emptyWorkSource(), initDependencies: {
+      gitInitialized: async () => true, backlogAvailable: () => false,
+    } })
+    const initialized = await fetch(`${viewer.url}/initialize`, {
+      method: 'POST', redirect: 'manual', body: new URLSearchParams({ projectName: 'Example', directory: 'groma' }),
+    })
+    expect(initialized.status).toBe(303)
+    await writeScannerConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }] })
+    submissions = [0, 1].map(() => fetch(`${viewer!.url}/scanners`, {
+      method: 'POST', redirect: 'manual', body: new FormData(),
+    }))
+    await scanning.promise
+    let ready = false
+    const waiting = fetch(`${viewer.url}/ready`).then(response => { ready = true; return response })
+    await fetch(viewer.url)
+    expect(ready).toBe(false)
+    release.resolve()
+    const responses = await Promise.all(submissions)
+    expect(responses.map(response => response.status)).toEqual([303, 303])
+    expect(scans).toBe(1)
+    expect((await waiting).status).toBe(204)
+    const { world } = await (await fetch(`${viewer.url}/world.json`)).json()
+    expect(world.elements.some((element: { code: { file: string }[] }) => element.code.some(code => code.file === 'source.fixture'))).toBe(true)
+  } finally {
+    release.resolve()
+    await Promise.allSettled(submissions)
+    await viewer?.close()
+    await gate.stop(true)
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test.concurrent('startup does not report scanning when every selected source is excluded', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-excluded-startup-'))
   let session: Awaited<ReturnType<typeof createScannerSession>> | undefined
