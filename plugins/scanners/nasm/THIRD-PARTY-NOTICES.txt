@@ -5,6 +5,11 @@ The complete upstream license is distributed as NASM-LICENSE.
 
 Groma modifies one line in asm/nasm.c: preprocessing emits src_where_top()
 instead of src_where(). This reports the outer macro invocation location
-rather than the macro definition. Other NASM behavior is unchanged.
+rather than the macro definition.
+Windows builds also apply the header inclusion fix from upstream commit
+ace0078261329437224d4875b289647279a41fa1 to nasmlib/file.c:
+https://github.com/netwide-assembler/nasm/commit/ace0078261329437224d4875b289647279a41fa1
+It defines WIN32_LEAN_AND_MEAN and includes windows.h instead of stringapiset.h
+so the Windows SDK receives its host architecture definitions.
+Macro expansion and assembly semantics are unchanged.
 The modified binary is used only for preprocessing selected source snapshots.
-

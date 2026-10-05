@@ -84,7 +84,10 @@ bun test test-bun/nasm-scanner.test.ts
 The build downloads the pinned NASM source archive, verifies its SHA-256, and
 changes one preprocessing location lookup from the macro definition to the outer
 invocation. It bundles the resulting host executable and its BSD license. The
-patch changes source locations, not macro expansion or assembly semantics.
+Windows builds also apply NASM's
+[upstream header inclusion fix](https://github.com/netwide-assembler/nasm/commit/ace0078261329437224d4875b289647279a41fa1)
+so the Windows SDK receives its host architecture definitions. These changes
+preserve macro expansion and assembly semantics.
 The release script combines the five host builds into the installed package.
 
 The small fixture tests active branches, macro/include origins, CRLF/UTF-16

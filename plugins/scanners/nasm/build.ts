@@ -30,6 +30,10 @@ async function archive(): Promise<string> {
 async function compile(directory: string): Promise<void> {
   const options = { cwd: directory, maxBuffer: 16 * 1024 * 1024 }
   if (process.platform === 'win32') {
+    // Upstream ace007826: Windows SDK leaf headers require windows.h to set the host architecture.
+    const file = path.join(directory, 'nasmlib/file.c')
+    await writeFile(file, (await readFile(file, 'utf8')).replace('#include <stringapiset.h>',
+      '#define WIN32_LEAN_AND_MEAN\n#include <windows.h>'))
     const vswhere = path.join(process.env['ProgramFiles(x86)']!, 'Microsoft Visual Studio/Installer/vswhere.exe')
     const { stdout } = await execute(vswhere, ['-latest', '-products', '*', '-property', 'installationPath'])
     const setup = path.join(stdout.trim(), 'Common7/Tools/VsDevCmd.bat')

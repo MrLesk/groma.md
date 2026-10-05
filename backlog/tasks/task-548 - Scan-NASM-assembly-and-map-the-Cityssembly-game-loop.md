@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-05 18:09'
-updated_date: '2026-10-05 18:55'
+updated_date: '2026-10-05 19:16'
 labels: []
 dependencies: []
 references:
@@ -84,6 +84,8 @@ Alex approved a first assembly scanner using Cityssembly after investigation fou
 1. Qualify one NASM 3.02 ELF64 preprocessing unit at pinned Cityssembly. Bundle the tool and retain macro invocation origins with the documented one-line location patch. 2. Expose entry/includePaths settings; copy only selected sources; extract exported/directly called text routines and bounded direct-call facts. Keep raw calls temporary, with no execution-entry inference, source-unit ownership or automatic arrows. OKF remains readable Markdown and source links; C4 meaning stays with core and curation. 3. Pass stored Code context, filtered by scanner selection, through the existing outline hook so includes in other components and historical snapshots work. 4. Extend existing catalog, native host assembly and relocated fresh-checkout checks. The minimal NASM test detects wrong macro/include/CRLF/UTF-16 positions, wrong active branch or call certainty, and excluded includes leaking into analysis. The outline host test detects wrong cross-component context or reading the current tree instead of a snapshot. Existing release assembly coverage verifies a worker from each host; the package test owns repeatability and absence of installed tools/network. 5. Curate 59 Cityssembly sources into 12 responsibilities and one frame flow, using existing unidentified-container placement without executable evidence. Verify rescans and web, TUI and static source navigation. 6. Run cold simplicity review, accepted simplification, complete checks, own specification/quality review and final full-context review. Prepare versions and changelog for the combined COBOL/NASM release; qualify all five release hosts before publishing.
 
 Release qualification reproduced a Windows-only archive extraction failure: Git Bash tar treats the drive prefix as a remote archive host. Use the Windows-supplied tar.exe for NASM extraction on Windows. Existing package build and fresh-checkout jobs exercise the fix, so no source-text or mocked command test is added. Re-run the full check and platform qualification; limit review to this build fix.
+
+The Windows compiler next exposed an upstream NASM 3.02 header bug: nasmlib/file.c includes stringapiset.h without windows.h, producing No Target Architecture. Apply the small upstream fix from NASM commit ace0078261329437224d4875b289647279a41fa1 locally during the Windows build, and document it with the existing source-location patch. The existing native package jobs remain the verification; no new scanner behavior is added.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -106,6 +108,10 @@ Full-context complexity review passes with no blockers or material recommendatio
 Qualification run 37357039886 passed repository validation, both Linux hosts and macOS. Windows x64 failed in NASM archive extraction: tar interpreted D: as a remote host. Windows ARM initially failed earlier in setup-dotnet with Internal CLR error; its old-candidate retry was stopped after the shared Windows extraction defect was identified. Release draft 0.6.6 exists but remains unpublished.
 
 Windows extraction fix: select %SystemRoot%/System32/tar.exe on Windows and retain tar on Unix. Microsoft documents the bundled tool as bsdtar (https://learn.microsoft.com/en-us/windows/tar/). Targeted implementer review confirms the only change is archive-tool selection; no fallback, new scanner behavior or extra test is introduced. Full check passes again: 16 Node and 763 Bun tests, 50 skipped. Windows execution is still pending the new release qualification run.
+
+Run 37359706320 passed full validation and Linux/macOS package tests. Both Windows builds passed archive extraction and failed compiling NASM nasmlib/file.c with Windows SDK error C1189 No Target Architecture. Upstream NASM documents and fixes the same defect at https://repo.or.cz/nasm/nasm2.git/commit/ace0078261329437224d4875b289647279a41fa1.
+
+Applied the exact upstream header fix only to nasmlib/file.c during Windows compilation. Targeted quality/specification review confirms that compiler setup changes only; scanner evidence and macro semantics remain unchanged. Full check passes again: 16 Node and 763 Bun tests, 50 skipped. No extra tests are needed because the native Windows package builds and fresh-checkout runs exercise the failing operation directly.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
