@@ -164,8 +164,9 @@ export interface ScannerPlugin {
   id: string
   /** Check the source inputs among `files` and scanner-owned tools; project dependency installation or builds must not be prerequisites. */
   checkReadiness?(repositoryRoot: string, settings: ScannerSettings, files: readonly string[]): Promise<void>
-  /** Source outline for Code references, required of official scanners; this data is never architecture persistence. */
-  readCodeStructure?(repositoryRoot: string, references: readonly SourceReference[], settings?: ScannerSettings): Promise<CodeFile[]>
+  /** Source outline for Code references. sourceFiles supplies known Code context filtered by configured include/exclude lists. */
+  readCodeStructure?(repositoryRoot: string, references: readonly SourceReference[], settings?: ScannerSettings,
+    sourceFiles?: readonly string[]): Promise<CodeFile[]>
   /**
    * The files among `candidates`, the repository files the scanner's `include` list matches before exclusions, that the
    * language's build compiles, required of official scanners. It analyzes nothing and runs no project tool, so Groma

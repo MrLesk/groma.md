@@ -30,7 +30,7 @@
     },
     "packages/scanner": {
       "name": "@groma/scanner",
-      "version": "0.2.1",
+      "version": "0.2.2",
     },
     "packages/work-source": {
       "name": "@groma/work-source",
@@ -83,6 +83,13 @@
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "typescript": "6.0.3",
+      },
+    },
+    "plugins/scanners/nasm": {
+      "name": "@groma/scanner-nasm",
+      "version": "0.1.0",
+      "dependencies": {
+        "@groma/scanner": "workspace:*",
       },
     },
     "plugins/scanners/php": {
@@ -263,6 +270,8 @@
     "@groma/scanner-java": ["@groma/scanner-java@workspace:plugins/scanners/java"],
 
     "@groma/scanner-javascript": ["@groma/scanner-javascript@workspace:plugins/scanners/javascript"],
+
+    "@groma/scanner-nasm": ["@groma/scanner-nasm@workspace:plugins/scanners/nasm"],
 
     "@groma/scanner-php": ["@groma/scanner-php@workspace:plugins/scanners/php"],
 

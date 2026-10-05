@@ -4,7 +4,7 @@ import { readPublishedScanners } from '../src/scanner/modules/published.ts'
 import { assembleCSharpPackages } from './package-csharp-scanner.ts'
 
 const repository = { type: 'git', url: 'https://github.com/MrLesk/groma.md.git' }
-const scannerIds = ['cobol', 'java', 'go', 'rust', 'csharp', 'angular', 'vue', 'react', 'typescript', 'python', 'php', 'swift', 'javascript']
+const scannerIds = ['nasm', 'cobol', 'java', 'go', 'rust', 'csharp', 'angular', 'vue', 'react', 'typescript', 'python', 'php', 'swift', 'javascript']
 
 async function manifest(directory: string) {
   return JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'))
@@ -40,6 +40,7 @@ async function stage(output: string) {
     python: (await import('../plugins/scanners/python/build.ts')).buildPackage,
     typescript: (await import('../plugins/scanners/typescript/build.ts')).buildPackage,
     cobol: (await import('../plugins/scanners/cobol/build.ts')).buildPackage,
+    nasm: (await import('../plugins/scanners/nasm/build.ts')).buildPackage,
     java: (await import('../plugins/scanners/java/build.ts')).buildPackage,
     go: (await import('../plugins/scanners/go/build.ts')).buildPackage,
     rust: (await import('../plugins/scanners/rust/build.ts')).buildPackage,
@@ -65,12 +66,12 @@ async function assemble(input: string, output: string) {
   if (hosts.length === 0) throw new Error('No scanner build artifacts')
   await cp(path.join(input, hosts[0]!), output, { recursive: true })
   for (const host of hosts.slice(1)) {
-    for (const id of ['go', 'rust', 'typescript', 'java', 'cobol', 'swift']) {
+    for (const id of ['go', 'rust', 'typescript', 'java', 'cobol', 'nasm', 'swift']) {
       await cp(path.join(input, host, id, 'dist'), path.join(output, id, 'dist'), { recursive: true })
     }
   }
   await assembleCSharpPackages(hosts.map(host => path.join(input, host)), output)
-  for (const [id, worker] of Object.entries({ go: 'worker', rust: 'groma-rust-scanner', typescript: 'tsc', java: 'runtime/bin/java', cobol: 'runtime/bin/java', swift: 'worker' })) {
+  for (const [id, worker] of Object.entries({ go: 'worker', rust: 'groma-rust-scanner', typescript: 'tsc', java: 'runtime/bin/java', cobol: 'runtime/bin/java', nasm: 'nasm', swift: 'worker' })) {
     await prepareWorkers(path.join(output, id), id === 'rust' ? 'dist/bin' : 'dist', worker)
   }
 }

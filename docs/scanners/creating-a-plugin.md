@@ -121,7 +121,7 @@ Plugins without a hook remain scannable.
 ## Source outline
 
 Every official scanner implements
-`readCodeStructure(repositoryRoot, references, settings)`. It supplies the
+`readCodeStructure(repositoryRoot, references, settings, sourceFiles)`. It supplies the
 declarations listed under a component's Code in the web and terminal maps and
 the static export. The hook is optional for other plugins; a plugin without it
 contributes no outline. So does a scanner that cannot load or outline on this
@@ -129,6 +129,13 @@ computer, such as one missing its native worker; the maps and the static export
 keep every other scanner's outline. The outline is read-only source detail, never an
 architecture record. Build it by parsing source only: no project dependencies,
 builds, or project tools.
+
+The optional fourth argument supplies known Code files from the loaded
+architecture, filtered by the scanner's configured include/exclude rules.
+Use it when outlining a file requires source owned by another component, such
+as NASM macros and includes. Read these paths from `repositoryRoot`, which may
+be a historical source snapshot without Git metadata. Return declarations only
+for the requested references; context files do not change their ownership.
 
 Each reference holds one owned `file` and the `symbols` its Code links name.
 When a file has Code links from several configured scanners, the one with the

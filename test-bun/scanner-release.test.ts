@@ -61,26 +61,26 @@ async function verifyHostRuntimes(output: string, id: string, hosts: string[]) {
   expect(manifest.cpu.sort()).toEqual(['arm64', 'x64'])
   for (const host of hosts) {
     const directory = path.join(output, id, 'dist', host)
-    const name = id === 'cobol' ? 'runtime/bin/java' : 'worker'
+    const name = { cobol: 'runtime/bin/java', swift: 'worker', nasm: 'nasm' }[id]!
     const worker = path.join(directory, name + (host.startsWith('win32-') ? '.exe' : ''))
     expect(await readFile(worker, 'utf8')).toBe(host)
-    expect(await readFile(path.join(directory, 'runtime-library'), 'utf8')).toBe(`runtime for ${host}`)
+    if (id !== 'nasm') expect(await readFile(path.join(directory, 'runtime-library'), 'utf8')).toBe(`runtime for ${host}`)
     if (process.platform !== 'win32') expect((await stat(worker)).mode & 0o111).toBe(0o111)
   }
 }
 
-test.concurrent('scanner assembly keeps Swift and COBOL workers and runtime libraries from every release host', async () => {
+test.concurrent('scanner assembly keeps native workers and runtime libraries from every release host', async () => {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-scanner-release-'))
   const input = path.join(temporary, 'hosts'), output = path.join(temporary, 'packages')
   const hosts = ['darwin-arm64', 'linux-arm64', 'linux-x64', 'win32-arm64', 'win32-x64']
   const workers = { go: 'worker', rust: 'groma-rust-scanner', typescript: 'tsc',
-    java: 'runtime/bin/java', cobol: 'runtime/bin/java', swift: 'worker' }
+    java: 'runtime/bin/java', cobol: 'runtime/bin/java', nasm: 'nasm', swift: 'worker' }
   try {
     for (const host of hosts) await stageHost(input, host, workers)
     const child = Bun.spawn([process.execPath, path.resolve(import.meta.dir, '../scripts/scanner-release.ts'),
       'assemble', input, output], { stdout: 'pipe', stderr: 'pipe' })
     const error = await new Response(child.stderr).text()
     expect(await child.exited, error).toBe(0)
-    for (const id of ['swift', 'cobol']) await verifyHostRuntimes(output, id, hosts)
+    for (const id of ['swift', 'cobol', 'nasm']) await verifyHostRuntimes(output, id, hosts)
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })

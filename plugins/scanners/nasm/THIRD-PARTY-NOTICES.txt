@@ -1,0 +1,10 @@
+This package includes NASM 3.02 under the BSD-2-Clause license.
+Source: https://www.nasm.us/pub/nasm/releasebuilds/3.02/nasm-3.02.tar.xz
+SHA-256: 87336eba53b4acfe917424ab5d500d2b0054d9f5148d35c2273ccf2cfb712f0d
+The complete upstream license is distributed as NASM-LICENSE.
+
+Groma modifies one line in asm/nasm.c: preprocessing emits src_where_top()
+instead of src_where(). This reports the outer macro invocation location
+rather than the macro definition. Other NASM behavior is unchanged.
+The modified binary is used only for preprocessing selected source snapshots.
+

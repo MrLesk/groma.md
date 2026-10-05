@@ -11,7 +11,7 @@ const examples = {
   typescript: 'operation-wiring', python: 'python-project', java: 'java-maven', go: 'go-module',
   javascript: 'javascript-source',
   rust: 'rust-semantic', csharp: 'csharp-operations', angular: 'angular-output', react: 'react-callback', vue: 'vue-output', php: 'php-source',
-  swift: 'swift-source', cobol: 'cobol-source',
+  swift: 'swift-source', cobol: 'cobol-source', nasm: 'nasm-source',
 }
 
 async function prepareFiles(root: string): Promise<void> {

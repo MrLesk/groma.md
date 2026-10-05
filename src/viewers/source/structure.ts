@@ -1,6 +1,8 @@
 import type { CodeFile, SourceReference } from '@groma/scanner'
 import { configuredScannerModules, type FoundScannerModule } from '../../scanner/modules/inventory.ts'
 import { importScanner } from '../../scanner/registry.ts'
+import { readScannerConfig } from '../../scanner/modules/config.ts'
+import { configuredSelection, selectedFiles } from '../../scanner/modules/selection.ts'
 import { withGitRevision } from '../../history/revisions.ts'
 import type { ArchitectureGraph, CodeReference } from '../../types.ts'
 export type { CodeDeclaration, CodeFile, CodeSymbol, CodeVisibility } from '@groma/scanner'
@@ -56,13 +58,17 @@ export async function readSnapshotCodeStructure(
     .filter((module): module is FoundScannerModule => module.status === 'found')
   const requests = outlineRequests(element.code, new Set(modules.map(module => module.id)))
   const order = requests.map(request => request.reference.file)
+  const config = await readScannerConfig(repositoryRoot)
+  // Historical snapshots have no Git checkout. Their stored Code references name the source context.
+  const contextFiles = [...new Set(world.elements.flatMap(element => element.code.map(link => link.file)))]
   const files = await Promise.all(modules.map(async module => {
     const references = requests.filter(request => request.scanner === module.id).map(request => request.reference)
     if (references.length === 0) return []
     // A scanner that cannot load or outline here, such as one missing its worker, contributes no outline, like one without the hook.
     try {
       const scanner = await importScanner(module.entry, module.id)
-      return await scanner.readCodeStructure?.(snapshotRoot, references, module.settings) ?? []
+      const context = selectedFiles(contextFiles, configuredSelection(config, module.id))
+      return await scanner.readCodeStructure?.(snapshotRoot, references, module.settings, context) ?? []
     } catch {
       return []
     }

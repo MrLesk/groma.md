@@ -20,7 +20,7 @@
           "kind": "language",
           "declaration": "COBOL source files; dialect and runtime configuration unverified"
         }],
-        "compatibility": { "groma": ">=0.6.5" }
+        "compatibility": { "groma": ">=0.6.6" }
       }
     }
   },
