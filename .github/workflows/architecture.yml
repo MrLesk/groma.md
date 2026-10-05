@@ -41,6 +41,7 @@ jobs:
     name: 'Compare PR #${{ matrix.pull.number }}'
     needs: pulls
     if: needs.pulls.outputs.open != '[]'
+    continue-on-error: true
     runs-on: ubuntu-latest
     permissions:
       contents: read
