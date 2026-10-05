@@ -1,11 +1,11 @@
 ---
 id: TASK-548
 title: Scan NASM assembly and map the Cityssembly game loop
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-05 18:09'
-updated_date: '2026-10-05 21:10'
+updated_date: '2026-10-05 21:50'
 labels: []
 dependencies: []
 references:
@@ -67,13 +67,13 @@ Alex approved a first assembly scanner using Cityssembly after investigation fou
 - [x] #3 Assembly labels, sections, include dependencies and ordinary calls do not invent C4 elements, source-unit ownership or automatic architecture relationships.
 - [x] #4 A curated Cityssembly map explains the game-loop scenario with source links and remains intact after another scan; web, terminal and static source navigation are verified.
 - [x] #5 The official catalog and existing package release assembly include the new scanner; documentation states the supported configuration, tools and limits.
-- [ ] #6 Focused scanner and installed-package validation, bun run check, cold simplicity review, own specification and quality reviews, and full-context complexity review pass.
+- [x] #6 Focused scanner and installed-package validation, bun run check, cold simplicity review, own specification and quality reviews, and full-context complexity review pass.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [x] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -132,10 +132,24 @@ Qualification retry passed validate-release. Linux x64 was cancelled again while
 Windows x64 build and installed-package tests passed. Four platform artifacts and full repository validation now pass for candidate 9c5b6adc. Started a Linux-x64-only retry of the same run after its repeated runner acquisition cancellation; no code changes or successful jobs are being repeated.
 
 Release handoff after npm login: authenticated as mrlesk. Run 37364700886 now has successful repository validation and all four ARM64/macOS/Windows host results, including Windows x64. All four successful host artifacts are downloaded under /tmp/groma-0.6.6-final-artifacts and their scanner adapters agree. Linux x64 alone is queued in attempt 3 (job 111976739306), after two infrastructure cancellations. At 21:09 UTC on 2026-10-05, GitHub still reports an Actions major outage. The release is still a draft at candidate 9c5b6adc and no packages have been published. Resume by checking this run, downloading the missing Linux x64 artifact, assembling and testing complete archives, publishing the two new packages, and publishing/verifying v0.6.6 through the existing release workflow.
+
+Final candidate qualification run 37364700886 is successful. All five host package builds and fresh-checkout tests, plus repository validation, passed. Linux x64 acquired a runner on the isolated retry and completed successfully. Downloading its final artifact before assembling the complete release packages.
+
+All five final-candidate artifacts were assembled with the existing release script. Actual npm tarballs contain all five native workers: COBOL 115.2 MB compressed, NASM 4.5 MB. Both archives were installed into a temporary project and passed the relocated fresh-checkout scans (2 tests, 15 assertions) with no project tools or scan-time network. NASM publication is now waiting for the npm web authentication challenge opened in Alexs default browser; no package publication has been confirmed yet.
+
+Both new scanner publication commands completed successfully after Alex approved npm authentication: @groma/scanner-nasm@0.1.0 and @groma/scanner-cobol@0.1.0. npm is still processing the packages; registry metadata returns 404 immediately after upload. Waiting for public visibility and exact archive integrity before publishing the GitHub release.
+
+Both @groma/scanner-nasm@0.1.0 and @groma/scanner-cobol@0.1.0 are publicly available on npm. Registry dist.integrity values exactly match the tested tarballs, and both declare Groma >=0.6.6. The draft targets qualified candidate 9c5b6adc8e1d192198809d0566f596fe4da92d69. Publishing v0.6.6 now starts the existing release workflow.
+
+Published GitHub release v0.6.6 at 21:26 UTC, targeting qualified commit 9c5b6adc. Release workflow 37375829079 is running: https://github.com/MrLesk/groma.md/actions/runs/37375829079. Both new scanner archives are already public and verified; final Groma binaries and npm CLI packages remain pending workflow completion.
+
+Release workflow 37375829079 completed successfully: full checks, all five scanner builds and fresh-checkout checks, scanner publication, all five CLI builds, npm platform and wrapper publication, release assets, and version synchronization. v0.6.6 has five native binaries plus SHA256SUMS. Public @groma/scanner@0.2.2 metadata is available. Waiting for final npm CLI metadata propagation before the clean installation smoke check.
+
+Final release verification passed. All nine expected npm versions are public: groma.md and five platform packages at 0.6.6, @groma/scanner at 0.2.2, and COBOL/NASM at 0.1.0. A clean temporary installation reports 0.6.6 and discovers both scanners as installable in a Git project. Its macOS binary SHA-256 matches the GitHub SHA256SUMS asset. Both scanner registry archive integrities match the relocated-installation-tested tarballs. Cityssembly static map still responds at http://localhost:4851/. No repository source or architecture changes were needed after the final passing checks. Non-blocking future release setup: configure npm trusted publishing for the two new scanner names before publishing their next versions through release.yml; this release bootstrapped them manually and the workflow reused those exact versions.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Implemented and reviewed the COBOL/NASM combined release, including original-source navigation and a curated Cityssembly game-loop map. The local full check passes: 16 Node and 764 Bun tests. Final-candidate CI passes repository validation and macOS ARM64, Linux ARM64, Windows ARM64 and Windows x64 package tests. npm login is restored. Release 0.6.6 remains unpublished because Linux x64 qualification is waiting for a runner during the GitHub Actions major outage; its isolated retry is still queued. Four verified platform artifacts are saved for final assembly.
+Released COBOL and NASM assembly support together in Groma 0.6.6: https://github.com/MrLesk/groma.md/releases/tag/v0.6.6. NASM preserves original macro/include source locations for the approved Cityssembly configuration; selected source context supports outlines across component ownership. The curated Cityssembly map covers the game loop with stable rescans and working web, terminal and static source links. All required reviews passed. Validation passed: 16 Node and 764 Bun tests locally, five-platform scanner qualification, tested npm archives, and the complete release workflow. All npm packages and six release assets are public; a clean CLI installation verifies version, scanner discovery and binary checksum. No separate COBOL, Java or NASM installation is required. Future scanner versions need trusted publishing configured for the new npm package names.
 <!-- SECTION:FINAL_SUMMARY:END -->
