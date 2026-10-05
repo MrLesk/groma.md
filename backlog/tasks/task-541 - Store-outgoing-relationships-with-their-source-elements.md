@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-05 04:33'
-updated_date: '2026-10-05 04:48'
+updated_date: '2026-10-05 05:28'
 labels: []
 dependencies: []
 references:
@@ -766,6 +766,10 @@ Final full-context complexity review found two AC-backed blockers; no broader ar
 Targeted full-context re-review approved both fixes: fenced examples remain authored content, real relationship sections are replaced, and deletion is refused only while detached claims wait for scan. No blocking findings remain and no additional architecture changes are recommended.
 
 Final required check after both review fixes passed: Node 16 pass; Bun 758 pass, 48 skip, 0 fail (806 tests across 140 files). Changed-file lint and git diff --check pass. No changed TypeScript file exceeds 500 lines. Final full-context targeted review approved; no blocking findings remain. All task-generated standalone architecture records were combined into existing owners. Work is complete and remains uncommitted pending user confirmation.
+
+Released as Groma v0.6.2 from 5fafd4c8354886960c4af820f6c2efa21397a3fe. Release workflow 37265828827 passed validation, packaged scanner fresh-checkout tests, and binary builds on Linux x64/arm64, macOS arm64, and Windows x64/arm64. All five release binary checksums match GitHub asset digests. An isolated npm installation on macOS arm64 reports 0.6.2 through both the binary and Node wrapper; its binary SHA-256 matches the release download. Fresh installation and scanner restoration in a second checkout pass for Keycloak and the existing private acceptance example, with unchanged source bytes and identical maps. Keycloak retains 7,400 elements, 169 relationships and 1,823 findings (20.21 s fresh, 18.74 s restored). The acceptance example retains 1,230 elements, 118 relationships and 281 findings (4.92 s fresh, 5.22 s restored). Every relationship route is covered, orthogonal, and free of building crossings or shared path length. The released npm CLI also passes combine, authored relationship, detach, rescan, and recombine in the disposable acceptance checkout; an unchanged scan rewrites zero architecture documents. Evidence: /private/tmp/groma-release-0.6.2/qualification and ownership-check.log. Scanner versions remain Java/JavaScript/TypeScript/React/PHP and the shared contract 0.2.1, Angular/Vue 0.2.2, with other official scanners 0.2.1. All 24 exact registry versions are visible. The Linux x64 CLI tarball still returns 404 during npm propagation; Action integration and its release wait for that artifact.
+
+The delayed Linux x64 npm tarball now responds HTTP 200, so all six CLI npm downloads are available. The unchanged Action integration commit is being rechecked. The Groma v0.6.2 workflow, release downloads, npm installation and fresh/restore qualification are complete.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
