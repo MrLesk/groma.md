@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-05 18:09'
-updated_date: '2026-10-05 19:41'
+updated_date: '2026-10-05 21:10'
 labels: []
 dependencies: []
 references:
@@ -122,10 +122,20 @@ Windows x64 reproduced the same CRLF failure; COBOL passed on both Windows hosts
 Full repository check after the CRLF fix passes: 16 Node and 764 Bun tests, 50 skipped. No new complexity warnings or architecture record changes. The release draft remains unpublished pending renewed native qualification and npm login.
 
 Release continuation: candidate 9c5b6adc8e1d192198809d0566f596fe4da92d69 is pushed. Qualification run https://github.com/MrLesk/groma.md/actions/runs/37364700886 is pending. GitHub reports runner assignment delays in incident https://www.githubstatus.com/incidents/3q1yb5m7ltvb (started 2026-10-05 19:11 UTC). The release draft v0.6.6 points to this candidate and is unpublished. npm whoami still returns 401; Alex has a pending login request. No tools need to be installed for scanner users. Final artifact collection is reserved at /tmp/groma-0.6.6-final-artifacts; older local collections are previous candidates and must not be published. Only @groma/scanner 0.2.2, @groma/scanner-cobol 0.1.0 and @groma/scanner-nasm 0.1.0 are new scanner package versions. Keep this task In Progress until native qualification is complete.
+
+Alex completed npm web login; npm whoami confirms mrlesk. Final candidate run 37364700886 passed NASM/COBOL installed-package tests on Linux ARM64, macOS ARM64 and Windows ARM64. The remaining validation, Linux x64 and Windows x64 jobs were cancelled before runner assignment with the hosted-runner acquisition error. Retried only those cancelled jobs using gh run rerun --failed; successful host artifacts are being collected unchanged.
+
+Downloaded the final-candidate Linux ARM64, macOS ARM64 and Windows ARM64 artifacts to /tmp/groma-0.6.6-final-artifacts. Their COBOL and NASM adapter hashes agree across hosts, third-party notices match source, and file inspection confirms native NASM executable architectures. npm authentication is restored. The two x64 package jobs remain queued during the GitHub incident; complete npm archives cannot be assembled until they finish.
+
+Qualification retry passed validate-release. Linux x64 was cancelled again while waiting for a runner; Windows x64 is building. Successful Linux ARM64, macOS ARM64 and Windows ARM64 results remain attached to run 37364700886. Next action is to retry Linux x64 alone after the active Windows job ends.
+
+Windows x64 build and installed-package tests passed. Four platform artifacts and full repository validation now pass for candidate 9c5b6adc. Started a Linux-x64-only retry of the same run after its repeated runner acquisition cancellation; no code changes or successful jobs are being repeated.
+
+Release handoff after npm login: authenticated as mrlesk. Run 37364700886 now has successful repository validation and all four ARM64/macOS/Windows host results, including Windows x64. All four successful host artifacts are downloaded under /tmp/groma-0.6.6-final-artifacts and their scanner adapters agree. Linux x64 alone is queued in attempt 3 (job 111976739306), after two infrastructure cancellations. At 21:09 UTC on 2026-10-05, GitHub still reports an Actions major outage. The release is still a draft at candidate 9c5b6adc and no packages have been published. Resume by checking this run, downloading the missing Linux x64 artifact, assembling and testing complete archives, publishing the two new packages, and publishing/verifying v0.6.6 through the existing release workflow.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Implemented NASM preprocessing, original-source routine navigation, bounded call evidence and shared outline context. Cityssembly has a verified 12-component game-loop map with stable rescans and web, TUI and static source links. Both required external review gates and implementer reviews pass. Windows qualification found and resolved archive extraction, upstream header inclusion and CRLF output issues; the CRLF regression fails before and passes after its fix. Current full check passes: 16 Node and 764 Bun tests, 50 skipped. Combined Groma 0.6.6 release is prepared but unpublished. Final native qualification is pending during a GitHub Actions incident, and npm authentication must be restored before initial package publication.
+Implemented and reviewed the COBOL/NASM combined release, including original-source navigation and a curated Cityssembly game-loop map. The local full check passes: 16 Node and 764 Bun tests. Final-candidate CI passes repository validation and macOS ARM64, Linux ARM64, Windows ARM64 and Windows x64 package tests. npm login is restored. Release 0.6.6 remains unpublished because Linux x64 qualification is waiting for a runner during the GitHub Actions major outage; its isolated retry is still queued. Four verified platform artifacts are saved for final assembly.
 <!-- SECTION:FINAL_SUMMARY:END -->
