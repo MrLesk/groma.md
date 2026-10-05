@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-05 18:09'
-updated_date: '2026-10-05 19:16'
+updated_date: '2026-10-05 19:37'
 labels: []
 dependencies: []
 references:
@@ -86,6 +86,10 @@ Alex approved a first assembly scanner using Cityssembly after investigation fou
 Release qualification reproduced a Windows-only archive extraction failure: Git Bash tar treats the drive prefix as a remote archive host. Use the Windows-supplied tar.exe for NASM extraction on Windows. Existing package build and fresh-checkout jobs exercise the fix, so no source-text or mocked command test is added. Re-run the full check and platform qualification; limit review to this build fix.
 
 The Windows compiler next exposed an upstream NASM 3.02 header bug: nasmlib/file.c includes stringapiset.h without windows.h, producing No Target Architecture. Apply the small upstream fix from NASM commit ace0078261329437224d4875b289647279a41fa1 locally during the Windows build, and document it with the existing source-location patch. The existing native package jobs remain the verification; no new scanner behavior is added.
+
+Windows fresh-checkout qualification reproduced a NASM source-location failure (:0). CRLF in preprocessor output prevents the %line directive from matching. Split generated output on CRLF or LF. Extend the existing NASM domain test with the same real preprocessed fixture encoded as CRLF and verify routine origins stay unchanged. Existing coverage changed source-file line endings, but did not exercise Windows preprocessor output; the new assertion must fail before the fix.
+
+Keep the regression small and independent of host tools: add one concurrent evidence-parser test with a minimal NASM %line output encoded as CRLF, asserting the routine maps to line 3 and its original offset. The real fixture conversion already reproduces the same exception; the existing end-to-end package test remains the Windows qualification.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -112,6 +116,12 @@ Windows extraction fix: select %SystemRoot%/System32/tar.exe on Windows and reta
 Run 37359706320 passed full validation and Linux/macOS package tests. Both Windows builds passed archive extraction and failed compiling NASM nasmlib/file.c with Windows SDK error C1189 No Target Architecture. Upstream NASM documents and fixes the same defect at https://repo.or.cz/nasm/nasm2.git/commit/ace0078261329437224d4875b289647279a41fa1.
 
 Applied the exact upstream header fix only to nasmlib/file.c during Windows compilation. Targeted quality/specification review confirms that compiler setup changes only; scanner evidence and macro semantics remain unchanged. Full check passes again: 16 Node and 763 Bun tests, 50 skipped. No extra tests are needed because the native Windows package builds and fresh-checkout runs exercise the failing operation directly.
+
+Run 37362351335 passed full validation, Linux ARM64 and macOS packages. Windows ARM64 built all packages and passed COBOL, but NASM failed during evidence extraction. Reproduced locally by converting actual NASM output to CRLF: nasm: source location is outside selected files: :0. Linux x64 was cancelled while queued, before a runner was assigned.
+
+Windows x64 reproduced the same CRLF failure; COBOL passed on both Windows hosts. GitHub annotation for Linux x64: The job was not acquired by Runner of type hosted even after multiple attempts. The new regression failed before the one-line output split fix and passes after it. Both focused NASM tests pass (16 assertions). Targeted specification/quality review confirms only generated-output line separation changes; physical source offsets remain untouched. The assertion checks the original routine line and offset, and does not depend on wording or helper structure.
+
+Full repository check after the CRLF fix passes: 16 Node and 764 Bun tests, 50 skipped. No new complexity warnings or architecture record changes. The release draft remains unpublished pending renewed native qualification and npm login.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

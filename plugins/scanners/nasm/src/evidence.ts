@@ -27,7 +27,7 @@ function qualify(name: string, scope: string): string {
 
 function* sourceLines(input: Preprocessed) {
   let file = '', line = 0, increment = 1
-  for (const raw of input.text.split('\n')) {
+  for (const raw of input.text.split(/\r?\n/)) {
     const directive = /^%line (\d+)\+(\d+) (.+)$/.exec(raw)
     if (directive) {
       file = directive[3]!.replace(/^["']|["']$/g, '').replaceAll('\\', '/')

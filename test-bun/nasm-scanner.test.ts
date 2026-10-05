@@ -5,10 +5,20 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { ScannerPlugin } from '@groma/scanner'
 import { buildPackage } from '../plugins/scanners/nasm/build.ts'
+import { evidence } from '../plugins/scanners/nasm/src/evidence.ts'
 import manifest from '../plugins/scanners/nasm/package.json'
 import { scannerFiles } from '../src/scanner/modules/selection.ts'
 
 const fixture = path.resolve(import.meta.dir, '../test/fixtures/nasm-source')
+
+test.concurrent('NASM Windows output retains the original routine location', () => {
+  const text = 'section .text\nglobal main\nmain:\n  ret\n'
+  const sources = new Map([['main.asm', { text, lines: text.split('\n'), offsets: [0, 14, 26, 32, 38] }]])
+  const output = '%line 1+1 main.asm\r\n[section .text]\r\n[global main]\r\nmain:\r\n  ret\r\n'
+  expect(evidence({ text: output, sources }).routines).toMatchObject([
+    { file: 'main.asm', name: 'main', line: 3, position: text.indexOf('main:') },
+  ])
+})
 
 test.concurrent('NASM retains macro call-site origins, include scope and uncertain providers in a selected source snapshot', async () => {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-nasm-test-'))
