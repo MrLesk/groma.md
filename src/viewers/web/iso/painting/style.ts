@@ -202,6 +202,8 @@ export const mapCss = `
   #map .paint-surface { position: absolute; inset: 0; pointer-events: none; }
   #map .scene { display: block; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
   #map .world { pointer-events: auto; }
+  /* Chrome can drop animated routes after zooming beneath the forced camera cache. Keep only their own layer promoted during a flow. */
+  #map .camera[data-tracing] { will-change: auto !important; }
   #map .camera[data-tracing] .route-surface { will-change: transform; }
   #map > .map-surface [data-id] { cursor: pointer; }
   #map > .map-surface:active, #map .drag-cover { cursor: grabbing; }
