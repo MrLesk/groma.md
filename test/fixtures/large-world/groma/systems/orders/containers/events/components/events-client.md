@@ -24,3 +24,9 @@ groma:
 ---
 
 Events client of Events.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [events-client](events-client.md) | [payments](../../../../../externals/payments.md) | Charges cards | HTTP |

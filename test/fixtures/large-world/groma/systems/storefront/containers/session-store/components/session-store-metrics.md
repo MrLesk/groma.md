@@ -15,3 +15,10 @@ groma:
 ---
 
 Session Store metrics of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/metrics.ts](../../../../../../src/storefront/session-store/metrics.ts) | [src/storefront/session-store/config.ts](../../../../../../src/storefront/session-store/config.ts) | Calls config | HTTP |
+| [src/storefront/session-store/metrics.ts](../../../../../../src/storefront/session-store/metrics.ts) | [src/storefront/session-store/logger.ts](../../../../../../src/storefront/session-store/logger.ts) | Reads logger | HTTP |

@@ -25,3 +25,10 @@ groma:
 ---
 
 Import worker of Import.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/import/worker.ts](../../../../../../src/catalog/import/worker.ts) | [src/catalog/import/scheduler.ts](../../../../../../src/catalog/import/scheduler.ts) | Calls scheduler | HTTP |
+| [src/catalog/import/worker.ts](../../../../../../src/catalog/import/worker.ts) | [src/catalog/import/metrics.ts](../../../../../../src/catalog/import/metrics.ts) | Reads metrics | HTTP |

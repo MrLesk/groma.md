@@ -18,3 +18,10 @@ groma:
 ---
 
 Catalog Api config of Catalog Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/catalog-api/config.ts](../../../../../../src/catalog/catalog-api/config.ts) | [src/catalog/catalog-api/logger.ts](../../../../../../src/catalog/catalog-api/logger.ts) | Calls logger | HTTP |
+| [src/catalog/catalog-api/config.ts](../../../../../../src/catalog/catalog-api/config.ts) | [src/catalog/catalog-api/client.ts](../../../../../../src/catalog/catalog-api/client.ts) | Reads client | HTTP |

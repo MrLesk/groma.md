@@ -3,25 +3,30 @@
 The TUI world is a map inside fixed chrome: a one-row header, a
 hierarchy pane, the map pane, a details pane, and a one-row footer,
 with one blank row above the header and below the footer.
-Panes reserve width; they never overlay the map. Selection never changes the
-world layout; available-width changes may wrap cards and rows. The map uses one fixed,
-readable scale. A larger terminal reveals more canvas; there is no
-geometric zoom or fit-all view.
+Panes reserve width; they never overlay the map. The map is a terminal plan of
+the shared sheet: nesting and the order of neighbours along the axis that
+separates them match the web 2D view, while sizes follow the text each box holds.
 
 - The details pane shows the current architecture selection, except while an
   explicitly focused flow, work record, source, diff, profile or help view is open.
-- The root map shows actor, system and external-system islands, with container
-  rows and miniature component blocks. It does not show groups or component cards.
-- Enter opens only a container, showing that container, its groups and
-  components. Backspace returns to root. Arrows never change scope.
-- Components with an unidentified container have a summary row within their
-  system. Selecting one through the hierarchy opens its system surface and the
+- Root draws islands, collapsed containers with their component counts and island
+  buildings, and no component inside a container.
+- Enter opens a container on its first component; every other container stays
+  collapsed in its direction. Backspace returns to root with the container
+  selected. Arrows never change scope. Both changes animate.
+- An open container too large for the map opens only the selected component's
+  group; the others stand collapsed with their counts and open when an arrow or
+  click reaches them.
+- Components with an unidentified container stand inside their system. Selecting one through the hierarchy opens its system surface and the
   Unidentified container group; Backspace returns to that system at root.
-- Arrowing selects the nearest eligible card by its rectangle, including slight
-  overlap. Map arrows never move pane focus. The camera follows toward the
-  selection, bounded by the displayed map, with no empty space beyond its edges.
-- Cards, routes, and relationship labels keep their world cells across selection
-  changes. Only their camera position changes.
+- Arrowing selects the nearest box by its rectangle, including slight overlap.
+  Map arrows never move pane focus. The camera keeps the selection clear of the
+  edges and never shows space beyond the map; the wheel and dragging pan it.
+- Within one depth, boxes and routes keep their world cells across selection and
+  pane changes; only the camera moves.
+- Routes leave their source with a tee, end in an arrowhead at their target and
+  go around boxes. A run that rounds onto a frame line moves to a free line within
+  two cells. Selection routes are green and still; only a lit flow's routes pulse.
 
 The automated terminal procedure requires `tui-test` on `PATH` in the
 shell running it, plus Bun and the installed project dependencies.
@@ -31,8 +36,10 @@ a dependency required to run groma.md.
 
 Drive `groma view` with `tui-test`. Read the terminal, send keys, and
 capture a screenshot.
-Compare world geometry across arrow moves; the camera may pan, but cards and
-labels must not rearrange. Do not wait for a human screenshot.
+Compare world geometry across arrow moves within one depth; the camera may pan,
+but boxes and labels must not rearrange. The map rests once zooms and pans
+finish, except while a flow is lit, so wait for idle or for text. Do not wait
+for a human screenshot.
 
 ### Windows (PowerShell)
 

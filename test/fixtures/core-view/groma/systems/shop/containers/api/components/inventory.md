@@ -12,3 +12,9 @@ groma:
 ---
 
 Reserves stock for an order.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/inventory.ts](../../../../../../src/inventory.ts) | [src/orders.ts](../../../../../../src/orders.ts) | Reports reserved stock | Function call |

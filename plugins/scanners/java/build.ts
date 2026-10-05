@@ -52,8 +52,8 @@ export async function buildPackage(destination: string): Promise<void> {
   const javaHome = settings.stderr.match(/java.home = (.+)/)?.[1]?.trim()
   if (!javaHome) throw new Error('Cannot locate the build JDK for compiler release definitions.')
   await cp(path.join(javaHome, 'lib/ct.sym'), path.join(runtime, 'lib/ct.sym'))
-  const built = await Bun.build({ entrypoints: [path.join(pluginRoot, 'src/index.ts')],
-    outdir: path.join(destination, 'src'), target: 'bun', format: 'esm', naming: 'index.js', metafile: true })
+  const built = await Bun.build({ entrypoints: ['index', 'worker'].map(name => path.join(pluginRoot, `src/${name}.ts`)),
+    outdir: path.join(destination, 'src'), target: 'bun', format: 'esm', naming: '[name].js', metafile: true })
   if (!built.success) throw new Error(built.logs.join('\n'))
   await writeNotices(Object.keys(built.metafile?.inputs ?? {}), path.join(destination, 'THIRD-PARTY-NOTICES.txt'))
   await writeFile(path.join(destination, 'package.json'), `${JSON.stringify({

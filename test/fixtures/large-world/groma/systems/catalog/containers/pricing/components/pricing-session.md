@@ -19,3 +19,10 @@ groma:
 ---
 
 Pricing session of Pricing.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/pricing/session.ts](../../../../../../src/catalog/pricing/session.ts) | [src/catalog/pricing/cache.ts](../../../../../../src/catalog/pricing/cache.ts) | Calls cache | HTTP |
+| [src/catalog/pricing/session.ts](../../../../../../src/catalog/pricing/session.ts) | [src/catalog/pricing/validator.ts](../../../../../../src/catalog/pricing/validator.ts) | Reads validator | HTTP |

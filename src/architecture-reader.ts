@@ -4,7 +4,6 @@ import { parseMarkdown, parseFrontmatter } from 'comark'
 
 import {
   FLOW_TYPE,
-  RELATIONSHIPS_TYPE,
   c4Kind,
   requireBundleIndex,
   requireConceptType,
@@ -172,7 +171,7 @@ export async function loadArchitecture(
     }
     const type = requireConceptType(document.frontmatter, document.sourceFilename)
     if (type === FLOW_TYPE) flows.push(document)
-    if (c4Kind(type) !== undefined || type === RELATIONSHIPS_TYPE) documents.push(document)
+    if (c4Kind(type) !== undefined) documents.push(document)
   }
 
   return deepFreeze({ documents, drafts, flows })

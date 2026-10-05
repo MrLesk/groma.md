@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 
-import { detectDuplicatedLogic, rememberArchitectureFindings } from './architecture-findings.ts'
+import { prepareArchitectureFindings, rememberArchitectureFindings } from './architecture-findings.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { storedConnections } from './relationship-markdown.ts'
 import { loadArchitecture } from './architecture-reader.ts'
@@ -112,17 +112,20 @@ function availableId(world: World, name: string, parent?: WorldRecord): string {
   return candidateId(name, parent, index)
 }
 
-async function createRecord(
+interface RecordInput {
+  kind: C4Kind
+  id?: string
+  name: string
+  parent?: WorldRecord
+  code?: CodeReference[]
+}
+
+/** Reserve identity in scan order; inferred entry placement can complete it before its first write. */
+function reserveRecord(
   repositoryRoot: string,
   world: World,
-  input: {
-    kind: C4Kind
-    id?: string
-    name: string
-    parent?: WorldRecord
-    code?: CodeReference[]
-  },
-): Promise<WorldRecord> {
+  input: RecordInput,
+): WorldRecord {
   const id = input.id ?? availableId(world, input.name, input.parent)
   const name = input.name
   const record: WorldRecord = {
@@ -139,24 +142,32 @@ async function createRecord(
     }),
     code: input.code ?? [],
   }
-  // Reserve identity before yielding so independent file writes keep scan order.
   world.byId.set(id, record)
   for (const reference of record.code) {
     world.byCodeFile.set(reference.file, record)
   }
+  return record
+}
+
+async function writeRecord(repositoryRoot: string, record: WorldRecord): Promise<void> {
   await writeDocument(
     repositoryRoot,
     record.sourceFilename,
     renderArchitectureDocument({
-      id,
-      kind: input.kind,
-      parent: input.parent?.id,
-      name,
+      id: record.id,
+      kind: record.kind,
+      parent: record.parent,
+      name: record.title,
       overview: '',
       status: 'stable',
       code: record.code,
     }),
   )
+}
+
+async function createRecord(repositoryRoot: string, world: World, input: RecordInput): Promise<WorldRecord> {
+  const record = reserveRecord(repositoryRoot, world, input)
+  await writeRecord(repositoryRoot, record)
   return record
 }
 
@@ -349,7 +360,7 @@ async function reconcileFiles(
   candidates: Map<string, FileCandidate>,
   entryMemberFiles: ReadonlySet<string>,
   summary: ScanSummary,
-): Promise<void> {
+): Promise<WorldRecord[]> {
   const unowned: Array<FileCandidate & { parent: WorldRecord }> = []
   for (const candidate of [...candidates.values()].sort((a, b) => a.file.localeCompare(b.file))) {
     const parent = commonParent(world, candidate.parents)
@@ -364,23 +375,22 @@ async function reconcileFiles(
       continue
     }
     if (owner === draft) summary.matched += 1
-    for (const reference of candidate.references) {
-      if (!owner.code.some(item => item.file === reference.file && item.scanner === reference.scanner)) {
-        await attachReference(repositoryRoot, world, owner, reference)
-      }
-    }
+    await attachMissingReferences(repositoryRoot, world, owner, candidate.references)
   }
   const names = componentNames(unowned.map(candidate => ({
     file: candidate.file, parent: candidate.parent.id,
   })), new Set([...world.byId.values()].flatMap(record => [record.id, kebabCase(record.title)])))
-  for (let offset = 0; offset < unowned.length; offset += 16) {
-    await Promise.all(unowned.slice(offset, offset + 16).map(candidate => createRecord(repositoryRoot, world, {
-      kind: 'component',
-      ...names.get(candidate.file)!,
-      parent: candidate.parent,
-      code: candidate.references.sort((a, b) => a.scanner.localeCompare(b.scanner)),
-    })))
-    summary.created += unowned.slice(offset, offset + 16).length
+  return unowned.map(candidate => reserveRecord(repositoryRoot, world, {
+    kind: 'component', ...names.get(candidate.file)!, parent: candidate.parent,
+    code: candidate.references.sort((a, b) => a.scanner.localeCompare(b.scanner)),
+  }))
+}
+
+async function attachMissingReferences(repositoryRoot: string, world: World, owner: WorldRecord, references: CodeReference[]) {
+  for (const reference of references) {
+    if (!owner.code.some(item => item.file === reference.file && item.scanner === reference.scanner)) {
+      await attachReference(repositoryRoot, world, owner, reference)
+    }
   }
 }
 
@@ -419,15 +429,27 @@ function observationPlacements(world: World, observation: ScanObservation): Map<
   return placements
 }
 
-async function placeEntries(repositoryRoot: string, world: World, observations: ScanObservation[], summary: ScanSummary): Promise<void> {
+async function placeEntries(repositoryRoot: string, world: World, observations: ScanObservation[], summary: ScanSummary, pending: WorldRecord[]): Promise<void> {
   const parents = new Map<string, string>()
+  const newIds = new Set(pending.map(record => record.id))
   for (const placement of entryPointPlacements(world, observations)) {
     const container = placement.container ?? await createRecord(repositoryRoot, world, {
       kind: 'container', name: placement.name, parent: placement.system,
     })
     if (!placement.container) summary.created += 1
-    for (const component of placement.components) parents.set(component.id, container.id)
+    for (const component of placement.components) {
+      if (!newIds.has(component.id)) { parents.set(component.id, container.id); continue }
+      component.parent = container.id
+      component.sourceFilename = architectureElementPath({
+        root: GromaFileSystem.open(repositoryRoot).sourceFilename(), kind: component.kind, id: component.id,
+        parentSourceFilename: container.sourceFilename,
+      })
+    }
   }
+  for (let offset = 0; offset < pending.length; offset += 16) {
+    await Promise.all(pending.slice(offset, offset + 16).map(record => writeRecord(repositoryRoot, record)))
+  }
+  summary.created += pending.length
   await completeContainerPlacement(repositoryRoot, parents)
 }
 
@@ -448,26 +470,31 @@ export async function reconcileScanObservations(
   const protectedFiles = new Set([...retained, ...connections.filter(row => row.authored)]
     .flatMap(row => [row.source, row.target]))
   const world = indexWorld(records)
-  const diagnostics = observations.flatMap(observation => observation.diagnostics.map(diagnostic => ({
-    scanner: observation.scanner, diagnostic,
-  })))
-  if (diagnostics.length > 0) summary.scannerDiagnostics = diagnostics
-  await refreshCuratedCode(repositoryRoot, world, observations, summary, protectedFiles)
-  await createInitialSystem(repositoryRoot, world, observations, summary)
-  const candidates = new Map<string, FileCandidate>()
-  for (const observation of observations) {
-    const placements = observationPlacements(world, observation)
-    collectFiles(candidates, observation, placements)
+  const findingsJob = prepareArchitectureFindings(observations)
+  try {
+    const diagnostics = observations.flatMap(observation => observation.diagnostics.map(diagnostic => ({
+      scanner: observation.scanner, diagnostic,
+    })))
+    if (diagnostics.length > 0) summary.scannerDiagnostics = diagnostics
+    await refreshCuratedCode(repositoryRoot, world, observations, summary, protectedFiles)
+    await createInitialSystem(repositoryRoot, world, observations, summary)
+    const candidates = new Map<string, FileCandidate>()
+    for (const observation of observations) {
+      const placements = observationPlacements(world, observation)
+      collectFiles(candidates, observation, placements)
+    }
+    const unitConflicts = associateCandidates(candidates, observations, world)
+    const entryMemberFiles = new Set(observations.flatMap(observation => observation.entryPoints?.flatMap(entry => entry.files) ?? []))
+    const pending = await reconcileFiles(repositoryRoot, world, candidates, entryMemberFiles, summary)
+    await placeEntries(repositoryRoot, world, observations, summary, pending)
+    const owners = new Map([...world.byId.values()].flatMap(record => record.code.map(reference => [reference.file, record.id] as const)))
+    const conflicts = [...unitConflicts, ...await refreshDerivedRelationships(repositoryRoot, observations)]
+    if (conflicts.length > 0) summary.evidenceConflicts = conflicts
+    const findings = await findingsJob.complete(owners)
+    rememberArchitectureFindings(repositoryRoot, findings)
+    if (findings.length > 0) summary.findings = findings.length
+    return summary
+  } finally {
+    await findingsJob.close()
   }
-  const unitConflicts = associateCandidates(candidates, observations, world)
-  const entryMemberFiles = new Set(observations.flatMap(observation => observation.entryPoints?.flatMap(entry => entry.files) ?? []))
-  await reconcileFiles(repositoryRoot, world, candidates, entryMemberFiles, summary)
-  await placeEntries(repositoryRoot, world, observations, summary)
-  const owners = new Map([...world.byId.values()].flatMap(record => record.code.map(reference => [reference.file, record.id] as const)))
-  const conflicts = [...unitConflicts, ...await refreshDerivedRelationships(repositoryRoot, observations, owners, retained)]
-  if (conflicts.length > 0) summary.evidenceConflicts = conflicts
-  const findings = detectDuplicatedLogic(observations, owners)
-  rememberArchitectureFindings(repositoryRoot, findings)
-  if (findings.length > 0) summary.findings = findings.length
-  return summary
 }

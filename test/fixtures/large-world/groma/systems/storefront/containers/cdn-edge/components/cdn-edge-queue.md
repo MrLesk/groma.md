@@ -22,3 +22,10 @@ groma:
 ---
 
 Cdn Edge queue of Cdn Edge.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/cdn-edge/queue.ts](../../../../../../src/storefront/cdn-edge/queue.ts) | [src/storefront/cdn-edge/worker.ts](../../../../../../src/storefront/cdn-edge/worker.ts) | Calls worker | HTTP |
+| [src/storefront/cdn-edge/queue.ts](../../../../../../src/storefront/cdn-edge/queue.ts) | [src/storefront/cdn-edge/scheduler.ts](../../../../../../src/storefront/cdn-edge/scheduler.ts) | Reads scheduler | HTTP |

@@ -19,3 +19,10 @@ groma:
 ---
 
 Events session of Events.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/events/session.ts](../../../../../../src/orders/events/session.ts) | [src/orders/events/cache.ts](../../../../../../src/orders/events/cache.ts) | Calls cache | HTTP |
+| [src/orders/events/session.ts](../../../../../../src/orders/events/session.ts) | [src/orders/events/validator.ts](../../../../../../src/orders/events/validator.ts) | Reads validator | HTTP |

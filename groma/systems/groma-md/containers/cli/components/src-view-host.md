@@ -18,3 +18,10 @@ description: Runs the terminal viewer and connects it to live architecture updat
 ---
 
 Starts the terminal renderer and connects it to architecture, scanner, and task updates. Loads source details and selected Git revisions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/view-host.ts](../../../../../../src/view-host.ts) | [plugins/work-sources/backlog/src/index.ts](../../../../../../plugins/work-sources/backlog/src/index.ts) | Reads and watches tasks | Work source plugin |
+| [src/view-host.ts](../../../../../../src/view-host.ts) | [src/scanner/session.ts](../../../../../../src/scanner/session.ts) | Runs live scans | Function call |

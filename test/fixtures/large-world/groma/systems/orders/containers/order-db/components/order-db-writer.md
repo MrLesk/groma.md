@@ -19,3 +19,10 @@ groma:
 ---
 
 Order Db writer of Order Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-db/writer.ts](../../../../../../src/orders/order-db/writer.ts) | [src/orders/order-db/queue.ts](../../../../../../src/orders/order-db/queue.ts) | Calls queue | HTTP |
+| [src/orders/order-db/writer.ts](../../../../../../src/orders/order-db/writer.ts) | [src/orders/order-db/worker.ts](../../../../../../src/orders/order-db/worker.ts) | Reads worker | HTTP |

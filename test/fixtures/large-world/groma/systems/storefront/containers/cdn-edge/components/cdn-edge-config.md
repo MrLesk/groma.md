@@ -18,3 +18,10 @@ groma:
 ---
 
 Cdn Edge config of Cdn Edge.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/cdn-edge/config.ts](../../../../../../src/storefront/cdn-edge/config.ts) | [src/storefront/cdn-edge/logger.ts](../../../../../../src/storefront/cdn-edge/logger.ts) | Calls logger | HTTP |
+| [src/storefront/cdn-edge/config.ts](../../../../../../src/storefront/cdn-edge/config.ts) | [src/storefront/cdn-edge/client.ts](../../../../../../src/storefront/cdn-edge/client.ts) | Reads client | HTTP |

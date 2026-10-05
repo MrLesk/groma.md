@@ -12,3 +12,10 @@ groma:
 ---
 
 Product Db scheduler of Product Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/product-db/scheduler.ts](../../../../../../src/catalog/product-db/scheduler.ts) | [src/catalog/product-db/metrics.ts](../../../../../../src/catalog/product-db/metrics.ts) | Calls metrics | HTTP |
+| [src/catalog/product-db/scheduler.ts](../../../../../../src/catalog/product-db/scheduler.ts) | [src/catalog/product-db/config.ts](../../../../../../src/catalog/product-db/config.ts) | Reads config | HTTP |

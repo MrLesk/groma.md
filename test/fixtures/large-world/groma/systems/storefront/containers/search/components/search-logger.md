@@ -21,3 +21,9 @@ groma:
 ---
 
 Search logger of Search.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/search/logger.ts](../../../../../../src/storefront/search/logger.ts) | [src/storefront/search/client.ts](../../../../../../src/storefront/search/client.ts) | Calls client | HTTP |

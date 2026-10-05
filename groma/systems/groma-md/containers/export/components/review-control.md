@@ -20,3 +20,9 @@ description: Shows possible duplicate operations and their source comparison
 ---
 
 Shows possible copies of source operations. Lets the user compare their code before deciding whether a change is needed.
+
+## Derived relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/viewers/web/review/control.ts](../../../../../../src/viewers/web/review/control.ts) | [src/viewers/web/render.ts](../../../../../../src/viewers/web/render.ts) | Invokes supplied callback: world | typescript |

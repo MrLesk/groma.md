@@ -8,6 +8,7 @@ groma:
   code:
     - scanner: typescript
       file: plugins/scanners/java/src/index.ts
+      symbol: scanJavaProjects
     - scanner: typescript
       file: plugins/scanners/java/src/adapter.ts
     - scanner: typescript
@@ -21,6 +22,8 @@ groma:
     - scanner: typescript
       file: plugins/scanners/java/src/missing-types.ts
       symbol: summarizeMissingTypes
+    - scanner: typescript
+      file: plugins/scanners/java/src/worker.ts
   group: Language analysis
 description: Starts the bundled Java worker and returns its scan results
 ---

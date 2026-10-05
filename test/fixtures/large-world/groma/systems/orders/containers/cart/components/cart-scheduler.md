@@ -12,3 +12,10 @@ groma:
 ---
 
 Cart scheduler of Cart.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/cart/scheduler.ts](../../../../../../src/orders/cart/scheduler.ts) | [src/orders/cart/metrics.ts](../../../../../../src/orders/cart/metrics.ts) | Calls metrics | HTTP |
+| [src/orders/cart/scheduler.ts](../../../../../../src/orders/cart/scheduler.ts) | [src/orders/cart/config.ts](../../../../../../src/orders/cart/config.ts) | Reads config | HTTP |

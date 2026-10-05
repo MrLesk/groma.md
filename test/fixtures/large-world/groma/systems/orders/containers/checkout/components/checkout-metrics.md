@@ -15,3 +15,10 @@ groma:
 ---
 
 Checkout metrics of Checkout.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/checkout/metrics.ts](../../../../../../src/orders/checkout/metrics.ts) | [src/orders/checkout/config.ts](../../../../../../src/orders/checkout/config.ts) | Calls config | HTTP |
+| [src/orders/checkout/metrics.ts](../../../../../../src/orders/checkout/metrics.ts) | [src/orders/checkout/logger.ts](../../../../../../src/orders/checkout/logger.ts) | Reads logger | HTTP |

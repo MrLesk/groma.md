@@ -22,3 +22,10 @@ groma:
 ---
 
 Events cache of Events.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/events/cache.ts](../../../../../../src/orders/events/cache.ts) | [src/orders/events/validator.ts](../../../../../../src/orders/events/validator.ts) | Calls validator | HTTP |
+| [src/orders/events/cache.ts](../../../../../../src/orders/events/cache.ts) | [src/orders/events/mapper.ts](../../../../../../src/orders/events/mapper.ts) | Reads mapper | HTTP |

@@ -22,3 +22,10 @@ groma:
 ---
 
 Auth cache of Auth.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/auth/cache.ts](../../../../../../src/identity/auth/cache.ts) | [src/identity/auth/validator.ts](../../../../../../src/identity/auth/validator.ts) | Calls validator | HTTP |
+| [src/identity/auth/cache.ts](../../../../../../src/identity/auth/cache.ts) | [src/identity/auth/mapper.ts](../../../../../../src/identity/auth/mapper.ts) | Reads mapper | HTTP |

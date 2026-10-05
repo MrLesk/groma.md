@@ -16,3 +16,10 @@ groma:
 ---
 
 Catalog Api reader of Catalog Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/catalog-api/reader.ts](../../../../../../src/catalog/catalog-api/reader.ts) | [src/catalog/catalog-api/writer.ts](../../../../../../src/catalog/catalog-api/writer.ts) | Calls writer | HTTP |
+| [src/catalog/catalog-api/reader.ts](../../../../../../src/catalog/catalog-api/reader.ts) | [src/catalog/catalog-api/queue.ts](../../../../../../src/catalog/catalog-api/queue.ts) | Reads queue | HTTP |

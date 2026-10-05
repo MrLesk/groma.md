@@ -141,8 +141,10 @@ operation before opening a map.
      match elements through owned files, so a renamed ID survives them. These
      operations validate the whole change before writing.
      `--detach <file...>` removes those files from the component's Code.
-     Relationship rows naming a file without an owner stay stored and return to
-     the map once a scan owns the file.
+     Outgoing relationship rows naming a detached file stay in the old component
+     document. The next scan transfers them to the new source owner and returns
+     them to the map. Scan before removing an empty component that still holds
+     waiting rows. Combining components carries their outgoing rows together.
    - A group is a name on each sibling component and is addressed as
      `<container-id>/<group-kebab>`: `groma add group <name> <ids...>` names
      it, `groma edit group <address> --title <text>` renames every member,
@@ -153,8 +155,8 @@ operation before opening a map.
    - An interaction is authored with `groma add relation <source-file>
      <target-file> --description <prose> --technology <text>`. Exact source
      files identify code endpoints; actor and external-system declarations
-     may use concept IDs. `groma/relationships.md` holds one authored row per
-     ordered endpoint pair. `groma edit relation` rewords it; `groma draft
+     may use concept IDs. The source element document holds one authored row per
+     ordered endpoint pair across the architecture. `groma edit relation` rewords it; `groma draft
      relation` creates a planned row, and `groma accept relation` accepts it.
      Only draft rows may be removed. The web editor chooses the participating
      files and lets a reader inspect each claim represented by a map connection.
@@ -298,7 +300,8 @@ viewer sees it. The sheet gives both maps their surfaces, buildings, groups,
 and route paths. Each viewer only projects those fixed cells for its own
 screen. It never reads the architecture files or creates another world layout.
 The package
-requires `groma/index.md` with only the OKF v0.2 declaration and
+requires `groma/index.md` with the OKF v0.2 declaration and a generated
+listing of immediate Markdown files and directories, and
 `groma/project.md` with the explicit groma.md architecture marker.
 
 Core also counts the lines of each element's `groma.code` files; an unreadable

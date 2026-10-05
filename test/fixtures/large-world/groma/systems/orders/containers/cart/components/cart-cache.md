@@ -22,3 +22,10 @@ groma:
 ---
 
 Cart cache of Cart.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/cart/cache.ts](../../../../../../src/orders/cart/cache.ts) | [src/orders/cart/validator.ts](../../../../../../src/orders/cart/validator.ts) | Calls validator | HTTP |
+| [src/orders/cart/cache.ts](../../../../../../src/orders/cart/cache.ts) | [src/orders/cart/mapper.ts](../../../../../../src/orders/cart/mapper.ts) | Reads mapper | HTTP |

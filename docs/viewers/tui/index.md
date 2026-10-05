@@ -10,8 +10,8 @@ source changes update the map. Startup failures report the actual issue without
 a stack trace.
 The screen has a header, a hierarchy pane, a map, a details pane, and
 a footer. Panes reserve their columns and never cover the map. They start folded
-by width so the map keeps at least 60 columns: both open at 120 columns and
-wider, the hierarchy alone from 90 to 119, none under 90. `t` opens and focuses
+by width so the map, which already draws the hierarchy, keeps the room: details
+open from 140 columns and the hierarchy joins from 180. `t` opens and focuses
 the hierarchy; `d` opens and focuses details. Pressing the focused pane's key
 again folds it and returns to the map. Live resizing folds an inactive pane when needed
 to keep forty map columns. An explicitly opened pane receives keys; the other
@@ -20,42 +20,49 @@ the component count.
 
 ## Map scopes
 
-The root map uses Core's sheet placement order to make a compact terminal
-layout. It shows actor, internal-system, and external-system islands. A system
-island lists one row per container and one block per component. Blocks wrap
-inside the fitted island. Component cards, group zones, and container slabs stay
-hidden at root. Relationships whose exact endpoint is hidden attach to its
-visible row or island.
+The terminal draws the shared sheet of the web 2D view as a terminal plan. The
+plan keeps the sheet's nesting, and neighbours keep their order along the axis
+that separates them: side by side, one above the other, or, for diagonal
+neighbours, usually by columns. It does not keep proportions: each axis is
+stretched only where a name, a frame or the ground between neighbours needs
+cells. Zooming in changes what is drawn open, not where neighbours stand.
 
-Enter on a container opens its fitted container map. It shows the container
-slab, its group zones, and its component buildings. Neighbours occupy narrow named
-strips: names read vertically at the sides and horizontally above or below.
-Backspace returns to root with the container selected. Escape returns focus to
-the map without changing its scope or selection. No other element opens
-a map scope.
+Root draws the actor, system and external islands. Containers stand collapsed
+on their system, each with its name and component count, and island buildings
+(actors, external systems, components without a container) stand on their
+islands. Enter on a container zooms into it and selects its first component.
+That container opens: its groups show their components, while every other
+container, island and island building stays collapsed where it stands around it.
+Backspace zooms back out with the container selected. Escape returns focus to
+the map without changing scope or selection. Both zooms animate: the opened
+container grows out of its collapsed box while its neighbours glide outward.
 
-Each component stands as a building. Its name and glyph sit in the top border,
-and each visible floor names its largest file with +N for the rest. Draft
-buildings and routes use dashed frames. The selected building draws heavy in the
-brand green.
+An open container shows every group when it fits the map. Otherwise only the
+selected component's group is open; the other groups stand collapsed with their
+name and component count, and an arrow onto one opens it on the member nearest
+the component the arrow left. The open group follows the selection.
+
+Each component is a box with its name centered on one or two lines; a long name
+wraps at its middle space. Source files and declarations remain in How. Draft
+buildings and routes use dashed lines. Selection draws heavy in the brand green.
 
 ## Camera and selection
 
-The map has one readable scale. It has no fit-all state, zoom keys, or zoom
-readout. The active island or container fits the current map width and stays
-centred, leaving room for its neighbours to peek. Changing selection does not
-rearrange cards, rows, routes, or labels.
+A map that fits the map pane stays centred. A larger one follows the selection,
+moving only as far as it takes to keep it a few cells from the edges, and never
+past the map's edges. Entering a container frames its open group when the pane
+holds it. Each depth remembers its own camera. The mouse wheel scrolls the map
+(Shift or a sideways wheel scrolls it sideways) and dragging pans it; the moved
+camera stays until the selection changes.
 
-At root, Up and Down walk the rows of one island; Left and Right move to the
-neighbouring island. Inside a container, each arrow chooses the nearest building
-that lies in the pressed direction. Left and Right cross to the neighbouring
-container when no building remains that way. Arrows never open or leave a
-container scope or pane focus. Proximity uses card rectangles, including a
-one-row overlap, rather than a cone between their centres. The camera follows
-selection toward the centre, limited by the displayed map bounds. Near an edge,
-the selection moves away from centre. A change in available map width may wrap
-cards and rows; selection alone keeps their geometry fixed. Stepping a flow reveals its visible destination without
-changing selection or map scope.
+At root, each arrow chooses the nearest box that lies in the pressed direction:
+a container, an island building, or a system with nothing on it. Inside a
+container, each arrow chooses the nearest component or collapsed group that way.
+When nothing remains that way, the arrow opens the neighbouring container in that
+direction on its first component. Arrows never leave component scope or pane
+focus. Proximity uses box rectangles, including a one-row overlap, rather than a
+cone between their centres. Stepping a flow reveals its visible destination
+without changing selection or map scope.
 
 The hierarchy and `/` search can select architecture outside the current scope.
 Selecting a component opens its parent container; selecting any outer element
@@ -75,14 +82,14 @@ absent. Escape returns to Current; the live architecture and work watchers then
 resume updating the map.
 
 The root architecture is vertically centered in the map canvas when it fits;
-taller roots retain scrolling to reveal the selected row.
+larger sheets use the camera to reveal selection.
 
 ## Details and flows
 
 The details pane describes the current architecture selection or the open
 flow. A focused hierarchy flow row previews its purpose and ordered steps.
 While normal element details has focus, Tab cycles through What and How, plus
-Tasks for a component. What describes responsibility, relationships and authored
+Tasks for a component. Opening another element always starts on What. What describes responsibility, relationships and authored
 Flows; How shows technology and source; Tasks groups related
 work by status. In the
 How tab the Code section lists each file with its line count and the declarations
@@ -105,8 +112,7 @@ In the flow reader, Up and Down select steps; Up before the first step returns
 to the complete path. `s` advances to the next step from anywhere. Enter
 inspects the selected step's To endpoint; Left inspects its From endpoint.
 Escape from endpoint inspection returns to the same flow and step. Normal
-source inspection still works. `x` clears flow focus. A hidden endpoint is
-named on its visible ancestor; selecting a step does not expand its connections.
+source inspection still works. `x` clears flow focus. Each endpoint is marked on the box that draws it: its component inside an open container, else the collapsed group or container holding it. Selecting a step does not expand its connections.
 
 ## Work focus
 
@@ -139,15 +145,17 @@ web reader.
 The selected task accents every element touched by its modified files and exact
 architecture references, plus routes leaving those elements. If all touched elements
 belong to one container, Work temporarily opens that component map. Otherwise it uses
-the root map and promotes hidden components to their visible containers. The camera
-reveals the touched set without rearranging it. Closing Work focus
+the root navigation scope. A marker stands on the box that draws its element: the
+component itself, or the collapsed group or container holding it. The camera
+reveals the touched set when it fits; otherwise it starts at the first touched
+element. Closing Work focus
 with `w` or Escape restores the saved architecture view and focuses the map.
 
 Every touched slab or building carries its task in a corner: the selected task
 when it touches the element, else the first shown task in work order, with +N for
 the other shown tasks; future work has a quiet diamond marker and dim text, in
-progress uses the brand green, done is dim, and the selected task is bold. In the root map a task on a component stands on its container
-row and a system carries only tasks that touch the system. The Work focus list has
+progress uses the brand green, done is dim, and the selected task is bold. A component task stands on its component where it is drawn and on its collapsed group or container elsewhere; a system carries only
+tasks that touch the system. The Work focus list has
 one toggle per status with a mapped task: Space on its header shows or hides those
 tasks on the map without changing the selection, scope or camera; the default and
 intermediate statuses start shown, while the final status starts hidden. List
@@ -166,18 +174,30 @@ for the selection, active flows, their endpoints, and active work. Nothing is
 sampled from the palette, so switching the terminal theme recolours the viewer
 live.
 
-All surfaces and the ground between them are plain. Frames weigh by depth: an
-island bold and rounded, a slab plain and rounded, a zone dim and square; the selection draws heavy in the
-brand green. The name and kind glyph sit in the top border.
+A quiet dotted grid covers the ground; islands are plain paper on it. Frames
+weigh by depth: an island quiet and rounded, a container in the foreground and
+rounded, a group dim and square, a component square, and actors and external
+systems rounded like their round and pill buildings. An open surface writes its
+name centred in its front (bottom) edge, as the web plan writes it below the
+boundary, and steps it aside where a route crosses or ends there. A collapsed
+container or group holds its name over its component count. Component names are
+centred. The selection draws heavy in the brand green.
 
 Observed architecture uses solid frames and routes; drafts use dashed ones.
-Map navigation highlights only the selected element. Routes draw dim and thin
-until explicitly highlighted by a flow or task; then they draw heavy in the brand green with an arrowhead at the target,
-a port dot on the border cell of each end (none on a top border, where the name
-sits) and a short label on or beside a route segment, clear of card and row text.
-Paths avoid foreign cards. Where two
-unlit routes cross, a junction glyph marks the crossing. A lit flow marches from
-source to target while its cells stay fixed. The details pane lists each
+Core routes the relationships of the depth being drawn on its terminal cells: a
+collapsed container or group is one end and one obstacle, so each pair of drawn
+ends gets one route carrying every relationship it stands for, and opposite
+relationships share one route with an arrow at both ends. Routes sharing a
+channel close up into one line that branches where they part. Frames and routes
+are drawn as one set of lines, so a route leaves its source with a tee on the
+frame and crosses frames and other routes with junctions; a filled arrowhead
+points at the target frame. Routes are quiet and thin. The selection's routes
+draw in the brand green and stay still; a flow or task draws its routes bold in
+the brand green and accents both ends, and everything off a traced flow recedes.
+Only a lit flow moves: pulses travel its routes from source to target for as long
+as it is lit. When six or fewer
+routes are lit, each shows the first words of its description on free ground
+beside its longest run. The details pane lists each
 ordered pair of the selection and a peer at its depth once, with the distinct
 descriptions of every relationship it combines. A highlighted row lists each
 of those relationships beneath it with its exact ends and lights all of them
@@ -197,11 +217,13 @@ its highlight; Enter first highlights it, then selects the peer the row names.
 - `w` toggles Work focus, `s` steps a flow, and `x` clears it.
 - `p` shows the project profile read-only in the details pane; `p` or Escape returns to the selection.
 - `?` shows the keys box in the details pane, opening it if folded; `?` or Escape closes it.
-- A mouse click on a hierarchy row or a map building selects it.
+- A mouse click on a hierarchy row or a map box selects it; a click on a collapsed group opens it on its first component. The wheel scrolls the map and dragging pans it.
 - `r` refreshes and Ctrl+C exits.
 
 Refresh preserves valid architecture and task selections, map scope, pane state,
-and camera. The current map-width layout stays stable across repaints.
+and camera. A depth's layout stays the same across repaints; resizing only opens
+or folds an open container's other groups as they start or stop fitting. An
+architecture update morphs the map into its new layout the way a zoom does.
 
 The focused pane has an accented border and a heading that identifies where keys
 go. The selected architecture stays green when another pane has focus. The footer

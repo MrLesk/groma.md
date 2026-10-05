@@ -25,3 +25,10 @@ groma:
 ---
 
 Pricing worker of Pricing.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/pricing/worker.ts](../../../../../../src/catalog/pricing/worker.ts) | [src/catalog/pricing/scheduler.ts](../../../../../../src/catalog/pricing/scheduler.ts) | Calls scheduler | HTTP |
+| [src/catalog/pricing/worker.ts](../../../../../../src/catalog/pricing/worker.ts) | [src/catalog/pricing/metrics.ts](../../../../../../src/catalog/pricing/metrics.ts) | Reads metrics | HTTP |

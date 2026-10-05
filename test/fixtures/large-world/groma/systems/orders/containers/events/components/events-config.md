@@ -18,3 +18,10 @@ groma:
 ---
 
 Events config of Events.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/events/config.ts](../../../../../../src/orders/events/config.ts) | [src/orders/events/logger.ts](../../../../../../src/orders/events/logger.ts) | Calls logger | HTTP |
+| [src/orders/events/config.ts](../../../../../../src/orders/events/config.ts) | [src/orders/events/client.ts](../../../../../../src/orders/events/client.ts) | Reads client | HTTP |

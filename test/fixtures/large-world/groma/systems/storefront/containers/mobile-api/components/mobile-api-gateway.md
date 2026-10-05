@@ -13,3 +13,11 @@ groma:
 ---
 
 Mobile Api gateway of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/gateway.ts](../../../../../../src/storefront/mobile-api/gateway.ts) | [src/storefront/mobile-api/router.ts](../../../../../../src/storefront/mobile-api/router.ts) | Calls router | HTTP |
+| [src/storefront/mobile-api/gateway.ts](../../../../../../src/storefront/mobile-api/gateway.ts) | [src/storefront/mobile-api/session.ts](../../../../../../src/storefront/mobile-api/session.ts) | Reads session | HTTP |
+| [src/storefront/mobile-api/gateway.ts](../../../../../../src/storefront/mobile-api/gateway.ts) | [src/storefront/search/gateway.ts](../../../../../../src/storefront/search/gateway.ts) | Forwards requests | HTTP |

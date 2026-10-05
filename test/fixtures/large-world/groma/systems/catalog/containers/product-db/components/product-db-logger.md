@@ -21,3 +21,9 @@ groma:
 ---
 
 Product Db logger of Product Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/product-db/logger.ts](../../../../../../src/catalog/product-db/logger.ts) | [src/catalog/product-db/client.ts](../../../../../../src/catalog/product-db/client.ts) | Calls client | HTTP |

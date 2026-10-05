@@ -25,3 +25,10 @@ groma:
 ---
 
 Product Db validator of Product Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/product-db/validator.ts](../../../../../../src/catalog/product-db/validator.ts) | [src/catalog/product-db/mapper.ts](../../../../../../src/catalog/product-db/mapper.ts) | Calls mapper | HTTP |
+| [src/catalog/product-db/validator.ts](../../../../../../src/catalog/product-db/validator.ts) | [src/catalog/product-db/reader.ts](../../../../../../src/catalog/product-db/reader.ts) | Reads reader | HTTP |

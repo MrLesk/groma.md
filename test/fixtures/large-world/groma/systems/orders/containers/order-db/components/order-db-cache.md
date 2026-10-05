@@ -22,3 +22,10 @@ groma:
 ---
 
 Order Db cache of Order Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-db/cache.ts](../../../../../../src/orders/order-db/cache.ts) | [src/orders/order-db/validator.ts](../../../../../../src/orders/order-db/validator.ts) | Calls validator | HTTP |
+| [src/orders/order-db/cache.ts](../../../../../../src/orders/order-db/cache.ts) | [src/orders/order-db/mapper.ts](../../../../../../src/orders/order-db/mapper.ts) | Reads mapper | HTTP |

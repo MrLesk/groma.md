@@ -1,14 +1,13 @@
 import { flowLegs } from '../flows.ts'
 import type { AnnotatedRelationship } from '../../types.ts'
 import type { LitAction } from './navigation.ts'
-import { ancestorIds, parentOfElements } from '../relationship-text.ts'
 import type { TerminalViewModel } from './model.ts'
-import { visibleEndpointFor, type TerminalProjection } from './projection.ts'
+import type { TerminalProjection } from './projection.ts'
+import { visibleItemFor } from './projection-sheet.ts'
 
 export interface ProjectedFlowEndpoint {
   title: string
   visibleKey?: string
-  visibleTitle?: string
 }
 
 export interface ProjectedFlowStep {
@@ -20,21 +19,6 @@ export interface ProjectedFlowStep {
   target: ProjectedFlowEndpoint
 }
 
-function visibleEndpoint(
-  id: string,
-  world: TerminalViewModel,
-  projection: TerminalProjection,
-): { key: string; title: string; representationId?: string } | undefined {
-  const byId = new Map(world.elements.map(element => [element.representationId, element]))
-  const visible = new Map(projection.items.flatMap(item => {
-    return item.representationId === undefined ? [] : [[item.representationId, item] as const]
-  }))
-  const boundary = projection.level === 'components'
-    ? projection.items.find(item => item.representationId === projection.scope)
-    : undefined
-  return visibleEndpointFor(id, visible, byId, boundary)
-}
-
 /** A flow contains only its authored legs; a relationship selection contains every relationship of its pair. */
 export function litLegs(world: TerminalViewModel, lit: LitAction): AnnotatedRelationship[] {
   if (world.flows.some(flow => flow.id === lit.id)) return flowLegs(lit.id, world)
@@ -42,7 +26,7 @@ export function litLegs(world: TerminalViewModel, lit: LitAction): AnnotatedRela
   return world.relationships.filter(item => ids.includes(item.id))
 }
 
-/** Exact authored endpoints paired with the cards that represent them in the current scope. */
+/** Exact authored endpoints paired with the shapes that draw them at the current depth. */
 export function projectFlowStep(
   world: TerminalViewModel,
   projection: TerminalProjection,
@@ -54,16 +38,12 @@ export function projectFlowStep(
   const leg = legs[step]
   if (!leg) return undefined
   const byId = new Map(world.elements.map(element => [element.representationId, element]))
-  const parentOf = parentOfElements(world.elements)
   const endpoint = (id: string): ProjectedFlowEndpoint => {
     const exact = byId.get(id)
-    const visible = visibleEndpoint(id, world, projection)
-    const visibleIsAncestor = visible?.representationId !== undefined
-      && ancestorIds(id, parentOf).includes(visible.representationId)
+    const visible = visibleItemFor(world, projection.items, id)
     return {
       title: exact?.title ?? id,
       visibleKey: visible?.key,
-      visibleTitle: visibleIsAncestor ? visible.title : undefined,
     }
   }
   return {
@@ -74,10 +54,4 @@ export function projectFlowStep(
     source: endpoint(leg.source),
     target: endpoint(leg.target),
   }
-}
-
-export function flowEndpointLabel(endpoint: ProjectedFlowEndpoint): string {
-  return endpoint.visibleTitle === undefined || endpoint.visibleTitle === endpoint.title
-    ? endpoint.title
-    : `${endpoint.visibleTitle} / ${endpoint.title}`
 }

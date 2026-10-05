@@ -65,7 +65,7 @@ test.concurrent('routes keep their cells while the selection stays on its island
   ], [uses('c1-c3', 'c1', 'c3')])
   const viewport = { x: 0, y: 0, width: 200, height: 100 }
   const first = projectWorld(model, { viewport, currentId: 'observed:c1' })
-  const second = projectWorld(model, { viewport, currentId: 'observed:c2', camera: first.camera })
+  const second = projectWorld(model, { viewport, currentId: 'observed:c2' })
   assert.ok(first.relationships.length === 1)
   assert.deepEqual(second.relationships[0]!.cellRoute, first.relationships[0]!.cellRoute)
 })

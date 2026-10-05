@@ -1,3 +1,5 @@
+import type { ComponentChange } from '../../history/comparison.ts'
+import { comparisonDefaultTab } from './comparison/details.ts'
 import type { Comparison } from '../../history/comparison.ts'
 import type { GitRevision } from '../../history/revisions.ts'
 import type { AnnotatedElement, AnnotatedRelationship, ArchitectureGraph, C4Kind, WorkItem } from '../../types.ts'
@@ -18,6 +20,7 @@ export interface ViewState {
   tab: DetailsTab
   theme: WebThemeMode
   hudVisible: boolean
+  inset?: number
 }
 
 /** A selected element is named by its kind: `actor=<id>`, `system=<id>`, `container=<id>` or `component=<id>`. */
@@ -110,6 +113,17 @@ export function readTheme(url: Pick<URL, 'search' | 'pathname'>, defaultTheme: W
   return isThemeMode(selected) ? selected : pathTheme(url.pathname) ?? defaultTheme
 }
 
+function readTab(params: URLSearchParams, file: string | undefined, change: ComponentChange | undefined): DetailsTab {
+  if (file !== undefined || params.get('tab') === 'how') return 'how'
+  if (params.get('tab') === 'tasks') return 'tasks'
+  return params.has('tab') ? 'what' : comparisonDefaultTab(change)
+}
+
+function appendTab(pairs: [string, string][], state: ViewState, change: ComponentChange | undefined): void {
+  if (state.selection.kind !== 'architecture') return
+  if (state.tab !== 'what' || comparisonDefaultTab(change) === 'how') pairs.push(['tab', state.tab])
+}
+
 /**
  * Reads the ordered architecture selection (repeated `<kind>=<id>` and
  * `relationship=<source id>/<target id>` entries) or `task=<id>`,
@@ -127,6 +141,7 @@ export function readView(
   comparison?: Comparison,
 ): ViewState {
   const params = new URLSearchParams(url.search)
+  const inset = Number(params.get('inset'))
   const revision = revisions.find(candidate => candidate.id === params.get('revision'))?.id
   const byId = new Map(world.elements.map(element => [element.id, element]))
   const architecture = architectureSelection(params, byId, world)
@@ -143,12 +158,11 @@ export function readView(
   const source = sourceState(params, selected, comparison)
   return {
     ...(revision === undefined ? {} : { revision }),
+    ...(Number.isInteger(inset) && inset > 0 ? { inset } : {}),
     ...source,
     selection,
     flows,
-    tab: source.file !== undefined || params.get('tab') === 'how'
-      ? 'how'
-      : params.get('tab') === 'tasks' ? 'tasks' : 'what',
+    tab: readTab(params, source.file, comparison?.components[selected?.id ?? '']),
     theme: readTheme(url, defaultTheme),
     hudVisible: params.get('hud') !== 'off',
   }
@@ -204,12 +218,13 @@ export function writeView(state: ViewState, world: ArchitectureGraph, work: read
   if (state.revision !== undefined) pairs.push(['revision', state.revision])
   if (state.from !== undefined) pairs.push(['from', state.from])
   appendSelection(pairs, state, elements, world, work)
-  if (state.selection.kind === 'architecture' && state.tab !== 'what') pairs.push(['tab', state.tab])
+  appendTab(pairs, state, comparison?.components[selected?.id ?? ''])
   appendSourceState(pairs, state, selected, comparison)
   for (const flow of state.flows) {
     appendFlow(pairs, flow === state.flows.at(-1) ? flow : { id: flow.id }, world)
   }
   if (state.theme !== (pathTheme(pathname) ?? 'auto')) pairs.push(['theme', state.theme])
   if (!state.hudVisible) pairs.push(['hud', 'off'])
+  if (state.inset !== undefined) pairs.push(['inset', String(state.inset)])
   return pairs.length === 0 ? '' : `?${pairs.map(([key, value]) => `${key}=${value}`).join('&')}`
 }

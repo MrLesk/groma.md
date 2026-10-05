@@ -25,3 +25,10 @@ groma:
 ---
 
 Mobile Api worker of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/worker.ts](../../../../../../src/storefront/mobile-api/worker.ts) | [src/storefront/mobile-api/scheduler.ts](../../../../../../src/storefront/mobile-api/scheduler.ts) | Calls scheduler | HTTP |
+| [src/storefront/mobile-api/worker.ts](../../../../../../src/storefront/mobile-api/worker.ts) | [src/storefront/mobile-api/metrics.ts](../../../../../../src/storefront/mobile-api/metrics.ts) | Reads metrics | HTTP |

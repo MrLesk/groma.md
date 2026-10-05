@@ -13,3 +13,10 @@ groma:
 ---
 
 Cdn Edge mapper of Cdn Edge.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/cdn-edge/mapper.ts](../../../../../../src/storefront/cdn-edge/mapper.ts) | [src/storefront/cdn-edge/reader.ts](../../../../../../src/storefront/cdn-edge/reader.ts) | Calls reader | HTTP |
+| [src/storefront/cdn-edge/mapper.ts](../../../../../../src/storefront/cdn-edge/mapper.ts) | [src/storefront/cdn-edge/writer.ts](../../../../../../src/storefront/cdn-edge/writer.ts) | Reads writer | HTTP |

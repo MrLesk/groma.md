@@ -24,3 +24,9 @@ groma:
 ---
 
 Session Store client of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [session-store-client](session-store-client.md) | [payments](../../../../../externals/payments.md) | Charges cards | HTTP |

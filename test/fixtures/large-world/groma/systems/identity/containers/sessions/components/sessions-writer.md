@@ -19,3 +19,10 @@ groma:
 ---
 
 Sessions writer of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/writer.ts](../../../../../../src/identity/sessions/writer.ts) | [src/identity/sessions/queue.ts](../../../../../../src/identity/sessions/queue.ts) | Calls queue | HTTP |
+| [src/identity/sessions/writer.ts](../../../../../../src/identity/sessions/writer.ts) | [src/identity/sessions/worker.ts](../../../../../../src/identity/sessions/worker.ts) | Reads worker | HTTP |

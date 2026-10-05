@@ -12,3 +12,10 @@ groma:
 ---
 
 Cdn Edge scheduler of Cdn Edge.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/cdn-edge/scheduler.ts](../../../../../../src/storefront/cdn-edge/scheduler.ts) | [src/storefront/cdn-edge/metrics.ts](../../../../../../src/storefront/cdn-edge/metrics.ts) | Calls metrics | HTTP |
+| [src/storefront/cdn-edge/scheduler.ts](../../../../../../src/storefront/cdn-edge/scheduler.ts) | [src/storefront/cdn-edge/config.ts](../../../../../../src/storefront/cdn-edge/config.ts) | Reads config | HTTP |

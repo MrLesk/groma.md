@@ -90,12 +90,25 @@ async function prepareWorkers(directory: string, relative: string, worker: strin
   await writeManifest(directory, value)
 }
 
+/** Wait for the exact uploaded version; the catalog shares one deadline across its packages. */
+export async function waitForPublishedScanner(staged: { name: string; version: string }, deadline: number, registry?: string) {
+  let published = (await readPublishedScanners(staged.name, registry))[staged.version]
+  while (!published) {
+    const remaining = deadline - Date.now()
+    if (remaining <= 0) throw new Error(`Timed out waiting for npm metadata for ${staged.name}@${staged.version}`)
+    console.log(`Waiting for npm metadata for ${staged.name}@${staged.version}`)
+    await Bun.sleep(Math.min(10_000, remaining))
+    published = (await readPublishedScanners(staged.name, registry))[staged.version]
+  }
+  return published
+}
+
 /** Use this only after the staged packages have been published successfully. */
 async function catalog(input: string) {
+  const deadline = Date.now() + 30 * 60_000
   for (const id of scannerIds) {
     const staged = await manifest(path.join(input, id))
-    const published = (await readPublishedScanners(staged.name))[staged.version]
-    if (!published) throw new Error(`${staged.name}@${staged.version}: publish this release before embedding its metadata`)
+    const published = await waitForPublishedScanner(staged, deadline)
     if (!published.groma?.scanner?.discovery?.compatibility) {
       throw new Error(`${id}: public release metadata is not ready`)
     }
@@ -144,10 +157,12 @@ async function publishPackage(directory: string) {
   else await run(['npm', 'publish', directory, '--access', 'public'])
 }
 
-const [command, input, output] = process.argv.slice(2)
-if (!input) throw new Error('Usage: scanner-release.ts stage <output> | assemble <artifacts> <output> | publish <packages> | catalog <published-packages>')
-if (command === 'stage') await stage(path.resolve(input))
-else if (command === 'assemble' && output) await assemble(path.resolve(input), path.resolve(output))
-else if (command === 'publish') await publish(path.resolve(input))
-else if (command === 'catalog') await catalog(input)
-else throw new Error('Unknown scanner release command')
+if (import.meta.main) {
+  const [command, input, output] = process.argv.slice(2)
+  if (!input) throw new Error('Usage: scanner-release.ts stage <output> | assemble <artifacts> <output> | publish <packages> | catalog <published-packages>')
+  if (command === 'stage') await stage(path.resolve(input))
+  else if (command === 'assemble' && output) await assemble(path.resolve(input), path.resolve(output))
+  else if (command === 'publish') await publish(path.resolve(input))
+  else if (command === 'catalog') await catalog(input)
+  else throw new Error('Unknown scanner release command')
+}

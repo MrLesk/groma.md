@@ -15,3 +15,9 @@ description: Starts the Rust worker and converts its result into scan evidence
 ---
 
 Reads Cargo source declarations and prepares the source crate graph. Starts the bundled Rust worker and returns its source analysis and outlines.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [plugins/scanners/rust/src/index.ts](../../../../../../plugins/scanners/rust/src/index.ts) | [plugins/scanners/rust/native/src/main.rs](../../../../../../plugins/scanners/rust/native/src/main.rs) | Runs Rust analysis | Child process and JSON |

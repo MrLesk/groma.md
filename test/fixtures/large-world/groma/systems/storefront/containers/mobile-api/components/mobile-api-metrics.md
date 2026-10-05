@@ -15,3 +15,10 @@ groma:
 ---
 
 Mobile Api metrics of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/metrics.ts](../../../../../../src/storefront/mobile-api/metrics.ts) | [src/storefront/mobile-api/config.ts](../../../../../../src/storefront/mobile-api/config.ts) | Calls config | HTTP |
+| [src/storefront/mobile-api/metrics.ts](../../../../../../src/storefront/mobile-api/metrics.ts) | [src/storefront/mobile-api/logger.ts](../../../../../../src/storefront/mobile-api/logger.ts) | Reads logger | HTTP |

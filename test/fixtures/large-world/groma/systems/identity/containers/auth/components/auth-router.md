@@ -16,3 +16,10 @@ groma:
 ---
 
 Auth router of Auth.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/auth/router.ts](../../../../../../src/identity/auth/router.ts) | [src/identity/auth/session.ts](../../../../../../src/identity/auth/session.ts) | Calls session | HTTP |
+| [src/identity/auth/router.ts](../../../../../../src/identity/auth/router.ts) | [src/identity/auth/cache.ts](../../../../../../src/identity/auth/cache.ts) | Reads cache | HTTP |

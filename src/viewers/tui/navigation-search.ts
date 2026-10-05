@@ -28,8 +28,7 @@ function followMatch(world: TerminalViewModel, state: ViewerState): ViewerState 
   if (!search) return state
   const match = search.matches[search.index]
   if (!match) return state
-  return syncTree(world, {
-    ...state,
+  return syncTree(world, state, {
     level: levelFor(match),
     currentId: match.representationId,
   })
@@ -74,8 +73,7 @@ export function reduceSearch(
   if (input.type === 'accept') {
     return { ...state, search: undefined }
   }
-  return syncTree(world, {
-    ...state,
+  return syncTree(world, state, {
     search: undefined,
     level: search.before.level,
     currentId: search.before.currentId,

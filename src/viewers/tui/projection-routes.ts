@@ -1,188 +1,260 @@
-import type { Bounds, Point } from '../../types.ts'
+import { routeAll, type Endpoint, type RouteRequest } from '../../sheet/route/route.ts'
+import type { Bounds, Origin, Point } from '../../types.ts'
+import type { TerminalViewModel } from './model.ts'
+import type { WorldItem } from './projection.ts'
+import { visibleItemFor } from './projection-sheet.ts'
 
-function same(left: Point, right: Point): boolean {
-  return left.x === right.x && left.y === right.y
+/** One route between the drawn ends of the relationships it stands for. */
+export interface SheetRoute {
+  ids: string[]
+  source: string
+  target: string
+  description: string
+  origin: Origin
+  /** Relationships also run from target to source, so both ends carry an arrow. */
+  twoWay: boolean
+  /** Terminal cells from the source frame to the target frame. */
+  cells: Point[]
 }
 
-function inside(point: Point, bounds: Bounds): boolean {
-  return point.x >= bounds.x
-    && point.x < bounds.x + bounds.width
-    && point.y >= bounds.y
-    && point.y < bounds.y + bounds.height
+type Request = RouteRequest & { relationshipIds: string[]; twoWay: boolean }
+
+/** A building or collapsed surface: one box that routes end on and go around. */
+function solid(item: WorldItem): boolean {
+  return item.shape === 'card' || item.collapsed === true
 }
 
-/** Removes duplicate and collinear cells without changing the path. */
-function compactRoute(route: readonly Point[]): Point[] {
-  const points: Point[] = []
-  for (const point of route) {
-    const previous = points.at(-1)
-    if (previous && same(previous, point)) continue
-    const before = points.at(-2)
-    if (
-      before
-      && previous
-      && ((before.x === previous.x && previous.x === point.x)
-        || (before.y === previous.y && previous.y === point.y))
-    ) {
-      points[points.length - 1] = { ...point }
+/** Each directed pair of drawn ends gets one route carrying every relationship it stands for; opposite pairs share one. */
+function routeRequests(model: TerminalViewModel, items: readonly WorldItem[]): Request[] {
+  const requests = new Map<string, Request>()
+  for (const relationship of model.relationships) {
+    const source = visibleItemFor(model, items, relationship.source)?.key
+    const target = visibleItemFor(model, items, relationship.target)?.key
+    if (source === undefined || target === undefined || source === target) continue
+    const reverse = requests.get(`${target}\n${source}`)
+    const known = reverse ?? requests.get(`${source}\n${target}`)
+    if (known === undefined) {
+      requests.set(`${source}\n${target}`, { id: relationship.id, source, target, description: relationship.description, origin: relationship.origin, relationshipIds: [relationship.id], twoWay: false })
     } else {
-      points.push({ ...point })
+      known.relationshipIds.push(relationship.id)
+      if (reverse !== undefined) known.twoWay = true
     }
   }
-  return points
+  return [...requests.values()]
 }
 
-function orthogonalRoute(route: readonly Point[]): Point[] {
-  const points: Point[] = []
-  for (const point of route) {
-    const previous = points.at(-1)
-    if (previous && previous.x !== point.x && previous.y !== point.y) {
-      points.push({ x: point.x, y: previous.y })
-    }
-    points.push(point)
+/** Groups are not route ends, so a shape inside an open group is routed on the surface that holds the group. */
+function routeOwner(item: WorldItem, byKey: ReadonlyMap<string, WorldItem>): string | undefined {
+  let parent = item.parent === undefined ? undefined : byKey.get(item.parent)
+  while (parent !== undefined && parent.shape === 'group' && !parent.collapsed) {
+    parent = parent.parent === undefined ? undefined : byKey.get(parent.parent)
   }
-  return compactRoute(points)
+  return parent?.key
 }
 
-/** The cell just outside a shape on the side facing `to`; framed shapes keep their corners free, a one-line row keeps its line. */
-function port(to: Point, bounds: Bounds): Point {
-  const inset = bounds.height > 2 ? 1 : 0
-  const y = Math.max(bounds.y + inset, Math.min(bounds.y + bounds.height - 1 - inset, to.y))
-  const x = Math.max(bounds.x + inset, Math.min(bounds.x + bounds.width - 1 - inset, to.x))
-  if (to.x < bounds.x) return { x: bounds.x - 1, y }
-  if (to.x >= bounds.x + bounds.width) return { x: bounds.x + bounds.width, y }
-  if (to.y < bounds.y) return { x, y: bounds.y - 1 }
-  return { x, y: bounds.y + bounds.height }
+/** Every drawn shape except an open group, as a route end in terminal cells. */
+function endpointsOf(items: readonly WorldItem[]): Map<string, Endpoint> {
+  const byKey = new Map(items.map(item => [item.key, item]))
+  return new Map(items.flatMap((item): [string, Endpoint][] => {
+    if (item.shape === 'group' && !item.collapsed) return []
+    const cells = item.worldBounds
+    const kind = solid(item) ? 'building' : item.shape === 'island' ? 'island' : 'slab'
+    const owner = routeOwner(item, byKey)
+    return [[item.key, {
+      key: item.key, kind, rect: { gx: cells.x, gy: cells.y, w: cells.width - 1, d: cells.height - 1 },
+      ...(owner === undefined ? {} : { owner }), ...(kind === 'building' ? { roof: 0 } : {}),
+    }]]
+  }))
+}
+
+/** Which way a frame cell faces: -1 on the low side, 1 on the high side, 0 when the end is not on that axis's sides. */
+function outward(end: Point, bounds: Bounds, axis: 'x' | 'y'): number {
+  const start = axis === 'x' ? bounds.x : bounds.y
+  const last = start + (axis === 'x' ? bounds.width : bounds.height) - 1
+  if (end[axis] === start) return -1
+  return end[axis] === last ? 1 : 0
+}
+
+/** A cell from its coordinate along a run and its coordinate across it. */
+function cellAt(across: 'x' | 'y', acrossValue: number, alongValue: number): Point {
+  return across === 'x' ? { x: acrossValue, y: alongValue } : { x: alongValue, y: acrossValue }
+}
+
+/** The run from the other end to `next` keeps its line near the other end and steps onto `value` halfway along. */
+function jogged(cells: readonly Point[], other: number, next: number, across: 'x' | 'y', value: number): Point[] {
+  const along = across === 'x' ? 'y' : 'x'
+  const middle = Math.round((cells[other]![along] + cells[next]![along]) / 2)
+  const near = cellAt(across, cells[other]![across], middle)
+  const far = cellAt(across, value, middle)
+  const result = [...cells]
+  result[next] = { ...cells[next]!, [across]: value }
+  result.splice(Math.max(other, next), 0, ...(other < next ? [near, far] : [far, near]))
+  return result
 }
 
 /**
- * Clips a path out of the shapes it joins: the first and last cells sit immediately
- * outside them, ready for a port and an arrowhead.
+ * Rounds core's cell coordinates to terminal cells. A route leaves and enters a frame across it, so the run beside
+ * each end stays at least one cell off that frame even when core's half-cell jog would round onto it. When that run
+ * also carries the other end and no single line meets both sides, it jogs halfway along.
  */
-function attachRoute(
-  route: readonly Point[],
-  source: Bounds,
-  target: Bounds,
-): Point[] {
-  const points = compactRoute(route)
-  if (points.length < 2) return []
+function toCells(points: readonly { gx: number; gy: number }[], ends: [Bounds, Bounds]): Point[] {
+  const rounded = points.map(point => ({ x: Math.round(point.gx), y: Math.round(point.gy) }))
+  return clearEnd(clearEnd(rounded, points, 0, ends), points, 1, ends)
+}
 
-  const firstOutside = points.findIndex(point => !inside(point, source))
-  if (firstOutside < 0) return []
-  let lastOutside = -1
-  for (let index = points.length - 1; index >= 0; index -= 1) {
-    if (!inside(points[index]!, target)) {
-      lastOutside = index
-      break
+/** Keeps the run beside one end a cell off that end's frame; `end` 0 is the source, 1 the target. */
+function clearEnd(cells: Point[], points: readonly { gx: number; gy: number }[], end: 0 | 1, ends: [Bounds, Bounds]): Point[] {
+  const index = end === 0 ? 0 : cells.length - 1
+  const next = end === 0 ? 1 : cells.length - 2
+  const other = end === 0 ? cells.length - 1 : 0
+  const across = points[index]!.gx === points[next]!.gx ? 'y' : 'x'
+  const away = outward(cells[index]!, ends[end], across)
+  const wall = cells[index]![across]
+  if (away === 0 || cells[next]![across] !== wall) return cells
+  // The whole run beside the end moves: every point that shared its coordinate in core's route.
+  const shared = across === 'x' ? 'gx' : 'gy'
+  const moving = [...points.keys()].filter(at => at !== index && points[at]![shared] === points[next]![shared])
+  if (moving.includes(other) && !meetsSide(ends[1 - end]!, across, wall + away)) return jogged(cells, other, next, across, wall + away)
+  for (const at of moving) cells[at]![across] = wall + away
+  return cells
+}
+
+/** Whether a line at `value` across this axis meets the box's side away from its corners. */
+function meetsSide(box: Bounds, across: 'x' | 'y', value: number): boolean {
+  const start = across === 'x' ? box.x : box.y
+  return value > start && value < start + (across === 'x' ? box.width : box.height) - 1
+}
+
+function within(point: Point, box: Bounds): boolean {
+  return point.x >= box.x && point.x <= box.x + box.width - 1 && point.y >= box.y && point.y <= box.y + box.height - 1
+}
+
+/** The first cell of the run from `from` toward `to` that lies on the box. */
+function entering(from: Point, to: Point, box: Bounds): Point {
+  const step = { x: Math.sign(to.x - from.x), y: Math.sign(to.y - from.y) }
+  let cell = { ...from }
+  while (!within(cell, box) && (cell.x !== to.x || cell.y !== to.y)) cell = { x: cell.x + step.x, y: cell.y + step.y }
+  return cell
+}
+
+/**
+ * Core finishes a route behind a building's back wall, where the iso roof hides it. Every terminal wall is visible, so
+ * a route ends where it first meets its target frame and starts where it last leaves its source frame.
+ */
+function clipToEnds(points: readonly Point[], [source, target]: [Bounds, Bounds]): Point[] {
+  let last = points.length - 2
+  while (last > 0 && within(points[last]!, target)) last -= 1
+  const clipped = [...points.slice(0, last + 1), entering(points[last]!, points[last + 1]!, target)]
+  let first = 1
+  while (first < clipped.length - 1 && within(clipped[first]!, source)) first += 1
+  return [entering(clipped[first]!, clipped[first - 1]!, source), ...clipped.slice(first)]
+}
+
+function clamp(value: number, low: number, high: number): number {
+  return Math.max(low, Math.min(high, value))
+}
+
+/** A route end on a frame meets its side away from the corners; the run leaving it moves along. */
+function clampPort(points: Point[], end: 'first' | 'last', bounds: Bounds): void {
+  const point = points[end === 'first' ? 0 : points.length - 1]!
+  const neighbour = points[end === 'first' ? 1 : points.length - 2]
+  const axis = point.x === bounds.x || point.x === bounds.x + bounds.width - 1 ? 'y' : 'x'
+  const start = axis === 'y' ? bounds.y : bounds.x
+  const value = clamp(point[axis], start + 1, start + (axis === 'y' ? bounds.height : bounds.width) - 2)
+  if (neighbour !== undefined && neighbour[axis] === point[axis]) neighbour[axis] = value
+  point[axis] = value
+}
+
+/** One straight run of a route: on row `at` across columns `low`..`high`, or on column `at` across rows. */
+interface Run {
+  horizontal: boolean
+  at: number
+  low: number
+  high: number
+}
+
+function runOf(from: Point, to: Point): Run {
+  const horizontal = from.y === to.y
+  const ends = horizontal ? [from.x, to.x] : [from.y, to.y]
+  return { horizontal, at: horizontal ? from.y : from.x, low: Math.min(...ends), high: Math.max(...ends) }
+}
+
+/** The frame lines of every shape, each as a run. */
+function frameRuns(items: readonly WorldItem[]): Run[] {
+  return items.map(item => item.worldBounds).flatMap(b => [
+    { horizontal: true, at: b.y, low: b.x, high: b.x + b.width - 1 },
+    { horizontal: true, at: b.y + b.height - 1, low: b.x, high: b.x + b.width - 1 },
+    { horizontal: false, at: b.x, low: b.y, high: b.y + b.height - 1 },
+    { horizontal: false, at: b.x + b.width - 1, low: b.y, high: b.y + b.height - 1 },
+  ])
+}
+
+function lying(run: Run, frames: readonly Run[]): boolean {
+  return frames.some(frame => frame.horizontal === run.horizontal && frame.at === run.at && Math.min(run.high, frame.high) - Math.max(run.low, frame.low) >= 1)
+}
+
+function crossesInside(run: Run, boxes: readonly Bounds[]): boolean {
+  return boxes.some(box => run.horizontal
+    ? run.at > box.y && run.at < box.y + box.height - 1 && run.low < box.x + box.width - 1 && run.high > box.x
+    : run.at > box.x && run.at < box.x + box.width - 1 && run.low < box.y + box.height - 1 && run.high > box.y)
+}
+
+/** Whether an end run on this line still meets its shape's side away from the corners. */
+function meets(end: Bounds | undefined, run: Run): boolean {
+  return end === undefined || meetsSide(end, run.horizontal ? 'y' : 'x', run.at)
+}
+
+/** Rounding can land a run on a frame line; it moves to the nearest free line within two cells, outside any box. */
+function clearOfFrames(points: Point[], frames: readonly Run[], boxes: readonly Bounds[], ends: [Bounds, Bounds]): void {
+  for (let index = 0; index + 1 < points.length; index += 1) {
+    const run = runOf(points[index]!, points[index + 1]!)
+    if (!lying(run, frames)) continue
+    const own = [index === 0 ? ends[0] : undefined, index + 2 === points.length ? ends[1] : undefined]
+    const moved = [run.at + 1, run.at - 1, run.at + 2, run.at - 2].map(at => ({ ...run, at }))
+      .find(candidate => !lying(candidate, frames) && !crossesInside(candidate, boxes) && own.every(end => meets(end, candidate)))
+    if (moved === undefined) continue
+    for (const point of [points[index]!, points[index + 1]!]) {
+      if (run.horizontal) point.y = moved.at
+      else point.x = moved.at
     }
   }
-  if (lastOutside < firstOutside) {
-    return orthogonalRoute([
-      port(points[Math.min(firstOutside, points.length - 1)]!, source),
-      port(points[Math.max(lastOutside, 0)]!, target),
-    ])
+}
+
+/** Without repeated cells or a corner that does not turn. */
+function compact(points: readonly Point[]): Point[] {
+  const kept: Point[] = []
+  for (const point of points) {
+    const previous = kept.at(-1)
+    if (previous !== undefined && previous.x === point.x && previous.y === point.y) continue
+    const before = kept.at(-2)
+    const straight = before !== undefined && previous !== undefined
+      && (before.x === previous.x) === (previous.x === point.x) && (before.y === previous.y) === (previous.y === point.y)
+    if (straight) kept[kept.length - 1] = point
+    else kept.push(point)
   }
-
-  const clipped = points.slice(firstOutside, lastOutside + 1)
-  const firstDirection = clipped[0] ?? points[Math.min(firstOutside, points.length - 1)]!
-  const lastDirection = clipped.at(-1) ?? points[Math.max(0, lastOutside)]!
-  const start = port(firstDirection, source)
-  const end = port(lastDirection, target)
-  return orthogonalRoute([start, ...clipped, end])
+  return kept
 }
 
-/** Join facing sides or the containing boundary, using clear channels around foreign cards. */
-export function routeBetween(source: Bounds, target: Bounds, obstacles: readonly Bounds[] = []): Point[] {
-  const sourceCenter = {
-    x: Math.floor(source.x + source.width / 2),
-    y: Math.floor(source.y + source.height / 2),
-  }
-  const targetCenter = {
-    x: Math.floor(target.x + target.width / 2),
-    y: Math.floor(target.y + target.height / 2),
-  }
-  const horizontal = Math.abs(targetCenter.x - sourceCenter.x)
-    >= Math.abs(targetCenter.y - sourceCenter.y)
-  const bend = horizontal
-    ? { x: targetCenter.x, y: sourceCenter.y }
-    : { x: sourceCenter.x, y: targetCenter.y }
-  const direct = sideRoute(source, target) ?? attachRoute([sourceCenter, bend, targetCenter], source, target)
-  const blocked = [...obstacles, ...[source, target].filter(box => !inside(sourceCenter, box) || !inside(targetCenter, box))]
-  if (direct.length < 2 || clearPath(direct, blocked)) return direct
-  return avoidCards(direct[0]!, direct.at(-1)!, blocked)
-}
-
-/** Disjoint cards and root rows join from facing sides, never through their text. */
-function sideRoute(source: Bounds, target: Bounds): Point[] | undefined {
-  if (source.x >= target.x + target.width) return sideRoute(target, source)?.reverse()
-  const centerY = (box: Bounds): number => box.y + Math.floor((box.height - 1) / 2)
-  if (target.x >= source.x + source.width) {
-    const start = { x: source.x + source.width, y: centerY(source) }
-    const end = { x: target.x - 1, y: centerY(target) }
-    const x = Math.floor((start.x + end.x) / 2)
-    return compactRoute([start, { x, y: start.y }, { x, y: end.y }, end])
-  }
-  if (target.y < source.y) return sideRoute(target, source)?.reverse()
-  if (target.y < source.y + source.height) return undefined
-  const start = { x: source.x + Math.floor(source.width / 2), y: source.y + source.height }
-  const end = { x: target.x + Math.floor(target.width / 2), y: target.y - 1 }
-  const y = Math.floor((start.y + end.y) / 2)
-  return compactRoute([start, { x: start.x, y }, { x: end.x, y }, end])
-}
-
-function clearSegment(from: Point, to: Point, obstacles: readonly Bounds[]): boolean {
-  const left = Math.min(from.x, to.x)
-  const right = Math.max(from.x, to.x)
-  const top = Math.min(from.y, to.y)
-  const bottom = Math.max(from.y, to.y)
-  return !obstacles.some(box => right >= box.x && left < box.x + box.width
-    && bottom >= box.y && top < box.y + box.height)
-}
-
-function clearPath(points: readonly Point[], obstacles: readonly Bounds[]): boolean {
-  return points.slice(1).every((point, index) => clearSegment(points[index]!, point, obstacles))
-}
-
-/** Search the empty channels immediately outside card edges for the shortest orthogonal path. */
-function avoidCards(start: Point, end: Point, obstacles: readonly Bounds[]): Point[] {
-  const xs = [...new Set([start.x, end.x, ...obstacles.flatMap(box => [box.x - 1, box.x + box.width])])].sort((a, b) => a - b)
-  const ys = [...new Set([start.y, end.y, ...obstacles.flatMap(box => [box.y - 1, box.y + box.height])])].sort((a, b) => a - b)
-  const key = (x: number, y: number): number => y * xs.length + x
-  const first = key(xs.indexOf(start.x), ys.indexOf(start.y))
-  const last = key(xs.indexOf(end.x), ys.indexOf(end.y))
-  const point = (id: number): Point => ({ x: xs[id % xs.length]!, y: ys[Math.floor(id / xs.length)]! })
-  const distance = new Map([[first, 0]])
-  const previous = new Map<number, number>()
-  const queue = [first]
-  while (queue.length > 0) {
-    queue.sort((a, b) => distance.get(b)! - distance.get(a)!)
-    const current = queue.pop()!
-    if (current === last) return reconstruct(last, previous, point)
-    const x = current % xs.length
-    const y = Math.floor(current / xs.length)
-    const neighbours = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]
-      .filter(([nx, ny]) => nx! >= 0 && nx! < xs.length && ny! >= 0 && ny! < ys.length)
-      .map(([nx, ny]) => key(nx!, ny!))
-    for (const next of neighbours) {
-      if (!clearSegment(point(current), point(next), obstacles)) continue
-      const from = point(current)
-      const to = point(next)
-      const cost = distance.get(current)! + Math.abs(to.x - from.x) + Math.abs(to.y - from.y)
-      if (cost >= (distance.get(next) ?? Infinity)) continue
-      if (!distance.has(next)) queue.push(next)
-      distance.set(next, cost)
-      previous.set(next, current)
+/**
+ * Core routes the relationships between the shapes one depth draws, on their terminal cells: a collapsed container
+ * or group is one obstacle and one end. Its half-cell lanes close up into shared lines once rounded to cells, and the
+ * finishing passes keep each end on its frame and every run off the frames it passes.
+ */
+export function terminalRoutes(model: TerminalViewModel, items: readonly WorldItem[]): SheetRoute[] {
+  const requests = routeRequests(model, items)
+  const twoWay = new Map(requests.map(request => [request.id, request.twoWay]))
+  const bounds = new Map(items.map(item => [item.key, item.worldBounds]))
+  const frames = frameRuns(items)
+  const boxes = items.filter(solid).map(item => item.worldBounds)
+  return routeAll(endpointsOf(items), requests.map(({ twoWay: _, ...request }) => request)).map(route => {
+    const ends: [Bounds, Bounds] = [bounds.get(route.source)!, bounds.get(route.target)!]
+    const cells = clipToEnds(compact(toCells(route.points, ends)), ends)
+    clampPort(cells, 'first', ends[0])
+    clampPort(cells, 'last', ends[1])
+    clearOfFrames(cells, frames, boxes, ends)
+    return {
+      ids: [...route.relationshipIds ?? [route.id]], source: route.source, target: route.target,
+      description: route.description, origin: route.origin, twoWay: twoWay.get(route.id) ?? false, cells: compact(cells),
     }
-  }
-  return []
-}
-
-function reconstruct(last: number, previous: ReadonlyMap<number, number>, point: (id: number) => Point): Point[] {
-  const path: Point[] = []
-  let current: number | undefined = last
-  while (current !== undefined) {
-    path.push(point(current))
-    current = previous.get(current)
-  }
-  return compactRoute(path.reverse())
+  })
 }

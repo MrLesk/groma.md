@@ -65,8 +65,8 @@ test.concurrent('a flow rejects a missing directed relationship', async () => {
 
 test.concurrent('duplicate file declarations fail before flow resolution', async () => {
   const records = await loadArchitecture(fixture)
-  const document = records.documents.find(document => document.sourceFilename.endsWith('/relationships.md'))!
-  const row = '| [Entry](../src/entry.ts) | [Worker](../src/worker.ts) | Also dispatches | Function call |'
+  const document = records.documents.find(document => document.sourceFilename.endsWith('/components/entry.md'))!
+  const row = '| [Entry](../../../../../../src/entry.ts) | [Worker](../../../../../../src/worker.ts) | Also dispatches | Function call |'
   const body = `${document.body.trimEnd()}\n${row}\n`
   const changed = { ...document, body, nodes: (await parseMarkdown(body)).nodes as MarkdownNode[] }
   expect(() => annotateArchitecture({ ...records, documents: records.documents.map(item => item === document ? changed : item) }))

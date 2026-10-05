@@ -16,3 +16,10 @@ groma:
 ---
 
 Order Db router of Order Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-db/router.ts](../../../../../../src/orders/order-db/router.ts) | [src/orders/order-db/session.ts](../../../../../../src/orders/order-db/session.ts) | Calls session | HTTP |
+| [src/orders/order-db/router.ts](../../../../../../src/orders/order-db/router.ts) | [src/orders/order-db/cache.ts](../../../../../../src/orders/order-db/cache.ts) | Reads cache | HTTP |

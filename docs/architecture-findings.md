@@ -50,6 +50,11 @@ component owner, and lists concrete token differences. Fingerprints stay in
 memory for the current process. A scan never writes suspected duplication as
 an architecture relationship or merges components.
 
+During reconciliation, two worker threads compare separate parts of the body
+pairs while core writes architecture Markdown. Core joins their connected
+groups, then attaches the final component owners. The scan finishes only after
+both the architecture writes and the complete findings are ready.
+
 ## What the first rule claims
 
 Local names are slots that follow declarations, including nested scopes.

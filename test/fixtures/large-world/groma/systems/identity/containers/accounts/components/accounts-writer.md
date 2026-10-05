@@ -19,3 +19,10 @@ groma:
 ---
 
 Accounts writer of Accounts.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/accounts/writer.ts](../../../../../../src/identity/accounts/writer.ts) | [src/identity/accounts/queue.ts](../../../../../../src/identity/accounts/queue.ts) | Calls queue | HTTP |
+| [src/identity/accounts/writer.ts](../../../../../../src/identity/accounts/writer.ts) | [src/identity/accounts/worker.ts](../../../../../../src/identity/accounts/worker.ts) | Reads worker | HTTP |

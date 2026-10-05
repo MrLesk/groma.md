@@ -25,3 +25,10 @@ groma:
 ---
 
 Directory validator of Directory.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/directory/validator.ts](../../../../../../src/identity/directory/validator.ts) | [src/identity/directory/mapper.ts](../../../../../../src/identity/directory/mapper.ts) | Calls mapper | HTTP |
+| [src/identity/directory/validator.ts](../../../../../../src/identity/directory/validator.ts) | [src/identity/directory/reader.ts](../../../../../../src/identity/directory/reader.ts) | Reads reader | HTTP |

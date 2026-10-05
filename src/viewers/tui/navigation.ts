@@ -6,6 +6,7 @@ import type { PaneVisibility } from './layout.ts'
 import {
   canEnter,
   enterView,
+  firstContainer,
   leaveView,
   levelFor,
   moveView,
@@ -26,7 +27,6 @@ import { initialWorkFocus } from './work/model.ts'
 import type { WorkFocus, WorkListSettings } from './work/model.ts'
 import { reduceComponentTasks, reduceWorkFocus } from './work/navigation.ts'
 import { reduceTree } from './navigation-tree.ts'
-import { firstRootRow } from './projection-root.ts'
 import type {
   AnnotatedElement,
   AnnotatedRelationship,
@@ -90,10 +90,10 @@ export interface ViewerState {
   history?: HistoryState
   /** The commit the viewer should show; absent means the live working tree. */
   revisionId?: string
-  /** The map columns used by the fitted layouts and their arrow order. */
-  mapWidth: number
   /** Terminal columns used by the shared pane and reading layout. */
   terminalWidth: number
+  /** The map's cells, which decide whether an open container shows every group. */
+  mapSize: { width: number; height: number }
   /** Present only while the terminal is using its task-focused side panes. */
   work?: WorkFocus
   workList?: WorkListSettings
@@ -109,7 +109,7 @@ export function defaultSelection(
 ): AnnotatedElement | undefined {
   const ranked = [...world.elements].sort(compareSemanticElements)
   if (level === 'context') {
-    return firstRootRow(world)
+    return firstContainer(world)
       ?? ranked.find(element => element.kind === 'system' && !element.external)
   }
   return ranked.find(element => element.kind === 'component')
@@ -124,8 +124,8 @@ export function initialState(world: TerminalViewModel): ViewerState {
     panes: { hierarchy: true, details: true },
     detailsScroll: 0,
     detailsTab: 'what',
-    mapWidth: 80,
     terminalWidth: 120,
+    mapSize: { width: 86, height: 28 },
     revisionId: world.revision?.id,
   }
 }
@@ -203,20 +203,22 @@ function resolve(
 }
 
 /**
- * Selection changes keep the panes in step: the tree cursor follows,
- * its path unhides, and the details scroll returns to the top.
+ * Selection changes keep the panes in step: the tree cursor follows, its path unhides, and the details scroll
+ * returns to the top. A newly opened element starts on What, as the web details do; the same one keeps its tab.
  */
-export function syncTree(world: TerminalViewModel, state: ViewerState): ViewerState {
+export function syncTree(world: TerminalViewModel, previous: ViewerState, changes: Partial<ViewerState>): ViewerState {
+  const state = { ...previous, ...changes }
   const path = ancestorsOf(state.currentId, elementsById(world))
   const collapsed = new Set(
     [...state.tree.collapsed].filter(id => !path.has(id)),
   )
+  const kept = state.currentId === previous.currentId && detailsTabs(world, state.currentId).includes(state.detailsTab)
   return {
     ...state,
     tree: { ...state.tree, cursor: state.currentId, collapsed },
     flowReading: false,
     detailsScroll: 0,
-    detailsTab: detailsTabs(world, state.currentId).includes(state.detailsTab) ? state.detailsTab : 'what',
+    detailsTab: kept ? state.detailsTab : 'what',
   }
 }
 
@@ -230,19 +232,17 @@ function reduceMapNavigation(world: TerminalViewModel, state: ViewerState, actio
   if (shortcut !== undefined) return shortcut
   if (action === 'dismiss') return { ...current, focus: 'architecture' }
   if (action === 'leave') {
-    return syncTree(world, {
-      ...current, ...leaveView(world, current, selected), focus: 'architecture',
-    })
+    return syncTree(world, current, { ...leaveView(world, current, selected), focus: 'architecture' })
   }
   if (current.focus === 'hierarchy') return reduceTree(world, current, action)
   if (current.focus === 'details') return reduceSelectionDetails(world, current, action)
   if (action === 'enter') {
     return selected && canEnter(selected)
-      ? syncTree(world, { ...current, ...enterView(world, selected) })
+      ? syncTree(world, current, enterView(world, selected))
       : enterDetails(world, current)
   }
   if (!selected || !isMapDirection(action)) return current
-  return syncTree(world, { ...current, ...moveView(world, current, selected, action) })
+  return syncTree(world, current, moveView(world, current, selected, action))
 }
 
 function isMapDirection(action: ViewerAction): action is MapDirection {
@@ -365,13 +365,14 @@ function toggleDetailsMode(current: ViewerState, mode: 'profile' | 'keys'): View
 function followRelationship(world: TerminalViewModel, current: ViewerState, relationship: AnnotatedRelationship): ViewerState {
   const pair = selectionPairs(world, current.currentId!).find(candidate => candidate.relationships[0]!.id === relationship.id)!
   const peer = elementsById(world).get(pair.peerId)!
-  return syncTree(world, { ...current, level: levelFor(peer), currentId: peer.representationId, actionCursor: undefined })
+  return syncTree(world, current, { level: levelFor(peer), currentId: peer.representationId, actionCursor: undefined })
 }
 
 /** A click on the map: the element under the cell becomes the selection. */
 export function selectMapItem(world: TerminalViewModel, state: ViewerState, id: string): ViewerState {
   if (state.work !== undefined) return state
-  return syncTree(world, { ...state, currentId: id, focus: 'architecture' })
+  const element = world.elements.find(item => item.representationId === id)!
+  return syncTree(world, state, { level: levelFor(element), currentId: id, focus: 'architecture' })
 }
 
 /** A click on a hierarchy row: the cursor lands there and Enter follows. */

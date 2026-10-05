@@ -22,3 +22,10 @@ groma:
 ---
 
 Import cache of Import.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/import/cache.ts](../../../../../../src/catalog/import/cache.ts) | [src/catalog/import/validator.ts](../../../../../../src/catalog/import/validator.ts) | Calls validator | HTTP |
+| [src/catalog/import/cache.ts](../../../../../../src/catalog/import/cache.ts) | [src/catalog/import/mapper.ts](../../../../../../src/catalog/import/mapper.ts) | Reads mapper | HTTP |

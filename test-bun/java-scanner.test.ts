@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 
 import os from 'node:os'
 import path from 'node:path'
@@ -31,6 +31,42 @@ function calls(observation: ScanObservation) {
     caller: operations.get(call.source)!.name, providers: call.targets.map(id => operations.get(id)!.name),
   }))
 }
+
+test.concurrent('one Java worker keeps each project compiler context and evidence independent', async () => {
+  const { root, worker } = await fixture()
+  try {
+    const files = ['Caller', 'Port', 'Provider', 'Shapes', 'Unused'].map(name => `src/main/java/${name}.java`)
+    const projects = [{ root, release: '25', encoding: 'UTF-8' }]
+    for (let index = 1; index < 6; index++) {
+      const directory = path.join(root, `project-${index}`)
+      await mkdir(directory)
+      await cp(path.join(root, 'src'), path.join(directory, 'src'), { recursive: true })
+      await writeFile(path.join(directory, 'src/main/java/Caller.java'), `package entry;
+public class Caller {
+  private static void step${index}() {}
+  public static void run() { step${index}(); }
+}`)
+      const encoding = index === 5 ? 'UTF-16LE' : 'UTF-8'
+      if (encoding === 'UTF-16LE') {
+        for (const file of files) {
+          const filename = path.join(directory, file)
+          await writeFile(filename, Buffer.from(await readFile(filename, 'utf8'), 'utf16le'))
+        }
+      }
+      projects.push({ root: directory, release: index === 4 ? '21' : '25', encoding })
+    }
+    const independent = await Promise.all(projects.map(project =>
+      run(javaCommand(), ['-jar', worker, project.root, project.release, project.encoding], project.root, files.join('\n'))
+        .then(parseScanObservation)))
+    const args = projects.flatMap(project => [project.root, project.release, project.encoding])
+    const batch = await run(javaCommand(), ['-jar', worker, ...args], root,
+      projects.map(() => `${files.join('\n')}\n`).join('\n'))
+    expect(batch.trim().split('\n').map(parseScanObservation)).toEqual(independent)
+    expect(calls(independent[4]!).find(call => call.member === 'step4')).toMatchObject({
+      providers: ['entry.Caller#step4()'], unresolved: false,
+    })
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
 
 test.concurrent('Java compiler resolves overloads and preserves wrappers while virtual dispatch remains unknown', async () => {
   const { root, worker } = await fixture()

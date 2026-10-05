@@ -15,3 +15,10 @@ groma:
 ---
 
 Search metrics of Search.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/search/metrics.ts](../../../../../../src/storefront/search/metrics.ts) | [src/storefront/search/config.ts](../../../../../../src/storefront/search/config.ts) | Calls config | HTTP |
+| [src/storefront/search/metrics.ts](../../../../../../src/storefront/search/metrics.ts) | [src/storefront/search/logger.ts](../../../../../../src/storefront/search/logger.ts) | Reads logger | HTTP |

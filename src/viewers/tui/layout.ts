@@ -10,11 +10,11 @@ export interface PaneVisibility {
 }
 
 /**
- * How the panes start at a terminal width, keeping the map at least 60 columns:
- * both open at 120 and wider, the hierarchy alone from 90 to 119, none under 90.
+ * How the panes start at a terminal width. The map is the hierarchy drawn, so it keeps the room:
+ * details open from 140 columns, the hierarchy joins from 180.
  */
 export function panesForWidth(width: number): PaneVisibility {
-  return { hierarchy: width >= 90, details: width >= 120 }
+  return { hierarchy: width >= 180, details: width >= 140 }
 }
 
 /** Reserve at least forty map columns; the pane receiving keys stays open. */

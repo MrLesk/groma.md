@@ -19,3 +19,10 @@ groma:
 ---
 
 Cdn Edge writer of Cdn Edge.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/cdn-edge/writer.ts](../../../../../../src/storefront/cdn-edge/writer.ts) | [src/storefront/cdn-edge/queue.ts](../../../../../../src/storefront/cdn-edge/queue.ts) | Calls queue | HTTP |
+| [src/storefront/cdn-edge/writer.ts](../../../../../../src/storefront/cdn-edge/writer.ts) | [src/storefront/cdn-edge/worker.ts](../../../../../../src/storefront/cdn-edge/worker.ts) | Reads worker | HTTP |

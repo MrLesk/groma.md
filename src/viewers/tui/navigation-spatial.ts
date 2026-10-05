@@ -2,8 +2,6 @@ import type { AnnotatedElement, Bounds, C4Kind, TerminalLevel } from '../../type
 import type { TerminalViewModel } from './model.ts'
 import type { MapDirection, ViewerState } from './navigation.ts'
 import { mapAnchors } from './projection.ts'
-import { firstBuilding, neighbourContainer } from './projection-container.ts'
-import { rootStops } from './projection-root.ts'
 
 function elementsById(model: TerminalViewModel): Map<string, AnnotatedElement> {
   return new Map(model.elements.map(element => [element.representationId, element]))
@@ -19,6 +17,27 @@ export function ancestorOfKind(
     current = current.parent === null ? undefined : byId.get(current.parent)
   }
   return current
+}
+
+/** The listed building that stands first on the sheet: northmost, then westmost. */
+export function firstPlaced(model: TerminalViewModel, ids: readonly string[]): string | undefined {
+  const wanted = new Set(ids)
+  return model.sheet.buildings.filter(building => wanted.has(building.representationId))
+    .sort((a, b) => a.rect.gy - b.rect.gy || a.rect.gx - b.rect.gx)[0]?.representationId
+}
+
+/** The component an opened container selects first. */
+export function firstBuilding(model: TerminalViewModel, surface: AnnotatedElement): string | undefined {
+  return firstPlaced(model, model.sheet.buildings.filter(building => building.surface === surface.representationId && building.kind === 'component')
+    .map(building => building.representationId))
+}
+
+/** The container with the most components, where an overview starts. */
+export function firstContainer(model: TerminalViewModel): AnnotatedElement | undefined {
+  const count = (id: string) => model.sheet.buildings.filter(building => building.surface === id).length
+  const id = [...model.sheet.slabs].sort((a, b) => count(b.representationId) - count(a.representationId)
+    || a.rect.gy - b.rect.gy || a.rect.gx - b.rect.gx)[0]?.representationId
+  return model.elements.find(element => element.representationId === id)
 }
 
 export function canEnter(element: AnnotatedElement): boolean {
@@ -123,32 +142,34 @@ export function nearestInDirection(
   return best?.id
 }
 
-/** Up and Down walk one island; Left and Right cross to the neighbouring island. */
+type MapSize = ViewerState['mapSize']
+
+/** At root an arrow chooses the nearest container or island building on the drawn map. */
 function moveRoot(
   model: TerminalViewModel,
   currentId: string,
   direction: MapDirection,
+  map: MapSize,
 ): string | undefined {
-  const islands = rootStops(model)
-  const at = islands.findIndex(stops => stops.includes(currentId))
-  if (at < 0) return undefined
-  const stops = islands[at]!
-  const index = stops.indexOf(currentId)
-  if (direction === 'up') return stops[index - 1]
-  if (direction === 'down') return stops[index + 1]
-  return islands[at + (direction === 'right' ? 1 : -1)]?.[0]
+  const anchors = mapAnchors(model, 'context', currentId, map)
+  const origin = anchors.get(currentId)
+  return origin === undefined ? undefined : nearestInDirection(anchors, currentId, origin, direction)
 }
 
-/** Crossing a horizontal edge enters the neighbouring container. */
+/** Past the last component that way, an arrow opens the neighbouring container on the root map. */
 function crossContainer(
   model: TerminalViewModel,
   selected: AnnotatedElement,
-  direction: 'left' | 'right',
+  direction: MapDirection,
+  map: MapSize,
 ): string | undefined {
   const container = ancestorOfKind(selected, 'container', elementsById(model))
-  const neighbour = container === undefined
-    ? undefined
-    : neighbourContainer(model, container, direction)
+  if (container === undefined) return undefined
+  const containers = new Map([...mapAnchors(model, 'context', container.representationId, map)]
+    .filter(([id]) => model.sheet.slabs.some(slab => slab.representationId === id)))
+  const origin = containers.get(container.representationId)
+  const next = origin === undefined ? undefined : nearestInDirection(containers, container.representationId, origin, direction)
+  const neighbour = model.elements.find(element => element.representationId === next)
   return neighbour === undefined ? undefined : firstBuilding(model, neighbour)
 }
 
@@ -163,16 +184,27 @@ export function moveView(
   if (level === 'context') {
     return {
       level,
-      currentId: moveRoot(model, selected.representationId, direction)
+      currentId: moveRoot(model, selected.representationId, direction, state.mapSize)
         ?? selected.representationId,
     }
   }
-  const anchors = mapAnchors(model, level, selected.representationId, state.mapWidth)
+  const anchors = mapAnchors(model, level, selected.representationId, state.mapSize)
   const origin = anchors.get(selected.representationId)
   if (origin === undefined) return { level, currentId: selected.representationId }
   const next = nearestInDirection(anchors, selected.representationId, origin, direction)
-    ?? (direction === 'left' || direction === 'right'
-      ? crossContainer(model, selected, direction)
-      : undefined)
-  return { level, currentId: next ?? selected.representationId }
+  const member = next === undefined ? undefined : nearestMember(model, next, selected.representationId)
+  return { level, currentId: member ?? crossContainer(model, selected, direction, state.mapSize) ?? selected.representationId }
+}
+
+/** An arrow onto a collapsed group opens it on the member nearest the component it left. */
+function nearestMember(model: TerminalViewModel, id: string, from: string): string {
+  const group = model.sheet.zones.find(zone => zone.key === id)
+  if (group === undefined) return id
+  const centre = (key: string) => {
+    const rect = model.sheet.buildings.find(building => building.representationId === key)?.rect
+    return rect === undefined ? { x: 0, y: 0 } : { x: rect.gx + rect.w / 2, y: rect.gy + rect.d / 2 }
+  }
+  const origin = centre(from)
+  const distance = (key: string) => (centre(key).x - origin.x) ** 2 + (centre(key).y - origin.y) ** 2
+  return [...group.members].sort((a, b) => distance(a) - distance(b))[0] ?? id
 }

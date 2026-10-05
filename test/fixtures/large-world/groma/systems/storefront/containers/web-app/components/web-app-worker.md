@@ -25,3 +25,10 @@ groma:
 ---
 
 Web App worker of Web App.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/web-app/worker.ts](../../../../../../src/storefront/web-app/worker.ts) | [src/storefront/web-app/scheduler.ts](../../../../../../src/storefront/web-app/scheduler.ts) | Calls scheduler | HTTP |
+| [src/storefront/web-app/worker.ts](../../../../../../src/storefront/web-app/worker.ts) | [src/storefront/web-app/metrics.ts](../../../../../../src/storefront/web-app/metrics.ts) | Reads metrics | HTTP |

@@ -19,3 +19,10 @@ groma:
 ---
 
 Cdn Edge session of Cdn Edge.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/cdn-edge/session.ts](../../../../../../src/storefront/cdn-edge/session.ts) | [src/storefront/cdn-edge/cache.ts](../../../../../../src/storefront/cdn-edge/cache.ts) | Calls cache | HTTP |
+| [src/storefront/cdn-edge/session.ts](../../../../../../src/storefront/cdn-edge/session.ts) | [src/storefront/cdn-edge/validator.ts](../../../../../../src/storefront/cdn-edge/validator.ts) | Reads validator | HTTP |

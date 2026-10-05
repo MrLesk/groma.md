@@ -19,3 +19,10 @@ groma:
 ---
 
 Auth writer of Auth.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/auth/writer.ts](../../../../../../src/identity/auth/writer.ts) | [src/identity/auth/queue.ts](../../../../../../src/identity/auth/queue.ts) | Calls queue | HTTP |
+| [src/identity/auth/writer.ts](../../../../../../src/identity/auth/writer.ts) | [src/identity/auth/worker.ts](../../../../../../src/identity/auth/worker.ts) | Reads worker | HTTP |

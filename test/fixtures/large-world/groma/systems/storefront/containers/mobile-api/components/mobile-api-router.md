@@ -16,3 +16,10 @@ groma:
 ---
 
 Mobile Api router of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/router.ts](../../../../../../src/storefront/mobile-api/router.ts) | [src/storefront/mobile-api/session.ts](../../../../../../src/storefront/mobile-api/session.ts) | Calls session | HTTP |
+| [src/storefront/mobile-api/router.ts](../../../../../../src/storefront/mobile-api/router.ts) | [src/storefront/mobile-api/cache.ts](../../../../../../src/storefront/mobile-api/cache.ts) | Reads cache | HTTP |

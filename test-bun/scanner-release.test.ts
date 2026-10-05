@@ -2,6 +2,36 @@ import { expect, test } from 'bun:test'
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { waitForPublishedScanner } from '../scripts/scanner-release.ts'
+
+test.concurrent('release metadata waits for the exact uploaded scanner version', async () => {
+  const staged = { name: '@example/scanner', version: '1.2.3' }
+  const published = { ...staged, groma: { scanner: { discovery: { compatibility: { groma: '>=0.6.0' } } } } }
+  let requests = 0
+  const server = Bun.serve({ port: 0, fetch() {
+    requests++
+    const versions = requests === 1
+      ? { '1.2.2': { ...staged, version: '1.2.2' }, '2.0.0': { ...staged, version: '2.0.0' } }
+      : { '1.2.3': published }
+    return Response.json({ versions })
+  } })
+  try {
+    const actual = await waitForPublishedScanner(staged, Date.now() + 1000, server.url.href)
+    expect(actual.version).toBe(staged.version)
+    expect(actual.groma?.scanner?.discovery?.compatibility?.groma).toBe('>=0.6.0')
+    expect(requests).toBeGreaterThan(1)
+  } finally { server.stop(true) }
+}, 5000)
+
+test.concurrent('release metadata stops waiting at its deadline when the version remains missing', async () => {
+  const staged = { name: '@example/missing-scanner', version: '1.2.3' }
+  const server = Bun.serve({ port: 0, fetch() { return Response.json({ versions: {} }) } })
+  const deadline = Date.now() + 200
+  try {
+    await expect(waitForPublishedScanner(staged, deadline, server.url.href)).rejects.toThrow(`${staged.name}@${staged.version}`)
+    expect(Date.now()).toBeGreaterThanOrEqual(deadline)
+  } finally { server.stop(true) }
+}, 5000)
 
 test.concurrent('scanner assembly keeps Swift workers and runtime libraries from every release host', async () => {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-scanner-release-'))

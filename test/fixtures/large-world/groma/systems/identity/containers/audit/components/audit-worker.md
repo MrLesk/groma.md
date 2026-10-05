@@ -25,3 +25,10 @@ groma:
 ---
 
 Audit worker of Audit.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/audit/worker.ts](../../../../../../src/identity/audit/worker.ts) | [src/identity/audit/scheduler.ts](../../../../../../src/identity/audit/scheduler.ts) | Calls scheduler | HTTP |
+| [src/identity/audit/worker.ts](../../../../../../src/identity/audit/worker.ts) | [src/identity/audit/metrics.ts](../../../../../../src/identity/audit/metrics.ts) | Reads metrics | HTTP |

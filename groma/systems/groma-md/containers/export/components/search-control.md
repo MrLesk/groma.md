@@ -20,3 +20,9 @@ description: Searches elements and tasks from the browser map
 ---
 
 Searches architecture elements and tasks. Opens the selected result and restores the previous view when search closes.
+
+## Derived relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/viewers/web/search/session.ts](../../../../../../src/viewers/web/search/session.ts) | [src/viewers/web/render.ts](../../../../../../src/viewers/web/render.ts) | Invokes supplied callbacks: anchorOf, apply, openTask, previewMap, snapshot, taskElements | typescript |

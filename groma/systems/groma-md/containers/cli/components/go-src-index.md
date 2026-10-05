@@ -17,3 +17,9 @@ description: Starts the Go worker and converts its result into scan evidence
 ---
 
 Selects Go modules and starts the bundled Go worker. Returns its source analysis and outlines through the shared scanner contract.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [plugins/scanners/go/src/adapter.ts](../../../../../../plugins/scanners/go/src/adapter.ts) | [plugins/scanners/go/worker/main.go](../../../../../../plugins/scanners/go/worker/main.go) | Runs Go analysis | Child process and JSON |

@@ -25,3 +25,10 @@ groma:
 ---
 
 Directory worker of Directory.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/directory/worker.ts](../../../../../../src/identity/directory/worker.ts) | [src/identity/directory/scheduler.ts](../../../../../../src/identity/directory/scheduler.ts) | Calls scheduler | HTTP |
+| [src/identity/directory/worker.ts](../../../../../../src/identity/directory/worker.ts) | [src/identity/directory/metrics.ts](../../../../../../src/identity/directory/metrics.ts) | Reads metrics | HTTP |

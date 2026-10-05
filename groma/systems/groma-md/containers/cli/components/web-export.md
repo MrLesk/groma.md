@@ -13,3 +13,9 @@ description: Writes a static browser map that runs without a Groma server
 ---
 
 Packages the working tree, one commit, or two explicit commits as a static browser map. History owns snapshot and comparison meaning; the shared map and source domains prepare their normal views. Export bundles those views and their source text without task data. The published browser selects only bundled revisions and never reads Git, Backlog, or a Groma server.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/viewers/web/export.ts](../../../../../../src/viewers/web/export.ts) | [src/viewers/web/sharing/images.ts](../../../../../../src/viewers/web/sharing/images.ts) | Writes cover images | Function call |

@@ -18,3 +18,10 @@ groma:
 ---
 
 Media config of Media.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/media/config.ts](../../../../../../src/catalog/media/config.ts) | [src/catalog/media/logger.ts](../../../../../../src/catalog/media/logger.ts) | Calls logger | HTTP |
+| [src/catalog/media/config.ts](../../../../../../src/catalog/media/config.ts) | [src/catalog/media/client.ts](../../../../../../src/catalog/media/client.ts) | Reads client | HTTP |

@@ -15,3 +15,10 @@ groma:
 ---
 
 Sessions metrics of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/metrics.ts](../../../../../../src/identity/sessions/metrics.ts) | [src/identity/sessions/config.ts](../../../../../../src/identity/sessions/config.ts) | Calls config | HTTP |
+| [src/identity/sessions/metrics.ts](../../../../../../src/identity/sessions/metrics.ts) | [src/identity/sessions/logger.ts](../../../../../../src/identity/sessions/logger.ts) | Reads logger | HTTP |

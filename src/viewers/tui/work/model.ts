@@ -3,7 +3,8 @@ import type { TerminalLevel, WorkItem, WorkSnapshot } from '../../../types.ts'
 import { touchedElements, type WorkStage } from '../../../work/pins.ts'
 import { toggleWorkStatus, workStatusFilters } from '../../../work/status-filter.ts'
 import type { TerminalViewModel } from '../model.ts'
-import { visibleEndpointFor, type TerminalProjection } from '../projection.ts'
+import type { TerminalProjection } from '../projection.ts'
+import { visibleItemFor } from '../projection-sheet.ts'
 
 export interface WorkPresentationSnapshot {
   panes: PaneVisibility
@@ -38,8 +39,9 @@ export interface WorkGroup {
   items: WorkItem[]
 }
 
-/** The corner of a touched element: the task naming it and how many other shown tasks touch it. */
+/** The corner of a touched shape: the task naming it and how many other shown tasks touch it. */
 export interface WorkCorner {
+  /** The drawn shape's key: the element itself, or the collapsed group or container standing for it. */
   elementId: string
   taskId: string
   others: number
@@ -49,6 +51,7 @@ export interface WorkCorner {
 
 export interface WorkMap {
   corners: WorkCorner[]
+  /** Keys of the drawn shapes the selected task touches. */
   touched: Set<string>
 }
 
@@ -212,20 +215,18 @@ export function workView(
   return { level, currentId: attentionIds[0]!, attentionIds }
 }
 
-/** Every visible element's corner and the elements the selected task touches, counting only the shown statuses. */
+/**
+ * Every drawn shape's corner and the shapes the selected task touches, counting only the shown statuses. Work on an
+ * element this depth does not draw stands on the shape that does: its collapsed group or container.
+ */
 export function projectWork(
   model: TerminalViewModel,
   projection: TerminalProjection,
   focus: WorkFocus | undefined,
   settings?: WorkListSettings,
 ): WorkMap {
-  const visible = new Map(projection.items.flatMap(item => {
-    return item.representationId === undefined ? [] : [[item.representationId, item] as const]
-  }))
-  const elements = new Map(model.elements.map(element => [element.representationId, element]))
   const visibleIds = (item: WorkItem): Set<string> => new Set(touchedElements(item, model)
-    .map(id => visibleEndpointFor(id, visible, elements, undefined)?.representationId)
-    .filter((id): id is string => id !== undefined))
+    .flatMap(id => visibleItemFor(model, projection.items, id)?.key ?? []))
   const selected = selectedWorkItem(model.work, focus)
   const touched = selected === undefined ? new Set<string>() : visibleIds(selected)
   const shown = new Set(shownStatuses(model, focus ?? settings))

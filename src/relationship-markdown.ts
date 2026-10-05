@@ -4,7 +4,6 @@ import {
   relationshipTargetFilename,
   tableHeaderNames,
 } from './architecture-markdown.ts'
-import { RELATIONSHIPS_TYPE } from './okf-profile.ts'
 import type {
   ArchitectureDocument,
   ArchitectureElement,
@@ -87,34 +86,35 @@ function rows(document: ArchitectureDocument, invalid: Invalid): { row: Markdown
 }
 
 /** The section records whether core or an author owns a linked interaction. */
-export function storedConnections(
+export function storedRelationships(
   documents: readonly ArchitectureDocument[],
   elements: readonly ArchitectureElement[],
   invalid: Invalid,
-): RelationshipConnection[] {
+): StoredRelationship[] {
   const byDocument = new Map(elements.map(element => [element.sourceFilename, element]))
-  const result: RelationshipConnection[] = []
+  const result: StoredRelationship[] = []
   const pairs = new Set<string>()
   for (const document of documents) {
-    for (const { row, status, authored } of connectionRows(document, invalid)) {
+    for (const { row, status, authored } of rows(document, invalid)) {
       const connection = readRow(row, document.sourceFilename, status, authored, byDocument, invalid)
       const pair = `${connection.authored}\0${connection.source}\0${connection.target}`
       if (pairs.has(pair)) invalid('INVALID_RELATIONSHIP', document.sourceFilename, `each ordered endpoint pair has one ${connection.authored ? 'authored' : 'derived'} row`)
       pairs.add(pair)
-      result.push(connection)
+      result.push({ ...connection, document: document.sourceFilename })
     }
   }
   return result
 }
 
-function connectionRows(document: ArchitectureDocument, invalid: Invalid): ReturnType<typeof rows> {
-  const result = rows(document, invalid)
-  if (document.frontmatter.type !== RELATIONSHIPS_TYPE) {
-    if (result.length) invalid('INVALID_RELATIONSHIP', document.sourceFilename, 'relationships belong in relationships.md')
-    return []
-  }
-  if (document.sourceFilename.split('/').slice(1).join('/') !== 'relationships.md') {
-    invalid('INVALID_RELATIONSHIP', document.sourceFilename, 'relationship record must be stored at the bundle root as relationships.md')
-  }
-  return result
+/** The document is storage location, not relationship identity or persisted metadata. */
+export interface StoredRelationship extends RelationshipConnection {
+  document: string
+}
+
+export function storedConnections(
+  documents: readonly ArchitectureDocument[],
+  elements: readonly ArchitectureElement[],
+  invalid: Invalid,
+): RelationshipConnection[] {
+  return storedRelationships(documents, elements, invalid).map(({ document: _document, ...connection }) => connection)
 }

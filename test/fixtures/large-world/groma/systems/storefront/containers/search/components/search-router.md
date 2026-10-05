@@ -16,3 +16,10 @@ groma:
 ---
 
 Search router of Search.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/search/router.ts](../../../../../../src/storefront/search/router.ts) | [src/storefront/search/session.ts](../../../../../../src/storefront/search/session.ts) | Calls session | HTTP |
+| [src/storefront/search/router.ts](../../../../../../src/storefront/search/router.ts) | [src/storefront/search/cache.ts](../../../../../../src/storefront/search/cache.ts) | Reads cache | HTTP |

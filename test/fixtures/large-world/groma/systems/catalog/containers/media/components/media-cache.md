@@ -22,3 +22,10 @@ groma:
 ---
 
 Media cache of Media.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/media/cache.ts](../../../../../../src/catalog/media/cache.ts) | [src/catalog/media/validator.ts](../../../../../../src/catalog/media/validator.ts) | Calls validator | HTTP |
+| [src/catalog/media/cache.ts](../../../../../../src/catalog/media/cache.ts) | [src/catalog/media/mapper.ts](../../../../../../src/catalog/media/mapper.ts) | Reads mapper | HTTP |

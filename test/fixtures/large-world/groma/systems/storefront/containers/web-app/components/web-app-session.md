@@ -19,3 +19,10 @@ groma:
 ---
 
 Web App session of Web App.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/web-app/session.ts](../../../../../../src/storefront/web-app/session.ts) | [src/storefront/web-app/cache.ts](../../../../../../src/storefront/web-app/cache.ts) | Calls cache | HTTP |
+| [src/storefront/web-app/session.ts](../../../../../../src/storefront/web-app/session.ts) | [src/storefront/web-app/validator.ts](../../../../../../src/storefront/web-app/validator.ts) | Reads validator | HTTP |

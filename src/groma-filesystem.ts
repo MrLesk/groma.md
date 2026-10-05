@@ -111,17 +111,38 @@ export class GromaFileSystem {
   }
 
   async write(relative: string, source: string): Promise<void> {
+    const addsIndexEntry = relative !== 'index.md' && relative.endsWith('.md')
+      && !this.exists(relative.split('/')[0]!)
     const filename = this.absolute(relative)
     await mkdir(path.dirname(filename), { recursive: true })
     await writeFile(filename, source)
+    if (addsIndexEntry) await this.refreshIndex()
   }
 
   writeSource(sourceFilename: string, source: string): Promise<void> {
     return this.write(this.relative(sourceFilename), source)
   }
 
-  removeSource(sourceFilename: string): Promise<void> {
-    return unlink(this.absolute(this.relative(sourceFilename)))
+  async removeSource(sourceFilename: string): Promise<void> {
+    const relative = this.relative(sourceFilename)
+    await unlink(this.absolute(relative))
+    if (!relative.includes('/') && relative.endsWith('.md')) await this.refreshIndex()
+  }
+
+  /** OKF navigation lists this directory, not the nested C4 architecture. */
+  async refreshIndex(): Promise<void> {
+    const entries = (await this.list(''))
+      .filter(entry => entry.isDirectory() || (entry.isFile() && entry.name.endsWith('.md') && entry.name !== 'index.md'))
+      .map(entry => `${entry.name}${entry.isDirectory() ? '/' : ''}`)
+      .sort()
+    const links = entries.map(name => {
+      const label = name.replace(/[\\[\]]/g, '\\$&')
+      const href = name.split('/').map(encodeURIComponent).join('/')
+      return `- [${label}](<${href}>)`
+    })
+    const source = `---\nokf_version: "0.2"\n---\n\n# Contents\n\n${links.join('\n')}\n`
+    if (this.exists('index.md') && await this.read('index.md') === source) return
+    await this.write('index.md', source)
   }
 
   async watch(listener: (filename: string) => void): Promise<AsyncSubscription> {

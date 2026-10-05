@@ -25,3 +25,10 @@ groma:
 ---
 
 Auth validator of Auth.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/auth/validator.ts](../../../../../../src/identity/auth/validator.ts) | [src/identity/auth/mapper.ts](../../../../../../src/identity/auth/mapper.ts) | Calls mapper | HTTP |
+| [src/identity/auth/validator.ts](../../../../../../src/identity/auth/validator.ts) | [src/identity/auth/reader.ts](../../../../../../src/identity/auth/reader.ts) | Reads reader | HTTP |

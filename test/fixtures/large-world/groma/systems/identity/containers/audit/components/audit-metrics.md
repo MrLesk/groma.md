@@ -15,3 +15,10 @@ groma:
 ---
 
 Audit metrics of Audit.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/audit/metrics.ts](../../../../../../src/identity/audit/metrics.ts) | [src/identity/audit/config.ts](../../../../../../src/identity/audit/config.ts) | Calls config | HTTP |
+| [src/identity/audit/metrics.ts](../../../../../../src/identity/audit/metrics.ts) | [src/identity/audit/logger.ts](../../../../../../src/identity/audit/logger.ts) | Reads logger | HTTP |

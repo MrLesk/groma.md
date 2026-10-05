@@ -15,3 +15,10 @@ groma:
 ---
 
 Events metrics of Events.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/events/metrics.ts](../../../../../../src/orders/events/metrics.ts) | [src/orders/events/config.ts](../../../../../../src/orders/events/config.ts) | Calls config | HTTP |
+| [src/orders/events/metrics.ts](../../../../../../src/orders/events/metrics.ts) | [src/orders/events/logger.ts](../../../../../../src/orders/events/logger.ts) | Reads logger | HTTP |

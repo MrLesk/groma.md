@@ -19,3 +19,10 @@ groma:
 ---
 
 Checkout writer of Checkout.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/checkout/writer.ts](../../../../../../src/orders/checkout/writer.ts) | [src/orders/checkout/queue.ts](../../../../../../src/orders/checkout/queue.ts) | Calls queue | HTTP |
+| [src/orders/checkout/writer.ts](../../../../../../src/orders/checkout/writer.ts) | [src/orders/checkout/worker.ts](../../../../../../src/orders/checkout/worker.ts) | Reads worker | HTTP |

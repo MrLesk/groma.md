@@ -13,3 +13,11 @@ groma:
 ---
 
 Auth gateway of Auth.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/auth/gateway.ts](../../../../../../src/identity/auth/gateway.ts) | [src/identity/auth/router.ts](../../../../../../src/identity/auth/router.ts) | Calls router | HTTP |
+| [src/identity/auth/gateway.ts](../../../../../../src/identity/auth/gateway.ts) | [src/identity/auth/session.ts](../../../../../../src/identity/auth/session.ts) | Reads session | HTTP |
+| [src/identity/auth/gateway.ts](../../../../../../src/identity/auth/gateway.ts) | [src/identity/directory/gateway.ts](../../../../../../src/identity/directory/gateway.ts) | Forwards requests | HTTP |

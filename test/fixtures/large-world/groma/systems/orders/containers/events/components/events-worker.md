@@ -25,3 +25,10 @@ groma:
 ---
 
 Events worker of Events.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/events/worker.ts](../../../../../../src/orders/events/worker.ts) | [src/orders/events/scheduler.ts](../../../../../../src/orders/events/scheduler.ts) | Calls scheduler | HTTP |
+| [src/orders/events/worker.ts](../../../../../../src/orders/events/worker.ts) | [src/orders/events/metrics.ts](../../../../../../src/orders/events/metrics.ts) | Reads metrics | HTTP |

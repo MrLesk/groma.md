@@ -19,3 +19,10 @@ groma:
 ---
 
 Order Service writer of Order Service.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-service/writer.ts](../../../../../../src/orders/order-service/writer.ts) | [src/orders/order-service/queue.ts](../../../../../../src/orders/order-service/queue.ts) | Calls queue | HTTP |
+| [src/orders/order-service/writer.ts](../../../../../../src/orders/order-service/writer.ts) | [src/orders/order-service/worker.ts](../../../../../../src/orders/order-service/worker.ts) | Reads worker | HTTP |

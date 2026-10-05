@@ -13,3 +13,10 @@ groma:
 ---
 
 Import mapper of Import.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/import/mapper.ts](../../../../../../src/catalog/import/mapper.ts) | [src/catalog/import/reader.ts](../../../../../../src/catalog/import/reader.ts) | Calls reader | HTTP |
+| [src/catalog/import/mapper.ts](../../../../../../src/catalog/import/mapper.ts) | [src/catalog/import/writer.ts](../../../../../../src/catalog/import/writer.ts) | Reads writer | HTTP |

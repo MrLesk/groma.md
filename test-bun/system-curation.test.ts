@@ -9,7 +9,7 @@ import { loadAnnotatedArchitecture, reconcileScanObservations } from '../src/cor
 import type { StructuralResult } from '../src/curate.ts'
 import { editArchitecture } from '../src/edit.ts'
 import { addFlow } from '../src/flow-authoring.ts'
-import { RELATIONSHIPS_TYPE, requireGromaMapping } from '../src/okf-profile.ts'
+import { requireGromaMapping } from '../src/okf-profile.ts'
 import { addRelation } from '../src/relation.ts'
 import { removeThing } from '../src/remove.ts'
 import type { AnnotatedArchitectureModel } from '../src/types.ts'
@@ -54,7 +54,6 @@ function parentOf(model: AnnotatedArchitectureModel, id: string): string | null 
 async function documentOf(root: string, id: string): Promise<string> {
   const records = await loadArchitecture(root)
   const document = records.documents
-    .filter(item => item.frontmatter.type !== RELATIONSHIPS_TYPE)
     .find(item => requireGromaMapping(item.frontmatter, item.sourceFilename).id === id)
   return document!.sourceFilename
 }

@@ -16,3 +16,10 @@ groma:
 ---
 
 Pricing reader of Pricing.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/pricing/reader.ts](../../../../../../src/catalog/pricing/reader.ts) | [src/catalog/pricing/writer.ts](../../../../../../src/catalog/pricing/writer.ts) | Calls writer | HTTP |
+| [src/catalog/pricing/reader.ts](../../../../../../src/catalog/pricing/reader.ts) | [src/catalog/pricing/queue.ts](../../../../../../src/catalog/pricing/queue.ts) | Reads queue | HTTP |

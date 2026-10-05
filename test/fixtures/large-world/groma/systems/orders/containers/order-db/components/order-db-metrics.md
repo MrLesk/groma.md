@@ -15,3 +15,10 @@ groma:
 ---
 
 Order Db metrics of Order Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-db/metrics.ts](../../../../../../src/orders/order-db/metrics.ts) | [src/orders/order-db/config.ts](../../../../../../src/orders/order-db/config.ts) | Calls config | HTTP |
+| [src/orders/order-db/metrics.ts](../../../../../../src/orders/order-db/metrics.ts) | [src/orders/order-db/logger.ts](../../../../../../src/orders/order-db/logger.ts) | Reads logger | HTTP |

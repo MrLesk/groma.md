@@ -22,3 +22,10 @@ groma:
 ---
 
 Pricing cache of Pricing.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/pricing/cache.ts](../../../../../../src/catalog/pricing/cache.ts) | [src/catalog/pricing/validator.ts](../../../../../../src/catalog/pricing/validator.ts) | Calls validator | HTTP |
+| [src/catalog/pricing/cache.ts](../../../../../../src/catalog/pricing/cache.ts) | [src/catalog/pricing/mapper.ts](../../../../../../src/catalog/pricing/mapper.ts) | Reads mapper | HTTP |

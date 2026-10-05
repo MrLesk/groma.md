@@ -4,7 +4,7 @@ import test from 'node:test'
 
 import { buildArchitectureModel } from '../src/architecture-model.ts'
 import { loadArchitecture } from '../src/architecture-reader.ts'
-import { elementDocument, relationshipDocument, repositoryRoot } from './architecture-model-helpers.ts'
+import { elementDocument, withRelationships, repositoryRoot } from './architecture-model-helpers.ts'
 
 const validateRoot = path.join(repositoryRoot, 'test', 'fixtures', 'validate')
 
@@ -27,9 +27,9 @@ test('resolves a relationship link to the target document stable id', { concurre
     kind: 'actor',
     sourceFilename: 'groma/actors/architect.md',
   })
-  const connections = relationshipDocument([{
-      sourceHref: 'actors/architect.md',
-      href: 'systems/platform/system.md#context',
+  const connected = withRelationships(source, [{
+      sourceHref: 'architect.md',
+      href: '../systems/platform/system.md#context',
       label: 'Readable platform name',
       description: 'Uses the platform',
       technology: 'Browser',
@@ -40,7 +40,7 @@ test('resolves a relationship link to the target document stable id', { concurre
     sourceFilename: 'groma/systems/platform/system.md',
   })
 
-  const model = buildArchitectureModel([target, source, connections])
+  const model = buildArchitectureModel([target, connected])
 
   assert.deepEqual(model.relationships.map(row => [row.sourceId, row.targetId]), [['architect', 'stable-platform-id']])
 })
@@ -57,23 +57,23 @@ test('orders equivalent unchanged trees deterministically', { concurrency: true 
     kind: 'actor',
     sourceFilename: 'groma/actors/a.md',
   })
-  const connections = relationshipDocument([
+  const connected = withRelationships(actor, [
       {
-        sourceHref: 'actors/a.md',
-        href: 'systems/z/system.md',
+        sourceHref: 'a.md',
+        href: '../systems/z/system.md',
         description: 'Second alphabetically',
         technology: 'Two',
       },
       {
-        sourceHref: 'actors/a.md',
-        href: 'systems/b/system.md',
+        sourceHref: 'a.md',
+        href: '../systems/b/system.md',
         description: 'First alphabetically',
         technology: 'One',
       },
     ])
 
-  const first = buildArchitectureModel([system, other, actor, connections])
-  const second = buildArchitectureModel([connections, actor, other, system])
+  const first = buildArchitectureModel([system, other, connected])
+  const second = buildArchitectureModel([connected, other, system])
 
   assert.deepEqual(first, second)
   assert.deepEqual(first.elements.map(element => element.id), ['a-actor', 'b-system', 'z-system'])

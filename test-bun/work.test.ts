@@ -160,10 +160,13 @@ test.concurrent('Work refresh preserves a valid task, initializes delayed work, 
   assert.equal(reconcileWorkFocus(snapshot(), cleared), cleared)
 })
 
-test.concurrent('at root a component task stands on its container row and never on the island', () => {
+test.concurrent('a component task stands on its collapsed container at root and on its exact component inside', () => {
   const model = { ...navigationWorld(), work: snapshot([item('TASK-DEEP', { title: 'Deep', references: ['pleft'] })]) }
-  const corners = projectWork(model, projectWorld(model, { viewport: mapViewportOf({ width: 120, height: 36 }), currentId: 'observed:alpha' }), undefined).corners
-  assert.deepEqual(corners.map(corner => corner.elementId), ['observed:cleft'])
+  const viewport = mapViewportOf({ width: 120, height: 36 })
+  const root = projectWork(model, projectWorld(model, { viewport, currentId: 'observed:alpha' }), undefined).corners
+  assert.deepEqual(root.map(corner => corner.elementId), ['observed:cleft'])
+  const inside = projectWork(model, projectWorld(model, { viewport, level: 'components', currentId: 'observed:pmid' }), undefined).corners
+  assert.deepEqual(inside.map(corner => corner.elementId), ['observed:pleft'])
 })
 
 test.concurrent('status toggles start with the default and without the final status and flip one status without moving the map', () => {

@@ -22,3 +22,10 @@ groma:
 ---
 
 Order Service cache of Order Service.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-service/cache.ts](../../../../../../src/orders/order-service/cache.ts) | [src/orders/order-service/validator.ts](../../../../../../src/orders/order-service/validator.ts) | Calls validator | HTTP |
+| [src/orders/order-service/cache.ts](../../../../../../src/orders/order-service/cache.ts) | [src/orders/order-service/mapper.ts](../../../../../../src/orders/order-service/mapper.ts) | Reads mapper | HTTP |

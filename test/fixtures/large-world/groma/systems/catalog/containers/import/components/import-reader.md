@@ -16,3 +16,10 @@ groma:
 ---
 
 Import reader of Import.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/import/reader.ts](../../../../../../src/catalog/import/reader.ts) | [src/catalog/import/writer.ts](../../../../../../src/catalog/import/writer.ts) | Calls writer | HTTP |
+| [src/catalog/import/reader.ts](../../../../../../src/catalog/import/reader.ts) | [src/catalog/import/queue.ts](../../../../../../src/catalog/import/queue.ts) | Reads queue | HTTP |

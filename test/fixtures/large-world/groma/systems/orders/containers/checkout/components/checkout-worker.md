@@ -25,3 +25,10 @@ groma:
 ---
 
 Checkout worker of Checkout.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/checkout/worker.ts](../../../../../../src/orders/checkout/worker.ts) | [src/orders/checkout/scheduler.ts](../../../../../../src/orders/checkout/scheduler.ts) | Calls scheduler | HTTP |
+| [src/orders/checkout/worker.ts](../../../../../../src/orders/checkout/worker.ts) | [src/orders/checkout/metrics.ts](../../../../../../src/orders/checkout/metrics.ts) | Reads metrics | HTTP |

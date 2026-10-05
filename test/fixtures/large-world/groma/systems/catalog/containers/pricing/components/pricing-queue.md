@@ -22,3 +22,10 @@ groma:
 ---
 
 Pricing queue of Pricing.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/pricing/queue.ts](../../../../../../src/catalog/pricing/queue.ts) | [src/catalog/pricing/worker.ts](../../../../../../src/catalog/pricing/worker.ts) | Calls worker | HTTP |
+| [src/catalog/pricing/queue.ts](../../../../../../src/catalog/pricing/queue.ts) | [src/catalog/pricing/scheduler.ts](../../../../../../src/catalog/pricing/scheduler.ts) | Reads scheduler | HTTP |

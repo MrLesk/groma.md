@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { cp, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { createScanObservation } from '@groma/scanner'
@@ -8,8 +8,9 @@ import { loadArchitecture } from '../src/architecture-reader.ts'
 import { loadAnnotatedArchitecture, reconcileScanObservations } from '../src/core.ts'
 import type { StructuralResult } from '../src/curate.ts'
 import { editArchitecture } from '../src/edit.ts'
+import { removeThing } from '../src/remove.ts'
 import { addRelation } from '../src/relation.ts'
-import { storedConnections } from '../src/relationship-markdown.ts'
+import { storedConnections, storedRelationships } from '../src/relationship-markdown.ts'
 import type { AnnotatedArchitectureModel } from '../src/types.ts'
 
 const paths = ['emitter.ts', 'handler.ts', 'alternate.ts', 'host.html']
@@ -52,6 +53,13 @@ async function storedRowsNaming(root: string, file: string): Promise<number> {
   return connections.filter(connection => connection.source === file || connection.target === file).length
 }
 
+async function storedSource(root: string, source: string) {
+  const records = await loadArchitecture(root)
+  const model = buildArchitectureModel(records.documents)
+  const rows = storedRelationships(records.documents, model.elements, (_code, _file, message) => { throw new Error(message) })
+  return { rows: rows.filter(row => row.source === source), elements: model.elements }
+}
+
 test.concurrent('a detached file keeps its relationships, gets its own component on the next scan, and can be combined again', async () => {
   const root = await repository()
   try {
@@ -61,6 +69,9 @@ test.concurrent('a detached file keeps its relationships, gets its own component
     await editArchitecture(root, { id: survivor, combine: [ownerId(initial, 'handler.ts')!] })
     await addRelation(root, { source: 'handler.ts', target: 'emitter.ts', description: 'Reports the result', technology: 'Callback' })
     const combined = await loadAnnotatedArchitecture(root)
+    const authored = await storedSource(root, 'handler.ts')
+    const survivorDocument = authored.elements.find(element => element.id === survivor)!.sourceFilename
+    expect(authored.rows.map(row => row.document)).toEqual([survivorDocument])
     expect(pairs(combined)).toEqual([`${emitter}->${survivor}`, `${survivor}->${emitter}`].sort())
 
     const result = await editArchitecture(root, { id: survivor, detach: ['handler.ts'] }) as StructuralResult
@@ -71,6 +82,7 @@ test.concurrent('a detached file keeps its relationships, gets its own component
     expect(ownerId(detached, 'alternate.ts')).toBe(survivor)
     expect(detached.relationships).toEqual([])
     expect(await storedRowsNaming(root, 'handler.ts')).toBe(2)
+    expect((await storedSource(root, 'handler.ts')).rows).toEqual(authored.rows)
 
     const bytes = await readFile(path.join(root, result.changed[0]!), 'utf8')
     await expect(editArchitecture(root, { id: survivor, detach: ['alternate.ts', 'handler.ts'] })).rejects.toThrow('does not own')
@@ -82,12 +94,34 @@ test.concurrent('a detached file keeps its relationships, gets its own component
     const rescanned = await loadAnnotatedArchitecture(root)
     const separate = ownerId(rescanned, 'handler.ts')!
     expect(separate).not.toBe(survivor)
+    const moved = await storedSource(root, 'handler.ts')
+    expect(moved.rows.map(row => row.document)).toEqual([moved.elements.find(element => element.id === separate)!.sourceFilename])
+    expect(moved.rows[0]).toMatchObject({ description: 'Reports the result', technology: 'Callback', authored: true })
+    const untouched = path.join(root, survivorDocument)
+    const previous = await stat(untouched)
+    const relationshipsDocument = path.join(root, moved.rows[0]!.document)
+    const previousRelationship = await stat(relationshipsDocument)
+    await reconcileScanObservations(root, [observation()])
+    expect((await stat(untouched)).mtimeMs).toBe(previous.mtimeMs)
+    expect((await stat(relationshipsDocument)).mtimeMs).toBe(previousRelationship.mtimeMs)
     expect(pairs(rescanned)).toEqual([`${emitter}->${separate}`, `${separate}->${emitter}`].sort())
 
     await editArchitecture(root, { id: survivor, combine: [separate] })
     const recombined = await loadAnnotatedArchitecture(root)
     expect(ownerId(recombined, 'handler.ts')).toBe(survivor)
     expect(pairs(recombined)).toEqual(pairs(combined))
+    expect((await storedSource(root, 'handler.ts')).rows).toEqual(authored.rows)
+
+    await editArchitecture(root, { id: survivor, detach: ['handler.ts', 'alternate.ts'] })
+    await expect(removeThing(root, { id: survivor })).rejects.toThrow('groma scan')
+    expect((await storedSource(root, 'handler.ts')).rows).toEqual(authored.rows)
+    await reconcileScanObservations(root, [observation()])
+    const restored = await storedSource(root, 'handler.ts')
+    expect(restored.rows).toHaveLength(1)
+    expect(restored.rows[0]).toMatchObject({ source: 'handler.ts', target: 'emitter.ts', authored: true })
+    expect(restored.rows[0]!.document).not.toBe(survivorDocument)
+    await removeThing(root, { id: survivor })
+    expect((await storedSource(root, 'handler.ts')).rows).toEqual(restored.rows)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
@@ -95,6 +129,8 @@ test.concurrent('a source unit returns to its owner unless every file of the uni
   const root = await repository()
   try {
     const unitOwner = ownerId(await loadAnnotatedArchitecture(root), 'emitter.ts')!
+    const original = await storedSource(root, 'emitter.ts')
+    expect(original.rows[0]?.authored).toBe(false)
     await editArchitecture(root, { id: unitOwner, detach: ['host.html'] })
     await reconcileScanObservations(root, [observation()])
     expect(ownerId(await loadAnnotatedArchitecture(root), 'host.html')).toBe(unitOwner)
@@ -105,6 +141,13 @@ test.concurrent('a source unit returns to its owner unless every file of the uni
     const newOwner = ownerId(rescanned, 'emitter.ts')
     expect(newOwner).not.toBe(unitOwner)
     expect(ownerId(rescanned, 'host.html')).toBe(newOwner)
+    const transferred = await storedSource(root, 'emitter.ts')
+    const document = transferred.elements.find(element => element.id === newOwner)!.sourceFilename
+    expect(transferred.rows).toEqual(original.rows.map(row => ({ ...row, document })))
+    const filename = path.join(root, document)
+    const before = await stat(filename)
+    await reconcileScanObservations(root, [observation()])
+    expect((await stat(filename)).mtimeMs).toBe(before.mtimeMs)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 

@@ -25,3 +25,10 @@ groma:
 ---
 
 Web App validator of Web App.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/web-app/validator.ts](../../../../../../src/storefront/web-app/validator.ts) | [src/storefront/web-app/mapper.ts](../../../../../../src/storefront/web-app/mapper.ts) | Calls mapper | HTTP |
+| [src/storefront/web-app/validator.ts](../../../../../../src/storefront/web-app/validator.ts) | [src/storefront/web-app/reader.ts](../../../../../../src/storefront/web-app/reader.ts) | Reads reader | HTTP |

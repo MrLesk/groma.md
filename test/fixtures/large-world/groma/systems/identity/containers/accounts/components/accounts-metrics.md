@@ -15,3 +15,10 @@ groma:
 ---
 
 Accounts metrics of Accounts.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/accounts/metrics.ts](../../../../../../src/identity/accounts/metrics.ts) | [src/identity/accounts/config.ts](../../../../../../src/identity/accounts/config.ts) | Calls config | HTTP |
+| [src/identity/accounts/metrics.ts](../../../../../../src/identity/accounts/metrics.ts) | [src/identity/accounts/logger.ts](../../../../../../src/identity/accounts/logger.ts) | Reads logger | HTTP |

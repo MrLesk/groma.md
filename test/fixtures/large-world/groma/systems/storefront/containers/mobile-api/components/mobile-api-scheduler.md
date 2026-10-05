@@ -12,3 +12,10 @@ groma:
 ---
 
 Mobile Api scheduler of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/scheduler.ts](../../../../../../src/storefront/mobile-api/scheduler.ts) | [src/storefront/mobile-api/metrics.ts](../../../../../../src/storefront/mobile-api/metrics.ts) | Calls metrics | HTTP |
+| [src/storefront/mobile-api/scheduler.ts](../../../../../../src/storefront/mobile-api/scheduler.ts) | [src/storefront/mobile-api/config.ts](../../../../../../src/storefront/mobile-api/config.ts) | Reads config | HTTP |

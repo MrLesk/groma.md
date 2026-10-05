@@ -11,3 +11,9 @@ groma:
 ---
 
 Completes a unit of work.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/worker.ts](../../../../../../src/worker.ts) | [src/entry.ts](../../../../../../src/entry.ts) | Reports progress | Callback |

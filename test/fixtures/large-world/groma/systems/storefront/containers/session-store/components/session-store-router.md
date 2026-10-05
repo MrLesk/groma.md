@@ -16,3 +16,10 @@ groma:
 ---
 
 Session Store router of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/router.ts](../../../../../../src/storefront/session-store/router.ts) | [src/storefront/session-store/session.ts](../../../../../../src/storefront/session-store/session.ts) | Calls session | HTTP |
+| [src/storefront/session-store/router.ts](../../../../../../src/storefront/session-store/router.ts) | [src/storefront/session-store/cache.ts](../../../../../../src/storefront/session-store/cache.ts) | Reads cache | HTTP |

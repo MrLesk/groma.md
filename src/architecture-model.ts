@@ -2,7 +2,7 @@ import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
 import { isReservedId, kebabCase } from './naming.ts'
-import { DRAFT_TYPE, RELATIONSHIPS_TYPE, c4Kind, requireGromaMapping } from './okf-profile.ts'
+import { DRAFT_TYPE, c4Kind, requireGromaMapping } from './okf-profile.ts'
 import { storedConnections } from './relationship-markdown.ts'
 import { sourceRelationships } from './source-relationships.ts'
 import type {
@@ -249,7 +249,6 @@ export function buildArchitectureModel(
   const elementsById = new Map<string, ArchitectureElement>()
 
   for (const document of documents) {
-    if (document.frontmatter.type === RELATIONSHIPS_TYPE) continue
     const element = documentToElement(document)
     validateElementLocation(element)
     const first = elementsById.get(element.id)
