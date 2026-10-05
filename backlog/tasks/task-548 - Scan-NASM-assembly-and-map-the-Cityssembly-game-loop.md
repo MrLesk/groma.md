@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-05 18:09'
-updated_date: '2026-10-05 19:37'
+updated_date: '2026-10-05 19:41'
 labels: []
 dependencies: []
 references:
@@ -81,15 +81,13 @@ Alex approved a first assembly scanner using Cityssembly after investigation fou
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Qualify one NASM 3.02 ELF64 preprocessing unit at pinned Cityssembly. Bundle the tool and retain macro invocation origins with the documented one-line location patch. 2. Expose entry/includePaths settings; copy only selected sources; extract exported/directly called text routines and bounded direct-call facts. Keep raw calls temporary, with no execution-entry inference, source-unit ownership or automatic arrows. OKF remains readable Markdown and source links; C4 meaning stays with core and curation. 3. Pass stored Code context, filtered by scanner selection, through the existing outline hook so includes in other components and historical snapshots work. 4. Extend existing catalog, native host assembly and relocated fresh-checkout checks. The minimal NASM test detects wrong macro/include/CRLF/UTF-16 positions, wrong active branch or call certainty, and excluded includes leaking into analysis. The outline host test detects wrong cross-component context or reading the current tree instead of a snapshot. Existing release assembly coverage verifies a worker from each host; the package test owns repeatability and absence of installed tools/network. 5. Curate 59 Cityssembly sources into 12 responsibilities and one frame flow, using existing unidentified-container placement without executable evidence. Verify rescans and web, TUI and static source navigation. 6. Run cold simplicity review, accepted simplification, complete checks, own specification/quality review and final full-context review. Prepare versions and changelog for the combined COBOL/NASM release; qualify all five release hosts before publishing.
-
-Release qualification reproduced a Windows-only archive extraction failure: Git Bash tar treats the drive prefix as a remote archive host. Use the Windows-supplied tar.exe for NASM extraction on Windows. Existing package build and fresh-checkout jobs exercise the fix, so no source-text or mocked command test is added. Re-run the full check and platform qualification; limit review to this build fix.
-
-The Windows compiler next exposed an upstream NASM 3.02 header bug: nasmlib/file.c includes stringapiset.h without windows.h, producing No Target Architecture. Apply the small upstream fix from NASM commit ace0078261329437224d4875b289647279a41fa1 locally during the Windows build, and document it with the existing source-location patch. The existing native package jobs remain the verification; no new scanner behavior is added.
-
-Windows fresh-checkout qualification reproduced a NASM source-location failure (:0). CRLF in preprocessor output prevents the %line directive from matching. Split generated output on CRLF or LF. Extend the existing NASM domain test with the same real preprocessed fixture encoded as CRLF and verify routine origins stay unchanged. Existing coverage changed source-file line endings, but did not exercise Windows preprocessor output; the new assertion must fail before the fix.
-
-Keep the regression small and independent of host tools: add one concurrent evidence-parser test with a minimal NASM %line output encoded as CRLF, asserting the routine maps to line 3 and its original offset. The real fixture conversion already reproduces the same exception; the existing end-to-end package test remains the Windows qualification.
+1. Package NASM 3.02 for five host platforms. Verify its source archive; retain outer macro invocation locations with the one-line source-location patch. Windows uses the system tar executable and the documented upstream header fix.
+2. Preprocess one selected NASM ELF64 source snapshot using entry/includePaths. Decode LF and CRLF output, extract exported/directly called text routines and bounded call evidence, and preserve physical source positions. Add no executable inference, source-unit ownership or automatic relationships.
+3. Pass selected Code context through the existing outline hook for includes owned by another component and historical snapshots. OKF remains ordinary Markdown and source links; C4 boundaries and collaborations stay with core and curation.
+4. Wire discovery, native package assembly and relocated fresh-checkout checks. Coverage detects wrong macro/include/UTF-16 locations, active branches, provider certainty, excluded includes and source context. The Windows output regression detects lost %line directives and wrong original routine origins; it failed before the fix and passes after it.
+5. Qualify pinned Cityssembly: 59 sources, 12 responsibilities, Player and Play one frame flow. Verify stable rescans and web, TUI and static source navigation using existing unidentified-container placement when execution evidence is absent.
+6. Complete the cold simplicity review, accepted deletion, implementer specification/quality review and full-context complexity review. Review release-build fixes only for their reproduced failures and regressions.
+7. Release COBOL and NASM together as Groma 0.6.6 after five-platform qualification. Assemble the successful host packages, inspect final archives, verify their relocated installation, bootstrap both new npm packages with valid authentication, then publish the prepared GitHub release and verify workflow outputs.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -122,10 +120,12 @@ Run 37362351335 passed full validation, Linux ARM64 and macOS packages. Windows 
 Windows x64 reproduced the same CRLF failure; COBOL passed on both Windows hosts. GitHub annotation for Linux x64: The job was not acquired by Runner of type hosted even after multiple attempts. The new regression failed before the one-line output split fix and passes after it. Both focused NASM tests pass (16 assertions). Targeted specification/quality review confirms only generated-output line separation changes; physical source offsets remain untouched. The assertion checks the original routine line and offset, and does not depend on wording or helper structure.
 
 Full repository check after the CRLF fix passes: 16 Node and 764 Bun tests, 50 skipped. No new complexity warnings or architecture record changes. The release draft remains unpublished pending renewed native qualification and npm login.
+
+Release continuation: candidate 9c5b6adc8e1d192198809d0566f596fe4da92d69 is pushed. Qualification run https://github.com/MrLesk/groma.md/actions/runs/37364700886 is pending. GitHub reports runner assignment delays in incident https://www.githubstatus.com/incidents/3q1yb5m7ltvb (started 2026-10-05 19:11 UTC). The release draft v0.6.6 points to this candidate and is unpublished. npm whoami still returns 401; Alex has a pending login request. No tools need to be installed for scanner users. Final artifact collection is reserved at /tmp/groma-0.6.6-final-artifacts; older local collections are previous candidates and must not be published. Only @groma/scanner 0.2.2, @groma/scanner-cobol 0.1.0 and @groma/scanner-nasm 0.1.0 are new scanner package versions. Keep this task In Progress until native qualification is complete.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Added scanner-owned NASM 3.02 preprocessing for the approved Linux x86-64 source configuration, macro-aware routine navigation and bounded call evidence. Shared outline context supports includes owned by another component and historical snapshots. Qualified Cityssembly with a stable 12-component game-loop map and correct web, TUI and static source navigation. Catalog, package assembly, documentation and versions prepare the combined COBOL/NASM 0.6.6 release. Full check: 16 Node and 763 Bun tests pass; 50 skipped. Both review gates pass. Cross-platform release qualification and authenticated npm bootstrap remain publishing steps.
+Implemented NASM preprocessing, original-source routine navigation, bounded call evidence and shared outline context. Cityssembly has a verified 12-component game-loop map with stable rescans and web, TUI and static source links. Both required external review gates and implementer reviews pass. Windows qualification found and resolved archive extraction, upstream header inclusion and CRLF output issues; the CRLF regression fails before and passes after its fix. Current full check passes: 16 Node and 764 Bun tests, 50 skipped. Combined Groma 0.6.6 release is prepared but unpublished. Final native qualification is pending during a GitHub Actions incident, and npm authentication must be restored before initial package publication.
 <!-- SECTION:FINAL_SUMMARY:END -->
