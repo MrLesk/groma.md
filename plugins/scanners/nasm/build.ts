@@ -47,7 +47,9 @@ async function compile(directory: string): Promise<void> {
 export async function buildPackage(destination: string): Promise<void> {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-nasm-build-'))
   try {
-    await execute('tar', ['-xf', await archive(), '-C', temporary])
+    // Git Bash tar interprets a Windows drive prefix as a remote archive host.
+    const tar = process.platform === 'win32' ? path.join(process.env.SystemRoot!, 'System32/tar.exe') : 'tar'
+    await execute(tar, ['-xf', await archive(), '-C', temporary])
     const source = path.join(temporary, `nasm-${version}`)
     const main = path.join(source, 'asm/nasm.c')
     const original = await readFile(main, 'utf8')
