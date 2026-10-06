@@ -1,11 +1,11 @@
 ---
 id: TASK-549
 title: Align the Scala scanner PR with current scanner contracts
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-06 07:49'
-updated_date: '2026-10-06 08:21'
+updated_date: '2026-10-06 08:26'
 labels: []
 dependencies: []
 references:
@@ -116,7 +116,7 @@ PR #110 adds a Scala 3 scanner using Scalameta, but it predates current main and
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The contributor PR branch includes the latest main, preserves unrelated changes, and is linked to this task.
+- [x] #1 The contributor PR branch includes the latest main, preserves unrelated changes, and is linked to this task.
 - [x] #2 The installed Scala scanner inventories and outlines selected Scala source without project builds, dependency installation, scan-time downloads, or a separately installed language SDK.
 - [x] #3 Source selection, original locations, call certainty, and parse failures follow the shared scanner contracts; source facts do not invent architecture boundaries or relationships.
 - [x] #4 Discovery, package builds, source listing, and documentation agree on the supported Scala scope and use the existing scanner delivery flow.
@@ -125,10 +125,10 @@ PR #110 adds a Scala 3 scanner using Scalameta, but it predates current main and
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -163,4 +163,12 @@ Cold simplicity review passed without blockers. Accepted both deletions: folded 
 Required check passed: bun run check; Node 16 pass, Bun 765 pass / 51 existing optional skips / 0 failures. Lint has one existing warning and two existing infos outside this change; changed Scala/package tests have no lint findings. Final Scala package and relocated no-tools test both pass after simplicity cleanup. Implementer specification review: approved selected-source flow, failure/position/outline contracts, discovery, package assembly, documentation and task linkage are satisfied; pushing the PR remains the delivery step. Implementer quality review: traced selected paths -> adapter -> bundled parser -> inventory/operations/uncertain calls or strict failure -> shared observation; no project build, cache, installed-tool fallback, download or core import remains at scan time. New assertions detect incorrect selection, shadowed-call certainty, missing calls, wrong UTF-16 positions, partial success and missing outline members; none freezes implementation text or prose. No blocking defect found. Two architecture rescans created zero components and preserve the Scala scanner group and Code references. Other locally unbuilt C#/Go/Java/Rust scanners retained their saved evidence; these unrelated workers were not rebuilt for this task.
 
 The final full-context complexity review passed with no blockers or material simplifications. Domain ownership and usage are clear; no architecture expansion is needed. Both independent review gates and implementer reviews are complete.
+
+Published implementation commit 6573c6fb to aboisvert/groma.md:scala3-scanner and updated PR #110 title/body with the task link. GitHub confirms it is mergeable and remains a draft. Main is synchronized through 0a75d08d (its final change is only TASK-550 notes). GitHub's architecture comparison fails before project code runs: actions/checkout v7 refuses a fork head in pull_request_target. This is a repository workflow issue outside the Scala change; no unsafe-checkout bypass was added. Standard fork CI needs workflow approval. Local required checks and all review gates remain passed.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Updated PR #110 with current main and an experimental source-only Scala 3 scanner. Bundled Scalameta and Java remove installed-tool and scan-time build/download requirements. Selected paths, original positions, conservative call evidence, strict failures and outlines follow the shared contracts. Discovery, package assembly, notices, docs and architecture ownership are aligned; obsolete sbt/cache/proposal code is removed. bun run check passed (781 tests, 51 existing optional skips); focused and relocated no-tools package checks plus all review gates passed. Runtime execution was verified on macOS ARM64 and assembly covers five release hosts. The PR stays draft; no merge or release. GitHub architecture preview remains blocked by the repository's fork-checkout workflow restriction.
+<!-- SECTION:FINAL_SUMMARY:END -->
