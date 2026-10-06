@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -15,7 +15,7 @@ async function fixture() {
   return root
 }
 
-test('write replaces the target completely and leaves no temp files behind', async () => {
+test.concurrent('write replaces the target completely and leaves no temp files behind', async () => {
   const root = await fixture()
   try {
     const filesystem = GromaFileSystem.open(root)
@@ -26,19 +26,19 @@ test('write replaces the target completely and leaves no temp files behind', asy
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-test('a failed write keeps the previous full content and cleans up its temp file', async () => {
+test.concurrent('a failed replacement preserves existing content and cleans up its temp file', async () => {
   const root = await fixture()
   try {
     const filesystem = GromaFileSystem.open(root)
     const target = path.join(root, 'groma/systems/service/api.md')
-    // The directory loses write permission, so the temp write cannot complete.
-    await chmod(path.join(root, 'groma/systems/service'), 0o500)
-    try {
-      await expect(filesystem.write('systems/service/api.md', 'interrupted')).rejects.toThrow()
-    } finally {
-      await chmod(path.join(root, 'groma/systems/service'), 0o700)
-    }
-    expect(await readdir(path.join(root, 'groma/systems/service'))).toEqual(['api.md'])
-    expect(await readFile(target, 'utf8')).toContain('previous full content')
+    const original = await readFile(target, 'utf8')
+    const saved = path.join(root, 'previous.md')
+    await rename(target, saved)
+    // Replacing a non-empty directory fails on every host, after the temp write succeeds.
+    await mkdir(target)
+    await rename(saved, path.join(target, 'previous.md'))
+    await expect(filesystem.write('systems/service/api.md', 'interrupted')).rejects.toThrow()
+    expect(await readdir(path.dirname(target))).toEqual(['api.md'])
+    expect(await readFile(path.join(target, 'previous.md'), 'utf8')).toBe(original)
   } finally { await rm(root, { recursive: true, force: true }) }
 })

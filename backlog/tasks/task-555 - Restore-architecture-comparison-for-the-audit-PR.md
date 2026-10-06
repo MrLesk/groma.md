@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-06 10:24'
-updated_date: '2026-10-06 10:37'
+updated_date: '2026-10-06 11:01'
 labels: []
 dependencies: []
 references:
@@ -1058,6 +1058,7 @@ modified_files:
     test/fixtures/viewer-view/groma/systems/shop/containers/stock-viewer/components/stock-page.md
   - test/fixtures/viewer-view/groma/systems/shop/system.md
   - test-bun/relationship-escaping.test.ts
+  - test-bun/groma-filesystem.test.ts
 priority: high
 type: bug
 ordinal: 639000
@@ -1090,6 +1091,8 @@ PR #113 is based on Groma 0.5.0 and stores relationships in the retired central 
 1. Merge current main into PR #113 in an isolated branch; record inherited integration files and resolve the three conflicts in architecture.yml, groma-filesystem.ts, and markdown-emitter.ts while keeping current ownership and the PR changes. 2. Export the actual updated merge-base/head pair with the trusted released Groma CLI, treating PR sources as data. OKF links and C4 meaning stay unchanged; the PR gains the current source-owned relationship profile from main. No migration or compatibility reader is added. 3. Existing replacement, relationship, scanner, and viewer tests cover the integrated behavior. Add tests only for a reproduced integration failure not already covered. Run bun run check, own focused specification/quality review, and inspect the retained PR diff. 4. Push the updated contributor branch, run the current architecture workflow, and verify every comparison job and all current platform CI jobs. Do not merge the audit PR into main.
 
 Conflict resolution: current main already supplies the atomic replacement requested by the audit, plus the project lock and index updates, so retain its single filesystem writer. Move the audit relationship escaping into withStoredRelationships, the current relationship storage owner, and adapt the existing escaping tests to source-owned relationship documents. Their authority and failure remain the audit PR rule that special file names must not split or inject stored relationship rows. Keep the round-trip, removal, HTTP-label, and complete-model cases; remove the redundant assertion of exact serialized bytes. This is integration of existing PR behavior, not a new compatibility API.
+
+Windows run 37451043908 reproduced a test-fixture defect: chmod(0500) does not prevent temporary file creation on Windows. Preserve the failure/cleanup invariant using an occupied destination directory, which makes atomic rename fail on all supported hosts after the temporary file is written. Place the previous content inside that destination and assert it survives, the operation rejects, and no sibling temp remains. This extends the existing failed-write test; no new filesystem behavior, skip, mock, or abstraction. Convert both independent file tests to test.concurrent to match repository instructions.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -1098,4 +1101,6 @@ Conflict resolution: current main already supplies the atomic replacement reques
 The three textual conflicts are resolved: the workflow keeps main comparison/deployment steps and the audit pins; GromaFileSystem uses main atomic replacement, project lock, and index maintenance; the removed central relationship emitter stays removed. The audit escaping helpers now belong to relationship-storage, and its existing regressions use source-owned documents. Focused filesystem and relationship checks pass: 10 tests, 43 assertions. Typecheck and git diff --check pass. The main/PR architecture difference is empty after integration, so existing C4 elements and flows retain exactly the meaning already approved on main.
 
 Full bun run check passes: 798 Bun tests passed, 51 optional skips, zero failures, plus Node tests, lint and typecheck. The official Action comparison using released Groma 0.6.5 exported main b759b199 to integrated PR 9c71e41c: 16 modified components and no added/removed components or relationship changes. Integration specification and quality reviews pass: current architecture is unchanged from main; source-owned relationship escaping preserves the audit cases; current atomic filesystem implementation owns locking and replacement. The independent reusable Action version-selection fix is tracked at MrLesk/groma.md-action#5.
+
+The audit Windows run exposed one inherited chmod-based test fixture failure: the permission change did not block writing on Windows. The test now forces rename failure with a non-empty destination directory, checks exact preservation of its previous content, and verifies temporary cleanup. Existing successful replacement coverage still proves preservation of the previous file inode. Both file tests now run concurrently with independent fixtures. Focused checks pass (6 tests, 17 assertions); full bun run check passes (798 Bun, 51 optional skips, zero failures, plus Node/lint/types). Own targeted specification and quality re-review found no further blocking issue. The new manual architecture workflow passed every job on main in run 37452946605 and its published page contains both requested commits and all three views.
 <!-- SECTION:NOTES:END -->
