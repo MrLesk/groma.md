@@ -15,3 +15,10 @@ groma:
 ---
 
 Cart metrics of Cart.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/cart/metrics.ts](../../../../../../src/orders/cart/metrics.ts) | [src/orders/cart/config.ts](../../../../../../src/orders/cart/config.ts) | Calls config | HTTP |
+| [src/orders/cart/metrics.ts](../../../../../../src/orders/cart/metrics.ts) | [src/orders/cart/logger.ts](../../../../../../src/orders/cart/logger.ts) | Reads logger | HTTP |

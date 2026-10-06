@@ -83,7 +83,7 @@ the workspace-only development dependencies are not part of the published packag
 
 After every successful groma.md release, update the `groma.md@<version>` pin in
 [`groma.md-action/action.yml`](https://github.com/MrLesk/groma.md-action/blob/main/action.yml) and follow the
-[Action release checklist](https://github.com/MrLesk/groma.md-action#releases). This final release step verifies the new
+[Action release checklist](https://github.com/MrLesk/groma.md-action/blob/main/CONTRIBUTING.md#releases). This final release step verifies the new
 groma.md version in the Action, publishes an approved Action release, and updates its major-version pointer. It is manual;
 groma.md's release workflow does not update the Action repository.
 
@@ -102,8 +102,8 @@ Before requesting review:
 - Link exactly one Backlog task and keep the PR focused on that task. Split unrelated work into separate tasks and PRs.
 - Describe the actor, entry point, and observable result. For a new supported product flow, add its Gherkin scenario
   before implementation.
-- Keep Backlog traceability current while working: record each changed repository file and, when architecture is
-  affected, each exact element `id` on the task as soon as it changes. Use the `backlog` CLI; do not edit task
+- Keep Backlog traceability current while working: record each changed repository file and add exact element IDs for
+  affected scope not already linked by modified source files. Use the `backlog` CLI; do not edit task
   Markdown directly.
 - Update canonical architecture or product documentation when the represented contract changes. Use groma.md commands for
   groma.md-owned architecture files instead of editing those files with generic tools.
@@ -124,8 +124,8 @@ Before requesting review:
   prose in the Markdown body. Do not add a duplicate level-one heading.
 - Add focused lower-level tests for implementation rules that do not belong in a product-flow scenario.
 - Do not add compatibility behavior, fallbacks, or speculative abstractions without an explicit product requirement.
-- For Backlog-tracked work, record each changed file and each affected element `id` on the task as you go, before
-  changing the next file. [AGENTS.md](AGENTS.md) describes that loop under Backlog change tracking.
+- For Backlog-tracked work, record each changed file and any additional affected architecture scope on the task as
+  you go, before changing the next file. [AGENTS.md](AGENTS.md) describes that loop under Backlog change tracking.
 
 ## Verify the result
 

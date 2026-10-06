@@ -21,3 +21,9 @@ groma:
 ---
 
 Cart logger of Cart.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/cart/logger.ts](../../../../../../src/orders/cart/logger.ts) | [src/orders/cart/client.ts](../../../../../../src/orders/cart/client.ts) | Calls client | HTTP |

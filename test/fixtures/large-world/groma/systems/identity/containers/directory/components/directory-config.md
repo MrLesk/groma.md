@@ -18,3 +18,10 @@ groma:
 ---
 
 Directory config of Directory.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/directory/config.ts](../../../../../../src/identity/directory/config.ts) | [src/identity/directory/logger.ts](../../../../../../src/identity/directory/logger.ts) | Calls logger | HTTP |
+| [src/identity/directory/config.ts](../../../../../../src/identity/directory/config.ts) | [src/identity/directory/client.ts](../../../../../../src/identity/directory/client.ts) | Reads client | HTTP |

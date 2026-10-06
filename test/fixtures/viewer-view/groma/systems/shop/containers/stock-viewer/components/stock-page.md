@@ -11,3 +11,9 @@ groma:
 ---
 
 Draws the shelf counts.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/stock-page.ts](../../../../../../src/stock-page.ts) | [src/pricing.ts](../../../../../../src/pricing.ts) | Reads the price list | In-process data |

@@ -22,3 +22,10 @@ groma:
 ---
 
 Web App cache of Web App.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/web-app/cache.ts](../../../../../../src/storefront/web-app/cache.ts) | [src/storefront/web-app/validator.ts](../../../../../../src/storefront/web-app/validator.ts) | Calls validator | HTTP |
+| [src/storefront/web-app/cache.ts](../../../../../../src/storefront/web-app/cache.ts) | [src/storefront/web-app/mapper.ts](../../../../../../src/storefront/web-app/mapper.ts) | Reads mapper | HTTP |

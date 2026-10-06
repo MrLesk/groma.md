@@ -19,3 +19,10 @@ groma:
 ---
 
 Accounts session of Accounts.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/accounts/session.ts](../../../../../../src/identity/accounts/session.ts) | [src/identity/accounts/cache.ts](../../../../../../src/identity/accounts/cache.ts) | Calls cache | HTTP |
+| [src/identity/accounts/session.ts](../../../../../../src/identity/accounts/session.ts) | [src/identity/accounts/validator.ts](../../../../../../src/identity/accounts/validator.ts) | Reads validator | HTTP |

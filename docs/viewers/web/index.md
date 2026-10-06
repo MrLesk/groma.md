@@ -169,6 +169,12 @@ visibility; the settings controller owns opening and closing the dialog.
 A world with existing architecture but no components keeps its map and navigation
 beneath a compact, dismissible notice pointing to `groma scanner setup`. The first
 component removes the notice without a reload. Historical views hide it.
+When components exist but no element has a description or overview, the First
+scan notice offers an agent prompt that points to `groma agent-instructions`
+and asks the agent to describe the existing architecture without changing
+application code. **Copy prompt** copies the displayed text and shows **Copied**
+for two seconds after the clipboard write succeeds. The notice can be dismissed;
+it disappears when curation adds a description or overview.
 
 The hierarchy Add button is hidden while creation controls are unfinished.
 The element details pane ends with a Remove control only where `groma remove` would
@@ -183,6 +189,14 @@ complete change before writing. A refused save keeps the form and saved
 architecture. Live work updates and changes between Iso, 2D, and Layers keep
 an open form's unsaved values. Changing
 selection leaves that editing session. Source evidence remains read-only.
+
+Element, relationship, and project forms save only changed fields together
+with their original values. If another edit changed one of those fields, Save
+keeps the unsaved input and shows its original, current, and proposed values.
+No part of that request is saved. Changes to other fields do not block saving,
+and a value already saved by another editor succeeds. Cancel and reopen the
+editor to work from the latest values. The CLI deliberately overwrites the
+requested fields without this earlier-value check.
 
 Element fields are title, description, overview, technology, and parent
 where the component can move. Empty optional values clear the
@@ -336,17 +350,52 @@ different kind of element in each revision, such as a component that became a
 container, shows as two elements: B's keeps the ID and A's is added as removed,
 with A's children beneath it. Systems,
 containers, and groups stay neutral. Added, Modified, and Removed use shared
-theme roles; green remains the selection and active-flow color. Comparisons
+theme roles shared with code diffs and change controls; green remains the
+selection and active-flow color. Blueprint uses lime for Added to distinguish it
+from the map's blue line work. During comparison, unchanged buildings and routes
+recede to 40% opacity unless selected or highlighted as neighbors. Opening a
+comparison without a selected item, and pressing Fit, frames changed components
+and their outgoing routes using the existing task-highlight fit. A comparison
+with no changed components fits the complete map. Comparisons
 have no task data or editing controls. A working-tree endpoint follows owned
 source edits even when no scanner handles that file.
 
+During a comparison the hierarchy opens on **Changes**: changed components
+under their systems and containers, followed by changed relationships. Component
+rows show source-line totals when source changed, and every change has a status
+mark. Ancestors count their changed components by status. **All** restores the
+ordinary tree with the same marks and counts. Removed components and context
+needed only for them have muted names. Selecting a row uses ordinary selection:
+the URL, camera and details follow. An empty comparison says **No changes**.
+`web/comparison/tree.ts` derives the list and ancestor counts from History's
+existing facts; `web/organisms/hierarchy.ts` owns its controls and rendering.
+The bottom changes bar counts components and relationships per status. Its
+filters update the list, ancestor counts and map marks together; filtering Removed
+also hides deleted buildings, routes and their retained context. Previous/next
+and J/K step through visible components, then relationships, and wrap at either
+end. Text inputs keep J/K for typing. Filters belong to the open pair and reset
+when it changes; they are not saved in URLs. `web/comparison/control.ts` owns
+these filters and navigation. Empty comparisons have no changes bar.
+
 Comparison details keep the same What it does and How it's built tabs. Added
 components show B's content; removed components keep A's readable description.
-Modified prose marks changed words in place, with changed fields alongside it.
+Modified components show a **Changed:** line below their title, naming changed
+fields, source files with line totals, and changed relationships. Each reason
+opens its details tab. Source-only or ownership-only changes start on **How it's
+built**, unless the URL names a tab. Small prose edits mark changed words in
+place, with a space between adjacent removals and additions. When at least half
+the text changed, complete **Now** and **Before** versions replace word marks.
+Text introduced or deleted in an existing component is labeled **Added** or
+**Removed**. `web/comparison/details.ts` owns these presentation decisions.
 Relationships carry their own status. Files include both versions' ownership,
 with actual source status and line counts; removing a component does not imply
 deleting its files. Changed files open a unified diff, unchanged files the
-ordinary source view. Back restores the component, tab, and reading position.
+ordinary source view. File and diff readers use opaque theme paper, with neutral
+diff section headers. When a component has multiple changed files, its diff
+toolbar offers previous/next file navigation with a position count. Back restores
+the component, tab, and reading position, including after stepping between files.
+The source controller owns this navigation; task diffs retain their existing flow
+through the same diff renderer.
 The shared details panel covers map controls within its area, while the header
 remains usable.
 
@@ -358,9 +407,13 @@ These are derived views of existing OKF records and C4 components, not new
 stored knowledge or architecture levels.
 
 The floating icon bar beside the hierarchy toggles Actors, Systems, Containers,
-and Components on the map. Its icons follow the existing ● ■ ▱ ▪ marks with
-clean geometry and gently rounded corners. All four start visible. Hover or keyboard focus shows
-each icon's label; pressed buttons mark visible types. Hiding a type hides its
+Components, and Relationships on the map. Its element icons follow the existing
+● ■ ▱ ▪ marks with clean geometry and gently rounded corners; an arrow represents
+relationships. All five start visible. Hover or keyboard focus shows
+each icon's label; pressed buttons mark visible content. Hiding Relationships
+hides all map lines, including highlighted routes, while relationships remain
+available in the details and flow readers. Showing them again restores only
+routes whose endpoints are visible. Hiding an element type hides its
 map bodies, connections with hidden endpoints, and attached task pins. Children
 of a hidden boundary remain visible when their own type is enabled. Filtering
 keeps layout, camera, hierarchy, and stored architecture unchanged. Choices stay
@@ -845,12 +898,15 @@ implementation notes, and comments. Empty sections are omitted. Updates to the s
 task keep the current details visible while loading. Changed checks, fields, and
 rows animate in place; unchanged rows keep focus and the panel keeps its scroll
 position. Reduced motion applies changes immediately. A reference
-naming an element is a link that selects it. The selected task's pins carry a
+naming an element ID or exact repository-relative source file is a link that selects
+the element or the file's current owner. Source references retain the file path as
+their label. Other references remain plain context. The selected task's pins carry a
 small arrowhead above their badge, its chips an accent border, and the strip
 scrolls the first into view.
 
 Selecting a component adds a Tasks tab only when at least one Backlog task
-touches it through a mapped modified file or an exact architecture reference.
+touches it through a mapped modified file, an exact element ID reference, or a
+source file reference owned by the component.
 The tab groups the configured default status as To do, the last configured
 status as Done, and every intermediate status as In progress. Selecting a task
 row opens the same task details and map highlight as its pin or chip. A component

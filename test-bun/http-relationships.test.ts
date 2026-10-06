@@ -8,6 +8,7 @@ import {
   type ScanInvocation, type ScanObservation,
 } from '@groma/scanner'
 
+import { loadArchitecture } from '../src/architecture-reader.ts'
 import { loadAnnotatedArchitecture, reconcileScanObservations } from '../src/core.ts'
 import { addRelation } from '../src/relation.ts'
 import { inferRelationships } from '../src/relationship-inference.ts'
@@ -351,9 +352,12 @@ test.concurrent('scans store derived HTTP rows, keep them while a contributing s
     expect(derived.relationships).toEqual([expect.objectContaining({
       description: 'Calls HTTP endpoint: GET /talks/:id', technology: 'client, server',
     })])
-    const stored = await readFile(path.join(root, 'groma/relationships.md'), 'utf8')
+    const filename = derived.elements.find(element => element.code.some(reference => reference.file === client))!.id
+    const records = await loadArchitecture(root)
+    const source = records.documents.find(document => (document.frontmatter.groma as { id: string }).id === filename)!.sourceFilename
+    const stored = await readFile(path.join(root, source), 'utf8')
     await reconcileScanObservations(root, [browser])
-    expect(await readFile(path.join(root, 'groma/relationships.md'), 'utf8')).toBe(stored)
+    expect(await readFile(path.join(root, source), 'utf8')).toBe(stored)
     await addRelation(root, { source: client, target: talks, description: 'Loads a talk', technology: 'REST' })
     await reconcileScanObservations(root, [server, browser])
     const authored = await loadAnnotatedArchitecture(root)

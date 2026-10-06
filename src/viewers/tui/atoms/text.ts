@@ -24,3 +24,24 @@ export function text(
     attributes,
   )
 }
+
+/** The text whole when it fits the width, else cut with an ellipsis. */
+export function fitted(value: string, width: number): string {
+  const characters = [...value]
+  return characters.length <= width ? value : `${characters.slice(0, Math.max(0, width - 1)).join('')}…`
+}
+
+/** Writes the text centred across a span that starts at `x` and is `width` cells wide. */
+export function centred(
+  buffer: OptimizedBuffer,
+  value: string,
+  x: number,
+  y: number,
+  width: number,
+  foreground: RGBA,
+  background: RGBA,
+  attributes = 0,
+): void {
+  const line = fitted(value, width)
+  text(buffer, line, x + Math.floor((width - [...line].length) / 2), y, width, foreground, background, attributes)
+}

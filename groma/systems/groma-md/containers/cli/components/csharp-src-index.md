@@ -20,3 +20,9 @@ description: Starts the C# worker and converts its result into scan evidence
 ---
 
 Sends the repository's tracked C# inventory and inputs to the bundled .NET worker in one request, so each project loads once, and returns the observation and source outlines through the shared scanner contract. Leaves build output, test code and generated files out of the inventory, and lists every other C# file to explain files without an owner.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [plugins/scanners/csharp/src/adapter.ts](../../../../../../plugins/scanners/csharp/src/adapter.ts) | [plugins/scanners/csharp/dotnet/Program.cs](../../../../../../plugins/scanners/csharp/dotnet/Program.cs) | Runs C# analysis | Child process and JSON |

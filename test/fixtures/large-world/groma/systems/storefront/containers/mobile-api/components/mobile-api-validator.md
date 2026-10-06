@@ -25,3 +25,10 @@ groma:
 ---
 
 Mobile Api validator of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/validator.ts](../../../../../../src/storefront/mobile-api/validator.ts) | [src/storefront/mobile-api/mapper.ts](../../../../../../src/storefront/mobile-api/mapper.ts) | Calls mapper | HTTP |
+| [src/storefront/mobile-api/validator.ts](../../../../../../src/storefront/mobile-api/validator.ts) | [src/storefront/mobile-api/reader.ts](../../../../../../src/storefront/mobile-api/reader.ts) | Reads reader | HTTP |

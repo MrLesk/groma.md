@@ -1,21 +1,12 @@
-import path from 'node:path'
-
 import { buildArchitectureModel } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { resolveFlows } from './flow-model.ts'
-import { GromaFileSystem } from './groma-filesystem.ts'
-import {
-  readDocument,
-  withoutRelationship,
-  withRelationship,
-  writeDocument,
-  validateElementSource,
-} from './markdown-emitter.ts'
 import { requireText } from './naming.ts'
-import { RELATIONSHIPS_TYPE } from './okf-profile.ts'
-import { storedConnections } from './relationship-markdown.ts'
-import { fileOwners } from './source-relationships.ts'
-import type { ArchitectureDocument, ArchitectureElement, RelationshipConnection, ElementStatus } from './types.ts'
+import { storedRelationships, type StoredRelationship } from './relationship-markdown.ts'
+import { placeRelationships, saveRelationships } from './relationship-storage.ts'
+import { sourceIndex } from './source-index.ts'
+import type { ArchitectureElement, RelationshipConnection, ElementStatus } from './types.ts'
+import { checkEdit, type EditValues } from './authoring-conflict.ts'
 
 /** Code interactions use repository-relative files; actor/external declarations may use concept IDs. */
 export interface RelationEnds {
@@ -26,16 +17,17 @@ export interface RelationEnds {
 export interface RelationInput extends RelationEnds {
   description?: string
   technology?: string
+  original?: EditValues
 }
 
 interface Ends {
-  documents: ArchitectureDocument[]
+  rows: StoredRelationship[]
   records: Awaited<ReturnType<typeof loadArchitecture>>
   model: ReturnType<typeof buildArchitectureModel>
   input: RelationEnds
   source: ArchitectureElement
   target: ArchitectureElement
-  row: RelationshipConnection | undefined
+  row: StoredRelationship | undefined
 }
 
 type Sentence = Pick<RelationshipConnection, 'description' | 'technology' | 'status'>
@@ -44,21 +36,21 @@ async function loadEnds(repositoryRoot: string, input: RelationEnds): Promise<En
   const records = await loadArchitecture(repositoryRoot)
   const { documents } = records
   const model = buildArchitectureModel(documents)
-  const owners = fileOwners(model.elements)
-  const source = owners.get(input.source) ?? model.elements.find(element => element.id === input.source)
+  const index = sourceIndex(model.elements)
+  const source = index.owner(input.source) ?? index.resolve(input.source)
   if (!source) throw new Error(`unknown source "${input.source}"`)
-  const target = owners.get(input.target) ?? model.elements.find(element => element.id === input.target)
+  const target = index.owner(input.target) ?? index.resolve(input.target)
   if (!target) throw new Error(`unknown target "${input.target}"`)
   const declaredConcept = [source, target].some(element => element.kind === 'actor' || element.external)
-  if (!declaredConcept && (!owners.has(input.source) || !owners.has(input.target))) {
+  if (!declaredConcept && (!index.byFile.has(input.source) || !index.byFile.has(input.target))) {
     throw new Error('code relationships require source-file endpoints')
   }
-  const connections = storedConnections(documents, model.elements, (_code, filename, message) => {
+  const connections = storedRelationships(documents, model.elements, (_code, filename, message) => {
     throw new Error(`${filename}: ${message}`)
   })
   const row = [...connections].sort((left, right) => Number(right.authored) - Number(left.authored))
     .find(item => item.source === input.source && item.target === input.target)
-  return { documents, records, model, input, source, target, row }
+  return { rows: connections, records, model, input, source, target, row }
 }
 
 function requireRow(ends: Ends): RelationshipConnection {
@@ -66,30 +58,15 @@ function requireRow(ends: Ends): RelationshipConnection {
   return ends.row
 }
 
-function endpointLink(value: string, element: ArchitectureElement, filename: string): { name: string; href: string } {
-  const isFile = element.code.some(reference => reference.file === value)
-  return {
-    name: isFile ? value : element.title,
-    href: path.posix.relative(path.posix.dirname(filename), isFile ? value : element.sourceFilename),
-  }
-}
-
 async function writeRow(
   repositoryRoot: string,
   ends: Ends,
   change: { drop?: RelationshipConnection; add?: Sentence },
 ): Promise<string> {
-  const filename = GromaFileSystem.open(repositoryRoot).sourceFilename('relationships.md')
-  const source = endpointLink(ends.input.source, ends.source, filename)
-  const target = endpointLink(ends.input.target, ends.target, filename)
-  let document = ends.documents.some(record => record.sourceFilename === filename)
-    ? await readDocument(repositoryRoot, filename)
-    : `---\ntype: ${RELATIONSHIPS_TYPE}\ntitle: Architecture relationships\n---\n`
-  const links = { sourceName: source.name, sourceHref: source.href, targetName: target.name, targetHref: target.href }
-  if (change.drop) document = withoutRelationship(document, { ...links, ...change.drop })
-  if (change.add) document = withRelationship(document, { ...links, ...change.add })
-  await validateElementSource(ends.documents, filename, document)
-  await writeDocument(repositoryRoot, filename, document)
+  const rows = ends.rows.filter(row => row !== change.drop)
+  if (change.add) rows.push({ ...ends.input, ...change.add, authored: true, document: ends.source.sourceFilename })
+  await saveRelationships(repositoryRoot, ends.records.documents, ends.model.elements, ends.rows,
+    placeRelationships(rows, ends.model.elements))
   return ends.source.id
 }
 
@@ -108,6 +85,9 @@ export async function editRelation(repositoryRoot: string, input: RelationInput)
   }
   const ends = await loadEnds(repositoryRoot, input)
   const current = requireRow(ends)
+  checkEdit(input.original, current, {
+    description: input.description?.trim(), technology: input.technology?.trim(),
+  })
   return writeRow(repositoryRoot, ends, {
     drop: current,
     add: {

@@ -24,6 +24,86 @@ interface Body {
 /** Two partners and the number of relationships between them. */
 type Spring = [Body, Body, number]
 
+/** Centres farther than these neighbouring cells cannot exert a short-range sibling force. */
+class NearbyBodies {
+  private cells = new Map<number, Map<number, Set<number>>>()
+  private xs: number[] = []
+  private ys: number[] = []
+  private width: number
+  private depth: number
+  private bodies: readonly Body[]
+  private padding: number
+
+  constructor(bodies: readonly Body[], padding: number) {
+    this.bodies = bodies
+    this.padding = padding
+    this.width = Math.max(...bodies.map(body => body.w)) + padding
+    this.depth = Math.max(...bodies.map(body => body.d)) + padding
+    bodies.forEach((_, index) => { this.move(index) })
+  }
+
+  move(index: number): void {
+    const body = this.bodies[index]!
+    const x = Math.floor(body.x / this.width)
+    const y = Math.floor(body.y / this.depth)
+    if (x === this.xs[index] && y === this.ys[index]) return
+    this.cells.get(this.xs[index]!)?.get(this.ys[index]!)?.delete(index)
+    const column = this.cells.get(x) ?? new Map<number, Set<number>>()
+    const cell = column.get(y) ?? new Set<number>()
+    cell.add(index)
+    column.set(y, cell)
+    this.cells.set(x, column)
+    this.xs[index] = x
+    this.ys[index] = y
+  }
+
+  later(index: number, after: number): number[] {
+    const body = this.bodies[index]!
+    const radiusX = (body.w + this.width + this.padding) / 2
+    const radiusY = (body.d + this.depth + this.padding) / 2
+    const x0 = Math.floor((body.x - radiusX) / this.width)
+    const x1 = Math.floor((body.x + radiusX) / this.width)
+    const y0 = Math.floor((body.y - radiusY) / this.depth)
+    const y1 = Math.floor((body.y + radiusY) / this.depth)
+    const later: number[] = []
+    for (let x = x0; x <= x1; x += 1) {
+      for (let y = y0; y <= y1; y += 1) {
+        for (const other of this.cells.get(x)?.get(y) ?? []) {
+          if (other <= after) continue
+          const candidate = this.bodies[other]!
+          if (this.close(body, candidate)) later.push(other)
+        }
+      }
+    }
+    return later.sort((a, b) => a - b)
+  }
+
+  private close(a: Body, b: Body): boolean {
+    return Math.abs(b.x - a.x) - (b.w + a.w) / 2 < this.padding
+      && Math.abs(b.y - a.y) - (b.d + a.d) / 2 < this.padding
+  }
+}
+
+/** Keep the original pair order, including new neighbours created by a collision move. */
+function nearbyPairs(bodies: readonly Body[], padding: number, visit: (a: Body, b: Body) => boolean): void {
+  const nearby = new NearbyBodies(bodies, padding)
+  for (let i = 0; i < bodies.length; i += 1) {
+    let after = i
+    for (let later = nearby.later(i, after); later.length; later = nearby.later(i, after)) {
+      let moved = false
+      for (const j of later) {
+        after = j
+        if (!visit(bodies[i]!, bodies[j]!)) continue
+        nearby.move(i)
+        nearby.move(j)
+        moved = true
+        break
+      }
+      if (!moved) break
+    }
+  }
+}
+
 /** The clear cells between two bodies and the axis across that gap: side by side (x) or one behind the other (y). */
 function gapBetween(a: Body, b: Body): { gap: number, alongX: boolean, sign: number } {
   const dx = b.x - a.x
@@ -47,12 +127,11 @@ function forcePair(a: Body, b: Body, alongX: boolean, amount: number): void {
 
 /** Every two siblings push apart until SIBLING_SPREAD cells of ground stand between them, partners too. */
 function push(bodies: readonly Body[]): void {
-  for (let i = 0; i < bodies.length; i += 1) {
-    for (let j = i + 1; j < bodies.length; j += 1) {
-      const { gap, alongX, sign } = gapBetween(bodies[i]!, bodies[j]!)
-      if (gap < SIBLING_SPREAD) forcePair(bodies[i]!, bodies[j]!, alongX, sign * SIBLING_PUSH * (SIBLING_SPREAD - gap))
-    }
-  }
+  nearbyPairs(bodies, SIBLING_SPREAD, (a, b) => {
+    const { gap, alongX, sign } = gapBetween(a, b)
+    if (gap < SIBLING_SPREAD) forcePair(a, b, alongX, sign * SIBLING_PUSH * (SIBLING_SPREAD - gap))
+    return false
+  })
 }
 
 /** Partners pull toward the sibling gap across and toward facing each other along it. */
@@ -98,14 +177,13 @@ function keepEntriesWest(bodies: readonly Body[]): void {
 /** Calls `fix` for every pair closer than the sibling gap, with the gap still missing; reports whether any was. */
 function tooClose(bodies: readonly Body[], fix: (a: Body, b: Body, missing: number, alongX: boolean, sign: number) => void): boolean {
   let found = false
-  for (let i = 0; i < bodies.length; i += 1) {
-    for (let j = i + 1; j < bodies.length; j += 1) {
-      const { gap, alongX, sign } = gapBetween(bodies[i]!, bodies[j]!)
-      if (gap >= GAP - EPSILON) continue
-      found = true
-      fix(bodies[i]!, bodies[j]!, GAP - gap, alongX, sign)
-    }
-  }
+  nearbyPairs(bodies, GAP, (a, b) => {
+    const { gap, alongX, sign } = gapBetween(a, b)
+    if (gap >= GAP - EPSILON) return false
+    found = true
+    fix(a, b, GAP - gap, alongX, sign)
+    return true
+  })
   return found
 }
 

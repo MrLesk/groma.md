@@ -113,11 +113,14 @@ updating the task.
 
   The web map stands the task's pin on the element whose code holds the newest
   recorded file.
-- As soon as a change affects a Groma architecture element, add that element's
-  exact `id` as a Backlog reference with
-  `backlog task edit TASK-N --add-ref <id>`. Do this in the same immediate
-  change-tracking loop, not at the end of the task. Do not use file paths as the
-  join key. Only an exact element `id` produces a live marker.
+- Scanner-written `groma/` files for this task's source count as changed files;
+  record them as soon as they appear.
+- Plan task scope with References containing exact element IDs or exact
+  repository-relative source files, so planned work appears before editing.
+  Modified source files already link their current owners; do not add duplicate
+  component references just to repeat those links. In the same immediate
+  change-tracking loop, add an exact element `id` for affected architecture
+  scope not covered by modified source files, including architecture-only work.
 
 ## Agent coordination
 
@@ -134,6 +137,17 @@ Preserve unrelated changes made by the user or other agents. Do not revert or re
 When the user confirms that a task is done, commit that task's files
 immediately. Stage only the files this agent changed for that task.
 Do not stage files other agents changed, even if they sit nearby.
+
+A task's commit includes the architecture changes its source changes cause.
+Scans (`groma scan`, `groma view`, `groma web` and their watchers) rewrite
+`groma/` for that source: a new or renamed file becomes a stand-alone
+component, and relationship rows change. Before committing, check
+`git status --short groma/`. Fold each stand-alone component made for the
+task's files into the component that owns its responsibility with
+`groma edit <owner> --combine <id>`, after `--parent <container>` when it
+landed outside a container. Record every resulting path in the task and commit
+those `groma/` files with the code. Leave `groma/` changes caused by other
+agents' source.
 
 For work associated with a Backlog task, use the exact task ID and title as the commit subject:
 

@@ -19,3 +19,10 @@ groma:
 ---
 
 Checkout session of Checkout.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/checkout/session.ts](../../../../../../src/orders/checkout/session.ts) | [src/orders/checkout/cache.ts](../../../../../../src/orders/checkout/cache.ts) | Calls cache | HTTP |
+| [src/orders/checkout/session.ts](../../../../../../src/orders/checkout/session.ts) | [src/orders/checkout/validator.ts](../../../../../../src/orders/checkout/validator.ts) | Reads validator | HTTP |

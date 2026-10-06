@@ -9,7 +9,7 @@ import { loadAnnotatedArchitecture, reconcileScanObservations } from '../src/cor
 import type { StructuralResult } from '../src/curate.ts'
 import { editArchitecture } from '../src/edit.ts'
 import { addFlow } from '../src/flow-authoring.ts'
-import { RELATIONSHIPS_TYPE, requireGromaMapping } from '../src/okf-profile.ts'
+import { requireGromaMapping } from '../src/okf-profile.ts'
 import { addRelation } from '../src/relation.ts'
 import type { AnnotatedArchitectureModel } from '../src/types.ts'
 
@@ -41,7 +41,6 @@ function element(model: AnnotatedArchitectureModel, id: string) {
 async function documentOf(root: string, id: string): Promise<string | undefined> {
   const records = await loadArchitecture(root)
   return records.documents
-    .filter(item => item.frontmatter.type !== RELATIONSHIPS_TYPE)
     .find(item => requireGromaMapping(item.frontmatter, item.sourceFilename).id === id)
     ?.sourceFilename
 }
@@ -110,9 +109,9 @@ test.concurrent('links follow the rename whatever spelling they use', async () =
     await addThing(root, { thing: 'actor', name: 'Buyer', overview: 'Buys goods.' })
     await addRelation(root, { source: 'buyer', target: 'a', description: 'Places an order', technology: 'Browser' })
     // The loader accepts a relative prefix and a link title; the stored row is written without them.
-    const record = path.join(root, 'groma/relationships.md')
+    const record = path.join(root, (await documentOf(root, 'buyer'))!)
     const stored = await readFile(record, 'utf8')
-    const link = (await documentOf(root, 'a'))!.split('/').slice(1).join('/')
+    const link = path.posix.relative('groma/actors', (await documentOf(root, 'a'))!)
     await writeFile(record, stored.replace(`(${link})`, `(./${link} "The order entry")`))
 
     await editArchitecture(root, { id: 'a', newId: 'order-entry' })
@@ -124,10 +123,10 @@ test.concurrent('links follow the rename whatever spelling they use', async () =
 
 /** Rewrites the buyer's rows to reference links; the definitions follow the table as the given text. */
 async function referenceRows(root: string, definitions: (link: (id: string) => string) => string): Promise<void> {
-  const record = path.join(root, 'groma/relationships.md')
+  const record = path.join(root, (await documentOf(root, 'buyer'))!)
   const stored = await readFile(record, 'utf8')
   const documents = new Map([['a', (await documentOf(root, 'a'))!], ['b', (await documentOf(root, 'b'))!]])
-  const link = (id: string) => documents.get(id)!.split('/').slice(1).join('/')
+  const link = (id: string) => path.posix.relative('groma/actors', documents.get(id)!)
   const rows = stored.replace(`(${link('a')})`, '[a]').replace(`(${link('b')})`, '[b]')
   await writeFile(record, `${rows}\n${definitions(link)}\n`)
 }

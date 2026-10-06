@@ -21,3 +21,9 @@ groma:
 ---
 
 Catalog Api logger of Catalog Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/catalog-api/logger.ts](../../../../../../src/catalog/catalog-api/logger.ts) | [src/catalog/catalog-api/client.ts](../../../../../../src/catalog/catalog-api/client.ts) | Calls client | HTTP |

@@ -22,3 +22,10 @@ groma:
 ---
 
 Search queue of Search.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/search/queue.ts](../../../../../../src/storefront/search/queue.ts) | [src/storefront/search/worker.ts](../../../../../../src/storefront/search/worker.ts) | Calls worker | HTTP |
+| [src/storefront/search/queue.ts](../../../../../../src/storefront/search/queue.ts) | [src/storefront/search/scheduler.ts](../../../../../../src/storefront/search/scheduler.ts) | Reads scheduler | HTTP |

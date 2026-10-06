@@ -19,3 +19,10 @@ groma:
 ---
 
 Directory writer of Directory.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/directory/writer.ts](../../../../../../src/identity/directory/writer.ts) | [src/identity/directory/queue.ts](../../../../../../src/identity/directory/queue.ts) | Calls queue | HTTP |
+| [src/identity/directory/writer.ts](../../../../../../src/identity/directory/writer.ts) | [src/identity/directory/worker.ts](../../../../../../src/identity/directory/worker.ts) | Reads worker | HTTP |

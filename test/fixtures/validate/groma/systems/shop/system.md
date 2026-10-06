@@ -7,3 +7,9 @@ groma:
 ---
 
 Lets customers place orders.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [shop](system.md) | [git](../../externals/git.md) | Versions architecture | Git |

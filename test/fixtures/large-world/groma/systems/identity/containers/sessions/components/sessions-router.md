@@ -16,3 +16,10 @@ groma:
 ---
 
 Sessions router of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/router.ts](../../../../../../src/identity/sessions/router.ts) | [src/identity/sessions/session.ts](../../../../../../src/identity/sessions/session.ts) | Calls session | HTTP |
+| [src/identity/sessions/router.ts](../../../../../../src/identity/sessions/router.ts) | [src/identity/sessions/cache.ts](../../../../../../src/identity/sessions/cache.ts) | Reads cache | HTTP |

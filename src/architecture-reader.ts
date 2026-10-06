@@ -4,7 +4,6 @@ import { parseMarkdown, parseFrontmatter } from 'comark'
 
 import {
   FLOW_TYPE,
-  RELATIONSHIPS_TYPE,
   c4Kind,
   requireBundleIndex,
   requireConceptType,
@@ -152,8 +151,14 @@ export async function loadArchitecture(
   repositoryRoot: string,
   options: { onFilesystemAccess?: FilesystemAccessHandler } = {},
 ): Promise<ArchitectureRecords> {
-  const { onFilesystemAccess } = options
   const filesystem = GromaFileSystem.open(repositoryRoot)
+  return filesystem.withAccess(() => readArchitecture(filesystem, options.onFilesystemAccess))
+}
+
+async function readArchitecture(
+  filesystem: GromaFileSystem,
+  onFilesystemAccess?: FilesystemAccessHandler,
+): Promise<ArchitectureRecords> {
   await requireGromaPackage(filesystem, onFilesystemAccess)
   const documents: ArchitectureDocument[] = []
   const drafts: ArchitectureDocument[] = []
@@ -172,7 +177,7 @@ export async function loadArchitecture(
     }
     const type = requireConceptType(document.frontmatter, document.sourceFilename)
     if (type === FLOW_TYPE) flows.push(document)
-    if (c4Kind(type) !== undefined || type === RELATIONSHIPS_TYPE) documents.push(document)
+    if (c4Kind(type) !== undefined) documents.push(document)
   }
 
   return deepFreeze({ documents, drafts, flows })

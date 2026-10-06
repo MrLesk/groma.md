@@ -22,3 +22,10 @@ groma:
 ---
 
 Web App queue of Web App.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/web-app/queue.ts](../../../../../../src/storefront/web-app/queue.ts) | [src/storefront/web-app/worker.ts](../../../../../../src/storefront/web-app/worker.ts) | Calls worker | HTTP |
+| [src/storefront/web-app/queue.ts](../../../../../../src/storefront/web-app/queue.ts) | [src/storefront/web-app/scheduler.ts](../../../../../../src/storefront/web-app/scheduler.ts) | Reads scheduler | HTTP |

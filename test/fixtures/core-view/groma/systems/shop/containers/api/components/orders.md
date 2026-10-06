@@ -15,3 +15,9 @@ groma:
 ---
 
 Places and tracks customer orders.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [orders](orders.md) | [payments](../../../../../externals/payments.md) | Requests payment authorization | HTTPS |

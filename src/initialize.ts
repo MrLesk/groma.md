@@ -72,14 +72,6 @@ async function requiredDirectory(
   return directory
 }
 
-async function writeMissing(
-  filesystem: GromaFileSystem,
-  relative: string,
-  source: string,
-): Promise<void> {
-  if (!filesystem.exists(relative)) await filesystem.write(relative, source)
-}
-
 export async function initializeGroma(
   repositoryRoot: string,
   input: GromaInitInput = {},
@@ -102,22 +94,17 @@ export async function initializeGroma(
     existing === undefined ? requestedDirectory : input.directory,
   )
 
-  await writeMissing(filesystem, 'index.md', '---\nokf_version: "0.2"\n---\n')
-  const status = storedProfile === undefined
-    ? 'initialized'
-    : storedProfile.title === projectName ? 'unchanged' : 'updated'
-  if (status === 'initialized') {
-    await filesystem.write('project.md', await renderProjectProfile({
-      title: projectName,
-      overview: `Architecture for ${projectName}.`,
-    }))
-  } else if (storedProfile !== undefined && status === 'updated') {
-    await saveProjectProfile(repositoryRoot, {
-      title: projectName,
-      description: storedProfile.description,
-      overview: storedProfile.overview,
-    })
-  }
+  const status = await filesystem.withAccess(async () => {
+    const current = await existingProjectProfile(filesystem)
+    const status = current === undefined ? 'initialized' : current.title === projectName ? 'unchanged' : 'updated'
+    if (current === undefined) {
+      await filesystem.write('project.md', await renderProjectProfile({ title: projectName, overview: `Architecture for ${projectName}.` }))
+    } else if (status === 'updated') {
+      await saveProjectProfile(repositoryRoot, { ...current, title: projectName })
+    }
+    await filesystem.refreshIndex()
+    return status
+  })
   await initializeAgentInstructions(repositoryRoot)
 
   return {

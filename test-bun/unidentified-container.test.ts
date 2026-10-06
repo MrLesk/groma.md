@@ -10,7 +10,7 @@ import { markup } from '../src/viewers/web/iso/painting/svg.ts'
 import { inspectSelection } from '../src/viewers/web/organisms/details.ts'
 import { initialState } from '../src/viewers/tui/navigation.ts'
 import { leaveView } from '../src/viewers/tui/navigation-spatial.ts'
-import { projectWorld } from '../src/viewers/tui/projection.ts'
+import { mapAnchors, projectWorld } from '../src/viewers/tui/projection.ts'
 
 const fixture = path.resolve(import.meta.dir, '../test/fixtures/unidentified-container')
 
@@ -55,7 +55,7 @@ test.concurrent('terminal inspection opens unplaced components on their system s
   const reader = world.elements.find(element => element.id === 'reader')!
   const projection = projectWorld(model, { viewport, level: 'components', currentId: reader.representationId })
   expect(projection.scope).toBe(reader.parent)
-  expect(new Set(projection.items.filter(item => item.kind === 'component').map(item => item.id)))
+  expect(new Set(mapAnchors(model, 'components', reader.representationId, viewport).keys()))
     .toEqual(new Set(['reader', 'formatter']))
   expect(leaveView(model, { ...initialState(model), level: 'components' }, reader))
     .toEqual({ level: 'context', currentId: reader.parent! })

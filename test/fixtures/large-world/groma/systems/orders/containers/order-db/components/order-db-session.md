@@ -19,3 +19,10 @@ groma:
 ---
 
 Order Db session of Order Db.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-db/session.ts](../../../../../../src/orders/order-db/session.ts) | [src/orders/order-db/cache.ts](../../../../../../src/orders/order-db/cache.ts) | Calls cache | HTTP |
+| [src/orders/order-db/session.ts](../../../../../../src/orders/order-db/session.ts) | [src/orders/order-db/validator.ts](../../../../../../src/orders/order-db/validator.ts) | Reads validator | HTTP |

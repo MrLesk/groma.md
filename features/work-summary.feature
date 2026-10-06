@@ -1,5 +1,15 @@
 Feature: Follow work from the collapsed Backlog panel
 
+  Scenario: Locate planned work through a source reference
+    Given a planned task references a source file owned by a component
+    And the task has no modified files
+    When an architect opens the task on the web map
+    Then the task is attached to that component
+    And selecting the source reference opens its owning component
+    When the task records a modified file owned by another component
+    Then both components are attached to the task
+    And its pin stands on the owner of the newest mapped modified file
+
   Scenario: Count the tasks currently shown on the map
     Given an architect has collapsed the Backlog panel
     And a mapped task has several assignees

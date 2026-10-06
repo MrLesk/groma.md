@@ -20,20 +20,24 @@ import { viewerTheme } from './atoms/theme.ts'
 import { paintMap } from './paint.ts'
 import { mountScreen } from './panes/screen.ts'
 import { screenView } from './panes/view.ts'
-import { itemAt, mapAnchors, projectWorld } from './projection.ts'
+import { depthFor, depthKey, itemAt, projectWorld } from './projection.ts'
+import { firstPlaced } from './navigation-spatial.ts'
+import { ease, glide, morph } from './projection-motion.ts'
 import type { TerminalProjection } from './projection.ts'
 import type { TerminalCamera } from './projection-camera.ts'
 import type { TerminalViewModel } from './model.ts'
-import { reconcileWorkFocus, selectedWorkId, workView } from './work/model.ts'
+import { reconcileWorkFocus, workView } from './work/model.ts'
 import type { TerminalLevel, WorkItemDetails } from '../../types.ts'
 import type { TaskDiffPayload } from '../source/diff.ts'
 import type { CodeFile } from '../source/structure.ts'
 import { clickHistoryRevision } from './navigation-history.ts'
 
-const FLOW_ANIMATION_MS = 120
-const FLOW_ANIMATION_PHASES = 3
-const PAN_FRAMES = 4
-const PAN_MS = 30
+/** Motion frames: a pan glides, a depth change or world update morphs a little longer. */
+const MOTION_MS = 24
+const PAN_FRAMES = 6
+const MORPH_FRAMES = 10
+/** Pulses advance one cell per step along a lit flow; nothing else on the map moves on its own. */
+const PULSE_MS = 90
 
 interface ViewerOptions {
   openScanners?: () => Promise<void>
@@ -60,31 +64,7 @@ export interface TerminalViewer {
   setView(next: {
     level?: TerminalLevel
     currentId?: string
-    camera?: TerminalCamera
   }): void
-}
-
-/** The projection drawn behind its final camera position for the frames of a pan. */
-function shifted(projection: TerminalProjection, offset: TerminalCamera): TerminalProjection {
-  if (offset.x === 0 && offset.y === 0) return projection
-  return {
-    ...projection,
-    items: projection.items.map(item => ({
-      ...item,
-      cellBounds: {
-        ...item.cellBounds,
-        x: item.cellBounds.x + offset.x,
-        y: item.cellBounds.y + offset.y,
-      },
-    })),
-    relationships: projection.relationships.map(route => ({
-      ...route,
-      cellRoute: route.cellRoute.map(point => ({
-        x: point.x + offset.x,
-        y: point.y + offset.y,
-      })),
-    })),
-  }
 }
 
 export function mountTerminalViewer(
@@ -108,14 +88,15 @@ export function mountTerminalViewer(
     resolveClosed = resolve
   })
   const theme = viewerTheme()
-  let camera: TerminalCamera | undefined
-  let animationPhase = 0
-  let animationTimer: ReturnType<typeof setInterval> | undefined
-  // Map clicks resolve against the projection last painted.
+  // Each depth keeps its own camera, so returning to it finds the map where it was.
+  const cameras = new Map<string, TerminalCamera>()
+  // Map clicks resolve against the projection last painted; motion moves from what the map showed.
   let lastProjection: TerminalProjection | undefined
-  // A selection change at the same level slides the map from the camera it had to the one it gets.
-  let slide: { distance: TerminalCamera; left: number } | undefined
-  let slideTimer: ReturnType<typeof setTimeout> | undefined
+  let motion: { from: TerminalProjection; to: TerminalProjection; frame: number; frames: number; morph: boolean } | undefined
+  // After the wheel or a drag, the camera stays where it was put until the selection moves.
+  let freeCamera = false
+  let pulsePhase = 0
+  let frameTimer: ReturnType<typeof setTimeout> | undefined
   let loadingRevision: string | null | false = false
   const screen = mountScreen(renderer, theme, {
     onMapResize: () => repaint(),
@@ -125,102 +106,116 @@ export function mountTerminalViewer(
         : clickHistoryRevision(viewModel, state, id))
     },
     onMapCell(x, y) {
-      const id = lastProjection === undefined ? undefined : itemAt(lastProjection.items, x, y)?.representationId
-      // Only what the arrows can reach at this level is selectable.
-      if (id !== undefined && mapAnchors(viewModel, state.level, state.currentId, state.mapWidth).has(id)) {
+      const item = lastProjection === undefined ? undefined : itemAt(lastProjection.items, x, y)
+      // A collapsed group opens on its first component.
+      const id = item?.representationId ?? firstPlaced(viewModel, item?.members ?? [])
+      if (id !== undefined) {
         transition(selectMapItem(viewModel, state, id))
       }
     },
+    onMapPan(dx, dy) {
+      const shown = lastProjection
+      if (shown === undefined) return
+      // The hand moves the map directly; the projection holds the moved camera inside the map.
+      cameras.set(shown.depth, { x: shown.camera.x + dx, y: shown.camera.y + dy })
+      freeCamera = true
+      motion = undefined
+      repaint('instant')
+    },
   })
 
-  function snapshot(): TerminalCamera | undefined {
-    return camera === undefined ? undefined : { ...camera }
-  }
-
-  function project(next?: TerminalCamera) {
+  function project() {
     const lit = litAction(viewModel, state)
     const taskView = workView(viewModel, state.work)
     const flowAttention = state.actionStep === undefined
       ? undefined
       : litLegs(viewModel, lit)[state.actionStep]?.target
-    return projectWorld(viewModel, {
-      viewport: screen.mapViewport(),
-      level: taskView?.level ?? state.level,
-      currentId: taskView?.currentId ?? state.currentId,
+    const level = taskView?.level ?? state.level
+    const currentId = taskView?.currentId ?? state.currentId
+    const viewport = screen.mapViewport()
+    const depth = depthKey(depthFor(viewModel, level, currentId, viewport))
+    const projection = projectWorld(viewModel, {
+      viewport,
+      level,
+      currentId,
       attentionIds: taskView?.attentionIds ?? (flowAttention === undefined ? [] : [flowAttention]),
-      camera: next ?? snapshot(),
+      camera: cameras.get(depth),
+      follow: !freeCamera,
     })
+    cameras.set(depth, projection.camera)
+    return projection
   }
 
-  function syncAnimation(active: boolean): void {
-    if (!active) {
-      if (animationTimer !== undefined) clearInterval(animationTimer)
-      animationTimer = undefined
-      animationPhase = 0
-      return
+  /** What the map shows right now, part way through any motion. */
+  function displayed(): TerminalProjection | undefined {
+    if (motion === undefined) return lastProjection
+    const t = ease(motion.frame / motion.frames)
+    return motion.morph ? morph(motion.from, motion.to, t) : glide(motion.from, motion.to, t)
+  }
+
+  /** Moving starts from the displayed frame: a new depth or world morphs, a new camera glides. */
+  function startMotion(next: TerminalProjection, worldChanged: boolean): void {
+    const shown = displayed()
+    if (shown === undefined) return
+    const morphs = worldChanged || shown.depth !== next.depth
+    const pans = shown.camera.x !== next.camera.x || shown.camera.y !== next.camera.y
+    if (!morphs && !pans) return
+    motion = { from: shown, to: next, frame: 0, frames: morphs ? MORPH_FRAMES : PAN_FRAMES, morph: morphs }
+  }
+
+  function paintFrame(): void {
+    if (closed || screen.map.isDestroyed || lastProjection === undefined) return
+    clearTimeout(frameTimer)
+    const lit = litAction(viewModel, state)
+    const frame = displayed()!
+    const pulsing = motion === undefined && viewModel.flows.some(flow => flow.id === lit.id)
+    paintMap(screen.map.frameBuffer, frame, viewModel, theme, {
+      lit,
+      step: projectFlowStep(viewModel, lastProjection, lit.id, state.actionStep),
+      workFocus: state.work,
+      workList: state.workList,
+      ...(pulsing ? { animationPhase: pulsePhase } : {}),
+    })
+    screen.map.requestRender()
+    nextFrame(pulsing)
+  }
+
+  /** Motion advances quickly, pulses at their own pace; a settled map paints once more without pulses, then rests. */
+  function nextFrame(pulsing: boolean): void {
+    if (motion !== undefined) {
+      motion = motion.frame + 1 >= motion.frames ? undefined : { ...motion, frame: motion.frame + 1 }
+      frameTimer = setTimeout(paintFrame, MOTION_MS)
+    } else if (pulsing) {
+      pulsePhase += 1
+      frameTimer = setTimeout(paintFrame, PULSE_MS)
+    } else if (pulsePhase !== 0) {
+      pulsePhase = 0
+      frameTimer = setTimeout(paintFrame, 0)
     }
-    if (animationTimer !== undefined) return
-    animationTimer = setInterval(() => {
-      animationPhase = (animationPhase + 1) % FLOW_ANIMATION_PHASES
-      repaint()
-    }, FLOW_ANIMATION_MS)
   }
 
-  function repaint(panFrom?: TerminalCamera): void {
+  /** Paints the current state: a world update morphs into it, a pan by hand jumps, anything else glides. */
+  function repaint(change?: 'world' | 'instant'): void {
     if (closed || screen.map.isDestroyed) return
-    state = { ...state, terminalWidth: renderer.width }
+    const map = screen.mapViewport()
+    state = { ...state, terminalWidth: renderer.width, mapSize: { width: map.width, height: map.height } }
     if (!terminalLayout(state).map && lastProjection !== undefined) {
       screen.apply(screenView(theme, viewModel, state, lastProjection, litAction(viewModel, state), undefined))
       return
     }
-    const mapWidth = screen.mapViewport().width
-    if (state.mapWidth !== mapWidth) state = { ...state, mapWidth }
     const projection = project()
     const lit = litAction(viewModel, state)
-    syncAnimation(lit.id !== undefined)
-    camera = projection.camera
-    if (state.work === undefined) {
+    if (state.work === undefined && state.currentId === undefined) {
       state = { ...state, currentId: projection.currentId ?? undefined }
     }
-    const step = projectFlowStep(viewModel, projection, lit.id, state.actionStep)
-    paintMap(screen.map.frameBuffer, shifted(projection, slideShift(projection.camera, panFrom)), viewModel, theme, {
-      lit,
-      step,
-      workFocus: state.work,
-      workList: state.workList,
-      animationPhase,
-    })
+    if (change !== 'instant') startMotion(projection, change === 'world')
     lastProjection = projection
-    screen.apply(screenView(theme, viewModel, state, projection, lit, step))
-    screen.map.requestRender()
-    slideOn()
-  }
-
-  /** The cells the map still lags behind its new camera; a fresh pan starts from the camera it left. */
-  function slideShift(next: TerminalCamera, panFrom: TerminalCamera | undefined): TerminalCamera {
-    if (panFrom !== undefined && (panFrom.x !== next.x || panFrom.y !== next.y)) {
-      slide = {
-        distance: { x: next.x - panFrom.x, y: next.y - panFrom.y },
-        left: PAN_FRAMES,
-      }
-    }
-    return slide === undefined
-      ? { x: 0, y: 0 }
-      : {
-        x: Math.round(slide.distance.x * slide.left / PAN_FRAMES),
-        y: Math.round(slide.distance.y * slide.left / PAN_FRAMES),
-      }
-  }
-
-  function slideOn(): void {
-    if (slide === undefined) return
-    slide = slide.left > 1 ? { ...slide, left: slide.left - 1 } : undefined
-    clearTimeout(slideTimer)
-    slideTimer = setTimeout(() => repaint(), PAN_MS)
+    paintFrame()
+    screen.apply(screenView(theme, viewModel, state, projection, lit, projectFlowStep(viewModel, projection, lit.id, state.actionStep)))
   }
 
   function release(): void {
-    syncAnimation(false)
+    clearTimeout(frameTimer)
     renderer.keyInput.off('keypress', onKeypress)
     renderer.off('destroy', onRendererDestroy)
     resolveClosed()
@@ -246,8 +241,8 @@ export function mountTerminalViewer(
 
   function update(next: TerminalViewModel): void {
     if (closed) return
-    const previousView = workView(viewModel, state.work)
     const revisionChanged = next.revision?.id !== viewModel.revision?.id
+    const worldChanged = next.sheet !== viewModel.sheet
     viewModel = next
     architectureSearch = createArchitectureSearch(next.elements)
     const work = next.revision === undefined ? reconcileWorkFocus(next.work, state.work) : undefined
@@ -266,16 +261,13 @@ export function mountTerminalViewer(
         codeStructure: undefined,
       } : {}),
     }
-    if (revisionChanged || JSON.stringify(workView(next, work)) !== JSON.stringify(previousView)) camera = undefined
-    repaint()
+    repaint(worldChanged ? 'world' : undefined)
   }
 
   function actionFor(key: KeyEvent): ViewerAction | undefined {
     return MAP_KEYS.find(entry => entry.name === key.name && Boolean(entry.ctrl) === key.ctrl)?.action
   }
 
-  let searchReturnCamera: TerminalCamera | undefined
-  let workReturnCamera: TerminalCamera | undefined
 
   function searchInputFor(key: KeyEvent): SearchInput | undefined {
     if (key.name === 'return') return { type: 'accept' }
@@ -287,34 +279,12 @@ export function mountTerminalViewer(
     return undefined
   }
 
-  /** What a state change means for the camera: a new scope or task starts afresh, leaving Work restores, a same-level selection change slides. */
-  function changeOf(next: ViewerState): { restores: boolean; afresh: boolean; slides: boolean; enteringWork: boolean } {
-    const changedScope = next.level !== state.level
-    const enteringWork = state.work === undefined && next.work !== undefined
-    const leavingWork = state.work !== undefined && next.work === undefined
-    const changedTask = selectedWorkId(next.work) !== selectedWorkId(state.work)
-    return {
-      enteringWork,
-      restores: leavingWork,
-      afresh: enteringWork || changedTask || changedScope,
-      slides: !changedScope && !enteringWork && !leavingWork && next.currentId !== state.currentId,
-    }
-  }
-
-  // The camera follows any selection change through one framing rule.
+  /** A user action: the map moves to its new state, and a new selection takes the camera back from the hand. */
   function transition(next: ViewerState): void {
-    const change = changeOf(next)
-    if (change.enteringWork) workReturnCamera = snapshot()
-    const panFrom = change.slides ? snapshot() : undefined
+    if (next.currentId !== state.currentId || next.level !== state.level) freeCamera = false
     state = next
     loadPending()
-    if (change.restores) {
-      camera = workReturnCamera
-      workReturnCamera = undefined
-    } else if (change.afresh) {
-      camera = undefined
-    }
-    repaint(panFrom)
+    repaint()
   }
 
   function loadPendingRevision(): void {
@@ -366,23 +336,17 @@ export function mountTerminalViewer(
   function onSearchKey(key: KeyEvent): void {
     if (key.name === 'escape') {
       state = reduceSearch(viewModel, architectureSearch, state, { type: 'cancel' })
-      if (searchReturnCamera) {
-        camera = searchReturnCamera
-        searchReturnCamera = undefined
-      }
       repaint()
       return
     }
     const input = searchInputFor(key)
     if (!input) return
-    if (input.type === 'accept') searchReturnCamera = undefined
     transition(reduceSearch(viewModel, architectureSearch, state, input))
   }
 
   function handleNonSearchKey(key: KeyEvent): boolean {
     if (key.name === '/' && state.work === undefined) {
       state = reduceSearch(viewModel, architectureSearch, state, { type: 'open' })
-      searchReturnCamera = snapshot()
       repaint()
     } else if (key.name === 'escape') {
       transition(reduceViewer(viewModel, state, 'dismiss'))
@@ -442,11 +406,7 @@ export function mountTerminalViewer(
     setView(next: {
       level?: TerminalLevel
       currentId?: string
-      camera?: TerminalCamera
-    }) {
-      if (next.camera) {
-        camera = next.camera
-      }
+      }) {
       state = {
         ...state,
         level: next.level ?? state.level,

@@ -38,7 +38,7 @@ test.concurrent('flow reading, endpoint inspection and return retain the authore
   expect(state.flowReading).toBe(false)
 })
 
-test.concurrent('selecting a flow step preserves map geometry and promotes its exact endpoints', async () => {
+test.concurrent('stepping a flow keeps the map and marks each endpoint on the shape that draws it', async () => {
   const model = await loadTerminalModel(fixture)
   const state = toggleFlow(initialState(model), 'process-request')
   const selected = reduceViewer(model, reduceViewer(model, state, 'step-action'), 'step-action')
@@ -46,12 +46,15 @@ test.concurrent('selecting a flow step preserves map geometry and promotes its e
     const viewport = mapViewportOf(size)
     const before = projectWorld(model, { viewport, currentId: state.currentId, level: state.level })
     const target = model.flows[0]!.steps[selected.actionStep!]!.target
-    const after = projectWorld(model, { viewport, currentId: selected.currentId, level: selected.level, camera: before.camera, attentionIds: [target] })
+    const after = projectWorld(model, { viewport, currentId: selected.currentId, level: selected.level, attentionIds: [target] })
     expect(after.items.map(item => [item.key, item.worldBounds])).toEqual(before.items.map(item => [item.key, item.worldBounds]))
     expect(after.relationships.map(route => [route.ids, route.worldRoute])).toEqual(before.relationships.map(route => [route.ids, route.worldRoute]))
     const step = projectFlowStep(model, after, selected.activeActionId, selected.actionStep)!
     expect(step.id).toBe(model.flows[0]!.steps[1]!.relationshipId)
-    expect(step.source.visibleKey).toBe('api')
-    expect(step.target.visibleKey).toBe('api')
+    // Both ends stand inside one container, which the root draws collapsed.
+    expect([step.source.visibleKey, step.target.visibleKey]).toEqual(['api', 'api'])
+    const inside = projectWorld(model, { viewport, level: 'components', currentId: 'entry' })
+    const exact = projectFlowStep(model, inside, selected.activeActionId, selected.actionStep)!
+    expect([exact.source.visibleKey, exact.target.visibleKey]).toEqual(['entry', 'worker'])
   }
 })

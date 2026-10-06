@@ -16,3 +16,10 @@ groma:
 ---
 
 Accounts router of Accounts.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/accounts/router.ts](../../../../../../src/identity/accounts/router.ts) | [src/identity/accounts/session.ts](../../../../../../src/identity/accounts/session.ts) | Calls session | HTTP |
+| [src/identity/accounts/router.ts](../../../../../../src/identity/accounts/router.ts) | [src/identity/accounts/cache.ts](../../../../../../src/identity/accounts/cache.ts) | Reads cache | HTTP |

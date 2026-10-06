@@ -21,3 +21,9 @@ groma:
 ---
 
 Pricing logger of Pricing.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/pricing/logger.ts](../../../../../../src/catalog/pricing/logger.ts) | [src/catalog/pricing/client.ts](../../../../../../src/catalog/pricing/client.ts) | Calls client | HTTP |

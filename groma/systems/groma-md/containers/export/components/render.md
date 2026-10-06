@@ -20,3 +20,9 @@ description: Keeps browser controls in sync with architecture and task state
 ---
 
 Connects browser controls to the current architecture and task state. Updates the selection and page address when the map changes.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/viewers/web/render.ts](../../../../../../src/viewers/web/render.ts) | [src/viewers/web/iso/painting/map.ts](../../../../../../src/viewers/web/iso/painting/map.ts) | Draws the map | Function call |

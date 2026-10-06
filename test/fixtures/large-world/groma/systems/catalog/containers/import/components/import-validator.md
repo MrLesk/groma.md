@@ -25,3 +25,10 @@ groma:
 ---
 
 Import validator of Import.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/import/validator.ts](../../../../../../src/catalog/import/validator.ts) | [src/catalog/import/mapper.ts](../../../../../../src/catalog/import/mapper.ts) | Calls mapper | HTTP |
+| [src/catalog/import/validator.ts](../../../../../../src/catalog/import/validator.ts) | [src/catalog/import/reader.ts](../../../../../../src/catalog/import/reader.ts) | Reads reader | HTTP |

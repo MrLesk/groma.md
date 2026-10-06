@@ -25,3 +25,10 @@ groma:
 ---
 
 Events validator of Events.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/events/validator.ts](../../../../../../src/orders/events/validator.ts) | [src/orders/events/mapper.ts](../../../../../../src/orders/events/mapper.ts) | Calls mapper | HTTP |
+| [src/orders/events/validator.ts](../../../../../../src/orders/events/validator.ts) | [src/orders/events/reader.ts](../../../../../../src/orders/events/reader.ts) | Reads reader | HTTP |

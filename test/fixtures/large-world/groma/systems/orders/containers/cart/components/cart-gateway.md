@@ -13,3 +13,11 @@ groma:
 ---
 
 Cart gateway of Cart.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/cart/gateway.ts](../../../../../../src/orders/cart/gateway.ts) | [src/orders/cart/router.ts](../../../../../../src/orders/cart/router.ts) | Calls router | HTTP |
+| [src/orders/cart/gateway.ts](../../../../../../src/orders/cart/gateway.ts) | [src/orders/cart/session.ts](../../../../../../src/orders/cart/session.ts) | Reads session | HTTP |
+| [src/orders/cart/gateway.ts](../../../../../../src/orders/cart/gateway.ts) | [src/orders/order-service/gateway.ts](../../../../../../src/orders/order-service/gateway.ts) | Forwards requests | HTTP |

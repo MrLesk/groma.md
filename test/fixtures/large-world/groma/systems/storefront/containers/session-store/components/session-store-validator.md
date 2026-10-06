@@ -25,3 +25,10 @@ groma:
 ---
 
 Session Store validator of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/validator.ts](../../../../../../src/storefront/session-store/validator.ts) | [src/storefront/session-store/mapper.ts](../../../../../../src/storefront/session-store/mapper.ts) | Calls mapper | HTTP |
+| [src/storefront/session-store/validator.ts](../../../../../../src/storefront/session-store/validator.ts) | [src/storefront/session-store/reader.ts](../../../../../../src/storefront/session-store/reader.ts) | Reads reader | HTTP |

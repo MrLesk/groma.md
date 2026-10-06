@@ -24,3 +24,9 @@ groma:
 ---
 
 Audit client of Audit.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [audit-client](audit-client.md) | [payments](../../../../../externals/payments.md) | Charges cards | HTTP |

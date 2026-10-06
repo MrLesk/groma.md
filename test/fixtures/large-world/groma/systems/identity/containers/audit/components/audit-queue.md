@@ -22,3 +22,10 @@ groma:
 ---
 
 Audit queue of Audit.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/audit/queue.ts](../../../../../../src/identity/audit/queue.ts) | [src/identity/audit/worker.ts](../../../../../../src/identity/audit/worker.ts) | Calls worker | HTTP |
+| [src/identity/audit/queue.ts](../../../../../../src/identity/audit/queue.ts) | [src/identity/audit/scheduler.ts](../../../../../../src/identity/audit/scheduler.ts) | Reads scheduler | HTTP |

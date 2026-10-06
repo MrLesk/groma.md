@@ -22,3 +22,10 @@ groma:
 ---
 
 Cart queue of Cart.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/cart/queue.ts](../../../../../../src/orders/cart/queue.ts) | [src/orders/cart/worker.ts](../../../../../../src/orders/cart/worker.ts) | Calls worker | HTTP |
+| [src/orders/cart/queue.ts](../../../../../../src/orders/cart/queue.ts) | [src/orders/cart/scheduler.ts](../../../../../../src/orders/cart/scheduler.ts) | Reads scheduler | HTTP |

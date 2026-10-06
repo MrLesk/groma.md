@@ -21,3 +21,9 @@ groma:
 ---
 
 Media logger of Media.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/media/logger.ts](../../../../../../src/catalog/media/logger.ts) | [src/catalog/media/client.ts](../../../../../../src/catalog/media/client.ts) | Calls client | HTTP |

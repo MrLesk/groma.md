@@ -26,3 +26,9 @@ description: Shows the terminal tree, details and source beside the map
 ---
 
 Shows the architecture tree, component details, and source text beside the map. Fits the panels to the terminal size.
+
+## Derived relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/viewers/tui/panes/screen.ts](../../../../../../src/viewers/tui/panes/screen.ts) | [src/viewers/tui/terminal-viewer.ts](../../../../../../src/viewers/tui/terminal-viewer.ts) | Invokes supplied callbacks: onHierarchyRow, onMapCell, onMapPan | typescript |

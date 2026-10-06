@@ -32,3 +32,9 @@ description: Shared buttons, dialogs, menus and text styles for browser panels
 ---
 
 Supplies the buttons, dialogs, menus, and text styles used by the browser panels.
+
+## Derived relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/viewers/web/atoms/settings-dialog.ts](../../../../../../src/viewers/web/atoms/settings-dialog.ts) | [src/viewers/web/review/control.ts](../../../../../../src/viewers/web/review/control.ts) | Invokes supplied callback: onClose | typescript |

@@ -22,3 +22,10 @@ groma:
 ---
 
 Mobile Api queue of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/queue.ts](../../../../../../src/storefront/mobile-api/queue.ts) | [src/storefront/mobile-api/worker.ts](../../../../../../src/storefront/mobile-api/worker.ts) | Calls worker | HTTP |
+| [src/storefront/mobile-api/queue.ts](../../../../../../src/storefront/mobile-api/queue.ts) | [src/storefront/mobile-api/scheduler.ts](../../../../../../src/storefront/mobile-api/scheduler.ts) | Reads scheduler | HTTP |

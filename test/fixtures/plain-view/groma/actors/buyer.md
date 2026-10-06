@@ -7,3 +7,9 @@ groma:
 ---
 
 Pays for goods.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [buyer](buyer.md) | [shop](../systems/shop/system.md) | uses | Browser |

@@ -19,3 +19,10 @@ groma:
 ---
 
 Order Service session of Order Service.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-service/session.ts](../../../../../../src/orders/order-service/session.ts) | [src/orders/order-service/cache.ts](../../../../../../src/orders/order-service/cache.ts) | Calls cache | HTTP |
+| [src/orders/order-service/session.ts](../../../../../../src/orders/order-service/session.ts) | [src/orders/order-service/validator.ts](../../../../../../src/orders/order-service/validator.ts) | Reads validator | HTTP |

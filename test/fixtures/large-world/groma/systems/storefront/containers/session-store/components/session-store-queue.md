@@ -22,3 +22,10 @@ groma:
 ---
 
 Session Store queue of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/queue.ts](../../../../../../src/storefront/session-store/queue.ts) | [src/storefront/session-store/worker.ts](../../../../../../src/storefront/session-store/worker.ts) | Calls worker | HTTP |
+| [src/storefront/session-store/queue.ts](../../../../../../src/storefront/session-store/queue.ts) | [src/storefront/session-store/scheduler.ts](../../../../../../src/storefront/session-store/scheduler.ts) | Reads scheduler | HTTP |

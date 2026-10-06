@@ -56,11 +56,15 @@ export async function startWebViewer(
   let map: MapSession | undefined
   let error: string | undefined
   let preparing = Promise.resolve()
+  let submission: Promise<Response> | undefined
 
+  /** Browser windows share the pending setup step and its one initial map session. */
   function prepare(action: () => Promise<Response>): Promise<Response> {
-    const response = action()
-    preparing = response.then(() => {})
-    return response
+    if (submission === undefined) {
+      submission = action()
+      preparing = submission.then(() => {}).finally(() => { submission = undefined })
+    }
+    return submission.then(response => response.clone())
   }
 
   function openMap(scan: boolean): Promise<void> {

@@ -12,3 +12,10 @@ groma:
 ---
 
 Checkout scheduler of Checkout.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/checkout/scheduler.ts](../../../../../../src/orders/checkout/scheduler.ts) | [src/orders/checkout/metrics.ts](../../../../../../src/orders/checkout/metrics.ts) | Calls metrics | HTTP |
+| [src/orders/checkout/scheduler.ts](../../../../../../src/orders/checkout/scheduler.ts) | [src/orders/checkout/config.ts](../../../../../../src/orders/checkout/config.ts) | Reads config | HTTP |

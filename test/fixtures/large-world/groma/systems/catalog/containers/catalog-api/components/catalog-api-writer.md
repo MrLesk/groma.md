@@ -19,3 +19,10 @@ groma:
 ---
 
 Catalog Api writer of Catalog Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/catalog-api/writer.ts](../../../../../../src/catalog/catalog-api/writer.ts) | [src/catalog/catalog-api/queue.ts](../../../../../../src/catalog/catalog-api/queue.ts) | Calls queue | HTTP |
+| [src/catalog/catalog-api/writer.ts](../../../../../../src/catalog/catalog-api/writer.ts) | [src/catalog/catalog-api/worker.ts](../../../../../../src/catalog/catalog-api/worker.ts) | Reads worker | HTTP |

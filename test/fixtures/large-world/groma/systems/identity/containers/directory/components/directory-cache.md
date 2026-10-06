@@ -22,3 +22,10 @@ groma:
 ---
 
 Directory cache of Directory.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/directory/cache.ts](../../../../../../src/identity/directory/cache.ts) | [src/identity/directory/validator.ts](../../../../../../src/identity/directory/validator.ts) | Calls validator | HTTP |
+| [src/identity/directory/cache.ts](../../../../../../src/identity/directory/cache.ts) | [src/identity/directory/mapper.ts](../../../../../../src/identity/directory/mapper.ts) | Reads mapper | HTTP |

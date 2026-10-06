@@ -2,6 +2,7 @@ import type { Command } from 'commander'
 import { architectureFindingItems, detectDuplicatedLogic } from './architecture-findings.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
+import { sourceIndex } from './source-index.ts'
 import { parseListWindow, printListPage, withListWindowOptions, type ListWindow } from './list-window.ts'
 import { loadScannerRegistry } from './scanner/registry.ts'
 
@@ -9,7 +10,7 @@ import { loadScannerRegistry } from './scanner/registry.ts'
 async function lintArchitecture(repositoryRoot: string, window: ListWindow): Promise<number> {
   const records = await loadArchitecture(repositoryRoot)
   const model = buildArchitectureModel(records.documents)
-  const owners = new Map(model.elements.flatMap(element => element.code.map(reference => [reference.file, element.id] as const)))
+  const owners = sourceIndex(model.elements).byFile
   const registry = await loadScannerRegistry(repositoryRoot)
   const { observations, failures } = await registry.collectObservations(repositoryRoot)
   const findings = detectDuplicatedLogic(observations, owners)

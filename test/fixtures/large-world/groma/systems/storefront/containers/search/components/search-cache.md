@@ -22,3 +22,10 @@ groma:
 ---
 
 Search cache of Search.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/search/cache.ts](../../../../../../src/storefront/search/cache.ts) | [src/storefront/search/validator.ts](../../../../../../src/storefront/search/validator.ts) | Calls validator | HTTP |
+| [src/storefront/search/cache.ts](../../../../../../src/storefront/search/cache.ts) | [src/storefront/search/mapper.ts](../../../../../../src/storefront/search/mapper.ts) | Reads mapper | HTTP |

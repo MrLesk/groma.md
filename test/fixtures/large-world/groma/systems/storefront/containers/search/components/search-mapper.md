@@ -13,3 +13,10 @@ groma:
 ---
 
 Search mapper of Search.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/search/mapper.ts](../../../../../../src/storefront/search/mapper.ts) | [src/storefront/search/reader.ts](../../../../../../src/storefront/search/reader.ts) | Calls reader | HTTP |
+| [src/storefront/search/mapper.ts](../../../../../../src/storefront/search/mapper.ts) | [src/storefront/search/writer.ts](../../../../../../src/storefront/search/writer.ts) | Reads writer | HTTP |

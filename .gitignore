@@ -6,3 +6,5 @@ node_modules/
 /npm-release/
 /plugins/scanners/typescript/dist/
 /test/fixtures/csharp-operations/**/obj/
+/plugins/scanners/scala/worker/**/target/
+/plugins/scanners/scala/worker/project/project/

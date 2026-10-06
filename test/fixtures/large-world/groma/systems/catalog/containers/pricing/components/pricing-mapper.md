@@ -13,3 +13,10 @@ groma:
 ---
 
 Pricing mapper of Pricing.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/pricing/mapper.ts](../../../../../../src/catalog/pricing/mapper.ts) | [src/catalog/pricing/reader.ts](../../../../../../src/catalog/pricing/reader.ts) | Calls reader | HTTP |
+| [src/catalog/pricing/mapper.ts](../../../../../../src/catalog/pricing/mapper.ts) | [src/catalog/pricing/writer.ts](../../../../../../src/catalog/pricing/writer.ts) | Reads writer | HTTP |

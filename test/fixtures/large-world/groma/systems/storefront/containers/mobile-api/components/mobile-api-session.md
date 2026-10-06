@@ -19,3 +19,10 @@ groma:
 ---
 
 Mobile Api session of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/session.ts](../../../../../../src/storefront/mobile-api/session.ts) | [src/storefront/mobile-api/cache.ts](../../../../../../src/storefront/mobile-api/cache.ts) | Calls cache | HTTP |
+| [src/storefront/mobile-api/session.ts](../../../../../../src/storefront/mobile-api/session.ts) | [src/storefront/mobile-api/validator.ts](../../../../../../src/storefront/mobile-api/validator.ts) | Reads validator | HTTP |

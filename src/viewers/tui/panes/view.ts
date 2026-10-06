@@ -1,6 +1,6 @@
 import { hasComponents, isEmptyWorld, noComponentsHint, noComponentsTitle } from '../../../empty-world.ts'
 import type { ViewerTheme } from '../atoms/theme.ts'
-import { flowEndpointLabel, type ProjectedFlowStep } from '../flow.ts'
+import type { ProjectedFlowStep } from '../flow.ts'
 import type { TerminalViewModel } from '../model.ts'
 import { detailsTabs, pickedCommandId, type LitAction, type ViewerState } from '../navigation.ts'
 import { detailsContentWidth, terminalLayout } from '../layout.ts'
@@ -34,8 +34,8 @@ function actionTitle(world: TerminalViewModel, lit: LitAction, step: ProjectedFl
   const litCommand = world.relationships.find(item => item.id === lit.id)
   if (litCommand === undefined && step === undefined) return world.flows.find(flow => flow.id === lit.id)?.title
   if (step === undefined) return litCommand!.description
-  return `leg ${step.index + 1}/${step.total} · ${flowEndpointLabel(step.source)}`
-    + ` → ${flowEndpointLabel(step.target)} · ${step.description}`
+  return `leg ${step.index + 1}/${step.total} · ${step.source.title}`
+    + ` → ${step.target.title} · ${step.description}`
 }
 
 /** Inside a container map: the scope path with its component count. */

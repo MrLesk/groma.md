@@ -1,6 +1,6 @@
 import type { CodeFile } from '../source/structure.ts'
 import type { TerminalViewModel } from './model.ts'
-import type { ViewerAction, ViewerState } from './navigation.ts'
+import { syncTree, type ViewerAction, type ViewerState } from './navigation.ts'
 import { viewerTheme } from './atoms/theme.ts'
 import { detailsContentWidth } from './layout.ts'
 import { outlineRowKey, outlineSymbols, taskRecordView } from './panes/details.ts'
@@ -90,11 +90,11 @@ function openTaskRow(world: TerminalViewModel, current: ViewerState): ViewerStat
   const id = recordContent(world, current)?.ids?.[record.row]
   const element = world.elements.find(item => item.id === id)
   if (element !== undefined) {
-    return {
-      ...current, work: undefined, taskRecord: undefined, actionCursor: undefined,
+    return syncTree(world, current, {
+      work: undefined, taskRecord: undefined, actionCursor: undefined,
       currentId: element.representationId, level: element.kind === 'component' ? 'components' : 'context',
-      focus: 'architecture', detailsScroll: 0,
-    }
+      focus: 'architecture',
+    })
   }
   const task = world.work?.items.find(item => item.id === record.id)
   return id !== undefined && task?.modifiedFiles.includes(id)

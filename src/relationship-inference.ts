@@ -1,11 +1,11 @@
-import { existsSync } from 'node:fs'
-import path from 'node:path'
 import type { ScanDiagnostic, ScanInvocation, ScanObservation, ScanOperation } from '@groma/scanner'
 
-import { GromaFileSystem } from './groma-filesystem.ts'
+import { loadArchitecture } from './architecture-reader.ts'
+import { buildArchitectureModel } from './architecture-model.ts'
 import { httpRelationships } from './http-relationships.ts'
-import { readDocument, withRelationship, writeDocument } from './markdown-emitter.ts'
-import { RELATIONSHIPS_TYPE } from './okf-profile.ts'
+import { storedRelationships, type StoredRelationship } from './relationship-markdown.ts'
+import { placeRelationships, saveRelationships } from './relationship-storage.ts'
+import { sourceIndex } from './source-index.ts'
 import { composeInvocations, type InvocationEvidence } from './scan-evidence.ts'
 import type { RelationshipConnection } from './types.ts'
 
@@ -77,39 +77,25 @@ function relationshipsFromClaims(
   }))
 }
 
-/** Replace only the core-owned section; keep authored sections and other Markdown intact. */
-function withoutDerivedSection(source: string): string {
-  const lines = source.replaceAll('\r\n', '\n').split('\n')
-  const start = lines.indexOf('## Derived relationships')
-  if (start < 0) return source
-  let end = start + 1
-  while (end < lines.length && !lines[end]?.startsWith('## ')) end++
-  lines.splice(start, end - start)
-  return lines.join('\n')
-}
-
+/** Refresh available scanner claims, then place all rows with their current source owners. */
 export async function refreshDerivedRelationships(
   repositoryRoot: string,
   observations: readonly ScanObservation[],
-  owners: ReadonlyMap<string, string>,
-  retained: readonly RelationshipConnection[] = [],
 ): Promise<ScanDiagnostic[]> {
+  const records = await loadArchitecture(repositoryRoot)
+  const model = buildArchitectureModel(records.documents)
+  const stored = storedRelationships(records.documents, model.elements, (_code, filename, message) => {
+    throw new Error(`${filename}: ${message}`)
+  })
+  const index = sourceIndex(model.elements)
+  const active = new Set(observations.map(observation => observation.scanner.id))
+  const retained = stored.filter(row => !row.authored && row.technology.split(', ').some(id => !active.has(id)))
   const { claims, conflicts } = composeInvocations(observations)
-  const filename = GromaFileSystem.open(repositoryRoot).sourceFilename('relationships.md')
-  const present = existsSync(path.join(repositoryRoot, filename))
-  const before = present ? await readDocument(repositoryRoot, filename) : `---\ntype: ${RELATIONSHIPS_TYPE}\ntitle: Architecture relationships\n---\n`
-  let source = withoutDerivedSection(before)
   const protectedPairs = new Set(retained.map(row => `${row.source}\0${row.target}`))
-  const refreshed = derivedRows(claims, observations, owners).filter(row => !protectedPairs.has(`${row.source}\0${row.target}`))
-  for (const connection of [...retained, ...refreshed]) {
-    source = withRelationship(source, {
-      ...connection,
-      sourceName: connection.source,
-      sourceHref: path.posix.relative(path.posix.dirname(filename), connection.source),
-      targetName: connection.target,
-      targetHref: path.posix.relative(path.posix.dirname(filename), connection.target),
-    })
-  }
-  if (source !== before) await writeDocument(repositoryRoot, filename, source)
+  const refreshed: StoredRelationship[] = derivedRows(claims, observations, index.byFile)
+    .filter(row => !protectedPairs.has(`${row.source}\0${row.target}`))
+    .map(row => ({ ...row, document: index.owner(row.source)!.sourceFilename }))
+  const next = placeRelationships([...stored.filter(row => row.authored), ...retained, ...refreshed], model.elements)
+  await saveRelationships(repositoryRoot, records.documents, model.elements, stored, next)
   return conflicts
 }

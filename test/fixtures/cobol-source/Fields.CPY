@@ -1,0 +1,1 @@
+       01 OLD-NAME PIC X(8) VALUE 'WORKER'.

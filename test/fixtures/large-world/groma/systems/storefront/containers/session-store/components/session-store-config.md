@@ -18,3 +18,10 @@ groma:
 ---
 
 Session Store config of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/config.ts](../../../../../../src/storefront/session-store/config.ts) | [src/storefront/session-store/logger.ts](../../../../../../src/storefront/session-store/logger.ts) | Calls logger | HTTP |
+| [src/storefront/session-store/config.ts](../../../../../../src/storefront/session-store/config.ts) | [src/storefront/session-store/client.ts](../../../../../../src/storefront/session-store/client.ts) | Reads client | HTTP |

@@ -1,4 +1,6 @@
 import path from 'node:path'
+import { cpus } from 'node:os'
+import { Worker } from 'node:worker_threads'
 import type { CodeDeclaration, CodeSymbol, ScanObservation, ScanOperation } from '@groma/scanner'
 
 import type { ArchitectureFinding, ArchitectureFindingInstance } from './types.ts'
@@ -21,7 +23,6 @@ interface Candidate {
   endLine: number
   tokens: string[]
   fingerprint: string
-  counts: Map<string, number>
   owner?: string
 }
 
@@ -126,7 +127,7 @@ export function architectureFindingItems(findings: readonly ArchitectureFinding[
 }
 
 function candidates(
-  observations: readonly ScanObservation[],
+  observations: readonly Pick<ScanObservation, 'operations'>[],
   owners: ReadonlyMap<string, string>,
 ): Candidate[] {
   return observations.flatMap(observation => (observation.operations ?? []).flatMap(operation => {
@@ -149,7 +150,6 @@ function candidateOf(
     endLine: operation.endLine,
     tokens: operation.tokens,
     fingerprint: operation.tokens.join('\0'),
-    counts: bag(operation.tokens),
     ...(owner === undefined ? {} : { owner }),
   }
 }
@@ -198,18 +198,18 @@ function unionFind(size: number): { find(index: number): number; union(left: num
   return { find, union }
 }
 
-function exactGroups(items: readonly Candidate[]): number[][] {
+function bodyGroups(items: readonly Candidate[]): number[][] {
   const groups = new Map<string, number[]>()
   items.forEach((item, index) => {
     const group = groups.get(item.fingerprint) ?? []
     group.push(index)
     groups.set(item.fingerprint, group)
   })
-  return [...groups.values()].filter(group => group.length > 1)
+  return [...groups.values()]
 }
 
 function gramIndex(items: readonly Candidate[]): { gramSets: Set<string>[]; index: Map<string, number[]> } {
-  const gramSets = items.map(item => new Set(grams(item.tokens)))
+  const gramSets = items.map(item => new Set(item.tokens.length < MIN_NEAR_TOKENS ? [] : grams(item.tokens)))
   const index = new Map<string, number[]>()
   gramSets.forEach((set, itemIndex) => {
     for (const gram of set) {
@@ -239,36 +239,68 @@ function nested(left: Candidate, right: Candidate): boolean {
     || (right.startLine <= left.startLine && left.endLine <= right.endLine)
 }
 
-function nearPair(left: Candidate, right: Candidate): boolean {
-  if (Math.min(left.tokens.length, right.tokens.length) < MIN_NEAR_TOKENS || nested(left, right)) return false
+function nearPair(left: Candidate, right: Candidate, leftCounts: Uint32Array, rightBag: [number, number][]): boolean {
   const total = left.tokens.length + right.tokens.length
   if (2 * Math.min(left.tokens.length, right.tokens.length) / total < NEAR_LCS) return false
   // A common subsequence cannot contain more copies of a token than either body.
+  let remaining = right.tokens.length
   let shared = 0
-  for (const [token, count] of left.counts) shared += Math.min(count, right.counts.get(token) ?? 0)
-  if (2 * shared / total < NEAR_LCS) return false
+  for (const [token, count] of rightBag) {
+    shared += Math.min(count, leftCounts[token]!)
+    remaining -= count
+    if (2 * (shared + remaining) / total < NEAR_LCS) return false
+    if (2 * shared / total >= NEAR_LCS) break
+  }
   return lcsRatio(left.tokens, right.tokens) >= NEAR_LCS
 }
 
-function clusters(items: readonly Candidate[]): number[][] {
+/** Local token numbers let every peer read the current body's counts without hashing token strings again. */
+function indexedBags(bodies: readonly Candidate[]): { bags: [number, number][][]; counts: Uint32Array } {
+  const ids = new Map<string, number>()
+  const bags = bodies.map(body => [...bag(body.tokens)].map(([token, count]): [number, number] => {
+    let id = ids.get(token)
+    if (id === undefined) {
+      id = ids.size
+      ids.set(token, id)
+    }
+    return [id, count]
+  }))
+  return { bags, counts: new Uint32Array(ids.size) }
+}
+
+function clusters(items: readonly Candidate[], first = 0, step = 1): number[][] {
   const sets = unionFind(items.length)
-  for (const group of exactGroups(items)) {
-    for (let index = 1; index < group.length; index++) sets.union(group[0]!, group[index]!)
+  const groups = bodyGroups(items)
+  for (const group of groups) {
+    group.slice(1).forEach(index => { sets.union(group[0]!, index) })
   }
-  const { gramSets, index } = gramIndex(items)
-  for (let i = 0; i < items.length; i++) {
+  // Identical bodies have the same similarity to other bodies; compare their tokens once.
+  const bodies = groups.map(group => items[group[0]!]!)
+  const { bags, counts } = indexedBags(bodies)
+  const { gramSets, index } = gramIndex(bodies)
+  for (let i = first; i < bodies.length; i += step) {
+    for (const [token, count] of bags[i]!) counts[token] = count
     for (const j of laterSharing(i, gramSets, index)) {
       // Findings expose connected clusters, so an internal edge cannot change the result.
-      if (sets.find(i) !== sets.find(j) && nearPair(items[i]!, items[j]!)) sets.union(i, j)
+      const left = groups[i]!
+      const right = groups[j]!
+      if (sets.find(left[0]!) === sets.find(right[0]!) || !nearPair(bodies[i]!, bodies[j]!, counts, bags[j]!)) continue
+      // A copy elsewhere can match even when the first instance contains the other body.
+      if (left.some(a => right.some(b => !nested(items[a]!, items[b]!)))) sets.union(left[0]!, right[0]!)
     }
+    for (const [token] of bags[i]!) counts[token] = 0
   }
+  return connectedGroups(items.length, sets)
+}
+
+function connectedGroups(size: number, sets: ReturnType<typeof unionFind>): number[][] {
   const byRoot = new Map<number, number[]>()
-  items.forEach((_, index) => {
+  for (let index = 0; index < size; index++) {
     const root = sets.find(index)
     const group = byRoot.get(root) ?? []
     group.push(index)
     byRoot.set(root, group)
-  })
+  }
   return [...byRoot.values()].filter(group => group.length > 1)
 }
 
@@ -348,11 +380,52 @@ function findingOf(members: readonly Candidate[]): ArchitectureFinding {
 
 /** Compare tokenized operations and map matches to component owners. Does not invent a required change. */
 export function detectDuplicatedLogic(
-  observations: readonly ScanObservation[],
+  observations: readonly Pick<ScanObservation, 'operations'>[],
   owners: ReadonlyMap<string, string>,
 ): ArchitectureFinding[] {
   const items = candidates(observations, owners)
-  return clusters(items)
+  return findingsIn(items, clusters(items))
+}
+
+function findingsIn(items: readonly Candidate[], groups: number[][]): ArchitectureFinding[] {
+  return groups
     .map(group => findingOf(group.map(index => items[index]!)))
     .sort((left, right) => left.id.localeCompare(right.id))
+}
+
+/** One partition compares every body at first, first + step, ... against its later peers. */
+export function compareOperationPartition(observations: readonly Pick<ScanObservation, 'operations'>[], first: number, step: number): number[][] {
+  return clusters(candidates(observations, new Map()), first, step)
+}
+
+/** Compare bodies while core writes Markdown; merge connected groups with final ownership. */
+export function prepareArchitectureFindings(observations: readonly ScanObservation[]) {
+  const compared = observations.map(observation => ({ operations: observation.operations?.filter(operation =>
+    operation.tokens && operation.tokens.length >= MIN_COMPARED_TOKENS
+      && operation.startLine !== undefined && operation.endLine !== undefined) }))
+  const step = Math.min(2, cpus().length)
+  const workers = Array.from({ length: step }, (_, first) => new Worker(
+    new URL('./architecture-findings-worker.ts', import.meta.url),
+    { workerData: { observations: compared, first, step } },
+  ))
+  const ready = workers.map(worker => new Promise<number[][]>((resolve, reject) => {
+    worker.once('message', resolve)
+    worker.once('error', reject)
+  }))
+  // Capture an early worker failure until reconciliation reaches its result.
+  const settled = Promise.allSettled(ready)
+  return {
+    async complete(owners: ReadonlyMap<string, string>): Promise<ArchitectureFinding[]> {
+      const items = candidates(compared, owners)
+      const sets = unionFind(items.length)
+      for (const result of await settled) {
+        if (result.status === 'rejected') throw result.reason
+        for (const group of result.value) {
+          group.slice(1).forEach(index => { sets.union(group[0]!, index) })
+        }
+      }
+      return findingsIn(items, connectedGroups(items.length, sets))
+    },
+    close: () => Promise.all(workers.map(worker => worker.terminate())),
+  }
 }

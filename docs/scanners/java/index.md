@@ -5,6 +5,13 @@ and `Trees` to read source. A fresh Maven or Gradle checkout needs no
 installed JDK, Maven, Gradle, dependency cache, generated sources, or
 application build.
 
+One Bun worker thread owns source selection, compiler execution and observation
+processing. It sends all selected projects to one JVM, the Java runtime process,
+which runs up to four compiler tasks in parallel. Larger source sets start first.
+Each task has its own compiler context, roots and language release. Each thread
+reuses library-file caches in a file manager for that encoding. Results retain project order. The JVM has
+a maximum heap of 2 GiB; source coverage and compiler analysis are unchanged.
+
 From an initialized project:
 
 ```sh

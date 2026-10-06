@@ -78,6 +78,10 @@ export async function saveProjectProfile(
 ): Promise<ProjectProfile> {
   const profile = requireProfileInput(input)
   const filesystem = GromaFileSystem.open(repositoryRoot)
+  return filesystem.withAccess(() => writeProjectProfile(filesystem, profile))
+}
+
+async function writeProjectProfile(filesystem: GromaFileSystem, profile: ProjectProfileInput): Promise<ProjectProfile> {
   const sourceFilename = filesystem.sourceFilename('project.md')
   const source = await filesystem.read('project.md')
   const { data } = parseFrontmatter(source)

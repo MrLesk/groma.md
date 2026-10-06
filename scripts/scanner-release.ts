@@ -4,7 +4,7 @@ import { readPublishedScanners } from '../src/scanner/modules/published.ts'
 import { assembleCSharpPackages } from './package-csharp-scanner.ts'
 
 const repository = { type: 'git', url: 'https://github.com/MrLesk/groma.md.git' }
-const scannerIds = ['java', 'go', 'rust', 'csharp', 'angular', 'vue', 'react', 'typescript', 'python', 'php', 'swift', 'javascript']
+const scannerIds = ['nasm', 'cobol', 'java', 'scala', 'go', 'rust', 'csharp', 'angular', 'vue', 'react', 'typescript', 'python', 'php', 'swift', 'javascript']
 
 async function manifest(directory: string) {
   return JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'))
@@ -39,7 +39,10 @@ async function stage(output: string) {
     php: (await import('../plugins/scanners/php/build.ts')).buildPackage,
     python: (await import('../plugins/scanners/python/build.ts')).buildPackage,
     typescript: (await import('../plugins/scanners/typescript/build.ts')).buildPackage,
+    cobol: (await import('../plugins/scanners/cobol/build.ts')).buildPackage,
+    nasm: (await import('../plugins/scanners/nasm/build.ts')).buildPackage,
     java: (await import('../plugins/scanners/java/build.ts')).buildPackage,
+    scala: (await import('../plugins/scanners/scala/build.ts')).buildPackage,
     go: (await import('../plugins/scanners/go/build.ts')).buildPackage,
     rust: (await import('../plugins/scanners/rust/build.ts')).buildPackage,
     angular: (await import('../plugins/scanners/angular/build.ts')).buildPackage,
@@ -64,12 +67,15 @@ async function assemble(input: string, output: string) {
   if (hosts.length === 0) throw new Error('No scanner build artifacts')
   await cp(path.join(input, hosts[0]!), output, { recursive: true })
   for (const host of hosts.slice(1)) {
-    for (const id of ['go', 'rust', 'typescript', 'java', 'swift']) {
+    for (const id of ['go', 'rust', 'typescript', 'java', 'scala', 'cobol', 'nasm', 'swift']) {
       await cp(path.join(input, host, id, 'dist'), path.join(output, id, 'dist'), { recursive: true })
     }
   }
   await assembleCSharpPackages(hosts.map(host => path.join(input, host)), output)
-  for (const [id, worker] of Object.entries({ go: 'worker', rust: 'groma-rust-scanner', typescript: 'tsc', java: 'runtime/bin/java', swift: 'worker' })) {
+  for (const [id, worker] of Object.entries({
+    go: 'worker', rust: 'groma-rust-scanner', typescript: 'tsc', java: 'runtime/bin/java',
+    scala: 'runtime/bin/java', cobol: 'runtime/bin/java', nasm: 'nasm', swift: 'worker',
+  })) {
     await prepareWorkers(path.join(output, id), id === 'rust' ? 'dist/bin' : 'dist', worker)
   }
 }
@@ -87,12 +93,25 @@ async function prepareWorkers(directory: string, relative: string, worker: strin
   await writeManifest(directory, value)
 }
 
+/** Wait for the exact uploaded version; the catalog shares one deadline across its packages. */
+export async function waitForPublishedScanner(staged: { name: string; version: string }, deadline: number, registry?: string) {
+  let published = (await readPublishedScanners(staged.name, registry))[staged.version]
+  while (!published) {
+    const remaining = deadline - Date.now()
+    if (remaining <= 0) throw new Error(`Timed out waiting for npm metadata for ${staged.name}@${staged.version}`)
+    console.log(`Waiting for npm metadata for ${staged.name}@${staged.version}`)
+    await Bun.sleep(Math.min(10_000, remaining))
+    published = (await readPublishedScanners(staged.name, registry))[staged.version]
+  }
+  return published
+}
+
 /** Use this only after the staged packages have been published successfully. */
 async function catalog(input: string) {
+  const deadline = Date.now() + 30 * 60_000
   for (const id of scannerIds) {
     const staged = await manifest(path.join(input, id))
-    const published = (await readPublishedScanners(staged.name))[staged.version]
-    if (!published) throw new Error(`${staged.name}@${staged.version}: publish this release before embedding its metadata`)
+    const published = await waitForPublishedScanner(staged, deadline)
     if (!published.groma?.scanner?.discovery?.compatibility) {
       throw new Error(`${id}: public release metadata is not ready`)
     }
@@ -141,10 +160,12 @@ async function publishPackage(directory: string) {
   else await run(['npm', 'publish', directory, '--access', 'public'])
 }
 
-const [command, input, output] = process.argv.slice(2)
-if (!input) throw new Error('Usage: scanner-release.ts stage <output> | assemble <artifacts> <output> | publish <packages> | catalog <published-packages>')
-if (command === 'stage') await stage(path.resolve(input))
-else if (command === 'assemble' && output) await assemble(path.resolve(input), path.resolve(output))
-else if (command === 'publish') await publish(path.resolve(input))
-else if (command === 'catalog') await catalog(input)
-else throw new Error('Unknown scanner release command')
+if (import.meta.main) {
+  const [command, input, output] = process.argv.slice(2)
+  if (!input) throw new Error('Usage: scanner-release.ts stage <output> | assemble <artifacts> <output> | publish <packages> | catalog <published-packages>')
+  if (command === 'stage') await stage(path.resolve(input))
+  else if (command === 'assemble' && output) await assemble(path.resolve(input), path.resolve(output))
+  else if (command === 'publish') await publish(path.resolve(input))
+  else if (command === 'catalog') await catalog(input)
+  else throw new Error('Unknown scanner release command')
+}

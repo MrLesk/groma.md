@@ -1,17 +1,50 @@
 import { subscribe } from '@parcel/watcher'
 import type { AsyncSubscription } from '@parcel/watcher'
+import { AsyncLocalStorage } from 'node:async_hooks'
+import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import type { Dirent } from 'node:fs'
 import {
   mkdir,
+  open,
   readdir,
-  rename,
   readFile,
   realpath,
+  rename,
   unlink,
   writeFile,
 } from 'node:fs/promises'
 import path from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
+
+const access = new AsyncLocalStorage<ReadonlySet<string>>()
+const LOCK_TIMEOUT_MS = 5000
+const LOCK_FILENAME = '.groma.lock'
+
+export class GromaBusyError extends Error {
+  readonly code = 'groma_busy'
+  readonly timeoutMs: number
+
+  constructor(timeoutMs: number) {
+    super(`Groma is busy. Could not acquire the project lock within ${timeoutMs} ms.`)
+    this.timeoutMs = timeoutMs
+  }
+}
+
+async function acquire(filename: string, timeoutMs: number): Promise<() => Promise<void>> {
+  const deadline = performance.now() + timeoutMs
+  for (;;) {
+    try {
+      const lock = await open(filename, 'wx')
+      return async () => { await lock.close(); await unlink(filename) }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+      const remaining = deadline - performance.now()
+      if (remaining <= 0) throw new GromaBusyError(timeoutMs)
+      await delay(Math.min(25, remaining))
+    }
+  }
+}
 
 export const gromaDirectories = ['groma', '.groma'] as const
 
@@ -95,6 +128,24 @@ export class GromaFileSystem {
     return path.join(this.repositoryRoot, this.directory, ...relative.split('/'))
   }
 
+  /** Protect a complete read or read/change/write operation across local processes.
+   * Nested storage calls share access; the lock is never held while a person edits.
+   * Files are replaced atomically. Several replacements are not a crash-recovery transaction.
+   */
+  async withAccess<T>(operation: () => Promise<T>, timeoutMs = LOCK_TIMEOUT_MS): Promise<T> {
+    const held = access.getStore()
+    if (held?.has(this.absolute())) return operation()
+    await mkdir(this.absolute(), { recursive: true })
+    const root = await realpath(this.absolute())
+    if (held?.has(root)) return operation()
+    const release = await acquire(path.join(root, LOCK_FILENAME), timeoutMs)
+    try {
+      return await access.run(new Set([...held ?? [], root, this.absolute()]), operation)
+    } finally {
+      await release()
+    }
+  }
+
   exists(relative = ''): boolean {
     return existsSync(this.absolute(relative))
   }
@@ -104,7 +155,7 @@ export class GromaFileSystem {
   }
 
   read(relative: string): Promise<string> {
-    return readFile(this.absolute(relative), 'utf8')
+    return this.withAccess(() => readFile(this.absolute(relative), 'utf8'))
   }
 
   readSource(sourceFilename: string): Promise<string> {
@@ -112,33 +163,62 @@ export class GromaFileSystem {
   }
 
   async write(relative: string, source: string): Promise<void> {
-    const filename = this.absolute(relative)
-    await mkdir(path.dirname(filename), { recursive: true })
-    // Write to a same-directory temp file and rename over the target so a crash
-    // mid-write can never leave a truncated document behind.
-    const temporary = `${filename}.tmp-${process.pid}-${Math.random().toString(36).slice(2)}`
-    try {
-      await writeFile(temporary, source)
-      await rename(temporary, filename)
-    } catch (error) {
-      await unlink(temporary).catch(() => {})
-      throw error
-    }
+    await this.withAccess(async () => {
+      const addsIndexEntry = relative !== 'index.md' && relative.endsWith('.md')
+        && !this.exists(relative.split('/')[0]!)
+      const filename = this.absolute(relative)
+      await mkdir(path.dirname(filename), { recursive: true })
+      const temporary = `${filename}.${randomUUID()}.tmp`
+      try {
+        await writeFile(temporary, source, { flag: 'wx' })
+        await rename(temporary, filename)
+      } finally {
+        await unlink(temporary).catch(error => { if (error.code !== 'ENOENT') throw error })
+      }
+      if (addsIndexEntry) await this.refreshIndex()
+    })
   }
 
   writeSource(sourceFilename: string, source: string): Promise<void> {
     return this.write(this.relative(sourceFilename), source)
   }
 
-  removeSource(sourceFilename: string): Promise<void> {
-    return unlink(this.absolute(this.relative(sourceFilename)))
+  async removeSource(sourceFilename: string): Promise<void> {
+    await this.withAccess(async () => {
+      const relative = this.relative(sourceFilename)
+      await unlink(this.absolute(relative))
+      if (!relative.includes('/') && relative.endsWith('.md')) await this.refreshIndex()
+    })
+  }
+
+  /** OKF navigation lists this directory, not the nested C4 architecture. */
+  async refreshIndex(): Promise<void> {
+    return this.withAccess(() => this.writeIndex())
+  }
+
+  private async writeIndex(): Promise<void> {
+    const entries = (await this.list(''))
+      .filter(entry => entry.isDirectory() || (entry.isFile() && entry.name.endsWith('.md') && entry.name !== 'index.md'))
+      .map(entry => `${entry.name}${entry.isDirectory() ? '/' : ''}`)
+      .sort()
+    const links = entries.map(name => {
+      const label = name.replace(/[\\[\]]/g, '\\$&')
+      const href = name.split('/').map(encodeURIComponent).join('/')
+      return `- [${label}](<${href}>)`
+    })
+    const source = `---\nokf_version: "0.2"\n---\n\n# Contents\n\n${links.join('\n')}\n`
+    if (this.exists('index.md') && await this.read('index.md') === source) return
+    await this.write('index.md', source)
   }
 
   async watch(listener: (filename: string) => void): Promise<AsyncSubscription> {
     const root = await realpath(this.absolute(''))
     return subscribe(root, (error, events) => {
       if (error) throw error
-      for (const event of events) listener(path.relative(root, event.path).split(path.sep).join('/'))
+      for (const event of events) {
+        if (path.basename(event.path) === LOCK_FILENAME || event.path.endsWith('.tmp')) continue
+        listener(path.relative(root, event.path).split(path.sep).join('/'))
+      }
     })
   }
 }

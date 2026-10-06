@@ -12,3 +12,10 @@ groma:
 ---
 
 Auth scheduler of Auth.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/auth/scheduler.ts](../../../../../../src/identity/auth/scheduler.ts) | [src/identity/auth/metrics.ts](../../../../../../src/identity/auth/metrics.ts) | Calls metrics | HTTP |
+| [src/identity/auth/scheduler.ts](../../../../../../src/identity/auth/scheduler.ts) | [src/identity/auth/config.ts](../../../../../../src/identity/auth/config.ts) | Reads config | HTTP |

@@ -18,3 +18,10 @@ groma:
 ---
 
 Checkout config of Checkout.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/checkout/config.ts](../../../../../../src/orders/checkout/config.ts) | [src/orders/checkout/logger.ts](../../../../../../src/orders/checkout/logger.ts) | Calls logger | HTTP |
+| [src/orders/checkout/config.ts](../../../../../../src/orders/checkout/config.ts) | [src/orders/checkout/client.ts](../../../../../../src/orders/checkout/client.ts) | Reads client | HTTP |

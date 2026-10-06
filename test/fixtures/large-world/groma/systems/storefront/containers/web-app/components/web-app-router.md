@@ -16,3 +16,10 @@ groma:
 ---
 
 Web App router of Web App.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/web-app/router.ts](../../../../../../src/storefront/web-app/router.ts) | [src/storefront/web-app/session.ts](../../../../../../src/storefront/web-app/session.ts) | Calls session | HTTP |
+| [src/storefront/web-app/router.ts](../../../../../../src/storefront/web-app/router.ts) | [src/storefront/web-app/cache.ts](../../../../../../src/storefront/web-app/cache.ts) | Reads cache | HTTP |

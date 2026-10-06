@@ -41,7 +41,12 @@ async function send(path: string, body: unknown): Promise<void> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
-  if (!response.ok) throw new Error(await response.text())
+  if (!response.ok) {
+    const message = response.headers.get('Content-Type')?.includes('application/json')
+      ? (await response.json() as { message: string }).message
+      : await response.text()
+    throw new Error(message)
+  }
 }
 
 function selected(path: string, values: Record<string, string | undefined>): string {

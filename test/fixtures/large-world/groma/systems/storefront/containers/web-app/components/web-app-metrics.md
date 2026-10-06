@@ -15,3 +15,10 @@ groma:
 ---
 
 Web App metrics of Web App.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/web-app/metrics.ts](../../../../../../src/storefront/web-app/metrics.ts) | [src/storefront/web-app/config.ts](../../../../../../src/storefront/web-app/config.ts) | Calls config | HTTP |
+| [src/storefront/web-app/metrics.ts](../../../../../../src/storefront/web-app/metrics.ts) | [src/storefront/web-app/logger.ts](../../../../../../src/storefront/web-app/logger.ts) | Reads logger | HTTP |

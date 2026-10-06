@@ -21,3 +21,9 @@ description: Creates project records and guides first-time scanner selection
 ---
 
 Creates the project records. Checks the project tools and guides the user through scanner selection.
+
+## Derived relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/init-command.ts](../../../../../../src/init-command.ts) | [src/cli.ts](../../../../../../src/cli.ts) | Invokes supplied callback: openWeb | typescript |

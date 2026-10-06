@@ -1,0 +1,46 @@
+{
+  "name": "@groma/scanner-scala",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "description": "Experimental Scala 3 source declarations, outlines and bounded call evidence.",
+  "groma": {
+    "scanner": {
+      "id": "scala",
+      "entry": "./src/index.ts",
+      "include": [
+        "**/*.scala"
+      ],
+      "exclude": [
+        "target/",
+        "project/",
+        ".bloop/",
+        ".metals/",
+        "src/test/"
+      ],
+      "discovery": {
+        "technologies": [
+          "scala"
+        ],
+        "rules": [
+          {
+            "type": "file",
+            "files": [
+              "**/*.scala"
+            ],
+            "technology": "scala",
+            "kind": "language",
+            "declaration": "Scala source; compiler version and build configuration unverified"
+          }
+        ],
+        "compatibility": {
+          "groma": ">=0.6.6"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@groma/scanner": "workspace:*"
+  }
+}

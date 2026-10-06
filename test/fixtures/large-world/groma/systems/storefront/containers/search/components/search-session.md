@@ -19,3 +19,10 @@ groma:
 ---
 
 Search session of Search.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/search/session.ts](../../../../../../src/storefront/search/session.ts) | [src/storefront/search/cache.ts](../../../../../../src/storefront/search/cache.ts) | Calls cache | HTTP |
+| [src/storefront/search/session.ts](../../../../../../src/storefront/search/session.ts) | [src/storefront/search/validator.ts](../../../../../../src/storefront/search/validator.ts) | Reads validator | HTTP |

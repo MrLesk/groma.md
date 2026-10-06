@@ -22,3 +22,10 @@ groma:
 ---
 
 Accounts cache of Accounts.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/accounts/cache.ts](../../../../../../src/identity/accounts/cache.ts) | [src/identity/accounts/validator.ts](../../../../../../src/identity/accounts/validator.ts) | Calls validator | HTTP |
+| [src/identity/accounts/cache.ts](../../../../../../src/identity/accounts/cache.ts) | [src/identity/accounts/mapper.ts](../../../../../../src/identity/accounts/mapper.ts) | Reads mapper | HTTP |

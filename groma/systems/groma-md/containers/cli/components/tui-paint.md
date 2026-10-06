@@ -15,8 +15,6 @@ groma:
       file: src/viewers/tui/organisms/empty.ts
       symbol: drawEmptyWorld
     - scanner: typescript
-      file: src/viewers/tui/atoms/border.ts
-    - scanner: typescript
       file: src/viewers/tui/atoms/cell.ts
       symbol: cell
     - scanner: typescript
@@ -29,22 +27,20 @@ groma:
       symbol: visible
     - scanner: typescript
       file: src/viewers/tui/molecules/building.ts
-      symbol: drawBuilding
     - scanner: typescript
       file: src/viewers/tui/molecules/flow-marker.ts
       symbol: drawFlowMarker
     - scanner: typescript
       file: src/viewers/tui/molecules/route.ts
     - scanner: typescript
-      file: src/viewers/tui/molecules/row.ts
-      symbol: drawRow
-    - scanner: typescript
       file: src/viewers/tui/molecules/surface.ts
     - scanner: typescript
       file: src/viewers/tui/molecules/work-marker.ts
       symbol: drawWorkCorner
+    - scanner: typescript
+      file: src/viewers/tui/atoms/lines.ts
   group: Terminal map
-description: Draws the terminal map with characters, styles and markers
+description: Draws the terminal plan with box-drawing lines, names, arrows and pulses
 ---
 
-Draws the map buildings, routes, and markers with terminal characters. Applies the shared terminal styles.
+Paints one projected depth into the map buffer: a dotted ground, island, container, group and component frames, and routes joined to those frames with box-drawing junctions. Writes names, collapsed counts, arrowheads and labels over the lines, lights the selection, flows and task work in the brand green, and moves pulses along lit routes. Applies the shared terminal styles.

@@ -18,3 +18,10 @@ groma:
 ---
 
 Sessions config of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/config.ts](../../../../../../src/identity/sessions/config.ts) | [src/identity/sessions/logger.ts](../../../../../../src/identity/sessions/logger.ts) | Calls logger | HTTP |
+| [src/identity/sessions/config.ts](../../../../../../src/identity/sessions/config.ts) | [src/identity/sessions/client.ts](../../../../../../src/identity/sessions/client.ts) | Reads client | HTTP |

@@ -22,3 +22,10 @@ groma:
 ---
 
 Events queue of Events.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/events/queue.ts](../../../../../../src/orders/events/queue.ts) | [src/orders/events/worker.ts](../../../../../../src/orders/events/worker.ts) | Calls worker | HTTP |
+| [src/orders/events/queue.ts](../../../../../../src/orders/events/queue.ts) | [src/orders/events/scheduler.ts](../../../../../../src/orders/events/scheduler.ts) | Reads scheduler | HTTP |

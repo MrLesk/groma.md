@@ -1,3 +1,5 @@
+import { changedEdit, type EditValues } from '../../../authoring-conflict.ts'
+
 export const editableCss = `
   #details .edit-entry, #details .edit-form button { border: 1px solid var(--hairline); border-radius: 6px;
     padding: 6px 12px; background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
@@ -41,7 +43,7 @@ export function editButton(
   host: HTMLElement,
   key: string,
   fields: EditField[],
-  save: (changes: Record<string, string>) => Promise<void>,
+  save: (changes: Record<string, string>, original: EditValues) => Promise<void>,
   read: () => void,
 ): HTMLButtonElement {
   const button = document.createElement('button')
@@ -75,14 +77,14 @@ export function editButton(
     form.addEventListener('submit', async event => {
       event.preventDefault()
       const values = new FormData(form)
-      const changes = Object.fromEntries(fields.flatMap(field => {
-        const value = String(values.get(field.name) ?? '')
-        return value === field.value ? [] : [[field.name, value]]
-      }))
+      const { original, ...changes } = changedEdit(
+        Object.fromEntries(fields.map(field => [field.name, field.value])),
+        Object.fromEntries(fields.map(field => [field.name, String(values.get(field.name) ?? '')])),
+      )
       if (Object.keys(changes).length === 0) { close(); return }
       submit.disabled = cancel.disabled = true
       error.textContent = ''
-      try { await save(changes); close() }
+      try { await save(changes, original); close() }
       catch (cause) { error.textContent = message(cause) }
       finally { submit.disabled = cancel.disabled = false }
     })

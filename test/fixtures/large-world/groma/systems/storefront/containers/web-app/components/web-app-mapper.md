@@ -13,3 +13,10 @@ groma:
 ---
 
 Web App mapper of Web App.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/web-app/mapper.ts](../../../../../../src/storefront/web-app/mapper.ts) | [src/storefront/web-app/reader.ts](../../../../../../src/storefront/web-app/reader.ts) | Calls reader | HTTP |
+| [src/storefront/web-app/mapper.ts](../../../../../../src/storefront/web-app/mapper.ts) | [src/storefront/web-app/writer.ts](../../../../../../src/storefront/web-app/writer.ts) | Reads writer | HTTP |

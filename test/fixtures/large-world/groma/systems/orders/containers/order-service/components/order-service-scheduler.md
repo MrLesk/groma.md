@@ -12,3 +12,10 @@ groma:
 ---
 
 Order Service scheduler of Order Service.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/order-service/scheduler.ts](../../../../../../src/orders/order-service/scheduler.ts) | [src/orders/order-service/metrics.ts](../../../../../../src/orders/order-service/metrics.ts) | Calls metrics | HTTP |
+| [src/orders/order-service/scheduler.ts](../../../../../../src/orders/order-service/scheduler.ts) | [src/orders/order-service/config.ts](../../../../../../src/orders/order-service/config.ts) | Reads config | HTTP |

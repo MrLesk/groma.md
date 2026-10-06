@@ -12,3 +12,10 @@ groma:
 ---
 
 Directory scheduler of Directory.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/directory/scheduler.ts](../../../../../../src/identity/directory/scheduler.ts) | [src/identity/directory/metrics.ts](../../../../../../src/identity/directory/metrics.ts) | Calls metrics | HTTP |
+| [src/identity/directory/scheduler.ts](../../../../../../src/identity/directory/scheduler.ts) | [src/identity/directory/config.ts](../../../../../../src/identity/directory/config.ts) | Reads config | HTTP |

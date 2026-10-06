@@ -25,3 +25,10 @@ groma:
 ---
 
 Sessions validator of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/validator.ts](../../../../../../src/identity/sessions/validator.ts) | [src/identity/sessions/mapper.ts](../../../../../../src/identity/sessions/mapper.ts) | Calls mapper | HTTP |
+| [src/identity/sessions/validator.ts](../../../../../../src/identity/sessions/validator.ts) | [src/identity/sessions/reader.ts](../../../../../../src/identity/sessions/reader.ts) | Reads reader | HTTP |

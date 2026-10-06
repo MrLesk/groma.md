@@ -22,3 +22,10 @@ groma:
 ---
 
 Sessions queue of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/queue.ts](../../../../../../src/identity/sessions/queue.ts) | [src/identity/sessions/worker.ts](../../../../../../src/identity/sessions/worker.ts) | Calls worker | HTTP |
+| [src/identity/sessions/queue.ts](../../../../../../src/identity/sessions/queue.ts) | [src/identity/sessions/scheduler.ts](../../../../../../src/identity/sessions/scheduler.ts) | Reads scheduler | HTTP |

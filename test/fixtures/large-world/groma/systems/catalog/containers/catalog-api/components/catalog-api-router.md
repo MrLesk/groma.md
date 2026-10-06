@@ -16,3 +16,10 @@ groma:
 ---
 
 Catalog Api router of Catalog Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/catalog-api/router.ts](../../../../../../src/catalog/catalog-api/router.ts) | [src/catalog/catalog-api/session.ts](../../../../../../src/catalog/catalog-api/session.ts) | Calls session | HTTP |
+| [src/catalog/catalog-api/router.ts](../../../../../../src/catalog/catalog-api/router.ts) | [src/catalog/catalog-api/cache.ts](../../../../../../src/catalog/catalog-api/cache.ts) | Reads cache | HTTP |

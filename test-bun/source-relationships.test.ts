@@ -6,6 +6,7 @@ import path from 'node:path'
 import { addScanner } from '../src/scanner/modules/inventory.ts'
 import manifest from '../plugins/scanners/typescript/package.json'
 import { scanTypeScriptSource } from '../plugins/scanners/typescript/src/scan.ts'
+import { loadArchitecture } from '../src/architecture-reader.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import { editArchitecture } from '../src/edit.ts'
 import { addRelation, acceptRelation, editRelation, removeRelation } from '../src/relation.ts'
@@ -191,7 +192,13 @@ test.concurrent('editing a derived interaction takes authorship and preserves it
   const root = await repository()
   try {
     await scanRepository(root)
+    const source = owner(await loadAnnotatedArchitecture(root), 'worker')
+    const example = '```markdown\n## Relationships\nA relationship example.\n```'
+    await editArchitecture(root, { id: source.id, overview: `Explains the interaction.\n\n${example}` })
     await editRelation(root, { ...ends, description: 'Sends the completed result', technology: 'Callback' })
+    const records = await loadArchitecture(root)
+    const document = records.documents.find(item => (item.frontmatter.groma as { id: string }).id === source.id)!
+    expect(document.body).toContain(example)
     await scanRepository(root)
     const after = await loadAnnotatedArchitecture(root)
     expect(after.relationships).toHaveLength(1)

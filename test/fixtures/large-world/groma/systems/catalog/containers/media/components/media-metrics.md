@@ -15,3 +15,10 @@ groma:
 ---
 
 Media metrics of Media.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/media/metrics.ts](../../../../../../src/catalog/media/metrics.ts) | [src/catalog/media/config.ts](../../../../../../src/catalog/media/config.ts) | Calls config | HTTP |
+| [src/catalog/media/metrics.ts](../../../../../../src/catalog/media/metrics.ts) | [src/catalog/media/logger.ts](../../../../../../src/catalog/media/logger.ts) | Reads logger | HTTP |

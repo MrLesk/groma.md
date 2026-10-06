@@ -4,6 +4,8 @@ import type { ArchitectureGraph } from '../../../types.ts'
 import { escaped } from '../atoms/escape.ts'
 import type { WebBootPayload } from '../payload.ts'
 
+const curationPrompt = "Curate this repository's architecture with Groma. Run groma agent-instructions and follow its curation workflow. Describe the architecture as it exists today; do not change application code."
+
 export const emptyStateCss = `
   #empty { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none; }
   #empty[hidden] { display: none; }
@@ -42,6 +44,11 @@ export const emptyStateCss = `
   #empty.has-architecture h1 { font-size: 13px; }
   #empty.has-architecture .hint, #empty.has-architecture .note { font-size: 11px; font-style: normal; }
   #empty.has-architecture .project { display: none; }
+  #empty.first-scan .empty-card { width: min(440px, calc(100vw - 32px)); }
+  #empty .curation { display: none; }
+  #empty.first-scan .curation { display: grid; gap: 10px; margin-top: 10px; }
+  #empty .curation-prompt { padding: 10px 12px; border: 1px solid var(--hairline); border-radius: 6px; font-size: 11px; line-height: 1.6; user-select: text; }
+  #empty .copy-prompt { justify-self: end; font-size: 11px; }
   #empty .dismiss { display: none; }
   #empty.has-architecture .dismiss { display: block; position: absolute; right: 10px; top: 8px; border: 0; padding: 2px 5px; }
   @media (max-width: 640px) { #empty .empty-card { padding: 24px; } }
@@ -68,6 +75,8 @@ export function emptyState(payload: WebBootPayload): string {
   return `<section id="empty" aria-label="Map notice"${className}${hidden}><div class="empty-card">`
     + `<p class="project">${escaped(payload.project?.title ?? '')}</p><h1>${message.title}</h1>`
     + `<p class="hint">${message.hint}</p><p class="note">${scannerSupportNote}</p>`
+    + `<div class="curation"><p class="curation-prompt">${escaped(curationPrompt)}</p>`
+    + '<button class="copy-prompt chrome-button" type="button" aria-live="polite">Copy prompt</button></div>'
     + '<button id="empty-scanners" class="empty-action" type="button" aria-haspopup="dialog" aria-controls="project-settings" hidden>Set up scanners</button>'
     + '<button class="dismiss" type="button" aria-label="Dismiss message">×</button></div></section>'
 }
@@ -83,6 +92,19 @@ export function createEmptyState(host: HTMLElement) {
   const title = host.querySelector('.project')!
   const heading = host.querySelector('h1')!
   const hint = host.querySelector('.hint')!
+  const prompt = host.querySelector('.curation-prompt')!
+  const copy = host.querySelector<HTMLButtonElement>('.copy-prompt')!
+  let copyLabelTimeout: ReturnType<typeof setTimeout> | undefined
+  copy.addEventListener('click', async () => {
+    clearTimeout(copyLabelTimeout)
+    try {
+      await navigator.clipboard.writeText(prompt.textContent!)
+      copy.textContent = 'Copied'
+      copyLabelTimeout = setTimeout(() => { copy.textContent = 'Copy prompt' }, 2000)
+    } catch {
+      copy.textContent = 'Copy failed'
+    }
+  })
   let dismissed = false
   host.querySelector('.dismiss')!.addEventListener('click', () => {
     dismissed = true

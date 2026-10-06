@@ -19,3 +19,10 @@ groma:
 ---
 
 Pricing writer of Pricing.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/pricing/writer.ts](../../../../../../src/catalog/pricing/writer.ts) | [src/catalog/pricing/queue.ts](../../../../../../src/catalog/pricing/queue.ts) | Calls queue | HTTP |
+| [src/catalog/pricing/writer.ts](../../../../../../src/catalog/pricing/writer.ts) | [src/catalog/pricing/worker.ts](../../../../../../src/catalog/pricing/worker.ts) | Reads worker | HTTP |

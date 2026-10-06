@@ -58,3 +58,30 @@ test.concurrent('combined filters persist across new projections and clear witho
     expect(filterC4Scene(scene, new Set())).toBe(scene)
   }
 })
+
+test.concurrent('relationships toggle independently and restore only routes allowed by the element filters', async () => {
+  const world = await loadAnnotatedArchitecture(viewerFixtureRoot)
+  const sheet = sheetScene(world)
+  const hidden = new Set<C4Kind | 'relationship'>(['relationship'])
+  for (const pose of [NESTED_POSE, OVERHEAD_POSE, EXPLODED_POSE]) {
+    const scene = presentScene(sheet, undefined, pose)
+    const before = structuredClone(scene)
+    expect(scene.routes.length).toBeGreaterThan(0)
+    const filtered = filterC4Scene(scene, hidden)
+    expect(filtered.routes).toEqual([])
+    expect({ ...filtered, routes: scene.routes }).toEqual(scene)
+
+    hidden.add('actor')
+    expect(filterC4Scene(scene, hidden).routes).toEqual([])
+    hidden.delete('relationship')
+    const restored = filterC4Scene(scene, hidden)
+    const withActorsHidden = filterC4Scene(scene, new Set(['actor']))
+    expect(restored.routes.length).toBeGreaterThan(0)
+    expect(restored.routes.length).toBeLessThan(scene.routes.length)
+    expect(restored).toEqual(withActorsHidden)
+    expect(scene).toEqual(before)
+    hidden.clear()
+    expect(filterC4Scene(scene, hidden)).toBe(scene)
+    hidden.add('relationship')
+  }
+})

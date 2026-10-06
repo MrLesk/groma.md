@@ -22,3 +22,10 @@ groma:
 ---
 
 Accounts queue of Accounts.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/accounts/queue.ts](../../../../../../src/identity/accounts/queue.ts) | [src/identity/accounts/worker.ts](../../../../../../src/identity/accounts/worker.ts) | Calls worker | HTTP |
+| [src/identity/accounts/queue.ts](../../../../../../src/identity/accounts/queue.ts) | [src/identity/accounts/scheduler.ts](../../../../../../src/identity/accounts/scheduler.ts) | Reads scheduler | HTTP |

@@ -18,4 +18,4 @@ groma:
 description: Reads and writes architecture Markdown in the project Groma folder
 ---
 
-Reads and writes architecture records in the selected Groma folder. Keeps source links and authored sections in ordinary Markdown.
+Reads and writes architecture records in the selected Groma folder. Keeps source links and authored sections in ordinary Markdown. The filesystem layer protects complete local read and write operations with one project lock and a bounded wait. It replaces each document atomically, and architecture readers wait for structural changes to finish. Storage mechanics stay here; authoring owns validation and conflict meaning.

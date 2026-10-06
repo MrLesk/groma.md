@@ -19,3 +19,10 @@ groma:
 ---
 
 Media session of Media.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/media/session.ts](../../../../../../src/catalog/media/session.ts) | [src/catalog/media/cache.ts](../../../../../../src/catalog/media/cache.ts) | Calls cache | HTTP |
+| [src/catalog/media/session.ts](../../../../../../src/catalog/media/session.ts) | [src/catalog/media/validator.ts](../../../../../../src/catalog/media/validator.ts) | Reads validator | HTTP |

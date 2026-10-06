@@ -1,16 +1,5 @@
 import type { ArchitectureElement, ArchitectureRelationship, RelationshipConnection } from './types.ts'
-
-export function fileOwners(elements: readonly ArchitectureElement[]): Map<string, ArchitectureElement> {
-  const owners = new Map<string, ArchitectureElement>()
-  for (const element of elements) {
-    for (const reference of element.code) {
-      const owner = owners.get(reference.file)
-      if (owner && owner.id !== element.id) throw new Error(`source file "${reference.file}" has more than one owner`)
-      owners.set(reference.file, element)
-    }
-  }
-  return owners
-}
+import { sourceIndex } from './source-index.ts'
 
 function pairKey(source: string, target: string): string {
   return `${source}\0${target}`
@@ -31,15 +20,14 @@ export function sourceRelationships(
   elements: readonly ArchitectureElement[],
   connections: readonly RelationshipConnection[],
 ): ArchitectureRelationship[] {
-  const owners = fileOwners(elements)
-  const endpoints = new Map([...elements.map(element => [element.id, element] as const), ...owners])
+  const index = sourceIndex(elements)
   const authored = new Set(connections.filter(connection => connection.authored && connection.status === 'stable')
     .map(connection => pairKey(connection.source, connection.target)))
   const relationships = new Map<string, ArchitectureRelationship>()
   for (const connection of connections) {
     if (!connection.authored && authored.has(pairKey(connection.source, connection.target))) continue
-    const source = endpoints.get(connection.source)
-    const target = endpoints.get(connection.target)
+    const source = index.owner(connection.source) ?? index.resolve(connection.source)
+    const target = index.owner(connection.target) ?? index.resolve(connection.target)
     // A row naming a file without an owner, for example after a detach, stays stored and returns to the map once a scan owns the file.
     if (!source || !target) continue
     if (source.id === target.id) continue

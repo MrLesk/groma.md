@@ -16,3 +16,10 @@ groma:
 ---
 
 Audit reader of Audit.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/audit/reader.ts](../../../../../../src/identity/audit/reader.ts) | [src/identity/audit/writer.ts](../../../../../../src/identity/audit/writer.ts) | Calls writer | HTTP |
+| [src/identity/audit/reader.ts](../../../../../../src/identity/audit/reader.ts) | [src/identity/audit/queue.ts](../../../../../../src/identity/audit/queue.ts) | Reads queue | HTTP |

@@ -16,3 +16,10 @@ groma:
 ---
 
 Checkout router of Checkout.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/checkout/router.ts](../../../../../../src/orders/checkout/router.ts) | [src/orders/checkout/session.ts](../../../../../../src/orders/checkout/session.ts) | Calls session | HTTP |
+| [src/orders/checkout/router.ts](../../../../../../src/orders/checkout/router.ts) | [src/orders/checkout/cache.ts](../../../../../../src/orders/checkout/cache.ts) | Reads cache | HTTP |

@@ -22,3 +22,10 @@ groma:
 ---
 
 Catalog Api queue of Catalog Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/catalog-api/queue.ts](../../../../../../src/catalog/catalog-api/queue.ts) | [src/catalog/catalog-api/worker.ts](../../../../../../src/catalog/catalog-api/worker.ts) | Calls worker | HTTP |
+| [src/catalog/catalog-api/queue.ts](../../../../../../src/catalog/catalog-api/queue.ts) | [src/catalog/catalog-api/scheduler.ts](../../../../../../src/catalog/catalog-api/scheduler.ts) | Reads scheduler | HTTP |

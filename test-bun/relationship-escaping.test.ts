@@ -15,11 +15,13 @@ import {
 import { buildArchitectureModel } from '../src/architecture-model.ts'
 import { loadArchitecture } from '../src/architecture-reader.ts'
 import { httpRelationships } from '../src/http-relationships.ts'
-import { withRelationship, withoutRelationship } from '../src/markdown-emitter.ts'
+import { withStoredRelationships } from '../src/relationship-storage.ts'
+import type { StoredRelationship } from '../src/relationship-markdown.ts'
 import { storedConnections } from '../src/relationship-markdown.ts'
 import type { ArchitectureDocument, RelationshipConnection } from '../src/types.ts'
 
-const empty = '---\ntype: Groma Relationships\ntitle: Architecture relationships\n---\n'
+const ownerDocument = 'groma/systems/backend/containers/api/components/odd-sources.md'
+const empty = '---\ntype: C4 Component\ntitle: Odd sources\ngroma:\n  id: odd-sources\n  parent: api\n---\n'
 const client = 'src/client.ts'
 const talks = 'src/talks.ts'
 const owners = new Map([client, talks].map(file => [file, file]))
@@ -28,7 +30,7 @@ const owners = new Map([client, talks].map(file => [file, file]))
 async function connections(source: string): Promise<RelationshipConnection[]> {
   const tree = await parseMarkdown(source)
   const document = {
-    sourceFilename: 'groma/relationships.md',
+    sourceFilename: ownerDocument,
     body: parseFrontmatter(source).content,
     nodes: tree.nodes,
     frontmatter: tree.frontmatter,
@@ -36,11 +38,10 @@ async function connections(source: string): Promise<RelationshipConnection[]> {
   return storedConnections([document], [], (_code, _file, message) => { throw new Error(message) })
 }
 
-function rowFor(name: string) {
+function rowFor(name: string): StoredRelationship {
   return {
-    sourceName: `src/${name}`, sourceHref: `../src/${name}`,
-    targetName: 'src/plain.md', targetHref: '../src/plain.md',
-    description: 'Calls the target', technology: 'HTTPS',
+    document: ownerDocument, source: `src/${name}`, target: 'src/plain.md',
+    description: 'Calls the target', technology: 'HTTPS', status: 'stable', authored: true,
   }
 }
 
@@ -75,8 +76,7 @@ test.concurrent('a stored row round-trips any file name through the strict reade
     'm(n).md', 'weird)n.md', 'p q.md', 'r%20s.md', 't#u.md', 'v&amp;w.md',
     'w"x.md', "y'z.md", 'back\\slash.md', 'ünï codé.md', '_snake_.md', 'C:\\a.md',
   ]
-  let source = empty
-  for (const name of names) source = withRelationship(source, rowFor(name))
+  const source = withStoredRelationships(empty, ownerDocument, names.map(name => rowFor(name)), new Map())
   const stored = await connections(source)
   expect(stored).toHaveLength(names.length)
   for (const name of names) {
@@ -86,18 +86,11 @@ test.concurrent('a stored row round-trips any file name through the strict reade
   }
 })
 
-test.concurrent('rows for names without special characters keep their stored bytes', () => {
-  const source = withRelationship(empty, rowFor('added.md'))
-  expect(source).toContain('| [src/added.md](../src/added.md) | [src/plain.md](../src/plain.md) | Calls the target | HTTPS |')
-})
-
-test.concurrent('a stored row is removed by the same values that wrote it', async () => {
-  const written = withRelationship(empty, rowFor('a|b.md'))
-  const removed = withoutRelationship(written, rowFor('a|b.md'))
-  expect(removed).not.toContain('a|b.md')
+test.concurrent('removing stored rows preserves an empty relationship set', async () => {
+  const written = withStoredRelationships(empty, ownerDocument, [rowFor('a|b.md')], new Map())
+  expect(await connections(written)).toHaveLength(1)
+  const removed = withStoredRelationships(written, ownerDocument, [], new Map())
   expect(await connections(removed)).toHaveLength(0)
-  const plainRemoved = withoutRelationship(withRelationship(empty, rowFor('added.md')), rowFor('added.md'))
-  expect(plainRemoved).not.toContain('| [src/added.md]')
 })
 
 test.concurrent('an HTTP label with Markdown characters is stored as one row and restored raw', async () => {
@@ -106,12 +99,11 @@ test.concurrent('an HTTP label with Markdown characters is stored as one row and
     scan('client', { httpRequests: [request('GET', '/a&amp;b/7'), request('GET', '/c*d')] }),
   ], owners)
   expect(derived[0]!.description).toBe('Calls HTTP endpoints: GET /a\\&amp;b/:id, GET /c\\*d')
-  const written = withRelationship(empty, {
-    sourceName: client, sourceHref: '../src/client.ts',
-    targetName: talks, targetHref: '../src/talks.ts',
+  const written = withStoredRelationships(empty, ownerDocument, [{
+    document: ownerDocument, source: client, target: talks,
     description: derived[0]!.description, technology: derived[0]!.technology,
     status: 'stable', authored: false,
-  })
+  }], new Map())
   const stored = await connections(written)
   expect(stored).toHaveLength(1)
   expect(stored[0]!.description).toBe('Calls HTTP endpoints: GET /a&amp;b/:id, GET /c*d')
@@ -130,21 +122,15 @@ test.concurrent('a repository whose relationship rows carry hostile file names l
     ]
     const sources = `---\ntype: C4 Component\ntitle: Odd sources\nstatus: stable\ngroma:\n  id: odd-sources\n  parent: api\n  code:\n${code.join('\n')}\n---\n\nStores odd files.\n`
     const target = '---\ntype: C4 Component\ntitle: Plain target\nstatus: stable\ngroma:\n  id: plain-target\n  parent: api\n  code:\n    - scanner: fixture\n      file: src/plain.md\n---\n\nStores the plain target.\n'
-    await writeFile(path.join(root, 'groma/systems/backend/containers/api/components/odd-sources.md'), sources)
     await writeFile(path.join(root, 'groma/systems/backend/containers/api/components/plain-target.md'), target)
-    let relationships = empty
-    for (const name of [...hostile.map(name => `src/${name}`), 'src/c\nd.md']) {
-      relationships = withRelationship(relationships, {
-        sourceName: name, sourceHref: `../${name}`,
-        targetName: 'src/plain.md', targetHref: '../src/plain.md',
-        description: 'Calls the target', technology: 'HTTPS',
-      })
-    }
-    await writeFile(path.join(root, 'groma/relationships.md'), relationships)
+    const names = [...hostile, 'c\nd.md']
+    const relationships = withStoredRelationships(sources, ownerDocument, names.map(name => rowFor(name)), new Map())
+    await writeFile(path.join(root, ownerDocument), relationships)
     const records = await loadArchitecture(root)
     const model = buildArchitectureModel(records.documents)
     const pairs = model.relationships
       .flatMap(relationship => (relationship.connections ?? []).map(connection => `${connection.source}->${connection.target}`))
+      .filter(pair => pair.endsWith('->src/plain.md'))
       .sort()
     expect(pairs).toEqual([...hostile.map(name => `src/${name}`), 'src/c\nd.md'].map(name => `${name}->src/plain.md`).sort())
   } finally {

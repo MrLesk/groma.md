@@ -25,3 +25,10 @@ groma:
 ---
 
 Accounts worker of Accounts.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/accounts/worker.ts](../../../../../../src/identity/accounts/worker.ts) | [src/identity/accounts/scheduler.ts](../../../../../../src/identity/accounts/scheduler.ts) | Calls scheduler | HTTP |
+| [src/identity/accounts/worker.ts](../../../../../../src/identity/accounts/worker.ts) | [src/identity/accounts/metrics.ts](../../../../../../src/identity/accounts/metrics.ts) | Reads metrics | HTTP |

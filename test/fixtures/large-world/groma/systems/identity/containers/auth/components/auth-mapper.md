@@ -13,3 +13,10 @@ groma:
 ---
 
 Auth mapper of Auth.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/auth/mapper.ts](../../../../../../src/identity/auth/mapper.ts) | [src/identity/auth/reader.ts](../../../../../../src/identity/auth/reader.ts) | Calls reader | HTTP |
+| [src/identity/auth/mapper.ts](../../../../../../src/identity/auth/mapper.ts) | [src/identity/auth/writer.ts](../../../../../../src/identity/auth/writer.ts) | Reads writer | HTTP |

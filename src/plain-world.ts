@@ -1,4 +1,5 @@
 import { draftRecordOf } from './architecture-model.ts'
+import { sourceIndex } from './source-index.ts'
 import { annotateArchitecture, originOf } from './core.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { emptyWorldLines, isEmptyWorld } from './empty-world.ts'
@@ -6,7 +7,7 @@ import { loadProjectProfile } from './project-profile.ts'
 import { readDocument } from './markdown-emitter.ts'
 import { missingOwnerReason } from './source-coverage.ts'
 import { listPage, listWindowFooter, type ListWindow } from './list-window.ts'
-import { RELATIONSHIPS_TYPE, requireGromaMapping } from './okf-profile.ts'
+import { requireGromaMapping } from './okf-profile.ts'
 import { ancestorIds, parentOfElements, showsRelationshipText } from './viewers/relationship-text.ts'
 import type {
   AnnotatedElement,
@@ -259,7 +260,7 @@ async function fileAnswer(
   file: string,
   window: ListWindow,
 ): Promise<PlainRecordResult> {
-  const owner = world.elements.find(element => element.code.some(reference => reference.file === file))
+  const owner = sourceIndex(world.elements).owner(file)
   if (owner === undefined) return { ok: false, message: await missingOwnerReason(repositoryRoot, file) }
   const { incoming, outgoing } = fileConnections(world, file)
   const text = pagedAnswer({
@@ -285,7 +286,6 @@ export async function renderPlainRecord(
   const element = plain ? model.elements.find(item => item.id === target) : undefined
   if (element !== undefined) return { ok: true, text: `${formatPlainElement(model, element, window)}\n` }
   const documents = [...records.documents, ...records.flows]
-    .filter(document => document.frontmatter.type !== RELATIONSHIPS_TYPE)
   const documentById = new Map(documents.map(document => [
     requireGromaMapping(document.frontmatter, document.sourceFilename).id,
     document,

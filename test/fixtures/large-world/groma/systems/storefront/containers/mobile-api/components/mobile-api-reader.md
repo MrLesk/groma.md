@@ -16,3 +16,10 @@ groma:
 ---
 
 Mobile Api reader of Mobile Api.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/mobile-api/reader.ts](../../../../../../src/storefront/mobile-api/reader.ts) | [src/storefront/mobile-api/writer.ts](../../../../../../src/storefront/mobile-api/writer.ts) | Calls writer | HTTP |
+| [src/storefront/mobile-api/reader.ts](../../../../../../src/storefront/mobile-api/reader.ts) | [src/storefront/mobile-api/queue.ts](../../../../../../src/storefront/mobile-api/queue.ts) | Reads queue | HTTP |

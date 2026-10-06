@@ -21,3 +21,9 @@ groma:
 ---
 
 Auth logger of Auth.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/auth/logger.ts](../../../../../../src/identity/auth/logger.ts) | [src/identity/auth/client.ts](../../../../../../src/identity/auth/client.ts) | Calls client | HTTP |

@@ -21,3 +21,9 @@ groma:
 ---
 
 Checkout logger of Checkout.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/checkout/logger.ts](../../../../../../src/orders/checkout/logger.ts) | [src/orders/checkout/client.ts](../../../../../../src/orders/checkout/client.ts) | Calls client | HTTP |

@@ -5,7 +5,7 @@ import {
   ArchitectureModelError,
   buildArchitectureModel,
 } from '../src/architecture-model.ts'
-import { elementDocument, relationshipDocument } from './architecture-model-helpers.ts'
+import { elementDocument, withRelationships } from './architecture-model-helpers.ts'
 
 for (const {
   name,
@@ -107,20 +107,19 @@ for (const {
   {
     name: 'reports an unresolved relationship link at its source document',
     documents: [
-      elementDocument({
+      withRelationships(elementDocument({
         id: 'architect',
         kind: 'actor',
         sourceFilename: 'groma/actors/architect.md',
-      }),
-      relationshipDocument([{
-          sourceHref: 'actors/architect.md',
-          href: 'systems/missing/system.md',
+      }), [{
+          sourceHref: 'architect.md',
+          href: '../systems/missing/system.md',
           description: 'Uses missing software',
           technology: 'Browser',
         }]),
     ],
     code: 'UNKNOWN_RELATIONSHIP_TARGET',
-    sourceFilename: 'groma/relationships.md',
+    sourceFilename: 'groma/actors/architect.md',
   },
 ]) {
   test(name, { concurrency: true }, () => {

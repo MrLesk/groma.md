@@ -19,3 +19,10 @@ groma:
 ---
 
 Media writer of Media.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/catalog/media/writer.ts](../../../../../../src/catalog/media/writer.ts) | [src/catalog/media/queue.ts](../../../../../../src/catalog/media/queue.ts) | Calls queue | HTTP |
+| [src/catalog/media/writer.ts](../../../../../../src/catalog/media/writer.ts) | [src/catalog/media/worker.ts](../../../../../../src/catalog/media/worker.ts) | Reads worker | HTTP |

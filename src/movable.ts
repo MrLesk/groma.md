@@ -1,3 +1,4 @@
+import { withoutRelationshipSections } from './relationship-storage.ts'
 import type { ArchitectureElement, ArchitectureFlow, ArchitectureRelationship } from './types.ts'
 
 /**
@@ -11,7 +12,7 @@ export function moveBlocker(
   relationships: readonly ArchitectureRelationship[],
   flows: readonly ArchitectureFlow[],
 ): string | undefined {
-  if (element.kind === 'component' && body.trim() !== '') return `cannot move "${element.id}" because it has authored meaning`
+  if (element.kind === 'component' && withoutRelationshipSections(body).trim() !== '') return `cannot move "${element.id}" because it has authored meaning`
   const flow = flows.find(item => item.steps.some(step => step.source === element.id || step.target === element.id))
   if (flow !== undefined) return `cannot move "${element.id}" while flow ${flow.id} names it`
   const named = relationships.some(relationship => relationship.connections.some(connection => connection.authored

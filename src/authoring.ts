@@ -8,6 +8,7 @@ import { editArchitecture } from './edit.ts'
 import type { EditArchitectureInput } from './edit.ts'
 import { removeThing } from './remove.ts'
 import type { RemoveInput } from './remove.ts'
+import { GromaFileSystem } from './groma-filesystem.ts'
 
 export interface AcceptInput {
   id: string
@@ -41,11 +42,17 @@ async function acceptThing(repositoryRoot: string, input: AcceptInput): Promise<
   return input.id
 }
 
-/** The writes the web shares with the CLI, by verb. The CLI builds each input from its flags and the web posts the same input. */
+/** Keep each verb's overloads while wrapping every call in the same storage boundary. */
+function protectedWrite<Write extends (root: string, input: never) => Promise<unknown>>(write: Write): Write {
+  return ((root: string, input: never) =>
+    GromaFileSystem.open(root).withAccess(() => write(root, input))) as Write
+}
+
+/** The writes the web shares with the CLI. Storage protects the complete operation, including its first read. */
 export const writes = {
-  draft: draftThing,
-  add: addThing,
-  edit: editArchitecture,
-  remove: removeThing,
-  accept: acceptThing,
+  draft: protectedWrite(draftThing),
+  add: protectedWrite(addThing),
+  edit: protectedWrite(editArchitecture),
+  remove: protectedWrite(removeThing),
+  accept: protectedWrite(acceptThing),
 }

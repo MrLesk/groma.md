@@ -109,11 +109,11 @@ test.concurrent('details list a combined pair once with its exact relationships 
 })
 
 test.concurrent('the Tasks tab exists only while the selected component has linked work', () => {
-  const inspected = { technology: [], files: [] }
+  const inspected = { technology: '', files: [] }
   expect(detailsTabs(inspected, [])).toEqual(['what'])
   expect(detailsTabs(inspected, [{ items: [] }])).toEqual(['what'])
   expect(detailsTabs(inspected, [{ items: [{}] }])).toEqual(['what', 'tasks'])
-  expect(detailsTabs({ ...inspected, technology: ['Bun'] }, [])).toEqual(['what', 'how'])
+  expect(detailsTabs({ ...inspected, technology: 'Bun' }, [])).toEqual(['what', 'how'])
 })
 
 test.concurrent('the build tab resets only when the primary selection changes', () => {

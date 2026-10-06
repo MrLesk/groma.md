@@ -19,3 +19,10 @@ groma:
 ---
 
 Directory session of Directory.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/directory/session.ts](../../../../../../src/identity/directory/session.ts) | [src/identity/directory/cache.ts](../../../../../../src/identity/directory/cache.ts) | Calls cache | HTTP |
+| [src/identity/directory/session.ts](../../../../../../src/identity/directory/session.ts) | [src/identity/directory/validator.ts](../../../../../../src/identity/directory/validator.ts) | Reads validator | HTTP |

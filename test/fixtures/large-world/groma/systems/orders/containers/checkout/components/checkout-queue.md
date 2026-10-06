@@ -22,3 +22,10 @@ groma:
 ---
 
 Checkout queue of Checkout.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders/checkout/queue.ts](../../../../../../src/orders/checkout/queue.ts) | [src/orders/checkout/worker.ts](../../../../../../src/orders/checkout/worker.ts) | Calls worker | HTTP |
+| [src/orders/checkout/queue.ts](../../../../../../src/orders/checkout/queue.ts) | [src/orders/checkout/scheduler.ts](../../../../../../src/orders/checkout/scheduler.ts) | Reads scheduler | HTTP |

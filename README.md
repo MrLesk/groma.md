@@ -33,21 +33,26 @@
   <a href="https://mrlesk.github.io/groma.md/architecture/auto/"><img src=".github/assets/explore-live-map.svg" alt="Explore the live map" width="232" height="48"></a>
 </p>
 
-groma.md scans your code into a first [C4](https://c4model.com) architecture map. Your coding agent curates it into the architecture you would explain to a new teammate, and the map stays open while you and your agents work. Save a file and the map updates. Work on a [Backlog.md](https://github.com/MrLesk/Backlog.md) task and it appears pinned to the components it touches. Everything is plain Markdown in your repository, so architecture changes are reviewed in the same pull request as the code.
+groma.md scans your code into a first [C4](https://c4model.com) architecture map. You can curate it into the architecture you would explain to a new teammate, either yourself or with your coding agent. The map stays open while you work. Save a file and the map updates. Work on a [Backlog.md](https://github.com/MrLesk/Backlog.md) task and it appears pinned to the components it touches. Everything is plain Markdown in your repository, so architecture changes are reviewed in the same pull request as the code.
 
-Free, MIT-licensed, and local. No account or backend, and groma.md itself calls no AI service: curation uses the coding agent you already work with.
+Want automatic architecture diffs on your PRs? **[Add them to your repository.](https://github.com/MrLesk/groma.md-action/pull/4)**
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/assets/workflow-dark.png">
     <source media="(prefers-color-scheme: light)" srcset=".github/assets/workflow-light.png">
-    <img src=".github/assets/workflow-light.png" alt="groma.md scans your repository with a deterministic scan into a first map, a starting point. Your coding agent curates it: it names, merges and connects components into your architecture, stored as C4 Markdown in Git. The map stays live as your code changes, and later scans keep your agent's work." width="100%">
+    <img src=".github/assets/workflow-light.png" alt="groma.md scans your repository with a deterministic scan into a first map, a starting point. You or your coding agent curate it: name, merge and connect components into your architecture, stored as C4 Markdown in Git. The map stays live as your code changes, and later scans keep your curation." width="100%">
   </picture>
 </p>
 
+> [!NOTE]
+> groma.md is free, MIT-licensed, and runs locally with no account or backend. Scans run offline once the scanners are installed. They use deterministic code analysis (fixed rules) and call no AI service. The initial map is limited to what the scanners can detect.
+>
+> We recommend reviewing and curating the map at least once after the first scan to check its names, responsibilities, boundaries, and relationships. You can do this yourself with groma.md's commands, or ask your coding agent to help and review its changes. **You can use groma.md entirely without AI.**
+
 ## Get started
 
-Three steps. The scan gives you a first map; your agent turns it into your architecture.
+Three steps. Scan your code, then review and curate the map yourself or with your coding agent.
 
 ### 1. Install
 
@@ -64,17 +69,17 @@ cd your-repo
 groma web     # browser map on http://localhost:4747
 ```
 
-On a new project, `groma web` walks you through project setup and scanner selection, then runs the first scan. The scan is deterministic: it turns your source into components and the relationships a scanner can detect. That first map is a starting point you can recognize and navigate, not your architecture yet.
+On a new project, `groma web` walks you through project setup and scanner selection, then runs the first scan and opens the map.
 
-### 3. Curate with your agent
+### 3. Review and curate
 
-Your coding agent turns the first scan into architecture. It reads the code, names responsibilities, merges records that belong together, and adds the relationships the scanner cannot see. Keep the map open while it works: every change it makes appears on the map. Ask your agent:
+Compare the map with your code and your knowledge of the system. Name responsibilities, combine records that belong together, and add missing descriptions and relationships. Run `groma instructions` for the human guides and use `--help` for each command. Keep the map open while you work: your changes appear on it. If you use a coding agent, you can ask it:
 
 ```text
 Read the current groma.md architecture with `groma agent-instructions` and `groma view --plain`. Compare it with the source code, then annotate the architecture so it reflects the code: combine records that share a responsibility, add missing overviews and relationships, and keep Backlog.md task links current. Use groma.md's CLI for architecture changes, then summarize what you changed.
 ```
 
-Setup registers groma.md in your `AGENTS.md` or `CLAUDE.md`, so your agent knows where to start. Later scans keep what your agent wrote.
+Setup registers groma.md in your `AGENTS.md` or `CLAUDE.md`, so your agent knows where to start. Later scans keep your curation, whether you or an agent made the changes.
 
 ## Work with your agent
 
@@ -112,13 +117,44 @@ The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](ht
 | [C#/.NET](docs/scanners/dotnet-csharp/index.md) | ✅ Available |
 | [Go](docs/scanners/go/index.md) | ✅ Available |
 | [Java (Maven, Gradle)](docs/scanners/java/index.md) | ✅ Available |
+| [Scala 3](docs/scanners/scala/index.md) | 🧪 Experimental |
 | [Python](docs/scanners/python/index.md) | ✅ Available |
 | [Rust](docs/scanners/rust/index.md) | ✅ Available |
 | [PHP](docs/scanners/php/index.md) | ✅ Available |
 | [Swift](docs/scanners/swift/index.md) | ✅ Available |
+| [COBOL (IBM fixed format)](docs/scanners/cobol/index.md) | 🧪 Experimental |
+| [Assembly (NASM x86-64, Linux ELF64)](docs/scanners/nasm/index.md) | 🧪 Experimental |
 | Your favorite language or framework | [Submit an issue with your request](https://github.com/MrLesk/Groma.md/issues) |
 
 More languages arrive as [scanner plugins](docs/scanners/creating-a-plugin.md); add your own with `groma scanner add`. Each scanner's page describes what it reads. See [which relationships groma.md detects](docs/relationship-inference.md#current-inference-rule).
+
+## FAQ
+
+> ### Why can't I just ask my agent to draw an architecture diagram?
+
+You can, and the diagram will be right on the day it is drawn. After that it is a static picture: it falls behind with every commit, and asking again gives you a new drawing that you cannot compare with the old one.
+
+groma.md keeps the architecture live. Your agent's curation is saved as Markdown in your repository, and the map follows the code from there: saving a file updates it, later scans keep what your agent wrote, and you can compare any two commits, or your uncommitted changes, to see how the architecture changed.
+
+> ### Does groma.md send my code anywhere?
+
+No. groma.md runs on your machine and needs no account. It reads your repository, writes Markdown into it, and serves the map on localhost. It calls no AI service. You can curate the map yourself; if you use a coding agent, check how that agent handles your code. groma.md's only network requests look up and download the scanner packages you install.
+
+> ### Won't the next scan overwrite what my agent wrote?
+
+No. Once a document exists, scans refresh only its code references: the symbols in the files it owns. Names, descriptions, groups, the files your agent combined, and the relationships it added stay as written. New files arrive as new components for your agent to place.
+
+> ### Can I see architecture changes in pull requests?
+
+Yes. The architecture is Markdown in the same repository, so its changes are part of the pull request. On public repositories, the groma.md GitHub Action comments on every pull request with the number of changed components and relationships and a link to a before and after map. [Add it to your repository.](https://github.com/MrLesk/groma.md-action/pull/4)
+
+> ### What happens if I stop using groma.md?
+
+Nothing breaks. The architecture stays in your repository as ordinary Markdown in the Open Knowledge Format: one document per element, linked to each other, readable on GitHub or in any editor. To remove groma.md, delete the `groma/` folder and the block between `<!-- groma:start -->` and `<!-- groma:end -->` in your AGENTS.md or CLAUDE.md.
+
+> ### Which languages does it support?
+
+TypeScript, JavaScript, Angular, React, Vue, C#/.NET, Go, Java, Scala 3, Python, Rust, PHP, Swift, COBOL, and NASM assembly, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
 
 ## Experimental
 

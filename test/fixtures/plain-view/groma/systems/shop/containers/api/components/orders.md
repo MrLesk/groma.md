@@ -30,3 +30,9 @@ The routes call the order lifecycle implementation.
 ## Notes
 
 Review [the source](../../../../../../src/orders.ts) before changing the lifecycle.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/orders.ts](../../../../../../src/orders.ts) | [src/stock.ts](../../../../../../src/stock.ts) | talks to | Function call |

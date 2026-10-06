@@ -12,3 +12,10 @@ groma:
 ---
 
 Sessions scheduler of Sessions.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/identity/sessions/scheduler.ts](../../../../../../src/identity/sessions/scheduler.ts) | [src/identity/sessions/metrics.ts](../../../../../../src/identity/sessions/metrics.ts) | Calls metrics | HTTP |
+| [src/identity/sessions/scheduler.ts](../../../../../../src/identity/sessions/scheduler.ts) | [src/identity/sessions/config.ts](../../../../../../src/identity/sessions/config.ts) | Reads config | HTTP |

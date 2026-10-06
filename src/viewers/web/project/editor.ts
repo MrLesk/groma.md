@@ -2,6 +2,7 @@ import { createHtmlRenderer } from '@comark/html'
 import security from 'comark/plugins/security'
 
 import type { ProjectProfile } from '../../../project-profile.ts'
+import { changedEdit, type EditValues } from '../../../authoring-conflict.ts'
 
 const renderMarkdown = createHtmlRenderer({
   plugins: [security({
@@ -121,7 +122,7 @@ function placeEditor(dialog: HTMLDialogElement, anchor: Element, line: HTMLEleme
 }
 
 export function createProjectEditor(
-  save: (input: { title: string; description: string; overview: string }) => Promise<void>,
+  save: (input: EditValues & { original: EditValues }) => Promise<void>,
 ) {
   const dialog = document.createElement('dialog')
   dialog.id = 'project-editor'
@@ -140,6 +141,7 @@ export function createProjectEditor(
   const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!
   const error = form.querySelector<HTMLElement>('.error')!
   let anchor: Element | undefined
+  let original: EditValues = {}
 
   window.addEventListener('resize', () => {
     if (dialog.open && anchor !== undefined) placeEditor(dialog, anchor, line)
@@ -171,11 +173,12 @@ export function createProjectEditor(
     submit.disabled = true
     error.textContent = ''
     try {
-      await save({
+      const input = changedEdit(original, {
         title: title.value,
         overview: overview.value,
         description: description.value,
       })
+      if (Object.keys(input.original).length) await save(input)
       dialog.close()
     } catch (cause) {
       error.textContent = cause instanceof Error ? cause.message : String(cause)
@@ -191,6 +194,7 @@ export function createProjectEditor(
       title.value = profile.title
       description.value = profile.description ?? ''
       overview.value = profile.overview
+      original = { title: title.value, description: description.value, overview: overview.value }
       error.textContent = ''
       void showMode('write')
       dialog.showModal()

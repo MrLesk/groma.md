@@ -25,3 +25,10 @@ groma:
 ---
 
 Session Store worker of Session Store.
+
+## Relationships
+
+| Source | Target | Description | Technology |
+| --- | --- | --- | --- |
+| [src/storefront/session-store/worker.ts](../../../../../../src/storefront/session-store/worker.ts) | [src/storefront/session-store/scheduler.ts](../../../../../../src/storefront/session-store/scheduler.ts) | Calls scheduler | HTTP |
+| [src/storefront/session-store/worker.ts](../../../../../../src/storefront/session-store/worker.ts) | [src/storefront/session-store/metrics.ts](../../../../../../src/storefront/session-store/metrics.ts) | Reads metrics | HTTP |

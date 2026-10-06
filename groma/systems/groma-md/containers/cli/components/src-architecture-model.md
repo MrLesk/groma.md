@@ -19,8 +19,11 @@ groma:
       file: src/architecture-path.ts
     - scanner: typescript
       file: src/naming.ts
+    - scanner: typescript
+      file: src/source-index.ts
+      symbol: sourceIndex
   group: Architecture records
 description: Builds the in-memory C4 model from stored Markdown records
 ---
 
-Checks element identity, status, and C4 parent rules. Builds the shared architecture model from the stored records.
+Checks element identity, status, and C4 parent rules. Builds the shared architecture model from stored records. Owns the derived source index for each loaded elements snapshot: exact element IDs and repository-relative source files resolve to their current owners. Repeated lookups reuse it; replacement snapshots build their own index. Filesystem reads and watch updates remain in the delivery code.
