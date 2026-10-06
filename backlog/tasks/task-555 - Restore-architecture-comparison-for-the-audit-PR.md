@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-06 10:24'
-updated_date: '2026-10-06 10:30'
+updated_date: '2026-10-06 10:37'
 labels: []
 dependencies: []
 references:
@@ -1096,4 +1096,6 @@ Conflict resolution: current main already supplies the atomic replacement reques
 
 <!-- SECTION:NOTES:BEGIN -->
 The three textual conflicts are resolved: the workflow keeps main comparison/deployment steps and the audit pins; GromaFileSystem uses main atomic replacement, project lock, and index maintenance; the removed central relationship emitter stays removed. The audit escaping helpers now belong to relationship-storage, and its existing regressions use source-owned documents. Focused filesystem and relationship checks pass: 10 tests, 43 assertions. Typecheck and git diff --check pass. The main/PR architecture difference is empty after integration, so existing C4 elements and flows retain exactly the meaning already approved on main.
+
+Full bun run check passes: 798 Bun tests passed, 51 optional skips, zero failures, plus Node tests, lint and typecheck. The official Action comparison using released Groma 0.6.5 exported main b759b199 to integrated PR 9c71e41c: 16 modified components and no added/removed components or relationship changes. Integration specification and quality reviews pass: current architecture is unchanged from main; source-owned relationship escaping preserves the audit cases; current atomic filesystem implementation owns locking and replacement. The independent reusable Action version-selection fix is tracked at MrLesk/groma.md-action#5.
 <!-- SECTION:NOTES:END -->
