@@ -2,16 +2,19 @@ import type { C4Kind } from '../../../types.ts'
 import { kindLabel } from '../../atoms/kind.ts'
 import type { LayeredScene } from '../iso/projection/separation.ts'
 
-/** The shared ● ■ ▱ ▪ marks, with crisp geometry and gently rounded square corners. */
-const kinds: { kind: C4Kind; icon: string }[] = [
-  { kind: 'actor', icon: '<circle cx="12" cy="12" r="7" fill="currentColor" stroke="none"/>' },
-  { kind: 'system', icon: '<rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor" stroke="none"/>' },
-  { kind: 'container', icon: '<path d="M8 6h13l-5 12H3L8 6Z"/>' },
-  { kind: 'component', icon: '<rect x="8" y="8" width="8" height="8" rx="1.3" fill="currentColor" stroke="none"/>' },
+type MapFilter = C4Kind | 'relationship'
+
+/** The shared ● ■ ▱ ▪ element marks and a directed relationship arrow. */
+const filters: { filter: MapFilter; icon: string }[] = [
+  { filter: 'actor', icon: '<circle cx="12" cy="12" r="7" fill="currentColor" stroke="none"/>' },
+  { filter: 'system', icon: '<rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor" stroke="none"/>' },
+  { filter: 'container', icon: '<path d="M8 6h13l-5 12H3L8 6Z"/>' },
+  { filter: 'component', icon: '<rect x="8" y="8" width="8" height="8" rx="1.3" fill="currentColor" stroke="none"/>' },
+  { filter: 'relationship', icon: '<path d="M4 12h16m-5-5 5 5-5 5"/>' },
 ]
 
 /** Visibility changes presentation only: retained geometry and camera bounds stay identical. */
-export function filterC4Scene(scene: LayeredScene, hidden: ReadonlySet<C4Kind>): LayeredScene {
+export function filterC4Scene(scene: LayeredScene, hidden: ReadonlySet<MapFilter>): LayeredScene {
   if (hidden.size === 0) return scene
   const islands = scene.islands.filter(({ island }) => !hidden.has(island.kind === 'actors' ? 'actor' : 'system'))
   const slabs = hidden.has('container') ? [] : scene.slabs
@@ -24,27 +27,27 @@ export function filterC4Scene(scene: LayeredScene, hidden: ReadonlySet<C4Kind>):
   return {
     ...scene, islands, slabs, buildings,
     zones: scene.zones.filter(({ zone }) => zone.members.some(id => visible.has(id))),
-    routes: scene.routes.filter(({ route }) => visible.has(route.source) && visible.has(route.target)),
+    routes: hidden.has('relationship') ? [] : scene.routes.filter(({ route }) => visible.has(route.source) && visible.has(route.target)),
     layerPlanes: scene.layerPlanes.filter(plane => !hidden.has(plane.layer)),
   }
 }
 
 export function c4FilterControl(): string {
-  return `<div id="c4-filter" class="floating-map-bar" role="group" aria-label="C4 element filters">${kinds.map(({ kind, icon }) => {
-    const label = `${kindLabel(kind)}s`
-    return `<button type="button" data-kind="${kind}" aria-label="${label}" aria-pressed="true" aria-controls="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icon}</svg><span class="c4-tooltip" aria-hidden="true">${label}</span></button>`
+  return `<div id="c4-filter" class="floating-map-bar" role="group" aria-label="Map filters">${filters.map(({ filter, icon }) => {
+    const label = filter === 'relationship' ? 'Relationships' : `${kindLabel(filter)}s`
+    return `<button type="button" data-filter="${filter}" aria-label="${label}" aria-pressed="true" aria-controls="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icon}</svg><span class="c4-tooltip" aria-hidden="true">${label}</span></button>`
   }).join('')}</div>`
 }
 
 /** The control owns page-local visibility; every projection uses its current selection. */
 export function bindC4Filter(host: HTMLElement, repaint: () => void): (scene: LayeredScene) => LayeredScene {
-  const hidden = new Set<C4Kind>()
-  for (const button of host.querySelectorAll<HTMLButtonElement>('button[data-kind]')) {
+  const hidden = new Set<MapFilter>()
+  for (const { filter } of filters) {
+    const button = host.querySelector<HTMLButtonElement>(`button[data-filter="${filter}"]`)!
     button.addEventListener('click', () => {
-      const kind = button.dataset.kind as C4Kind
-      if (hidden.has(kind)) hidden.delete(kind)
-      else hidden.add(kind)
-      button.setAttribute('aria-pressed', String(!hidden.has(kind)))
+      if (hidden.has(filter)) hidden.delete(filter)
+      else hidden.add(filter)
+      button.setAttribute('aria-pressed', String(!hidden.has(filter)))
       repaint()
     })
   }

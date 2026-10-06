@@ -9,7 +9,7 @@ groma:
     - scanner: typescript
       file: src/viewers/web/chrome/c4-filter.ts
   group: Browser controls
-description: Shows or hides C4 kinds on the browser map without changing records
+description: Shows or hides element kinds and relationships on the browser map
 ---
 
-Selects which C4 element kinds appear in the browser map. Applies the selection to the displayed scene without changing the stored architecture.
+Owns the page-local map filters. The same control toggles C4 element kinds and relationship visibility before the projected scene is painted. Filtering preserves layout, camera, selection, and stored architecture; showing relationships restores only routes whose endpoints are visible.

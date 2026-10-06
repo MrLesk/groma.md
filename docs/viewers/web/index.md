@@ -399,9 +399,13 @@ These are derived views of existing OKF records and C4 components, not new
 stored knowledge or architecture levels.
 
 The floating icon bar beside the hierarchy toggles Actors, Systems, Containers,
-and Components on the map. Its icons follow the existing ● ■ ▱ ▪ marks with
-clean geometry and gently rounded corners. All four start visible. Hover or keyboard focus shows
-each icon's label; pressed buttons mark visible types. Hiding a type hides its
+Components, and Relationships on the map. Its element icons follow the existing
+● ■ ▱ ▪ marks with clean geometry and gently rounded corners; an arrow represents
+relationships. All five start visible. Hover or keyboard focus shows
+each icon's label; pressed buttons mark visible content. Hiding Relationships
+hides all map lines, including highlighted routes, while relationships remain
+available in the details and flow readers. Showing them again restores only
+routes whose endpoints are visible. Hiding an element type hides its
 map bodies, connections with hidden endpoints, and attached task pins. Children
 of a hidden boundary remain visible when their own type is enabled. Filtering
 keeps layout, camera, hierarchy, and stored architecture unchanged. Choices stay
