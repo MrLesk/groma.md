@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { cp, mkdtemp, open, readFile, rm } from 'node:fs/promises'
+import { cp, link, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -98,16 +98,18 @@ test.concurrent('architecture reads wait until a multi-document change finishes'
   }
 })
 
-test.concurrent('replacing a document leaves an already-open reader on the complete previous file', async () => {
+test.concurrent('replacing a document preserves the complete previous file', async () => {
   const { root, filesystem } = await fixture()
-  const previous = await open(filesystem.absolute(stock), 'r')
+  const previous = path.join(root, 'previous-stock.md')
   try {
-    const before = await readFile(filesystem.absolute(stock), 'utf8')
+    const before = await filesystem.read(stock)
+    // A second name detects in-place writes without holding a Windows file handle open.
+    await link(filesystem.absolute(stock), previous)
     await writes.edit(root, { id: 'stock', title: 'Replacement' })
-    expect(await previous.readFile('utf8')).toBe(before)
-    expect(await filesystem.read(stock)).not.toBe(before)
+    expect(await readFile(previous, 'utf8')).toBe(before)
+    const element = (await loadAnnotatedArchitecture(root)).elements.find(element => element.id === 'stock')!
+    expect(element.title).toBe('Replacement')
   } finally {
-    await previous.close()
     await rm(root, { recursive: true, force: true })
   }
 })
