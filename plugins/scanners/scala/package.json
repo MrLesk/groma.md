@@ -4,23 +4,20 @@
   "private": false,
   "type": "module",
   "license": "MIT",
-  "description": "Scala 3.9 source evidence from sbt 2 builds; dependencies and runtime use are not verified.",
+  "description": "Experimental Scala 3 source declarations, outlines and bounded call evidence.",
   "groma": {
     "scanner": {
       "id": "scala",
       "entry": "./src/index.ts",
       "include": [
-        "**/*.scala",
-        "**/build.sbt",
-        "**/project/*.scala",
-        "**/project/*.sbt",
-        "**/project/build.properties"
+        "**/*.scala"
       ],
       "exclude": [
         "target/",
-        "project/target/",
+        "project/",
         ".bloop/",
-        ".metals/"
+        ".metals/",
+        "src/test/"
       ],
       "discovery": {
         "technologies": [
@@ -30,15 +27,15 @@
           {
             "type": "file",
             "files": [
-              "**/build.sbt"
+              "**/*.scala"
             ],
             "technology": "scala",
             "kind": "language",
-            "declaration": "sbt build; Scala version unresolved"
+            "declaration": "Scala source; compiler version and build configuration unverified"
           }
         ],
         "compatibility": {
-          "groma": ">=0.5.0"
+          "groma": ">=0.6.6"
         }
       }
     }

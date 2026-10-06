@@ -1,21 +1,20 @@
 package md.groma.scanner
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Path}
 import scala.meta.*
 import scala.meta.dialects.Scala3
 import scala.meta.parsers.Parsed
 
-case class ParsedFile(relative: String, source: Source)
-
-case class ParseFailure(relative: String, line: Int, message: String)
-
 object Parse {
   private given dialect: Dialect = Scala3
 
-  def read(relative: String, text: String): Either[ParseFailure, ParsedFile] =
-    text.parse[Source] match {
-      case Parsed.Success(parsedTree) =>
-        Right(ParsedFile(relative, parsedTree))
+  def read(root: Path, relative: String): Source = {
+    val text = Files.readString(root.resolve(relative), StandardCharsets.UTF_8)
+    Input.VirtualFile(relative, text).parse[Source] match {
+      case Parsed.Success(source) => source
       case error: Parsed.Error =>
-        Left(ParseFailure(relative, error.pos.startLine + 1, error.message))
+        throw new IllegalArgumentException(s"$relative:${error.pos.startLine + 1}: ${error.message}")
     }
+  }
 }

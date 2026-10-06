@@ -215,6 +215,7 @@ authored relationships remain intact.
 - [TypeScript](typescript/index.md)
 - [Python](python/index.md)
 - [PHP](php/index.md)
+- [Scala 3](scala/index.md)
 - [COBOL](cobol/index.md)
 - [NASM assembly](nasm/index.md)
 - [C#/.NET](dotnet-csharp/index.md)

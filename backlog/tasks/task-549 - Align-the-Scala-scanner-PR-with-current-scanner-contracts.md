@@ -5,12 +5,13 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-06 07:49'
-updated_date: '2026-10-06 07:53'
+updated_date: '2026-10-06 08:21'
 labels: []
 dependencies: []
 references:
   - 'https://github.com/MrLesk/groma.md/pull/110'
   - modules-discovery
+  - scala-src-index
 documentation:
   - docs/scanners/creating-a-plugin.md
   - docs/scanners/evidence.md
@@ -94,6 +95,15 @@ modified_files:
   - test/fixtures/scala-sbt-single/project/build.properties
   - test/fixtures/scala-sbt-single/src/main/scala/Shop.scala
   - test/fixtures/scala-sbt-single/src/test/scala/ShopSpec.scala
+  - plugins/scanners/scala/THIRD-PARTY-NOTICES.txt
+  - test/fixtures/scala-parse/Rules.scala
+  - test-bun/scanner-fresh-checkout.test.ts
+  - test-bun/scanner-release.test.ts
+  - docs/scanners/index.md
+  - groma/systems/groma-md/components/adapter.md
+  - groma/systems/groma-md/components/process.md
+  - groma/systems/groma-md/components/scala-src-index.md
+  - groma/systems/groma-md/containers/cli/components/scala-src-index.md
 type: feature
 ordinal: 632000
 ---
@@ -107,10 +117,10 @@ PR #110 adds a Scala 3 scanner using Scalameta, but it predates current main and
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 The contributor PR branch includes the latest main, preserves unrelated changes, and is linked to this task.
-- [ ] #2 The installed Scala scanner inventories and outlines selected Scala source without project builds, dependency installation, scan-time downloads, or a separately installed language SDK.
-- [ ] #3 Source selection, original locations, call certainty, and parse failures follow the shared scanner contracts; source facts do not invent architecture boundaries or relationships.
-- [ ] #4 Discovery, package builds, source listing, and documentation agree on the supported Scala scope and use the existing scanner delivery flow.
-- [ ] #5 Focused scanner and installed-package checks, the repository check, and the required review loop pass with recorded evidence.
+- [x] #2 The installed Scala scanner inventories and outlines selected Scala source without project builds, dependency installation, scan-time downloads, or a separately installed language SDK.
+- [x] #3 Source selection, original locations, call certainty, and parse failures follow the shared scanner contracts; source facts do not invent architecture boundaries or relationships.
+- [x] #4 Discovery, package builds, source listing, and documentation agree on the supported Scala scope and use the existing scanner delivery flow.
+- [x] #5 Focused scanner and installed-package checks, the repository check, and the required review loop pass with recorded evidence.
 <!-- AC:END -->
 
 ## Definition of Done
@@ -124,13 +134,13 @@ PR #110 adds a Scala 3 scanner using Scalameta, but it predates current main and
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Merge current main into PR #110, preserve the contributor history, and retain Scala, COBOL and NASM in discovery and release assembly.
-2. Implement Alexs approved source-only approach: the scanner reads only host-selected .scala files, using a bundled Scalameta worker and Java runtime. Remove project sbt execution, module-model caching, build-tool imports from Groma core, and installed-Java fallback. Source selection belongs to existing include/exclude lists; no sbt module evaluation or new settings layer.
-3. Keep declarations, outlines and bounded source evidence in the existing contract. Fail scans on invalid selected syntax instead of publishing partial evidence; leave unproven calls uncertain. Temporary source groups are not C4 elements; core owns boundaries and existing OKF Markdown remains unchanged.
-4. Match the existing maintainer-build and package-assembly flow, bundle required tools and licenses, document the supported Scala dialect and limits, and remove obsolete sbt implementation/proposal material.
-5. Coverage rationale: the shared selection/fresh-checkout contract requires selected custom paths to scan without sbt, network, SDKs or source mutations; replace model-injection tests with one selected-source test and extend the existing relocated-package harness. The atomic observation contract requires a broken selected file to reject the scan; replace the partial-success test. The evidence contract requires correct source positions and no false certainty under shadowing; extend the current parser fixture minimally after reproducing that defect. Existing outline/token fixtures cover their original rules and will be retained where meaningful. Tests must run concurrently and must not rebuild shared worker output from several test files.
-6. Build the package, run focused checks, run the cold simplicity review, apply accepted deletions, then run bun run check and own specification/quality reviews followed by the full-context complexity review. Curate task source ownership with Groma CLI.
-7. Push scoped commits to the existing contributor branch, update PR title/description with TASK-549 and final supported behavior, and report checks and any remaining blockers. Do not merge or publish a release.
+1. Merge current main into the contributor branch without rewriting its history; preserve the existing COBOL/NASM additions.
+2. Read only host-selected .scala files through the bundled Scalameta parser and Java runtime. Existing include/exclude lists own source selection. No sbt model, cache, build evaluation, project dependencies, scan-time download, or installed-tool fallback.
+3. Emit declarations, operation/call UTF-16 positions and conservative unresolved calls. A bad selected file rejects the observation. Omit optional body fingerprints and their ranges. Packages and the single source root are evidence scopes; core owns C4 boundaries and existing OKF Markdown.
+4. Reuse existing maintainer builds, release assembly and relocated-package validation. Document experimental Scala 3 scope and ship upstream license texts. Remove obsolete sbt implementation, proposals and tests.
+5. Coverage: extend existing parser/outline examples for the shared source selection, atomic failure, position and outline contracts. Wrong custom-path selection, partial observations, shadowed-call certainty, missing calls, missing constructors/abstract methods and package-name flattening must fail. Existing tests lacked these cases; one isolated package test plus the existing fresh-checkout/release harnesses closes the gaps without shared worker builds.
+6. Run focused checks; cold simplicity review; accepted cleanup and focused recheck; bun run check; implementer specification/quality reviews; final full-context complexity review. Curate and rescan the existing CLI scanner component through Groma.
+7. Push to the existing draft PR #110, update its title/body and task linkage, and leave merging/releasing to later approval.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -141,4 +151,16 @@ No matching Scala task was found. PR head is 604a20a7507f560910976879baca727efd0
 Resolved release assembly conflicts by retaining Scala alongside the COBOL and NASM additions from main. Main-owned source and architecture changes remain intact.
 
 Alex explicitly approved replacing sbt module evaluation with source-only scanning and confirmed that scanners must be independent of installed tools. The source-only scope is now authorized. Main merge conflicts are resolved; its unrelated files and architecture are preserved.
+
+The original worker compiles with its pinned versions. Its first dependency download timed out at repo1.maven.org; the build succeeded using Maven Centrals official repo.maven.apache.org endpoint. Inspecting the built JAR found no license or notice entries: the custom assembly strategy discards them. Scalametas published POM declares BSD, not the Apache license stated by the PR build script. Maintainer packaging will retain upstream licenses and correct attribution.
+
+Evidence review: syntax alone cannot prove a call target, so all Scala calls remain unresolved. Body fingerprints are optional in the shared contract. The current normalizer also lacks local binding resolution; remove that optional output instead of adding a semantic analyzer to this PR. Scala will provide operations and original ranges but no duplicate-body findings. Outline contract gaps are reproduced by the existing ordinary class fixture (missing constructor); add a small abstract-method/top-level-lambda/package-name fixture to cover missing members and an object wrongly flattened because its name equals the package. Existing outline tests cover neither case. Extend the existing release assembly test with Scala because its new catalog entry requires the same host runtime merge; no separate release harness.
+
+Focused Scala package check passes (22 assertions), including custom source paths, strict parse failure, source positions, conservative call evidence, and outlines. Shared relocated-package harness passes (7 assertions) with empty home, no language tools on PATH, network fetch disabled, repeated scans identical, and unchanged checkout. Existing five-host runtime assembly checks pass including Scala. No body tokens or their optional ranges are emitted; declaration and invocation UTF-16 positions remain. A newer main CI/architecture fix arrived during implementation and has been merged. The cold simplicity review is running.
+
+Cold simplicity review passed without blockers. Accepted both deletions: folded the single-use process runner into adapter.ts and removed unused custom-root fixture build metadata. Scala source has one component in the existing CLI language-scanner group. No new C4 level or OKF metadata was introduced.
+
+Required check passed: bun run check; Node 16 pass, Bun 765 pass / 51 existing optional skips / 0 failures. Lint has one existing warning and two existing infos outside this change; changed Scala/package tests have no lint findings. Final Scala package and relocated no-tools test both pass after simplicity cleanup. Implementer specification review: approved selected-source flow, failure/position/outline contracts, discovery, package assembly, documentation and task linkage are satisfied; pushing the PR remains the delivery step. Implementer quality review: traced selected paths -> adapter -> bundled parser -> inventory/operations/uncertain calls or strict failure -> shared observation; no project build, cache, installed-tool fallback, download or core import remains at scan time. New assertions detect incorrect selection, shadowed-call certainty, missing calls, wrong UTF-16 positions, partial success and missing outline members; none freezes implementation text or prose. No blocking defect found. Two architecture rescans created zero components and preserve the Scala scanner group and Code references. Other locally unbuilt C#/Go/Java/Rust scanners retained their saved evidence; these unrelated workers were not rebuilt for this task.
+
+The final full-context complexity review passed with no blockers or material simplifications. Domain ownership and usage are clear; no architecture expansion is needed. Both independent review gates and implementer reviews are complete.
 <!-- SECTION:NOTES:END -->

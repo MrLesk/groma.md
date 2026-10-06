@@ -1,9 +1,8 @@
 # Scala scanner
 
-The Scala scanner reads Scala 3.9 source with Scalameta and learns compile
-directories from sbt 2 builds. A fresh checkout needs no installed JDK, sbt, or
-application `compile`/`update`. The first model load may download the pinned
-sbt 2 release into the Groma scanner cache.
+The experimental Scala scanner parses selected Scala 3 source with Scalameta.
+Its package includes the parser and a Java runtime. Scanning and source outlines
+need no installed Java, Scala, sbt, project dependencies, build, or network access.
 
 From an initialized project:
 
@@ -12,90 +11,74 @@ groma scanner add @groma/scanner-scala
 groma scan
 ```
 
-For local development, a maintainer with sbt and a JDK builds the package with
-`bun plugins/scanners/scala/build.ts`, then adds the resulting
-`plugins/scanners/scala/dist/package` directory to groma.md. See
-[validation on a real codebase](validation.md) for the full dev CLI and local
-package workflow. The package
-contains bundled JavaScript, the Scalameta worker JAR, the `gromaModel` sbt
-plugin, the vendored sbt launcher, a platform JRE, and `ivy-local` metadata
-for the plugin. `THIRD-PARTY-NOTICES.txt` lists bundled npm packages,
-Scalameta, and the sbt launcher.
+## Source selection
 
-## Supported builds
+The scanner reads the `.scala` files selected by Groma's
+[include and exclude lists](../index.md#selecting-source-files), wherever they
+live in the repository. Defaults exclude `target/`, `project/`, `.bloop/`,
+`.metals/`, and `src/test/`. Adjust those lists to scan test code or a custom
+source layout.
 
-The scanner supports **sbt 2** only. `project/build.properties` must declare
-`sbt.version` on the 2.x line, or may omit `sbt.version` and rely on the
-launcher default. sbt 1 builds produce `SCALA_SBT_UNSUPPORTED` and contribute
-no source observation.
+It does not evaluate `build.sbt`, discover sbt modules, inspect dependencies, or
+generate source. A `.scala` file is a discovery clue; it does not prove a
+compiler version. Files are parsed with Scalameta 4.13.4's Scala 3 dialect.
+Scala 2 syntax and newer syntax outside that parser's support are not promised.
 
-Each `build.sbt` among the scanner's files identifies one sbt build. The
-scanner runs the bundled sbt launcher with a private global plugin that adds
-the `gromaModel` command. That command evaluates project settings and prints
-JSON: project id, name, base directory, `scalaVersion`, `Compile /
-unmanagedSourceDirectories`, and whether managed compile sources exist. It does
-not run `compile`, `update`, `test`, or `run`.
+## Evidence and outlines
 
-Only projects whose `scalaVersion` starts with `3.9` are scanned. Other
-projects in the same build receive `SCALA_VERSION_UNSUPPORTED` and supply no
-files. When managed compile source directories are present, the scanner adds
-`SCALA_GENERATED_SOURCES_SKIPPED` and does not read generated paths.
+The TypeScript entry point filters the selected paths and invokes the bundled
+worker. The worker parses each file, reports top-level declarations, and extracts
+methods, secondary constructors, named given aliases, and named function values
+as operations with original source positions. Ordinary and infix call expressions
+inside those bodies have call-site positions. Calls remain unresolved because
+syntax alone cannot prove their runtime targets. Constructor calls, implicit
+calls, macros, and build-generated code are not resolved.
 
-The model JSON is cached under the Groma scanner cache, keyed by the build root
-and a hash of build-definition files (`build.sbt`, `project/build.properties`,
-`project/plugins.sbt`, and other `*.sbt` / `*.scala` files directly under
-`project/`). Edits under `src/` do not invalidate the cache.
+The scanner supplies no body fingerprints for duplicate-code findings.
+A parse or read failure rejects the whole observation and names the source file.
+There is no successful partial scan.
 
-## Source inputs
+The same parser supplies [source outlines](../creating-a-plugin.md#source-outline):
+top-level types and objects, their methods and constructors, and top-level
+functions or named lambdas. Packages and package objects are scopes. Nested
+types, fields, type aliases, and given values are omitted from the outline.
+Code links use bare symbol names; a type link does not mark its members.
 
-The package declares the default
-[include and exclude lists](../index.md#selecting-source-files). It includes
-`**/*.scala`, `**/build.sbt`, `**/project/*.scala`, `**/project/*.sbt`, and
-`**/project/build.properties`, and excludes `target/`, `project/target/`,
-`.bloop/`, and `.metals/`.
+Source listing filters the supplied candidates by `.scala` without parsing
+files or starting any worker.
 
-Of its `.scala` files, the scanner reads only those under each kept project's
-`Compile` unmanaged source directories (default `src/main/scala`, or a custom
-`Compile / scalaSource`). Test trees such as `src/test/scala` are not read.
+## Architecture ownership
 
-Multi-project builds produce one `sbt-build` root and one `sbt-project` root
-per kept project. Nested build directories (each with its own `build.sbt`) are
-scanned separately.
+The worker's single source root groups evidence for this scan. A Scala package,
+object, file, or sbt module does not imply a C4 system or container. Groma core
+owns architecture boundaries and interprets operation evidence through the
+[shared scanner contract](../creating-a-plugin.md).
 
-## Parse and call rules
+Architecture remains ordinary OKF Markdown with Code links. Other Markdown
+readers can follow those links without the scanner. Groma interprets the source
+evidence through its existing scanner and component model; Scala adds no new
+architecture kind or metadata.
 
-The worker parses each selected file as Scala 3.9 with Scalameta. A parse error
-on one file removes that file's symbols, operations, and calls and adds
-`SCALA_SOURCE_INVALID` with the first error line; sibling files in the same
-build are unchanged.
+## Maintainer build
 
-Same-file call resolution follows the shared scanner rules: a bare-name call
-resolves only when the callee is a `def` or function value declared once in the
-same file. Selections, duplicates, cross-file names, `apply`, infix, and
-constructor calls stay unresolved.
+Maintainers need Bun, a JDK with `java` and `jlink`, and network access:
 
-## Source outline
+```sh
+bun plugins/scanners/scala/build.ts
+```
 
-`readCodeStructure` uses outline mode on named files. It does not load sbt and
-always parses as Scala 3.9. See the
-[shared outline contract](../creating-a-plugin.md#source-outline).
+The build downloads the pinned sbt launcher and compiles the worker in a temporary
+directory. It does not require an installed sbt. This build-time tooling is not
+part of scanning. The result is `plugins/scanners/scala/dist/package`; use this
+local package when working on the scanner before publication.
 
-## Source file listing
+The existing scanner release workflow builds each supported host and combines
+the runtimes. The package contains bundled JavaScript, `dist/worker.jar`, a
+runtime under `dist/<host>/runtime`, and third-party notices. The runtime's
+licenses remain in its `legal/` directory. There are no install scripts or
+scan-time downloads.
 
-`listSourceFiles` uses the same sbt model and the same keep rules as `scan`, and
-returns candidates before exclusions. It does not parse Scala. A listing failure
-does not fail a scan.
-
-## Diagnostics
-
-| Code | Severity | Meaning |
-| --- | --- | --- |
-| `SCALA_SBT_UNSUPPORTED` | warning | `sbt.version` is outside the supported sbt 2 line |
-| `SCALA_VERSION_UNSUPPORTED` | warning | Project `scalaVersion` is not on the Scala 3.9 line |
-| `SCALA_GENERATED_SOURCES_SKIPPED` | info | Managed compile sources are not read |
-| `SCALA_SOURCE_INVALID` | warning | Scalameta could not parse a source file |
-| `SCALA_SBT_FAILED` | (scan) | sbt model load failed; that build contributes no observation |
-
-Readiness errors (`SCALA_WORKER_MISSING`, `SCALA_SBT_PLUGIN_MISSING`,
-`SCALA_SBT_LAUNCHER_MISSING`, `SCALA_RUNTIME_MISSING`) appear when packaged
-artifacts or the bundled JRE are absent.
+The Scala test builds an isolated package and checks selection, declarations,
+calls, positions, parse failure, and outlines. The shared fresh-checkout test
+also runs the relocated package with an empty home and no language tools on
+`PATH`, checks repeatability, and checks that the checkout stays unchanged.

@@ -8,9 +8,4 @@ lazy val root = (project in file("."))
     libraryDependencies += "org.scalameta" %% "scalameta" % "4.13.4",
     assembly / mainClass := Some("md.groma.scanner.Main"),
     assembly / assemblyJarName := "worker.jar",
-    assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
-      case PathList("META-INF", xs @ _*)         => MergeStrategy.discard
-      case _                                     => MergeStrategy.first
-    },
   )

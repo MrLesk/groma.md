@@ -162,7 +162,7 @@ and are not listed.
   It has no `members` list. Programs are Code declarations, not C4 containers;
   nested programs are omitted.
 - `kind: 'type'` is a top-level class, interface, struct, record, enum, trait,
-  or protocol, or a Go defined type such as `type X struct{}` or `type X int`.
+  or protocol, a Scala object, or a Go defined type such as `type X struct{}` or `type X int`.
   A named type whose form is a function, such as a C# `delegate` or a Go
   `type X func(...)`, is a type with an empty `members` list. Type aliases are
   never listed: TypeScript `type X = ...`, Go `type X = Y`, and Rust
@@ -213,6 +213,7 @@ follows; a dash means the language has no such case.
 | JavaScript | Top-level `export`, a name in the file's own `export { name }` list or `export default name`, a name a CommonJS `module.exports` or `exports.name` assignment publishes, and every top-level declaration of a file that states no `import`, `export` or CommonJS export, because those names are globals; members without a `#` name | - | - | Other top-level declarations; `#name` members |
 | Vue | As TypeScript in `<script>` | As TypeScript | - | As TypeScript; every `<script setup>` top-level declaration |
 | Java | `public`; interface members without a modifier | `protected` | No modifier elsewhere (package access) | `private` |
+| Scala | No access modifier | `protected`, `protected[scope]` | `private[scope]` | `private`, `private[this]` |
 | C# | `public`; interface members without a modifier | `protected`, `protected internal`, `private protected` | `internal`; top-level types without a modifier | `private`; other members without a modifier |
 | Go | Names starting with an upper-case letter | - | Other names | - |
 | Rust | `pub`. Methods in a trait definition take the trait's visibility, and methods in a trait `impl` are `public` | - | `pub(crate)`, `pub(super)`, `pub(in path)` | No `pub`, `pub(self)` |
@@ -253,7 +254,6 @@ scanner makes:
 | C# | A C# file no scanned project compiles |
 | Angular, Vue | A template or stylesheet no component declares |
 | React | Any TypeScript source, while the repository has a React project, including files no React package compiles |
-| Scala | Every `.scala` candidate under an sbt build, while the listing runs sbt only to learn `Compile` source directories and does not parse Scala |
 
 A listing must never leave out a file the scan does read: that would report the
 file as read by no enabled scanner.
