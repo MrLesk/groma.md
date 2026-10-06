@@ -3,6 +3,12 @@ package md.groma.scanner
 import scala.meta.*
 
 object Stats {
+  /** Extension groups introduce parameters, not a new declaration owner. */
+  def extensionStats(extension: Defn.ExtensionGroup): List[Stat] = extension.body match {
+    case block: Term.Block => block.stats
+    case stat => List(stat)
+  }
+
   def givenName(stat: Defn.GivenAlias): Option[String] =
     Option(stat.name.value).filter(name => name.nonEmpty && name != "_")
 

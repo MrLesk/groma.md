@@ -171,7 +171,9 @@ and are not listed.
   block for it: static or instance, with or without a body, including
   interface method signatures, abstract methods, and constructors. Each
   declaration is listed separately, including overloads and TypeScript overload
-  signatures. Constructors use their source name, such as `constructor`,
+  signatures. Scala extension groups keep their enclosing scope: their methods
+  are top-level functions or members of the declaring type or object.
+  Constructors use their source name, such as `constructor`,
   `__init__`, `__construct`, or the type name.
 - Fields, properties, property signatures (even with a function type),
   accessors, methods with a computed name such as `[key]()`, and nested types

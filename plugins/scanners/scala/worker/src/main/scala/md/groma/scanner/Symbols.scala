@@ -11,6 +11,7 @@ object Symbols {
   private def symbols(file: String, stat: Stat): List[FileSymbol] = stat match {
     case pkg: Pkg => pkg.body.stats.flatMap(symbols(file, _))
     case pkg: Pkg.Object => pkg.templ.stats.flatMap(symbols(file, _))
+    case extension: Defn.ExtensionGroup => Stats.extensionStats(extension).flatMap(symbols(file, _))
     case obj: Defn.Object => List(named(file, obj.name, "object"))
     case cls: Defn.Class => List(named(file, cls.name, "class"))
     case trt: Defn.Trait => List(named(file, trt.name, "trait"))

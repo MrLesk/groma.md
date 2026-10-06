@@ -38,7 +38,7 @@ object Scan {
     Map(
       "schemaVersion" -> 1,
       "scanner" -> Map("id" -> "scala", "technology" -> "scala",
-        "engine" -> "scalameta", "engineVersion" -> "4.13.4"),
+        "engine" -> "scalameta", "engineVersion" -> "4.17.3"),
       "roots" -> List(Map("id" -> rootId, "kind" -> "source", "name" -> "Scala source")),
       "files" -> files.result(),
       "operations" -> operations.result(),

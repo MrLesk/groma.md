@@ -21,15 +21,15 @@ source layout.
 
 It does not evaluate `build.sbt`, discover sbt modules, inspect dependencies, or
 generate source. A `.scala` file is a discovery clue; it does not prove a
-compiler version. Files are parsed with Scalameta 4.13.4's Scala 3 dialect.
+compiler version. Files are parsed with Scalameta 4.17.3's Scala 3.9 dialect.
 Scala 2 syntax and newer syntax outside that parser's support are not promised.
 
 ## Evidence and outlines
 
 The TypeScript entry point filters the selected paths and invokes the bundled
 worker. The worker parses each file, reports top-level declarations, and extracts
-methods, secondary constructors, named given aliases, and named function values
-as operations with original source positions. Ordinary and infix call expressions
+methods (including extension methods), secondary constructors, named given aliases,
+and named function values as operations with original source positions. Ordinary and infix call expressions
 inside those bodies have call-site positions. Calls remain unresolved because
 syntax alone cannot prove their runtime targets. Constructor calls, implicit
 calls, macros, and build-generated code are not resolved.
@@ -40,8 +40,10 @@ There is no successful partial scan.
 
 The same parser supplies [source outlines](../creating-a-plugin.md#source-outline):
 top-level types and objects, their methods and constructors, and top-level
-functions or named lambdas. Packages and package objects are scopes. Nested
-types, fields, type aliases, and given values are omitted from the outline.
+functions or named lambdas. Extension groups keep their enclosing scope: their
+methods are top-level functions or members of the declaring type or object.
+Packages and package objects are scopes. Nested types, fields, type aliases, and
+given values are omitted from the outline.
 Code links use bare symbol names; a type link does not mark its members.
 
 Source listing filters the supplied candidates by `.scala` without parsing

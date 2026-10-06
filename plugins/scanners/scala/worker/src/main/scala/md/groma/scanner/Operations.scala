@@ -26,6 +26,8 @@ object Operations {
       walkStats(file, pkg.body.stats, owner, buffer)
     case pkgObj: Pkg.Object =>
       walkStats(file, pkgObj.templ.stats, owner, buffer)
+    case extension: Defn.ExtensionGroup =>
+      walkStats(file, Stats.extensionStats(extension), owner, buffer)
     case obj: Defn.Object =>
       walkStats(file, obj.templ.stats, owner = Some(obj.name.value), buffer)
     case cls: Defn.Class =>

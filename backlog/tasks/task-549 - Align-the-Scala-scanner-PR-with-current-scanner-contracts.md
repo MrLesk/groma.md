@@ -1,11 +1,11 @@
 ---
 id: TASK-549
 title: Align the Scala scanner PR with current scanner contracts
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-06 07:49'
-updated_date: '2026-10-06 08:40'
+updated_date: '2026-10-06 09:09'
 labels: []
 dependencies: []
 references:
@@ -107,6 +107,8 @@ modified_files:
   - >-
     backlog/tasks/task-549 -
     Align-the-Scala-scanner-PR-with-current-scanner-contracts.md
+  - test/fixtures/scala-parse/Extensions.scala
+  - test/fixtures/scala-parse/Polymorphic.scala
 type: feature
 ordinal: 632000
 ---
@@ -120,16 +122,16 @@ PR #110 adds a Scala 3 scanner using Scalameta, but it predates current main and
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 The contributor PR branch includes the latest main, preserves unrelated changes, and is linked to this task.
-- [ ] #2 The installed Scala scanner inventories and outlines selected Scala source without project builds, dependency installation, scan-time downloads, or a separately installed language SDK.
+- [x] #2 The installed Scala scanner inventories and outlines selected Scala source without project builds, dependency installation, scan-time downloads, or a separately installed language SDK.
 - [x] #3 Source selection, original locations, call certainty, and parse failures follow the shared scanner contracts; source facts do not invent architecture boundaries or relationships.
 - [x] #4 Discovery, package builds, source listing, and documentation agree on the supported Scala scope and use the existing scanner delivery flow.
-- [ ] #5 Focused scanner and installed-package checks, the repository check, and the required review loop pass with recorded evidence.
+- [x] #5 Focused scanner and installed-package checks, the repository check, and the required review loop pass with recorded evidence.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -144,6 +146,10 @@ PR #110 adds a Scala 3 scanner using Scalameta, but it predates current main and
 5. Coverage: extend existing parser/outline examples for the shared source selection, atomic failure, position and outline contracts. Wrong custom-path selection, partial observations, shadowed-call certainty, missing calls, missing constructors/abstract methods and package-name flattening must fail. Existing tests lacked these cases; one isolated package test plus the existing fresh-checkout/release harnesses closes the gaps without shared worker builds.
 6. Run focused checks; cold simplicity review; accepted cleanup and focused recheck; bun run check; implementer specification/quality reviews; final full-context complexity review. Curate and rescan the existing CLI scanner component through Groma.
 7. Push to the existing draft PR #110, update its title/body and task linkage, and leave merging/releasing to later approval.
+
+8. Alex approved fixing all failures from the three-project audit. Keep source-only scanning and strict failures; do not exclude failing source or add tool fallbacks. Extension methods belong to their lexical scope (top-level functions or members of the declaring object/type), consistent with Scala's extension translation. They remain source evidence under the existing scanner component; no new C4 or OKF concepts.
+9. Regression coverage: the real Ox/Neotype omissions violate selected-source outlines and operation evidence. Existing fixtures contain no extension groups. Add one minimal extension fixture covering a single method, a collective/generic group, and a group inside an object; assert lexical ownership, original locations, visibility, selected entries and calls from their bodies. The real Kyo failure rejects a valid polymorphic colon argument; existing parser fixtures lack that syntax. Add one minimal polymorphic-argument fixture and assert its operation/call evidence and outline through the existing isolated-package test. Demonstrate both failures with the current artifact before changing the worker.
+10. Recurse through extension-group bodies in the existing extractors. Test the current pinned Scalameta release against the Kyo example; update the pinned dependency, engine metadata and upstream notices only if it resolves the supported failure. Rebuild the package, rerun the same three pinned repository revisions and inspect the previously missing methods, then run bun run check and the required review loop for the changed scope. Update the existing PR, keep it draft, and do not publish npm before merge.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -176,4 +182,18 @@ Real-project validation requested by Alex on 2026-10-06 used the relocated built
 - getkyo/kyo at ba27c7a69d6538d836fe2eca924c0d8ad79f1148 (default Scala 3.9.0): 4,307 selected files. The parser rejects kyo-combinators/shared/src/main/scala/kyo/EmitCombinators.scala:46 at ArrowEffect.handleCont(tag, effect): [C] => with "identifier expected but [ found". Scan fails atomically, with no partial observation. No failing files were excluded to obtain a pass.
 
 Reports, input lists, successful observations and the reproducible temporary harness are in /tmp/groma-scala-real-projects.Vkj4ZD. This audit supersedes the earlier readiness conclusion: task reopened because extension outlines are incomplete and the declared Scala 3 scope encounters a real parser failure. Recommend fixing extension extraction and investigating parser support before merging, then rerunning these same revisions. No scanner code changed during this audit. PR remains draft; npm publication is explicitly deferred until after merge. Standard CI was approved by Alex and started; Linux has passed, macOS and Windows were still running at the latest check.
+
+Fix scope authorized by Alex: yes fix everything. Baseline GitHub CI 37436169936 completed successfully on Linux, macOS and Windows. The real-project failures remain independent of those passing fixture checks.
+
+Both defects are reproduced by minimal source fixtures against the old package: extension operations are empty and Polymorphic.scala:6 fails at [A]. Fixed the extractors by reading each extension group's method body in its existing lexical scope. Upgraded Scalameta to 4.17.3 (its Scala3 dialect is Scala39), which parses the minimal and full Kyo examples. Source positions still refer directly to unmodified input. License text verified against the tagged upstream sources; sourcecode and fastparse version labels updated. Isolated package regression test passes: 34 assertions. Same pinned real-project revisions now pass scans, outlines, exact file selection, repeated-observation equality, offset/line consistency and unchanged/clean checkouts under git-only PATH and empty homes: Ox 214 files / 722 operations / 2,932 calls; Neotype 188 / 830 / 5,912; Kyo 4,307 / 30,281 / 184,521. Source comparison confirms Ox toInt, collectPar, filterPar, foreachPar and Neotype's top-level unwrap are present at their original lines. Reports are *-fixed-report.json in /tmp/groma-scala-real-projects.Vkj4ZD. Full repository check and targeted review gates follow.
+
+Fix review gates: cold simplicity review passed with no blockers or material simplifications. Implementer specification review verifies the two reproduced failures against AC 2/3: extension definitions and bodies are included in their lexical scope with original positions; Kyo now parses without rewriting or skipping selected source; strict failure behavior remains covered. Implementer quality review traces selected files -> bundled parser -> existing symbol/operation/outline extractors -> source evidence; one shared extension-body helper keeps responsibility local. New assertions fail for omitted top-level or object extensions, wrong ownership/visibility/locations, absent calls, and the polymorphic parse error; harmless prose changes do not affect them. No blocking finding. bun run check passes: Node 16 + Bun 765 = 781 tests, 51 existing optional skips, 0 failures. The existing one warning and two infos are outside the changed files. Final full-context review follows; no architecture file changes were produced by these worker-only fixes.
+
+Final full-context complexity review passed without blockers or material simplifications. Final rebuilt package passed the shared relocated test (7 assertions) with no language tools or project dependencies. git diff --check passes; groma/ is unchanged. GitHub confirms the PR still includes current main 0a75d08d and is mergeable. All task criteria and DoD now have recorded evidence; the PR stays draft and npm publication remains deferred until after merge.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Updated draft PR #110 with current main and an experimental source-only Scala scanner. Bundled Scalameta 4.17.3 and Java remove installed-tool, project-build and scan-time download requirements. Extension methods are included in symbols, operations and outlines under their enclosing scope; the parser accepts the polymorphic colon argument found in Kyo. Original positions, strict failure behavior and unresolved call evidence remain intact. Ox (214 selected files), Neotype (188) and Kyo (4,307) pass repeatability, selection, outline and source-position checks on macOS ARM64 without installed language tools, and their checkouts remain unchanged. bun run check passes 781 tests with 51 existing optional skips; focused package regressions (34 assertions), relocated package verification (7 assertions), cold simplicity, implementer specification/quality and full-context complexity reviews pass. Documentation, package notices and task traceability are updated. No merge or npm publication; platform CI and the separate repository architecture-preview restriction are tracked in the PR.
+<!-- SECTION:FINAL_SUMMARY:END -->

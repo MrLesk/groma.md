@@ -1,8 +1,8 @@
 Bundled parser dependencies
 ==========================
 
-Scalameta 4.13.4
-https://raw.githubusercontent.com/scalameta/scalameta/v4.13.4/LICENSE.md
+Scalameta 4.17.3
+https://raw.githubusercontent.com/scalameta/scalameta/v4.17.3/LICENSE.md
 
 Copyright (c) 2014-2018 EPFL
 Copyright (c) 2016-2018 Twitter, Inc.
@@ -353,8 +353,8 @@ major authors were omitted by oversight.
 [6] https://github.com/scalapb/protobuf-scala-runtime
 
 
-sourcecode 0.4.2 and shaded sourcecode 0.4.0
-https://raw.githubusercontent.com/com-lihaoyi/sourcecode/0.4.2/LICENSE
+sourcecode 0.4.4
+https://raw.githubusercontent.com/com-lihaoyi/sourcecode/0.4.4/LICENSE
 
 License
 -------
@@ -383,8 +383,8 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 
-fastparse 3.1.0 (shaded by Scalameta)
-https://raw.githubusercontent.com/com-lihaoyi/fastparse/3.1.0/LICENSE
+fastparse 3.1.1 (shaded by Scalameta)
+https://raw.githubusercontent.com/com-lihaoyi/fastparse/3.1.1/LICENSE
 
 The MIT License (MIT)
 

@@ -59,6 +59,46 @@ async function verifyOutline(scanner: ScannerPlugin): Promise<void> {
   expect(store.members.map(item => [item.name, item.line])).toEqual([['load', 7]])
 }
 
+async function verifyRegressions(scanner: ScannerPlugin, root: string): Promise<void> {
+  const files = ['Extensions.scala', 'Polymorphic.scala']
+  const observation = (await scanner.scan!(root, {}, files))!
+  const extensions = observation.operations!.filter(item => item.file === files[0])
+  expect(extensions.map(item => item.name).sort()).toEqual([
+    'TextOps.repeated', 'TextOps.trimmed', 'counted', 'doubled', 'mapped',
+  ])
+  const text = await readFile(path.join(root, files[0]!), 'utf8')
+  for (const operation of extensions) {
+    const name = operation.name.split('.').at(-1)!
+    const modifier = name === 'counted' ? 'private ' : name === 'repeated' ? 'private[extensions] ' : ''
+    expect(operation.position).toBe(text.indexOf(`${modifier}def ${name}`))
+  }
+  expect(observation.files.find(item => item.file === files[0])!.symbols!.map(item => item.name).sort())
+    .toEqual(['TextOps', 'counted', 'doubled', 'mapped'])
+  const doubled = extensions.find(item => item.name === 'doubled')!
+  expect(observation.invocations!.find(call => call.source === doubled.id && call.member === 'multiplyExact'))
+    .toMatchObject({ position: text.indexOf('Math.multiplyExact'), targets: [], unresolved: true })
+
+  const outlines = await scanner.readCodeStructure!(root, files.map(file => ({ file, symbols: ['mapped', 'trimmed'] })))
+  const extensionOutline = outlines.find(item => item.file === files[0])!
+  expect(extensionOutline.declarations.map(item => [item.kind, ...symbol(item)])).toEqual([
+    ['function', 'doubled', 3, 'public', false],
+    ['function', 'mapped', 6, 'public', true],
+    ['function', 'counted', 7, 'private', false],
+    ['type', 'TextOps', 9, 'public', false],
+  ])
+  const textOps = extensionOutline.declarations.find(item => item.name === 'TextOps')! as CodeType
+  expect(textOps.members.map(symbol)).toEqual([
+    ['trimmed', 11, 'public', true], ['repeated', 12, 'internal', false],
+  ])
+
+  const result = observation.operations!.find(item => item.file === files[1] && item.name === 'result')!
+  const polymorphic = await readFile(path.join(root, files[1]!), 'utf8')
+  expect(observation.invocations!.find(call => call.source === result.id && call.member === 'identity'))
+    .toMatchObject({ position: polymorphic.indexOf('identity(value)'), line: 7, targets: [], unresolved: true })
+  expect(outlines.find(item => item.file === files[1])!.declarations.map(item => [item.kind, item.name, item.line]))
+    .toEqual([['function', 'applyToInt', 3], ['function', 'result', 5]])
+}
+
 test.concurrent('packaged Scala scanner reads selected source, bounded calls and outlines without an sbt model', async () => {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-scala-'))
   try {
@@ -75,6 +115,7 @@ test.concurrent('packaged Scala scanner reads selected source, bounded calls and
     expect(await scanner.scan!(root, {}, files)).toEqual(first)
     await expect(scanner.scan!(root, {}, ['Ok.scala', 'Broken.scala'])).rejects.toThrow('Broken.scala')
     await verifyOutline(scanner)
+    await verifyRegressions(scanner, root)
 
     const project = path.join(temporary, 'project')
     await cp(path.join(fixtures, 'scala-sbt-custom-root'), project, { recursive: true })

@@ -5,7 +5,7 @@ ThisBuild / version := "0.1.0"
 lazy val root = (project in file("."))
   .settings(
     name := "groma-scala-scanner-worker",
-    libraryDependencies += "org.scalameta" %% "scalameta" % "4.13.4",
+    libraryDependencies += "org.scalameta" %% "scalameta" % "4.17.3",
     assembly / mainClass := Some("md.groma.scanner.Main"),
     assembly / assemblyJarName := "worker.jar",
   )

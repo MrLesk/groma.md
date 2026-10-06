@@ -11,6 +11,7 @@ object Outline {
   private def declaration(stat: Stat): List[OutlineDecl] = stat match {
     case pkg: Pkg => pkg.body.stats.flatMap(declaration)
     case pkg: Pkg.Object => pkg.templ.stats.flatMap(declaration)
+    case extension: Defn.ExtensionGroup => Stats.extensionStats(extension).flatMap(declaration)
     case obj: Defn.Object => List(namedType(obj.name, obj.mods, obj.templ.stats))
     case cls: Defn.Class =>
       val constructor = OutlineMember(cls.name.value, line(cls.name), Visibility.outline(cls.ctor.mods))
@@ -31,6 +32,7 @@ object Outline {
     OutlineDecl("type", name.value, line(name), Visibility.outline(mods), stats.flatMap(member))
 
   private def member(stat: Stat): List[OutlineMember] = stat match {
+    case extension: Defn.ExtensionGroup => Stats.extensionStats(extension).flatMap(member)
     case defn: Defn.Def =>
       List(OutlineMember(defn.name.value, line(defn.name), Visibility.outline(defn.mods)))
     case decl: Decl.Def =>
