@@ -1,0 +1,26 @@
+{
+  "name": "@groma/scanner-nasm",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "description": "NASM x86-64 source, macro-aware routine locations and local calls in one Linux configuration.",
+  "groma": {
+    "scanner": {
+      "id": "nasm",
+      "entry": "./src/index.ts",
+      "include": ["**/*.asm", "**/*.inc"],
+      "exclude": [],
+      "discovery": {
+        "technologies": ["assembly"],
+        "rules": [{
+          "type": "file", "files": ["**/*.asm"],
+          "technology": "assembly", "kind": "language",
+          "declaration": "Assembly source; NASM x86-64 compatibility and assembly entry must be confirmed"
+        }],
+        "compatibility": { "groma": ">=0.6.6" }
+      }
+    }
+  },
+  "dependencies": { "@groma/scanner": "workspace:*" }
+}

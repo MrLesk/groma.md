@@ -1,0 +1,16 @@
+The COBOL scanner distributes the unmodified Eclipse COBOL Language Support
+2.5.1 server.jar from the published VS Code extension. It is licensed under
+the Eclipse Public License 2.0. The license accompanies this package in
+ECLIPSE-LICENSE.txt. Copyright and dependency notices remain in engine.jar,
+including its META-INF license and notice resources.
+
+Upstream source, including dependency declarations:
+https://github.com/eclipse-che4z/che-che4z-lsp-for-cobol/tree/2.5.1
+Source archive:
+https://github.com/eclipse-che4z/che-che4z-lsp-for-cobol/archive/refs/tags/2.5.1.tar.gz
+Release:
+https://github.com/eclipse-che4z/che-che4z-lsp-for-cobol/releases/tag/2.5.1
+
+The bundled Java runtime retains the build JDK's legal directory and license
+files. Groma's adapter and worker source are distributed under the repository's
+MIT license. The bundled @groma/scanner contract is covered by that license.

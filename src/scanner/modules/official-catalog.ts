@@ -2,6 +2,8 @@ import { parseScannerDiscovery } from '@groma/scanner'
 import type { ScannerDiscoveryRule } from '@groma/scanner'
 
 import typescript from '../../../plugins/scanners/typescript/package.json'
+import cobol from '../../../plugins/scanners/cobol/package.json'
+import nasm from '../../../plugins/scanners/nasm/package.json'
 import java from '../../../plugins/scanners/java/package.json'
 import angular from '../../../plugins/scanners/angular/package.json'
 import vue from '../../../plugins/scanners/vue/package.json'
@@ -38,5 +40,5 @@ export function scannerCatalogEntry(manifest: {
 // This is the official selection. Imported JSON is embedded by Groma's existing build.
 // Detection and compatibility information live exclusively in the selected packages.
 export const officialScannerCatalog: readonly OfficialScanner[] = [
-  typescript, java, scala, angular, vue, react, csharp, go, rust, python, php, swift, javascript,
+  typescript, java, scala, cobol, nasm, angular, vue, react, csharp, go, rust, python, php, swift, javascript,
 ].map(scannerCatalogEntry)

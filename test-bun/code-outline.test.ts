@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import path from 'node:path'
-import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 
 import { readCodeStructure as readReferenceOutline } from '../plugins/scanners/typescript/src/structure.ts'
@@ -25,6 +25,36 @@ test.concurrent('snapshot outlines use installed repository scanners without loa
     const files = await readSnapshotCodeStructure(mixedFixture, snapshot, world, component.representationId)
     expect(files?.map(file => file.declarations[0]?.name)).toEqual(['beta', 'alpha'])
   } finally { await rm(snapshot, { recursive: true, force: true }) }
+})
+
+test.concurrent('outline context includes another component source from the snapshot and respects scanner exclusions', async () => {
+  const temporary = await mkdtemp(path.join(tmpdir(), 'groma-outline-context-'))
+  const root = path.join(temporary, 'installed'), snapshot = path.join(temporary, 'snapshot')
+  try {
+    await cp(mixedFixture, root, { recursive: true })
+    await mkdir(snapshot)
+    await writeFile(path.join(snapshot, 'support.alpha'), 'snapshot helper')
+    await writeFile(path.join(root, 'support.alpha'), 'current helper')
+    await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify({ scanners: [
+      { id: 'alpha', source: './plugins/alpha', include: ['**/*.alpha'], exclude: ['excluded.alpha'] },
+    ] }))
+    await writeFile(path.join(root, 'plugins/alpha/index.js'), `import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+export default {
+  id: 'alpha', async scan() { return undefined },
+  async readCodeStructure(root, refs, settings, files) {
+    if (files.includes('excluded.alpha') || !files.includes('support.alpha')) throw new Error('wrong context');
+    return [{ file: refs[0].file, declarations: [{ kind: 'function', line: 1, visibility: 'public', entry: false,
+      name: await readFile(path.join(root, 'support.alpha'), 'utf8') }] }];
+  }
+}`)
+    const { world, component } = await mixedComponent()
+    world.elements.push({ ...component, id: 'support', representationId: 'support', code: [
+      { scanner: 'alpha', file: 'support.alpha' }, { scanner: 'alpha', file: 'excluded.alpha' },
+    ] })
+    const files = await readSnapshotCodeStructure(root, snapshot, world, component.representationId)
+    expect(files?.[0]?.declarations[0]?.name).toBe('snapshot helper')
+  } finally { await rm(temporary, { recursive: true, force: true }) }
 })
 
 test.concurrent('a scanner that cannot outline, such as one missing its worker, leaves the other scanners outlining', async () => {

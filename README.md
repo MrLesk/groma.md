@@ -122,6 +122,8 @@ The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](ht
 | [Rust](docs/scanners/rust/index.md) | ✅ Available |
 | [PHP](docs/scanners/php/index.md) | ✅ Available |
 | [Swift](docs/scanners/swift/index.md) | ✅ Available |
+| [COBOL (IBM fixed format)](docs/scanners/cobol/index.md) | 🧪 Experimental |
+| [Assembly (NASM x86-64, Linux ELF64)](docs/scanners/nasm/index.md) | 🧪 Experimental |
 | Your favorite language or framework | [Submit an issue with your request](https://github.com/MrLesk/Groma.md/issues) |
 
 More languages arrive as [scanner plugins](docs/scanners/creating-a-plugin.md); add your own with `groma scanner add`. Each scanner's page describes what it reads. See [which relationships groma.md detects](docs/relationship-inference.md#current-inference-rule).
@@ -152,7 +154,7 @@ Nothing breaks. The architecture stays in your repository as ordinary Markdown i
 
 > ### Which languages does it support?
 
-TypeScript, JavaScript, Angular, React, Vue, C#/.NET, Go, Java, Python, Rust, PHP, and Swift, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
+TypeScript, JavaScript, Angular, React, Vue, C#/.NET, Go, Java, Python, Rust, PHP, Swift, COBOL, and NASM assembly, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
 
 ## Experimental
 

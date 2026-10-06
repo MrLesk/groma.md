@@ -93,7 +93,9 @@ scanning itself does not download or execute project tools.
 Missing external types and generated code can limit individual call targets.
 The scanner still reports source declarations and proven local interactions,
 with unresolved facts left uncertain. This does not promise full application
-compilation or every framework behavior. Syntax errors remain scan failures,
+compilation or every framework behavior. The [NASM scanner](nasm/index.md)
+preprocesses a declared assembly configuration without assembling or linking it.
+For parsers, syntax errors remain scan failures,
 except in the [JavaScript scanner](javascript/index.md), which leaves a file it
 cannot parse out of its evidence and warns.
 
@@ -213,6 +215,8 @@ authored relationships remain intact.
 - [TypeScript](typescript/index.md)
 - [Python](python/index.md)
 - [PHP](php/index.md)
+- [COBOL](cobol/index.md)
+- [NASM assembly](nasm/index.md)
 - [C#/.NET](dotnet-csharp/index.md)
 - [Shared contract](creating-a-plugin.md)
 

@@ -224,7 +224,7 @@ function declarationItem(
     file,
     declaration.name,
     declaration.line,
-    codeFacts(declaration.entry, declaration.visibility, declaration.line, declaration.kind === 'type' ? 'type' : undefined),
+    codeFacts(declaration.entry, declaration.visibility, declaration.line, declaration.kind === 'function' ? undefined : declaration.kind),
     declaration.kind === 'function',
     [follows],
     copies,
