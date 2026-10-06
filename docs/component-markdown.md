@@ -58,6 +58,33 @@ and has no level-one heading copied from `title`.
 Any other `index.md` or `log.md` in the bundle is reserved context Markdown,
 never a concept, and the scanner never gives an element one of those names.
 
+## Local updates
+
+Local CLI and web authoring operations and scanner reconciliation share one
+filesystem access boundary. `GromaFileSystem.withAccess` owns the project lock,
+waits up to five seconds, and releases it after the operation. Architecture
+readers use the same boundary so they do not load a structural change halfway
+through. Nested storage calls reuse the current operation. New write entry
+points use the shared `writes` API in `src/authoring.ts`.
+
+The lock covers reading the current architecture, checking the change, and
+writing its result. Each file is replaced by renaming a completed temporary
+file beside it. CLI edits overwrite only the requested fields on that latest
+architecture; they take no original-value option. Web forms also compare the
+original values of changed fields, returning a conflict before any write when
+another edit changed one of them. An already-applied value succeeds.
+
+Lock timeout and field conflicts make no architecture changes. The lock and
+temporary files are filesystem implementation details, not OKF metadata or C4
+elements. Domain validation and conflict checks are independent of storage.
+Ordinary Markdown readers continue to see the same document format.
+
+This protects cooperating local Groma processes. Separate clones and direct
+file editors do not share this boundary. Changes across several files are not
+an all-or-nothing transaction after a process crash. A killed process can leave
+`<groma-root>/.groma.lock`; remove it only after confirming its operation has
+stopped. There is no automatic stale-lock recovery.
+
 ## One tree and draft identity
 
 Every C4 concept lives in one tree under `<groma-root>`. Its lifecycle is the

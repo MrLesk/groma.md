@@ -51,7 +51,7 @@ export interface Inspected {
   relationships: RelationshipPairData[]
   flows: FlowRowData[]
   children: InspectedChild[]
-  technology: string[]
+  technology: string
   files: CodeReference[]
   findings: ArchitectureFinding[]
   /** True when groma remove would succeed on it right now. */
@@ -157,10 +157,7 @@ export function inspectDetails(
       flow: { id: flow.id }, title: flow.title,
     })),
     children,
-    technology: (element.technology ?? '')
-      .split(',')
-      .map(part => part.trim())
-      .filter(part => part.length > 0),
+    technology: element.technology ?? '',
     files: element.code,
     findings: findingsForOwner(world.findings ?? [], element.id),
     removable: removalBlocker(world, element.id) === undefined,
@@ -187,7 +184,7 @@ export function inspectUnidentifiedContainer(zone: Zone, world: ArchitectureGrap
     children: world.elements.filter(element => members.has(element.representationId)).map(element => ({
       id: element.representationId, title: element.title, kind: element.kind, external: element.external,
     })),
-    relationships: [], flows: [], technology: [], files: [], findings: [],
+    relationships: [], flows: [], technology: '', files: [], findings: [],
     removable: false, matchedGhost: false, movable: false, parent: zone.parent,
   }
 }
@@ -344,7 +341,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
       body.append(heading('Technology'))
       const list = document.createElement('ul')
       list.className = 'chips'
-      for (const part of inspected.technology) {
+      for (const part of inspected.technology.split(',').map(part => part.trim()).filter(Boolean)) {
         const chip = document.createElement('li')
         chip.className = 'chip'
         chip.textContent = part
@@ -383,7 +380,7 @@ function elementFields(inspected: Inspected, options: PaneWrites): EditField[] {
     { name: 'title', label: 'Title', value: inspected.title, required: true },
     { name: 'description', label: 'Description', value: inspected.description },
     { name: 'overview', label: 'Overview', value: inspected.overview, multiline: true },
-    { name: 'technology', label: 'Technology', value: inspected.technology.join(', ') },
+    { name: 'technology', label: 'Technology', value: inspected.technology },
   ]
   if (inspected.movable) fields.push({
     name: 'parent', label: 'Parent', value: inspected.parent ?? '', options: options.parents ?? [],

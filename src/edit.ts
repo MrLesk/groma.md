@@ -23,9 +23,12 @@ import { editRelation } from './relation.ts'
 import { editFlow } from './flow-authoring.ts'
 import { requireGromaMapping } from './okf-profile.ts'
 import type { ArchitectureElement, ArchitectureRecords } from './types.ts'
+import { checkEdit, type EditValues } from './authoring-conflict.ts'
+import { resolveFlows } from './flow-model.ts'
 
 export interface EditArchitectureInput extends MeaningChanges {
   id: string
+  original?: EditValues
   /** The target id of the relationship from id to edit instead of the element itself. */
   relation?: string
   group?: string
@@ -63,6 +66,7 @@ async function editProject(repositoryRoot: string, input: EditArchitectureInput)
   }
   const profile = await loadProjectProfile(repositoryRoot)
   if (profile === undefined) throw new Error('the project record is missing or invalid')
+  checkEdit(input.original, profile, { ...input, title: input.title?.trim() })
   await saveProjectProfile(repositoryRoot, {
     title: input.title ?? profile.title,
     overview: overview ?? profile.overview,
@@ -82,6 +86,7 @@ async function editDraftRecord(
   }
   const overview = input.overview
   if (input.title === undefined && overview === undefined) throw new Error('--title or --overview is required')
+  checkEdit(input.original, { title: record.title, overview: record.outcome }, input)
   let source = await readDocument(repositoryRoot, record.sourceFilename)
   if (input.title !== undefined) source = withTitle(source, requireText(input.title, '--title'))
   if (overview !== undefined) source = replaceLeadProse(source, overview)
@@ -108,14 +113,14 @@ function editAddressed(repositoryRoot: string, input: EditArchitectureInput): Pr
       || input.technology !== undefined || input.draft !== undefined || isStructural(input)) {
       throw new Error('only --title is valid on a group')
     }
-    return editGroup(repositoryRoot, { address: input.id, title: input.title })
+    return editGroup(repositoryRoot, { address: input.id, title: input.title, original: input.original })
   }
   if (input.relation !== undefined) {
     if (input.title !== undefined || input.overview !== undefined || input.draft !== undefined || isStructural(input)) {
       throw new Error('only --description and --technology are valid on a relation')
     }
     return editRelation(repositoryRoot, {
-      source: input.id, target: input.relation, description: input.description, technology: input.technology,
+      source: input.id, target: input.relation, description: input.description, technology: input.technology, original: input.original,
     })
   }
   return undefined
@@ -129,12 +134,13 @@ export async function editArchitecture(
   if (addressed !== undefined) return addressed
   if (input.id === 'project') return editProject(repositoryRoot, input)
   const records = await loadArchitecture(repositoryRoot)
+  const model = buildArchitectureModel(records.documents)
   const flow = records.flows.find(document => requireGromaMapping(document.frontmatter, document.sourceFilename).id === input.id)
   if (flow !== undefined) {
     if (input.newId !== undefined) throw new Error('--id renames systems, containers, and components')
+    checkEdit(input.original, resolveFlows([flow], model)[0]!, input)
     return editFlow(repositoryRoot, records, flow, input)
   }
-  const model = buildArchitectureModel(records.documents)
   const element = model.elements.find(candidate => candidate.id === input.id)
 
   if (element === undefined) {
@@ -143,6 +149,7 @@ export async function editArchitecture(
     return editDraftRecord(repositoryRoot, record, input)
   }
 
+  checkEdit(input.original, { ...element, parent: element.parentId ?? '' }, input)
   const hasMeaning = [input.title, input.overview, input.description, input.technology, input.draft].some(value => value !== undefined)
   if (!hasMeaning && !isStructural(input)) throw new Error('--title, --overview, --description, --technology or --draft is required')
   const source = hasMeaning ? await elementMeaning(repositoryRoot, records, element, input) : undefined

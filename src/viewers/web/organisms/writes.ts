@@ -1,5 +1,6 @@
 import { heading, paragraph } from '../atoms/text.ts'
 import type { EditArchitectureInput } from '../../../authoring.ts'
+import type { EditValues } from '../../../authoring-conflict.ts'
 import { message } from './editable.ts'
 
 /** What the edit verb changes from the pane; the id is the selected element's. */
@@ -21,7 +22,7 @@ export interface PaneWrites {
   onRead?: () => void
   onRemove?: () => Promise<void>
   onAccept?: () => Promise<void>
-  onEdit?: (input: MeaningEdit) => Promise<void>
+  onEdit?: (input: MeaningEdit, original: EditValues) => Promise<void>
   parents?: readonly ParentOption[]
   /** Present while several components are selected on a live map. */
   selection?: SelectionWrites
@@ -31,7 +32,7 @@ export interface PaneWrites {
 export interface RelationWrites {
   onRead?: () => void
   onAccept?: () => Promise<void>
-  onEdit?: (input: { description?: string; technology?: string }) => Promise<void>
+  onEdit?: (input: { description?: string; technology?: string }, original: EditValues) => Promise<void>
   onRemove?: () => Promise<void>
 }
 

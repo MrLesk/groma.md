@@ -4,6 +4,8 @@ import { backlogPlugin } from '@groma/work-source-backlog'
 
 import { watchArchitecture } from '../../architecture-watch.ts'
 import { writes } from '../../authoring.ts'
+import { EditConflict } from '../../authoring-conflict.ts'
+import { GromaBusyError } from '../../groma-filesystem.ts'
 import type { StructuralResult } from '../../curate.ts'
 import { createScannerSession } from '../../scanner/session.ts'
 import { parseScannerSettingsAction, withScannerUpgrades } from '../../scanner/modules/settings.ts'
@@ -335,7 +337,7 @@ export async function createWebMapSession(
     }
   }
 
-  /** Publish the world, then return the touched id and any structural facts; failures return the core sentence and 400. */
+  /** Publish successful writes; conflicts preserve all field values for the editor. */
   async function writeResponse<Input>(
     request: Request,
     write: (repositoryRoot: string, input: Input) => Promise<string | StructuralResult>,
@@ -350,6 +352,8 @@ export async function createWebMapSession(
       worldChain = run.then(() => {}, () => {})
       return await run
     } catch (error) {
+      if (error instanceof EditConflict) return Response.json({ code: error.code, message: error.message, conflicts: error.conflicts }, { status: 409 })
+      if (error instanceof GromaBusyError) return Response.json({ code: error.code, message: error.message }, { status: 503 })
       return new Response(error instanceof Error ? error.message : String(error), { status: 400 })
     }
   }

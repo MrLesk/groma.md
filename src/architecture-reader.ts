@@ -151,8 +151,14 @@ export async function loadArchitecture(
   repositoryRoot: string,
   options: { onFilesystemAccess?: FilesystemAccessHandler } = {},
 ): Promise<ArchitectureRecords> {
-  const { onFilesystemAccess } = options
   const filesystem = GromaFileSystem.open(repositoryRoot)
+  return filesystem.withAccess(() => readArchitecture(filesystem, options.onFilesystemAccess))
+}
+
+async function readArchitecture(
+  filesystem: GromaFileSystem,
+  onFilesystemAccess?: FilesystemAccessHandler,
+): Promise<ArchitectureRecords> {
   await requireGromaPackage(filesystem, onFilesystemAccess)
   const documents: ArchitectureDocument[] = []
   const drafts: ArchitectureDocument[] = []

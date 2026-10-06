@@ -6,6 +6,7 @@ import { storedRelationships, type StoredRelationship } from './relationship-mar
 import { placeRelationships, saveRelationships } from './relationship-storage.ts'
 import { fileOwners } from './source-relationships.ts'
 import type { ArchitectureElement, RelationshipConnection, ElementStatus } from './types.ts'
+import { checkEdit, type EditValues } from './authoring-conflict.ts'
 
 /** Code interactions use repository-relative files; actor/external declarations may use concept IDs. */
 export interface RelationEnds {
@@ -16,6 +17,7 @@ export interface RelationEnds {
 export interface RelationInput extends RelationEnds {
   description?: string
   technology?: string
+  original?: EditValues
 }
 
 interface Ends {
@@ -83,6 +85,9 @@ export async function editRelation(repositoryRoot: string, input: RelationInput)
   }
   const ends = await loadEnds(repositoryRoot, input)
   const current = requireRow(ends)
+  checkEdit(input.original, current, {
+    description: input.description?.trim(), technology: input.technology?.trim(),
+  })
   return writeRow(repositoryRoot, ends, {
     drop: current,
     add: {

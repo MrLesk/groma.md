@@ -4,6 +4,7 @@ import { readDocument, withGromaField, writeDocument } from './markdown-emitter.
 import { groupAddress, requireText } from './naming.ts'
 import type { ArchitectureElement } from './types.ts'
 import type { StructuralResult } from './curate.ts'
+import { checkEdit, type EditValues } from './authoring-conflict.ts'
 
 async function loadElements(repositoryRoot: string): Promise<ArchitectureElement[]> {
   return buildArchitectureModel((await loadArchitecture(repositoryRoot)).documents).elements
@@ -47,9 +48,10 @@ export async function addGroup(repositoryRoot: string, input: { name: string; me
 }
 
 /** Renames the group on every member. */
-export async function editGroup(repositoryRoot: string, input: { address: string; title?: string }): Promise<StructuralResult> {
+export async function editGroup(repositoryRoot: string, input: { address: string; title?: string; original?: EditValues }): Promise<StructuralResult> {
   const title = requireText(input.title, '--title').trim()
   const members = await loadMembers(repositoryRoot, input.address)
+  checkEdit(input.original, { title: members[0]!.group }, { title })
   return writeGroup(repositoryRoot, members, title, groupAddress(members[0]!.parentId!, title))
 }
 

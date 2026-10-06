@@ -2,7 +2,7 @@ import type { AnnotatedArchitectureModel } from '../../types.ts'
 import { createMapEditor } from './editing/gestures.ts'
 import type { WebDataSource } from './data.ts'
 import type { IsoMap } from './iso/painting/map.ts'
-import type { MeaningEdit, PaneWrites, RelationWrites, SelectionWrites } from './organisms/writes.ts'
+import type { PaneWrites, RelationWrites, SelectionWrites } from './organisms/writes.ts'
 
 export interface AuthoringDependencies {
   /** True on the current revision of a live map, the only place writes are offered. */
@@ -35,7 +35,7 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
       ...(remove === undefined ? {} : { onRemove: () => remove({ id: selectedId }) }),
       ...(accept === undefined ? {} : { onAccept: () => accept({ id: selectedId }) }),
       ...(edit === undefined ? {} : {
-        onEdit: (input: MeaningEdit) => edit({ id: selectedId, ...input }),
+        onEdit: (input, original) => edit({ id: selectedId, ...input, original }),
         parents: deps.world().elements.filter(element => element.kind === 'container')
           .map(element => ({ id: element.id, title: element.title }))
           .sort((left, right) => left.title.localeCompare(right.title) || left.id.localeCompare(right.id)),
@@ -49,7 +49,7 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
     return {
       onRead: deps.repaint,
       ...(accept === undefined ? {} : { onAccept: () => accept({ id: source, relation: target }) }),
-      ...(edit === undefined ? {} : { onEdit: (input: { description?: string; technology?: string }) => edit({ id: source, relation: target, ...input }) }),
+      ...(edit === undefined ? {} : { onEdit: (input, original) => edit({ id: source, relation: target, ...input, original }) }),
       ...(remove === undefined ? {} : { onRemove: () => remove({ id: source, relation: target }) }),
     }
   }

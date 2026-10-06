@@ -20,11 +20,13 @@ groma:
       file: src/remove.ts
     - scanner: typescript
       file: src/removable.ts
+    - scanner: typescript
+      file: src/authoring-conflict.ts
   group: Architecture records
 description: Validates and applies explicit architecture write commands
 ---
 
-Applies add, edit, draft, accept, and remove actions. Checks each change before it writes the affected records.
+Applies add, edit, draft, accept, and remove actions through the shared write API. Checks each change before it writes the affected records. CLI edits replace requested fields on the current architecture. Web edits compare the original values of changed fields and report conflicts without saving part of the request. The filesystem layer protects the operation; field comparison and validation remain storage-independent.
 
 ## Relationships
 

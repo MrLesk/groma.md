@@ -190,6 +190,14 @@ architecture. Live work updates and changes between Iso, 2D, and Layers keep
 an open form's unsaved values. Changing
 selection leaves that editing session. Source evidence remains read-only.
 
+Element, relationship, and project forms save only changed fields together
+with their original values. If another edit changed one of those fields, Save
+keeps the unsaved input and shows its original, current, and proposed values.
+No part of that request is saved. Changes to other fields do not block saving,
+and a value already saved by another editor succeeds. Cancel and reopen the
+editor to work from the latest values. The CLI deliberately overwrites the
+requested fields without this earlier-value check.
+
 Element fields are title, description, overview, technology, and parent
 where the component can move. Empty optional values clear the
 field. Relationship fields are description and technology. A matched draft

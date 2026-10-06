@@ -8,11 +8,7 @@ import { storedConnections } from './relationship-markdown.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { architectureElementPath, isExternalPath } from './architecture-path.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
-import {
-  renderArchitectureDocument,
-  upsertCode,
-  writeDocument,
-} from './markdown-emitter.ts'
+import { renderArchitectureDocument, upsertCode, writeDocument } from './markdown-emitter.ts'
 import { isReservedId, kebabCase } from './naming.ts'
 import { componentNames, sourceStem } from './scan-component-naming.ts'
 import { entryPointPlacements } from './scan-entrypoints.ts'
@@ -457,44 +453,46 @@ export async function reconcileScanObservations(
   repositoryRoot: string,
   observations: ScanObservation[],
 ): Promise<ScanSummary> {
-  const summary: ScanSummary = { created: 0, refreshed: 0, matched: 0 }
-  if (!observations.length) return summary
-  const records = await loadArchitecture(repositoryRoot)
-  const model = buildArchitectureModel(records.documents)
-  const connections = storedConnections(records.documents, model.elements, (_code, file, message) => {
-    throw new Error(`${file}: ${message}`)
-  })
-  const active = new Set(observations.map(observation => observation.scanner.id))
-  // Derived technology lists the contributing scanner IDs. Incomplete evidence cannot replace that pair.
-  const retained = connections.filter(row => !row.authored && row.technology.split(', ').some(id => !active.has(id)))
-  const protectedFiles = new Set([...retained, ...connections.filter(row => row.authored)]
-    .flatMap(row => [row.source, row.target]))
-  const world = indexWorld(records)
-  const findingsJob = prepareArchitectureFindings(observations)
-  try {
-    const diagnostics = observations.flatMap(observation => observation.diagnostics.map(diagnostic => ({
-      scanner: observation.scanner, diagnostic,
-    })))
-    if (diagnostics.length > 0) summary.scannerDiagnostics = diagnostics
-    await refreshCuratedCode(repositoryRoot, world, observations, summary, protectedFiles)
-    await createInitialSystem(repositoryRoot, world, observations, summary)
-    const candidates = new Map<string, FileCandidate>()
-    for (const observation of observations) {
-      const placements = observationPlacements(world, observation)
-      collectFiles(candidates, observation, placements)
+  return GromaFileSystem.open(repositoryRoot).withAccess(async () => {
+    const summary: ScanSummary = { created: 0, refreshed: 0, matched: 0 }
+    if (!observations.length) return summary
+    const records = await loadArchitecture(repositoryRoot)
+    const model = buildArchitectureModel(records.documents)
+    const connections = storedConnections(records.documents, model.elements, (_code, file, message) => {
+      throw new Error(`${file}: ${message}`)
+    })
+    const active = new Set(observations.map(observation => observation.scanner.id))
+    // Derived technology lists the contributing scanner IDs. Incomplete evidence cannot replace that pair.
+    const retained = connections.filter(row => !row.authored && row.technology.split(', ').some(id => !active.has(id)))
+    const protectedFiles = new Set([...retained, ...connections.filter(row => row.authored)]
+      .flatMap(row => [row.source, row.target]))
+    const world = indexWorld(records)
+    const findingsJob = prepareArchitectureFindings(observations)
+    try {
+      const diagnostics = observations.flatMap(observation => observation.diagnostics.map(diagnostic => ({
+        scanner: observation.scanner, diagnostic,
+      })))
+      if (diagnostics.length > 0) summary.scannerDiagnostics = diagnostics
+      await refreshCuratedCode(repositoryRoot, world, observations, summary, protectedFiles)
+      await createInitialSystem(repositoryRoot, world, observations, summary)
+      const candidates = new Map<string, FileCandidate>()
+      for (const observation of observations) {
+        const placements = observationPlacements(world, observation)
+        collectFiles(candidates, observation, placements)
+      }
+      const unitConflicts = associateCandidates(candidates, observations, world)
+      const entryMemberFiles = new Set(observations.flatMap(observation => observation.entryPoints?.flatMap(entry => entry.files) ?? []))
+      const pending = await reconcileFiles(repositoryRoot, world, candidates, entryMemberFiles, summary)
+      await placeEntries(repositoryRoot, world, observations, summary, pending)
+      const owners = new Map([...world.byId.values()].flatMap(record => record.code.map(reference => [reference.file, record.id] as const)))
+      const conflicts = [...unitConflicts, ...await refreshDerivedRelationships(repositoryRoot, observations)]
+      if (conflicts.length > 0) summary.evidenceConflicts = conflicts
+      const findings = await findingsJob.complete(owners)
+      rememberArchitectureFindings(repositoryRoot, findings)
+      if (findings.length > 0) summary.findings = findings.length
+      return summary
+    } finally {
+      await findingsJob.close()
     }
-    const unitConflicts = associateCandidates(candidates, observations, world)
-    const entryMemberFiles = new Set(observations.flatMap(observation => observation.entryPoints?.flatMap(entry => entry.files) ?? []))
-    const pending = await reconcileFiles(repositoryRoot, world, candidates, entryMemberFiles, summary)
-    await placeEntries(repositoryRoot, world, observations, summary, pending)
-    const owners = new Map([...world.byId.values()].flatMap(record => record.code.map(reference => [reference.file, record.id] as const)))
-    const conflicts = [...unitConflicts, ...await refreshDerivedRelationships(repositoryRoot, observations)]
-    if (conflicts.length > 0) summary.evidenceConflicts = conflicts
-    const findings = await findingsJob.complete(owners)
-    rememberArchitectureFindings(repositoryRoot, findings)
-    if (findings.length > 0) summary.findings = findings.length
-    return summary
-  } finally {
-    await findingsJob.close()
-  }
+  })
 }
