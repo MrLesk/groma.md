@@ -146,7 +146,7 @@ No. Once a document exists, scans refresh only its code references: the symbols 
 
 > ### Can I see architecture changes in pull requests?
 
-Yes. The architecture is Markdown in the same repository, so its changes are part of the pull request. On public repositories, the groma.md GitHub Action comments on every pull request with the number of changed components and relationships and a link to a before and after map. [Add it to your repository.](https://github.com/MrLesk/groma.md-action/pull/4)
+Yes. The architecture is Markdown in the same repository, so its changes are part of the pull request. On public repositories, the groma.md GitHub Action adds change counts and a before and after map automatically for PRs from the same repository. For external fork PRs, a maintainer reviews the PR and starts the comparison with **Run workflow**. [Add it to your repository.](https://github.com/MrLesk/groma.md-action#add-pr-comparisons)
 
 > ### What happens if I stop using groma.md?
 

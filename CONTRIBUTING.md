@@ -82,11 +82,22 @@ supported runner platforms, and commits the released version to `main` only afte
 `groma.md` manifest is public; the workflow stages its Node wrapper around the compiled binaries so
 the workspace-only development dependencies are not part of the published package.
 
-After every successful groma.md release, update the `groma.md@<version>` pin in
+After every successful groma.md release, update the `groma-version` default in
 [`groma.md-action/action.yml`](https://github.com/MrLesk/groma.md-action/blob/main/action.yml) and follow the
 [Action release checklist](https://github.com/MrLesk/groma.md-action/blob/main/CONTRIBUTING.md#releases). This final release step verifies the new
 groma.md version in the Action, publishes an approved Action release, and updates its major-version pointer. It is manual;
 groma.md's release workflow does not update the Action repository.
+
+## PR architecture comparisons
+
+The **Groma architecture** workflow compares same-repository PRs automatically. External fork PRs require a maintainer
+to review the PR, then choose **Actions → Groma architecture → Run workflow** on `main` and enter its number in
+`pull-request`. The default `0` includes only same-repository PRs. A manual selection applies to that run; later fork
+pushes need another manual run. Each deployment replaces the site with that run's maps and comparisons.
+
+Comparison jobs keep the trusted base checked out and fetch the PR head as Git data. The workflow pins `groma-version`
+independently of the Action commit. Update that pin deliberately when upgrading the architecture reader; both compared
+commits must use a format it can read.
 
 ## Before starting a feature
 
