@@ -108,6 +108,7 @@ jobs:
           bun add --global backlog.md@1.53.0
 
       - name: Restore released scanner runtimes
+        # Export reads saved architecture; source readiness is required only for a new scan.
         run: |
           bun -e '
             const file = Bun.file("groma/scanners.json");
@@ -119,7 +120,6 @@ jobs:
             await Bun.write(file, JSON.stringify(config, null, 2) + "\n");
           '
           bun run cli scanner install
-          bun run cli scanner check
 
       - name: Export the committed architecture
         env:
