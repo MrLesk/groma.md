@@ -59,9 +59,9 @@ export function registerWriteCommands(program: Command): void {
     .argument('<name>', 'element name')
     .argument('[target]', 'target file or concept ID when drafting a relation')
     .option('--overview <markdown>', 'full explanation in Markdown')
-    .option('--description <text>', 'optional short summary')
+    .option('--description <text>', 'short summary (required for a relation)')
     .option('--parent <id>', 'parent element id')
-    .option('--technology <text>', 'implementation technology')
+    .option('--technology <text>', 'implementation technology (required for a relation)')
     .option('--draft <draft-id>', 'the draft record this ghost belongs to')
     .addHelpText('after', '\nAgent guides: groma agent-instructions')
     .action(async (kind: string, name: string, target: string | undefined, options) => {

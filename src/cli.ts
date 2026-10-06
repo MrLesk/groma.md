@@ -32,7 +32,10 @@ function stopOnSignal(close: () => Promise<void>): void {
   const stop = () => {
     process.off('SIGINT', stop)
     process.off('SIGTERM', stop)
-    void close().then(() => process.exit())
+    void close().then(() => process.exit()).catch(error => {
+      console.error(error instanceof Error ? error.message : String(error))
+      process.exit(1)
+    })
   }
   process.once('SIGINT', stop)
   process.once('SIGTERM', stop)
@@ -202,6 +205,9 @@ async function runInteractiveWelcome(screen: WelcomeScreen = 'launcher'): Promis
       const session = await startWelcome(process.cwd(), screen)
       try {
         if (session.selection !== undefined) await runWelcomeAction(session.selection)
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        process.exitCode = 1
       } finally { session.close() }
       reopen = session.selection === 'scanners'
     }
@@ -216,15 +222,20 @@ program
   .description("This repo's architecture in Git")
   .option('--plain', 'print as plain text')
   .action(async () => {
-    const interactive = process.stdin.isTTY === true
-      && process.stdout.isTTY === true
-      && !program.opts().plain
-    if (!interactive) {
-      if (!await continueWhenReady(false)) return
-      console.log(await renderPlainWelcome(process.cwd()))
-      return
+    try {
+      const interactive = process.stdin.isTTY === true
+        && process.stdout.isTTY === true
+        && !program.opts().plain
+      if (!interactive) {
+        if (!await continueWhenReady(false)) return
+        console.log(await renderPlainWelcome(process.cwd()))
+        return
+      }
+      await runInteractiveWelcome()
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error))
+      process.exitCode = 1
     }
-    await runInteractiveWelcome()
   })
 
 program
@@ -257,7 +268,12 @@ program
     process.exit(0)
   })
   .action(async (directory: string, options: { url?: string; revision?: string; from?: string }) => {
-    await exportWeb(directory, options)
+    try {
+      await exportWeb(directory, options)
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error))
+      process.exitCode = 1
+    }
   })
 
 withListWindowOptions(program
@@ -313,7 +329,12 @@ program
       console.log(selected.content)
       return
     }
-    await runInteractiveWelcome('instructions')
+    try {
+      await runInteractiveWelcome('instructions')
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error))
+      process.exitCode = 1
+    }
   })
 
 program

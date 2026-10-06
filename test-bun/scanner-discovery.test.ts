@@ -75,3 +75,26 @@ test.concurrent('a source-file technology reports one line counting each file on
     expect(line).toContain('3 files; first page-0.example')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
+
+test.concurrent('a dependency resolves its version only from a package installed in the repository', async () => {
+  const catalog: OfficialScanner[] = [{
+    id: 'dependency-plugin', package: 'example-dependency-scanner', description: '', technologies: ['hostlang'],
+    rules: [{
+      type: 'dependency', kind: 'language', technology: 'hostlang', files: ['**/package.json'], package: 'groma-hostpkg',
+    }],
+  }]
+  const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-discovery-'))
+  const root = path.join(temporary, 'project')
+  await mkdir(path.join(root, 'node_modules/groma-hostpkg'), { recursive: true })
+  await mkdir(path.join(temporary, 'node_modules/groma-hostpkg'), { recursive: true })
+  await writeFile(path.join(root, 'package.json'), JSON.stringify({ dependencies: { 'groma-hostpkg': '^1.0.0' } }))
+  await writeFile(path.join(root, 'node_modules/groma-hostpkg/package.json'), JSON.stringify({ version: '1.2.3' }))
+  await writeFile(path.join(temporary, 'node_modules/groma-hostpkg/package.json'), JSON.stringify({ version: '9.9.9' }))
+  const git = Bun.spawn(['git', 'init', '--quiet', root], { stdout: 'ignore', stderr: 'pipe' })
+  expect(await git.exited).toBe(0)
+  try {
+    const discovery = await discoverScanners(root, {}, catalog)
+    const finding = discovery.findings.find(finding => finding.technology === 'hostlang')!
+    expect(finding.resolvedVersion).toEqual({ version: '1.2.3', file: 'node_modules/groma-hostpkg/package.json' })
+  } finally { await rm(temporary, { recursive: true, force: true }) }
+})

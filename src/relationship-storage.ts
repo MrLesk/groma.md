@@ -67,6 +67,21 @@ export function changedRelationshipDocuments(
   return changed
 }
 
+/** A stored cell keeps its row intact: a raw pipe would split it, and a newline has no Markdown escape, so it becomes visible text that a later read stores verbatim. */
+function escapeCell(text: string): string {
+  return text.replaceAll('|', '\\|').replaceAll('\n', '\\n').replaceAll('\r', '\\r')
+}
+
+/** A link name may not close the link early or form a nested link. Emphasis characters stay raw so common names keep their stored bytes. */
+function escapeName(name: string): string {
+  return escapeCell(name.replaceAll('\\', '\\\\').replaceAll('[', '\\[').replaceAll(']', '\\]'))
+}
+
+/** The loader percent-decodes stored links (relationshipTargetFilename), the way curate-rename repoints them, so unsafe characters survive as escapes. */
+function escapeHref(href: string): string {
+  return href.split('/').map(encodeURIComponent).join('/').replaceAll('(', '%28').replaceAll(')', '%29')
+}
+
 /** Rebuild only a changed document's relationship sections using links relative to that document. */
 export function withStoredRelationships(
   source: string,
@@ -79,7 +94,7 @@ export function withStoredRelationships(
   for (const row of rows) {
     const heading = row.authored ? (row.status === 'draft' ? '## Draft relationships' : '## Relationships') : '## Derived relationships'
     const lines = sections.get(heading) ?? []
-    lines.push(`| [${row.source}](${href(row.source)}) | [${row.target}](${href(row.target)}) | ${row.description} | ${row.technology} |`)
+    lines.push(`| [${escapeName(row.source)}](${escapeHref(href(row.source))}) | [${escapeName(row.target)}](${escapeHref(href(row.target))}) | ${escapeCell(row.description)} | ${escapeCell(row.technology)} |`)
     sections.set(heading, lines)
   }
   const tables = [...sections].map(([heading, lines]) =>

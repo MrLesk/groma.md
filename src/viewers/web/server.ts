@@ -13,6 +13,29 @@ import { createWebMapSession } from './map-session.ts'
 import { renderSetupPage } from './startup/page.ts'
 import { createStartupProgress } from './startup/progress.ts'
 
+/** The loopback names a browser can reach this viewer at, with any port; anything else is a rebound foreign origin. */
+const LOCAL_HOSTS: Record<string, true> = { localhost: true, '127.0.0.1': true, '[::1]': true, '::1': true }
+
+/**
+ * Whether the viewer must refuse this request: the Host must be a loopback name (a rebound foreign
+ * Host would make an attacker page same-origin with the private map) and a state-changing request
+ * that names a browser origin must come from this viewer's own host; bare CLI clients carry no
+ * Origin at all and pass.
+ */
+function rejected(request: Request): boolean {
+  const host = request.headers.get('host')
+  if (host === null) return true
+  let name: string
+  try { name = new URL(`http://${host}`).hostname }
+  catch { name = host }
+  if (LOCAL_HOSTS[name] !== true) return true
+  if (request.method === 'GET' || request.method === 'HEAD' || request.method === 'OPTIONS') return false
+  const origin = request.headers.get('origin') ?? request.headers.get('referer')
+  if (origin === null) return false
+  try { return new URL(origin).host.toLowerCase() !== host.toLowerCase() }
+  catch { return true }
+}
+
 type MapSession = Awaited<ReturnType<typeof createWebMapSession>>
 
 /** One local server owns setup and the ready map; the map starts only after initialization. */
@@ -126,6 +149,7 @@ export async function startWebViewer(
     // The map's live event stream must stay open between changes.
     idleTimeout: 0,
     async fetch(request) {
+      if (rejected(request)) return new Response('Forbidden', { status: 403 })
       const route = `${request.method} ${new URL(request.url).pathname}`
       if (route === 'GET /startup-events') return progress.response()
       if (route === 'GET /ready') {

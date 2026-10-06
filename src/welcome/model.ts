@@ -172,7 +172,7 @@ export async function loadWelcomeModel(
   return {
     project: path.basename(root),
     folder: displayFolder(root),
-    status: 'Architecture ready',
+    status: scanners.notice.tone === 'error' ? 'Scanners need attention' : 'Architecture ready',
     scanners,
     plugins: [
       { id: workSourcePlugin.id, ...workSource },
