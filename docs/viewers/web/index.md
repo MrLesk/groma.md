@@ -898,12 +898,15 @@ implementation notes, and comments. Empty sections are omitted. Updates to the s
 task keep the current details visible while loading. Changed checks, fields, and
 rows animate in place; unchanged rows keep focus and the panel keeps its scroll
 position. Reduced motion applies changes immediately. A reference
-naming an element is a link that selects it. The selected task's pins carry a
+naming an element ID or exact repository-relative source file is a link that selects
+the element or the file's current owner. Source references retain the file path as
+their label. Other references remain plain context. The selected task's pins carry a
 small arrowhead above their badge, its chips an accent border, and the strip
 scrolls the first into view.
 
 Selecting a component adds a Tasks tab only when at least one Backlog task
-touches it through a mapped modified file or an exact architecture reference.
+touches it through a mapped modified file, an exact element ID reference, or a
+source file reference owned by the component.
 The tab groups the configured default status as To do, the last configured
 status as Done, and every intermediate status as In progress. Selecting a task
 row opens the same task details and map highlight as its pin or chip. A component

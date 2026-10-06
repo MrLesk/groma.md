@@ -33,8 +33,8 @@ test.concurrent('a pin stands on the element holding the last modified file, els
   const world = pinWorld()
   const pins = pinsOf([
     item('TASK-2', { references: ['api'], modifiedFiles: ['src/api.ts', 'README.md', 'src/vault.ts'] }),
-    item('TASK-3', { references: ['not-an-id', 'vault'] }),
-    item('TASK-4', { references: ['nothing'], modifiedFiles: ['docs/x.md'] }),
+    item('TASK-3', { references: ['not-an-id', 'src/vault.ts'] }),
+    item('TASK-4', { references: ['nothing', 'https://example.test/src/api.ts'], modifiedFiles: ['docs/x.md'] }),
   ], world, 'Done')
   assert.deepEqual(pins.map(pin => [pin.taskId, pin.elementId]), [
     ['TASK-2', 'observed:vault'],
@@ -44,7 +44,7 @@ test.concurrent('a pin stands on the element holding the last modified file, els
 
 test.concurrent('a task touches the elements of its modified files, newest first, then the ones it references, each once', () => {
   const world = pinWorld()
-  const touched = touchedElements(item('TASK-5', { references: ['api', 'not-an-id'], modifiedFiles: ['src/api.ts', 'README.md', 'src/vault.ts'] }), world)
+  const touched = touchedElements(item('TASK-5', { references: ['api', 'src/api.ts', 'not-an-id'], modifiedFiles: ['src/api.ts', 'README.md', 'src/vault.ts'] }), world)
   assert.deepEqual(touched, ['observed:vault', 'observed:api'])
 })
 
@@ -55,7 +55,7 @@ test.concurrent('an element receives default, intermediate, and terminal work gr
     statuses: ['Ready', 'Building', 'Review', 'Shipped'],
     defaultStatus: 'Ready',
     items: [
-      item('TASK-1', { status: 'Ready', references: ['api'] }),
+      item('TASK-1', { status: 'Ready', references: ['src/api.ts'] }),
       item('TASK-2', { status: 'Review', modifiedFiles: ['src/api.ts'], references: [] }),
       item('TASK-3', { status: 'Shipped', references: ['api'] }),
       item('TASK-4', { status: 'Building', references: ['vault'] }),

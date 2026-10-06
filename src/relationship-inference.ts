@@ -5,7 +5,7 @@ import { buildArchitectureModel } from './architecture-model.ts'
 import { httpRelationships } from './http-relationships.ts'
 import { storedRelationships, type StoredRelationship } from './relationship-markdown.ts'
 import { placeRelationships, saveRelationships } from './relationship-storage.ts'
-import { fileOwners } from './source-relationships.ts'
+import { sourceIndex } from './source-index.ts'
 import { composeInvocations, type InvocationEvidence } from './scan-evidence.ts'
 import type { RelationshipConnection } from './types.ts'
 
@@ -87,15 +87,14 @@ export async function refreshDerivedRelationships(
   const stored = storedRelationships(records.documents, model.elements, (_code, filename, message) => {
     throw new Error(`${filename}: ${message}`)
   })
-  const owners = fileOwners(model.elements)
+  const index = sourceIndex(model.elements)
   const active = new Set(observations.map(observation => observation.scanner.id))
   const retained = stored.filter(row => !row.authored && row.technology.split(', ').some(id => !active.has(id)))
   const { claims, conflicts } = composeInvocations(observations)
   const protectedPairs = new Set(retained.map(row => `${row.source}\0${row.target}`))
-  const refreshed: StoredRelationship[] = derivedRows(claims, observations,
-    new Map([...owners].map(([file, owner]) => [file, owner.id])))
+  const refreshed: StoredRelationship[] = derivedRows(claims, observations, index.byFile)
     .filter(row => !protectedPairs.has(`${row.source}\0${row.target}`))
-    .map(row => ({ ...row, document: owners.get(row.source)!.sourceFilename }))
+    .map(row => ({ ...row, document: index.owner(row.source)!.sourceFilename }))
   const next = placeRelationships([...stored.filter(row => row.authored), ...retained, ...refreshed], model.elements)
   await saveRelationships(repositoryRoot, records.documents, model.elements, stored, next)
   return conflicts

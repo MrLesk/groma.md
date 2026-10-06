@@ -1,9 +1,10 @@
 # Backlog task links
 
 When the `backlog` CLI is available and you work on a Backlog task, keep the
-task's changed files and architecture references current. These links let
-groma.md place the task on the architecture map. Routine code work needs these
-links, not a full scan and curation cycle.
+task's planning references and changed files current. References attach planned
+work before editing starts; modified files attach actual work through their
+current component owners. Routine code work does not require a full scan and
+curation cycle.
 
 ## Commands
 
@@ -11,11 +12,13 @@ links, not a full scan and curation cycle.
 | --- | --- |
 | `backlog task view <task-id> --plain` | a Backlog task ID; shows the current modified-file list and references |
 | `backlog task edit <task-id> --modified-file <path>` | repository-relative paths; the flags replace the complete list |
-| `backlog task edit <task-id> --add-ref <id>` or `--remove-ref <id>` | exact groma.md element IDs |
+| `backlog task edit <task-id> --add-ref <reference>` or `--remove-ref <reference>` | exact element IDs or repository-relative source files for architecture links; other values remain context |
 | `groma view <source-file>` | an exact repository-relative source file; prints its owning component's ID and the file's relationships |
 
-Architecture references must be real element IDs. File paths, titles, group
-addresses, and issue URLs do not identify map elements.
+When planning, reference the intended elements or their exact source files.
+Element IDs also link actors, systems, drafts, and architecture-only work.
+Titles, group addresses, and issue URLs remain context. A file only maps once
+the loaded architecture records its owner; References do not declare ownership.
 
 ## After each file change
 
@@ -24,14 +27,13 @@ addresses, and issue URLs do not identify map elements.
 2. Immediately after changing a repository file, and before changing another
    file, record its path. Preserve every existing entry and append each newly
    changed path, one flag per file in the order the files were first changed.
-3. In that same update, add the ID of each affected architecture element, such
-   as the component that owns a changed source file.
+3. Modified source files already link their current owners. Add an element ID
+   only for affected architecture scope not covered by those files.
 
 ```bash
 backlog task edit <task-id> \
   --modified-file <previous-path> \
-  --modified-file <new-path> \
-  --add-ref <groma-element-id>
+  --modified-file <new-path>
 ```
 
 Use the Backlog CLI; do not edit task Markdown directly. Do not wait until

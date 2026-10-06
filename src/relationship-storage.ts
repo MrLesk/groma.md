@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { parseMarkdown, parseFrontmatter } from 'comark'
 import { buildArchitectureModel } from './architecture-model.ts'
+import { sourceIndex } from './source-index.ts'
 import { readDocument, writeDocument } from './markdown-emitter.ts'
 import type { StoredRelationship } from './relationship-markdown.ts'
 import type { ArchitectureDocument, CodeReference } from './types.ts'
@@ -13,11 +14,8 @@ interface Owner {
 
 /** Outgoing rows follow their source owner; detached files wait in their current document. */
 export function placeRelationships(rows: readonly StoredRelationship[], elements: readonly Owner[]): StoredRelationship[] {
-  const owners = new Map(elements.flatMap(element => [
-    [element.id, element.sourceFilename] as const,
-    ...element.code.map(reference => [reference.file, element.sourceFilename] as const),
-  ]))
-  return rows.map(row => ({ ...row, document: owners.get(row.source) ?? row.document }))
+  const index = sourceIndex(elements)
+  return rows.map(row => ({ ...row, document: index.resolve(row.source)?.sourceFilename ?? row.document }))
 }
 
 const headings = new Set(['## Relationships', '## Draft relationships', '## Derived relationships'])

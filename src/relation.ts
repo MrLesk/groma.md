@@ -4,7 +4,7 @@ import { resolveFlows } from './flow-model.ts'
 import { requireText } from './naming.ts'
 import { storedRelationships, type StoredRelationship } from './relationship-markdown.ts'
 import { placeRelationships, saveRelationships } from './relationship-storage.ts'
-import { fileOwners } from './source-relationships.ts'
+import { sourceIndex } from './source-index.ts'
 import type { ArchitectureElement, RelationshipConnection, ElementStatus } from './types.ts'
 import { checkEdit, type EditValues } from './authoring-conflict.ts'
 
@@ -36,13 +36,13 @@ async function loadEnds(repositoryRoot: string, input: RelationEnds): Promise<En
   const records = await loadArchitecture(repositoryRoot)
   const { documents } = records
   const model = buildArchitectureModel(documents)
-  const owners = fileOwners(model.elements)
-  const source = owners.get(input.source) ?? model.elements.find(element => element.id === input.source)
+  const index = sourceIndex(model.elements)
+  const source = index.owner(input.source) ?? index.resolve(input.source)
   if (!source) throw new Error(`unknown source "${input.source}"`)
-  const target = owners.get(input.target) ?? model.elements.find(element => element.id === input.target)
+  const target = index.owner(input.target) ?? index.resolve(input.target)
   if (!target) throw new Error(`unknown target "${input.target}"`)
   const declaredConcept = [source, target].some(element => element.kind === 'actor' || element.external)
-  if (!declaredConcept && (!owners.has(input.source) || !owners.has(input.target))) {
+  if (!declaredConcept && (!index.byFile.has(input.source) || !index.byFile.has(input.target))) {
     throw new Error('code relationships require source-file endpoints')
   }
   const connections = storedRelationships(documents, model.elements, (_code, filename, message) => {

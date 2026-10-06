@@ -365,8 +365,18 @@ share live updates from the Backlog work source: `task list --json --watch`
 provides complete replacement lists, and the plugin notifies its host after
 each complete JSON response. Closing the subscription stops the CLI process.
 A task touches
-every element whose `groma.code` maps one of its modified files, then every element
-it references by exact `id`. The terminal map marks tasks in its currently shown
+every element whose `groma.code` maps one of its modified files, newest file first,
+then every element referenced by exact `id` or exact repository-relative source
+file. Each element appears once. References describe planned scope before edits;
+modified files record actual changes and supply task diffs. Unmatched references,
+including external URLs, remain task context.
+
+Loaded architecture snapshots share the derived source lookup in `src/source-index.ts`.
+It reads existing IDs and code references without IO or path normalization. A replacement
+elements array gets a new index; task-only updates reuse it. Each loaded revision has
+its own snapshot. Mutable scanner reconciliation keeps its changing ownership map.
+This is an in-memory lookup for the current filesystem delivery, with no stored metadata
+or new C4 concept. The terminal map marks tasks in its currently shown
 statuses on those elements; default and intermediate statuses start shown. The web map stands one pin per assignee and task
 on the element the task touched last; an unassigned mapped task gets one generic
 Backlog pin. The Live work island filters pins and chips by the configured

@@ -1,4 +1,5 @@
 import { draftRecordOf } from './architecture-model.ts'
+import { sourceIndex } from './source-index.ts'
 import { annotateArchitecture, originOf } from './core.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { emptyWorldLines, isEmptyWorld } from './empty-world.ts'
@@ -259,7 +260,7 @@ async function fileAnswer(
   file: string,
   window: ListWindow,
 ): Promise<PlainRecordResult> {
-  const owner = world.elements.find(element => element.code.some(reference => reference.file === file))
+  const owner = sourceIndex(world.elements).owner(file)
   if (owner === undefined) return { ok: false, message: await missingOwnerReason(repositoryRoot, file) }
   const { incoming, outgoing } = fileConnections(world, file)
   const text = pagedAnswer({

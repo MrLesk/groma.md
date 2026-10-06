@@ -142,8 +142,9 @@ same file. The record and file reader use one task diff snapshot. Diff rows show
 old/new line numbers, red/green change gutters and the same syntax tokens as the
 web reader.
 
-The selected task accents every element touched by its modified files and exact
-architecture references, plus routes leaving those elements. If all touched elements
+The selected task accents every element touched by its modified files and References
+containing exact element IDs or repository-relative source files, plus routes leaving
+those elements. If all touched elements
 belong to one container, Work temporarily opens that component map. Otherwise it uses
 the root navigation scope. A marker stands on the box that draws its element: the
 component itself, or the collapsed group or container holding it. The camera

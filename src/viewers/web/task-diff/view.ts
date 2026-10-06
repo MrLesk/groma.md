@@ -1,4 +1,5 @@
 import type { ArchitectureGraph, C4Kind, WorkItem, WorkItemDetails } from '../../../types.ts'
+import { sourceIndex } from '../../../source-index.ts'
 import { updateTaskSummary, updateTaskText } from './updates.ts'
 import { kindGlyph } from '../../atoms/kind.ts'
 import { fileDiffRow, leaveFileDiff, paintFileDiff } from '../source/diff-view.ts'
@@ -112,7 +113,7 @@ export function paintTaskSummary(
   onOpen: (file: string) => void,
 ): void {
   leaveFileDiff(host)
-  const byId = new Map(world.elements.map(element => [element.id, element]))
+  const index = sourceIndex(world.elements)
   const continuing = host.querySelector<HTMLElement>('.task-summary')?.dataset.taskId === item.id
   updateTaskText(host.querySelector('h1')!, item.title, continuing)
   updateTaskText(host.querySelector('.meta')!, [item.id, item.status, ...item.assignees].join(' · '), continuing)
@@ -148,13 +149,13 @@ export function paintTaskSummary(
   section(body, 'references', 'References', item.references.map(reference => {
     const row = document.createElement('li')
     row.dataset.taskKey = reference
-    const element = byId.get(reference)
+    const element = index.resolve(reference)
     if (element === undefined) row.textContent = reference
     else {
       const link = document.createElement('button')
       link.type = 'button'
       link.className = 'link'
-      link.append(marked(element.kind, element.external, element.title))
+      link.append(marked(element.kind, element.external, reference === element.id ? element.title : reference))
       link.onclick = event => onSelect(element.representationId, event.shiftKey)
       row.append(link)
     }

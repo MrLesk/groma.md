@@ -11,6 +11,7 @@ groma:
       symbol: storedConnections
     - scanner: typescript
       file: src/source-relationships.ts
+      symbol: sourceRelationships
     - scanner: typescript
       file: src/relation.ts
     - scanner: typescript

@@ -115,11 +115,12 @@ updating the task.
   recorded file.
 - Scanner-written `groma/` files for this task's source count as changed files;
   record them as soon as they appear.
-- As soon as a change affects a Groma architecture element, add that element's
-  exact `id` as a Backlog reference with
-  `backlog task edit TASK-N --add-ref <id>`. Do this in the same immediate
-  change-tracking loop, not at the end of the task. Do not use file paths as the
-  join key. Only an exact element `id` produces a live marker.
+- Plan task scope with References containing exact element IDs or exact
+  repository-relative source files, so planned work appears before editing.
+  Modified source files already link their current owners; do not add duplicate
+  component references just to repeat those links. In the same immediate
+  change-tracking loop, add an exact element `id` for affected architecture
+  scope not covered by modified source files, including architecture-only work.
 
 ## Agent coordination
 

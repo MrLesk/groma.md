@@ -1,4 +1,5 @@
 import type { ArchitectureGraph, WorkItem, WorkSnapshot } from '../types.ts'
+import { sourceIndex } from '../source-index.ts'
 
 /** Eight hues that read on paper and on dark paper; the brand green stays out of it for the checkmark and the selection. */
 export const PIN_COLOURS = ['#E0685E', '#2F9ED6', '#8B5CF6', '#E8A317', '#1BA39C', '#D6409F', '#6B8E23', '#FF7A1A']
@@ -30,18 +31,10 @@ const taskNumber = (id: string): number => Number.parseFloat(id.replace(/^\D+/, 
 
 /** The elements a task touches, each once: those whose code holds one of its modified files, newest file first, then those it references. */
 export function touchedElements(item: WorkItem, world: Pick<ArchitectureGraph, 'elements'>): string[] {
-  const byId = new Map(world.elements.map(element => [element.id, element.representationId]))
-  const byFile = new Map<string, string[]>()
-  for (const element of world.elements) {
-    for (const reference of element.code) {
-      const ids = byFile.get(reference.file) ?? []
-      ids.push(element.representationId)
-      byFile.set(reference.file, ids)
-    }
-  }
+  const index = sourceIndex(world.elements)
   const ids = [
-    ...[...item.modifiedFiles].reverse().flatMap(file => byFile.get(file) ?? []),
-    ...item.references.map(reference => byId.get(reference)),
+    ...[...item.modifiedFiles].reverse().map(file => index.owner(file)?.representationId),
+    ...item.references.map(reference => index.resolve(reference)?.representationId),
   ]
   return [...new Set(ids.filter((id): id is string => id !== undefined))]
 }
