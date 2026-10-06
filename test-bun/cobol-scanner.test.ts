@@ -33,7 +33,7 @@ test.concurrent('COBOL keeps original program locations, declaration candidates 
     expect(await scanner.listSourceFiles!(root, {}, selected)).toEqual(selected)
     await scanner.checkReadiness!(root, {}, selected)
     const original = await readFile(path.join(root, 'caller.cbl'), 'utf8')
-    const source = original.replace('A comment', 'A 🚀 comment').replaceAll('\n', '\r\n')
+    const source = original.replace('A comment', 'A 🚀 comment').replace(/\r?\n/g, '\r\n')
     await writeFile(path.join(root, 'caller.cbl'), source)
     const observation = (await scanner.scan(root, {}, selected))!
     const operations = new Map(observation.operations!.map(operation => [operation.id, operation]))
