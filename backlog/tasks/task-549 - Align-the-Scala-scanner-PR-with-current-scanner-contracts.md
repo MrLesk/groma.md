@@ -1,11 +1,11 @@
 ---
 id: TASK-549
 title: Align the Scala scanner PR with current scanner contracts
-status: Done
+status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-06 07:49'
-updated_date: '2026-10-06 08:26'
+updated_date: '2026-10-06 08:40'
 labels: []
 dependencies: []
 references:
@@ -104,6 +104,9 @@ modified_files:
   - groma/systems/groma-md/components/process.md
   - groma/systems/groma-md/components/scala-src-index.md
   - groma/systems/groma-md/containers/cli/components/scala-src-index.md
+  - >-
+    backlog/tasks/task-549 -
+    Align-the-Scala-scanner-PR-with-current-scanner-contracts.md
 type: feature
 ordinal: 632000
 ---
@@ -117,16 +120,16 @@ PR #110 adds a Scala 3 scanner using Scalameta, but it predates current main and
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 The contributor PR branch includes the latest main, preserves unrelated changes, and is linked to this task.
-- [x] #2 The installed Scala scanner inventories and outlines selected Scala source without project builds, dependency installation, scan-time downloads, or a separately installed language SDK.
+- [ ] #2 The installed Scala scanner inventories and outlines selected Scala source without project builds, dependency installation, scan-time downloads, or a separately installed language SDK.
 - [x] #3 Source selection, original locations, call certainty, and parse failures follow the shared scanner contracts; source facts do not invent architecture boundaries or relationships.
 - [x] #4 Discovery, package builds, source listing, and documentation agree on the supported Scala scope and use the existing scanner delivery flow.
-- [x] #5 Focused scanner and installed-package checks, the repository check, and the required review loop pass with recorded evidence.
+- [ ] #5 Focused scanner and installed-package checks, the repository check, and the required review loop pass with recorded evidence.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [x] #1 Acceptance criteria have objective verification evidence.
-- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [ ] #1 Acceptance criteria have objective verification evidence.
+- [ ] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -165,10 +168,12 @@ Required check passed: bun run check; Node 16 pass, Bun 765 pass / 51 existing o
 The final full-context complexity review passed with no blockers or material simplifications. Domain ownership and usage are clear; no architecture expansion is needed. Both independent review gates and implementer reviews are complete.
 
 Published implementation commit 6573c6fb to aboisvert/groma.md:scala3-scanner and updated PR #110 title/body with the task link. GitHub confirms it is mergeable and remains a draft. Main is synchronized through 0a75d08d (its final change is only TASK-550 notes). GitHub's architecture comparison fails before project code runs: actions/checkout v7 refuses a fork head in pull_request_target. This is a repository workflow issue outside the Scala change; no unsafe-checkout bypass was added. Standard fork CI needs workflow approval. Local required checks and all review gates remain passed.
+
+Real-project validation requested by Alex on 2026-10-06 used the relocated built package from PR head 97976413 on macOS ARM64, Groma's default Scala include/exclude selection, empty homes, and PATH containing only git. No project build or dependency installation ran. All three checkouts stayed byte-for-byte unchanged for tracked files and clean including ignored/untracked files. JS fetch was disabled; this was not an OS-level network isolation test.
+
+- softwaremill/ox at e343bba8b713a19ee627533d79fabd1033fabeb6 (Scala 3.3.8): 214 selected/inventoried files, 438 symbols, 680 operations, 2,809 unresolved calls. Repeated observations match; operation/call offsets are in bounds, call offset/line pairs agree, and outline lines are in bounds. Source comparison found missing extension methods: core/src/main/scala/ox/channels/BufferCapacity.scala:8 toInt is absent from symbols, operations and outline; core/src/main/scala/ox/collections.scala contains public collectPar/filterPar/foreachPar extension methods, but only private commonPar appears.
+- kitlangton/neotype at d278c46814d581eb434b92f22036a5a5a5ace706 (Scala 3.3.8): 188 selected/inventoried files, 432 symbols, 793 operations, 5,791 unresolved calls. Same repeatability and position consistency checks pass, including parsing macros without project dependencies. The top-level extension unwrap in modules/core/shared/src/main/scala/neotype/package.scala:150 is missing from operations and outline; the ordinary Newtype.unwrap at line 138 is present.
+- getkyo/kyo at ba27c7a69d6538d836fe2eca924c0d8ad79f1148 (default Scala 3.9.0): 4,307 selected files. The parser rejects kyo-combinators/shared/src/main/scala/kyo/EmitCombinators.scala:46 at ArrowEffect.handleCont(tag, effect): [C] => with "identifier expected but [ found". Scan fails atomically, with no partial observation. No failing files were excluded to obtain a pass.
+
+Reports, input lists, successful observations and the reproducible temporary harness are in /tmp/groma-scala-real-projects.Vkj4ZD. This audit supersedes the earlier readiness conclusion: task reopened because extension outlines are incomplete and the declared Scala 3 scope encounters a real parser failure. Recommend fixing extension extraction and investigating parser support before merging, then rerunning these same revisions. No scanner code changed during this audit. PR remains draft; npm publication is explicitly deferred until after merge. Standard CI was approved by Alex and started; Linux has passed, macOS and Windows were still running at the latest check.
 <!-- SECTION:NOTES:END -->
-
-## Final Summary
-
-<!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Updated PR #110 with current main and an experimental source-only Scala 3 scanner. Bundled Scalameta and Java remove installed-tool and scan-time build/download requirements. Selected paths, original positions, conservative call evidence, strict failures and outlines follow the shared contracts. Discovery, package assembly, notices, docs and architecture ownership are aligned; obsolete sbt/cache/proposal code is removed. bun run check passed (781 tests, 51 existing optional skips); focused and relocated no-tools package checks plus all review gates passed. Runtime execution was verified on macOS ARM64 and assembly covers five release hosts. The PR stays draft; no merge or release. GitHub architecture preview remains blocked by the repository's fork-checkout workflow restriction.
-<!-- SECTION:FINAL_SUMMARY:END -->
