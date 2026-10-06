@@ -162,7 +162,7 @@ and are not listed.
   It has no `members` list. Programs are Code declarations, not C4 containers;
   nested programs are omitted.
 - `kind: 'type'` is a top-level class, interface, struct, record, enum, trait,
-  or protocol, or a Go defined type such as `type X struct{}` or `type X int`.
+  or protocol, a Scala object, or a Go defined type such as `type X struct{}` or `type X int`.
   A named type whose form is a function, such as a C# `delegate` or a Go
   `type X func(...)`, is a type with an empty `members` list. Type aliases are
   never listed: TypeScript `type X = ...`, Go `type X = Y`, and Rust
@@ -171,7 +171,9 @@ and are not listed.
   block for it: static or instance, with or without a body, including
   interface method signatures, abstract methods, and constructors. Each
   declaration is listed separately, including overloads and TypeScript overload
-  signatures. Constructors use their source name, such as `constructor`,
+  signatures. Scala extension groups keep their enclosing scope: their methods
+  are top-level functions or members of the declaring type or object.
+  Constructors use their source name, such as `constructor`,
   `__init__`, `__construct`, or the type name.
 - Fields, properties, property signatures (even with a function type),
   accessors, methods with a computed name such as `[key]()`, and nested types
@@ -213,6 +215,7 @@ follows; a dash means the language has no such case.
 | JavaScript | Top-level `export`, a name in the file's own `export { name }` list or `export default name`, a name a CommonJS `module.exports` or `exports.name` assignment publishes, and every top-level declaration of a file that states no `import`, `export` or CommonJS export, because those names are globals; members without a `#` name | - | - | Other top-level declarations; `#name` members |
 | Vue | As TypeScript in `<script>` | As TypeScript | - | As TypeScript; every `<script setup>` top-level declaration |
 | Java | `public`; interface members without a modifier | `protected` | No modifier elsewhere (package access) | `private` |
+| Scala | No access modifier | `protected`, `protected[scope]` | `private[scope]` | `private`, `private[this]` |
 | C# | `public`; interface members without a modifier | `protected`, `protected internal`, `private protected` | `internal`; top-level types without a modifier | `private`; other members without a modifier |
 | Go | Names starting with an upper-case letter | - | Other names | - |
 | Rust | `pub`. Methods in a trait definition take the trait's visibility, and methods in a trait `impl` are `public` | - | `pub(crate)`, `pub(super)`, `pub(in path)` | No `pub`, `pub(self)` |
