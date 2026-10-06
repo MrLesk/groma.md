@@ -1,11 +1,11 @@
 ---
 id: TASK-555
 title: Restore architecture comparison for the audit PR
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-06 10:24'
-updated_date: '2026-10-06 11:01'
+updated_date: '2026-10-06 11:23'
 labels: []
 dependencies: []
 references:
@@ -1072,17 +1072,17 @@ PR #113 is based on Groma 0.5.0 and stores relationships in the retired central 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 PR #113 compares from its updated merge base to its head and exports a valid architecture comparison with the current Groma profile.
-- [ ] #2 Integration retains current main behavior and the audit PR changes, with conflicts resolved and the repository check passing.
-- [ ] #3 The current architecture workflow has no failed comparison jobs, and current CI passes on Windows, Linux, and macOS.
+- [x] #1 PR #113 compares from its updated merge base to its head and exports a valid architecture comparison with the current Groma profile.
+- [x] #2 Integration retains current main behavior and the audit PR changes, with conflicts resolved and the repository check passing.
+- [x] #3 The current architecture workflow has no failed comparison jobs, and current CI passes on Windows, Linux, and macOS.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -1103,4 +1103,14 @@ The three textual conflicts are resolved: the workflow keeps main comparison/dep
 Full bun run check passes: 798 Bun tests passed, 51 optional skips, zero failures, plus Node tests, lint and typecheck. The official Action comparison using released Groma 0.6.5 exported main b759b199 to integrated PR 9c71e41c: 16 modified components and no added/removed components or relationship changes. Integration specification and quality reviews pass: current architecture is unchanged from main; source-owned relationship escaping preserves the audit cases; current atomic filesystem implementation owns locking and replacement. The independent reusable Action version-selection fix is tracked at MrLesk/groma.md-action#5.
 
 The audit Windows run exposed one inherited chmod-based test fixture failure: the permission change did not block writing on Windows. The test now forces rename failure with a non-empty destination directory, checks exact preservation of its previous content, and verifies temporary cleanup. Existing successful replacement coverage still proves preservation of the previous file inode. Both file tests now run concurrently with independent fixtures. Focused checks pass (6 tests, 17 assertions); full bun run check passes (798 Bun, 51 optional skips, zero failures, plus Node/lint/types). Own targeted specification and quality re-review found no further blocking issue. The new manual architecture workflow passed every job on main in run 37452946605 and its published page contains both requested commits and all three views.
+
+Runner verification: installed Bun and packageManager both report 1.4.2. Official Bun test documentation confirms test.concurrent schedules tests within a file; --parallel schedules files. The two changed tests own separate temp fixtures and no global state. Existing runner options stay unchanged. https://bun.com/docs/test#concurrent-test-execution
+
+Final CI run 37453651554 passed on Windows, Linux, and macOS for source commit 6151fce4. Windows explicitly passed the corrected failure/cleanup test and finished with 823 Bun tests passed, 26 skips, zero failures. Main CI 37452943855 passed all three hosts. Automatic fork event 37453649203 passed with comparison skipped; manual run 37453785798 passed every comparison, build, deployment and comment job for the exact #113 head. Action v1.1.0 is released with green Check runs. All specification, quality, and task criteria now pass. PR #113 remains open; no audit code was merged into main.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Updated PR #113 to current main and preserved its audit fixes through the filesystem and relationship-storage refactor. Its current architecture exports correctly with the released CLI. A Unix-permission-only failure fixture now tests failed atomic replacement and cleanup on every host. The source passes Linux, macOS, and Windows CI. The reusable manual fork policy and reader pin shipped separately in Action v1.1.0 and merged Groma PR #115; both automatic and manual main workflows are green. The audit PR remains open for review.
+<!-- SECTION:FINAL_SUMMARY:END -->
