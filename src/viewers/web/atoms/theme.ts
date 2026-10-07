@@ -30,7 +30,7 @@ export interface Palette {
   diffRemoved: string
 }
 
-export type WebTheme = 'light' | 'dark' | 'blueprint' | 'teslatlas' | 'solar' | 'ocean' | 'forest' | 'plum' | 'sand'
+export type WebTheme = 'light' | 'dark' | 'blueprint' | 'electric' | 'solar' | 'ocean' | 'forest' | 'plum' | 'sand'
 export type WebThemeMode = 'auto' | WebTheme
 
 /** Shared typography for the interactive map and its published cover. */
@@ -44,7 +44,7 @@ export function mixColour(paper: string, ink: string, share: number): string {
   return `#${channels}`
 }
 
-export const themeModes: readonly WebThemeMode[] = ['auto', 'light', 'dark', 'blueprint', 'teslatlas', 'solar', 'ocean', 'forest', 'plum', 'sand']
+export const themeModes: readonly WebThemeMode[] = ['auto', 'light', 'dark', 'blueprint', 'electric', 'solar', 'ocean', 'forest', 'plum', 'sand']
 
 export const palettes: Record<WebTheme, Palette> = {
   light: {
@@ -113,8 +113,8 @@ export const palettes: Record<WebTheme, Palette> = {
     diffModified: '#FFE066',
     diffRemoved: '#FF8FAB',
   },
-  // Electric blue, cyan and near-black from the Teslatlas app icon.
-  teslatlas: {
+  // Electric blue and cyan on near-black paper.
+  electric: {
     colourScheme: 'dark',
     paper: '#030813',
     ink: '#E6F4FF',

@@ -275,12 +275,12 @@ so all Help content fits without scrolling at 1280×720. The information icon op
 a brief product description and repository link, followed by every directly declared
 third-party runtime library and development tool, including its version, license,
 and project link. The dropdown lists Auto,
-Light, Dark, Blueprint, Teslatlas, Solar, Ocean, Forest, Plum and Sand. Auto is the default for a browser profile with no
+Light, Dark, Blueprint, Electric, Solar, Ocean, Forest, Plum and Sand. Auto is the default for a browser profile with no
 saved choice and follows that browser's light or dark colour preference. A
 choice is saved for later visits. Blueprint uses a deep navy field, quieter blue drafting lines,
 and groma.md green for selection and active flows, with restrained calibration marks
-and the same architecture and compass. Teslatlas pairs near-black paper with electric blue lines
-and cyan highlights, inspired by the Teslatlas app icon. Solar uses warm amber, Ocean teal,
+and the same architecture and compass. Electric pairs near-black paper with electric blue lines
+and cyan highlights. Solar uses warm amber, Ocean teal,
 Forest moss green, Plum violet, and Sand warm light paper with terracotta highlights.
 All themes use the same map, saved-choice, URL and cover rules. The full footer is absent, and Live work keeps the bottom
 centre. The camera fits architecture into the clear area between
@@ -933,7 +933,7 @@ Repeated `flow=<id>` parameters name checked scenarios in selection order;
 selection, the last flow owns details. An
 architecture selection alongside it opens endpoint inspection while retaining
 the checked flows and focused step. Opening a shared selection fits its content.
-`theme=auto|light|dark|blueprint|teslatlas|solar|ocean|forest|plum|sand` names an explicit theme, and `hud=off` hides
+`theme=auto|light|dark|blueprint|electric|solar|ocean|forest|plum|sand` names an explicit theme, and `hud=off` hides
 the page chrome. A publication path ending in `/architecture/{theme}/`, with
 any repository prefix, also selects one of those themes. An explicit query
 theme takes priority over the path, then the saved browser preference applies.

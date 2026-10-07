@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-07 17:00'
-updated_date: '2026-10-07 17:06'
+updated_date: '2026-10-07 17:26'
 labels: []
 dependencies: []
 references:
@@ -25,7 +25,7 @@ ordinal: 640000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Architecture maps need palettes that suit different projects, including a dark electric-blue and cyan palette inspired by the Teslatlas app icon.
+Architecture maps need palettes that suit different projects, including a dark electric-blue and cyan palette.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
@@ -47,16 +47,20 @@ Architecture maps need palettes that suit different projects, including a dark e
 
 <!-- SECTION:PLAN:BEGIN -->
 Extend the existing palette registry and derive page/setup CSS from it. Keep the current theme picker, URL and cover mechanisms. Extend existing URL and sharing tests because their hardcoded old choices miss unsupported new themes; verify actual switching in a browser and run the repository check.
+
+Rename the electric-blue/cyan palette to Electric throughout the public theme registry, documentation and PR. Rebuild the website and recheck theme links and covers.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
 Focused viewer checks: 14 pass, 0 fail with the repository runner options. Chrome browser checks passed for all 9 palettes: picker, saved choice, reload and setup screen. Full check: lint, typecheck and 32 Node tests pass; Bun suite 756 pass, 51 skip, 17 fail, all Java/Scala/COBOL scanner failures due to missing Java runtime. No scanner changes. Browser screenshots retained outside source.
+
+Renamed the electric-blue/cyan palette to Electric at the owner request; removed product references from public code, documentation, task description and PR. All 14 focused tests and browser checks for all 9 palettes pass after renaming. Website export rebuilt; 57 site tests pass.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Added Teslatlas, Solar, Ocean, Forest, Plum and Sand to the existing theme menu, shared URLs, startup CSS and exported covers. Registry-derived CSS keeps the page and setup consistent. Focused and browser checks pass; full suite requires a Java runtime for unrelated scanners.
+Added Electric, Solar, Ocean, Forest, Plum and Sand to the existing theme menu, shared URLs, startup CSS and exported covers. Focused and browser checks pass; full suite requires Java for unrelated scanners.
 <!-- SECTION:FINAL_SUMMARY:END -->
