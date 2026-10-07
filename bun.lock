@@ -142,7 +142,7 @@
     },
     "plugins/scanners/typescript": {
       "name": "@groma/scanner-typescript",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "typescript": "7.1.0-dev.20260924.1",
@@ -150,7 +150,7 @@
     },
     "plugins/scanners/vue": {
       "name": "@groma/scanner-vue",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "@volar/typescript": "2.4.28",
