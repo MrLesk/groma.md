@@ -29,6 +29,16 @@ export function buildOutputs(root: string, projects: readonly TypeScriptProject[
   })
 }
 
+/** The config a project reference names, or undefined when the checkout lacks it, such as one a framework generates. */
+async function referencedConfig(reference: string): Promise<string | undefined> {
+  try {
+    return (await stat(reference)).isDirectory() ? path.join(reference, 'tsconfig.json') : reference
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+    throw error
+  }
+}
+
 /**
  * A nested config owns its included `sources` before an enclosing config does. Every `tsconfig.json` among the scanner's
  * `files` is read, with each config it references or extends as the compiler follows them.
@@ -39,6 +49,7 @@ export async function typescriptProjects(api: API, root: string, sources: string
 }> {
   const configurations = new Map<string, ParsedCommandLine>()
   const diagnostics: ScanDiagnostic[] = []
+  const relative = (file: string) => path.relative(root, file).split(path.sep).join('/')
   async function read(file: string): Promise<void> {
     if (configurations.has(file)) return
     const config = await api.parseConfigFile(file)
@@ -47,14 +58,15 @@ export async function typescriptProjects(api: API, root: string, sources: string
     const errors = config.errors.filter(error => error.code !== 18003 && !absentBase.has(error.code))
     if (errors.length) throw new Error(`${file}: ${errors.map(error => error.text).join('\n')}`)
     diagnostics.push(...config.errors.filter(error => absentBase.has(error.code)).map(error => ({
-      severity: 'warning' as const, code: 'typescript-missing-config-base',
-      file: path.relative(root, file).split(path.sep).join('/'),
+      severity: 'warning' as const, code: 'typescript-missing-config-base', file: relative(file),
       message: `The extended TypeScript config is absent; source uses the available settings. ${error.text}`,
     })))
     configurations.set(file, config)
     for (const reference of config.projectReferences ?? []) {
-      const target = (await stat(reference.path)).isDirectory() ? path.join(reference.path, 'tsconfig.json') : reference.path
-      await read(target)
+      const target = await referencedConfig(reference.path)
+      if (target) await read(target)
+      else diagnostics.push({ severity: 'warning', code: 'typescript-missing-config-reference', file: relative(file),
+        message: `The referenced TypeScript config ${relative(reference.path)} is absent; its source uses the other configs or the default options.` })
     }
   }
   for (const file of files.filter(file => path.posix.basename(file) === 'tsconfig.json')) await read(path.join(root, file))
