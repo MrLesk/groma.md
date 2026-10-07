@@ -3,8 +3,8 @@ import path from 'node:path'
 import type { CodeDeclaration, CodeFile, CodeFunction, CodeSymbol, CodeType, CodeVisibility, SourceReference } from '@groma/scanner'
 
 /*
- * The source outline of the TypeScript-family scanners. The TypeScript scanner outlines the source files of its
- * native SDK's project snapshot; the framework and JavaScript scanners parse each file alone with the classic
+ * The source outline of the TypeScript-family scanners. The TypeScript scanner parses only the requested files in one
+ * native SDK program; the framework and JavaScript scanners parse each file alone with the classic
  * `typescript` module they pin and bundle. Kind numbers differ between the compilers, so every kind is looked up by
  * name in the SyntaxKind the caller passes; a scanner must pass the compiler that parsed its nodes. Visibility comes
  * from the modifiers written in the source; documentation tags such as JSDoc `@private` do not change it.
