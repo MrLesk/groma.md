@@ -30,7 +30,15 @@ configuration, SFC parsing, template code generation and original-source
 mappings. [Volar](https://github.com/volarjs/volar.js) integrates the generated
 code with the TypeScript checker, which resolves component imports and handler
 function identities. The scanner translates these facts into the existing
-supplied-callback evidence contract; it has no separate name or type resolver.
+supplied-callback evidence contract; it has no separate type resolver, and its
+only own name lookup is a template tag that no import names, on Vue's
+`GlobalComponents`.
+
+A root `tsconfig.json` that names no source and references other configs, as
+in Nuxt 4, compiles a package through the first existing referenced config that
+includes one of its SFCs, with that config's declaration files even when Git
+ignores them. Before the framework generates those configs, the root config's
+own settings apply.
 
 The package declares the default
 [include and exclude lists](../index.md#selecting-source-files). It includes
@@ -65,7 +73,13 @@ trigger the existing shared scanner refresh.
 ### Inline event bindings
 
 The qualified example is Vue REPL's CodeMirror `change` event bound to the
-parent's `onChange` function. A static imported SFC must assign `defineEmits`
+parent's `onChange` function. The child is a static imported SFC or, when no
+import names the tag, an SFC registered for every template on Vue's
+`GlobalComponents` as `Name: typeof import('./Name.vue')['default']`, the form
+Nuxt and unplugin-vue-components generate. An import shadows a global
+registration of the same name, and `<game-tile>` finds `GameTile`. Global
+registrations need Vue installed and the generated declarations present, as
+after `nuxt prepare`. The child must assign `defineEmits`
 to a constant and declare the event in a type literal, function type, or
 literal runtime array. A call to that same symbol must supply a declared
 literal event name inside a source function or directly in an inline template
