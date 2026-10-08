@@ -1,12 +1,10 @@
 ---
 id: TASK-564
-title: >-
-  Tell how critical a component is, from low to critical, and start the review
-  there
+title: Rate how critical each component is and review critical parts first
 status: To Do
 assignee: []
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-08 15:31'
+updated_date: '2026-10-08 15:47'
 labels:
   - senior
 dependencies: []
