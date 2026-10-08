@@ -128,7 +128,7 @@ function appendTab(pairs: [string, string][], state: ViewState, change: Componen
  * Reads the ordered architecture selection (repeated `<kind>=<id>` and
  * `relationship=<source id>/<target id>` entries) or `task=<id>`,
  * checked flows (repeated `flow=<id>`) and the last flow's one-based `step=<number>`,
- * `tab=how|tasks`, `theme=auto|light|dark|blueprint` and `hud=off`. A query theme overrides
+ * `tab=how|tasks`, `theme=<themeModes choice>` and `hud=off`. A query theme overrides
  * the publication path theme, then the saved default. Ids are the authored ids; anything the world
  * or the work does not know is ignored, a kind naming an element of another kind included.
  */

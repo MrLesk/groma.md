@@ -6,7 +6,7 @@ import { scannerSelection, scannerSelectionScript } from './scanners.ts'
 
 import type { GromaInitResult } from '../../../initialize.ts'
 import { escaped } from '../atoms/escape.ts'
-import { cssBlock, palettes } from '../atoms/theme.ts'
+import { cssBlock, palettes, themeCss, themeModes } from '../atoms/theme.ts'
 import { chromeCss } from '../atoms/chrome.ts'
 import { startupUpdate, type StartupProgress } from './progress.ts'
 
@@ -25,9 +25,7 @@ interface SetupPage {
 const style = `
   :root { ${cssBlock(palettes.light)} color-scheme: light; }
   @media (prefers-color-scheme: dark) { :root { ${cssBlock(palettes.dark)} color-scheme: dark; } }
-  [data-theme="light"] { ${cssBlock(palettes.light)} color-scheme: light; }
-  [data-theme="dark"] { ${cssBlock(palettes.dark)} color-scheme: dark; }
-  [data-theme="blueprint"] { ${cssBlock(palettes.blueprint)} color-scheme: dark; }
+  ${themeCss()}
   * { box-sizing: border-box; }
   body {
     margin: 0; min-height: 100dvh; padding: 32px 20px;
@@ -156,7 +154,7 @@ const style = `
 const script = `
   ${scannerSelectionScript}
   const theme = localStorage.getItem('groma.theme');
-  if (['light', 'dark', 'blueprint'].includes(theme)) document.documentElement.dataset.theme = theme;
+  if (${JSON.stringify(themeModes.filter(mode => mode !== 'auto'))}.includes(theme)) document.documentElement.dataset.theme = theme;
   const main = document.querySelector('main');
   const content = document.querySelector('#startup-content');
   const progress = document.querySelector('#startup-progress');
