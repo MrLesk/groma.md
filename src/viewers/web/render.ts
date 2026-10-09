@@ -1,6 +1,7 @@
 import { comparisonDefaultTab } from './comparison/details.ts'
 import { createComparisonControl } from './comparison/control.ts'
 import { createProjectSettings } from './settings/control.ts'
+import { createMetricsControl } from './metrics/control.ts'
 import { createProjectReview } from './review/control.ts'
 import type { ProjectProfile } from '../../project-profile.ts'
 import type { AnnotatedElement, AnnotatedRelationship, WorkItem } from '../../types.ts'
@@ -109,6 +110,11 @@ createProjectSettings(data)
 const review = createProjectReview({ world: () => world, revision: () => revisionControl.selected, readSource: data.readSource,
   navigate(id, file, line) { select(id); if (file !== undefined) source.open(file, line) },
 })
+const metrics = boot.delivery.kind === 'live' ? createMetricsControl({
+  world: () => world, generation: () => mapMeta.generation,
+  live: () => revisionControl.live && revisionControl.comparison === undefined,
+  repaint: () => paintViewState(false), select,
+}) : undefined
 const taskDiff = createTaskDiffControl({
   host: detailsHost, world: () => world, readDetails: data.readTask, readDiff: data.readTaskDiff,
   repaint: paintViewState, select,
@@ -221,6 +227,7 @@ function paintDetailsState(task: WorkItem | undefined): void {
       onTask: toggleTask,
       ...(selected === undefined ? {} : authoring.paneWrites(selected.id, selectedArchitecture(selection))),
     })
+    if (selected !== undefined && detailsTab !== 'tasks') metrics?.details(detailsHost, selected.id)
   }
 }
 
@@ -374,6 +381,7 @@ function repaintScene(fit: boolean): void {
   const after = sceneCentre(scene.bounds)
   paintMapView(mapMotion.view)
   const rehighlight = debug.paint(() => map.paint(scene))
+  metrics?.paint()
   pins.paint(currentPins.filter(pin => map.anchorOf(pin.elementId) !== undefined))
   const fitted = camera.refitTo(frame)
   if (fit && (mapMotion.morphing || following)) {
@@ -404,6 +412,7 @@ bindChromeActions({
 function applyWorld(payload: WebPayload, reset = false): void {
   mapMeta = { generation: payload.generation, timings: payload.timings }
   world = payload.world
+  metrics?.refresh()
   changes.update(world, payload.comparison, payload.revision?.id, primarySelection(selection))
   work = payload.work
   sheet = payload.sheet
@@ -456,6 +465,7 @@ function applyWork(payload: WebWorkPayload): void {
 function paintWorld(): void {
   review.refresh()
   debug.paint(() => map.paint(scene))
+  metrics?.paint()
   revisionControl.paintProjectEdit(map.svg)
   authoring.refresh()
   pins.paint(currentPins.filter(pin => map.anchorOf(pin.elementId) !== undefined))
@@ -465,5 +475,6 @@ function paintWorld(): void {
   source.restore()
 }
 paintWorld()
+metrics?.refresh()
 focusOpened(opened.selection.kind)
 listenForEmbeddedViews(window, openView)

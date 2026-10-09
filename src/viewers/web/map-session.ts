@@ -14,6 +14,7 @@ import { ownedFiles } from '../../history/comparison.ts'
 import { readComparison } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
 import { listGitRevisions, withGitRevision } from '../../history/revisions.ts'
+import { readCodeHistory } from '../../history/code-metrics.ts'
 import { renderPage } from './page.ts'
 import type { WebMapPayload, WebPayload, WebRevision, WebWorkPayload } from './payload.ts'
 import { bundleRenderer, loadMapRoot } from './runtime.ts'
@@ -391,6 +392,13 @@ export async function createWebMapSession(
   }
 
   const routes = new Map<string, Route>([
+    ['/metrics.json', async (_request, url) => {
+      const window = Number(url.searchParams.get('window') ?? 500)
+      if (!Number.isSafeInteger(window) || window < 1) return new Response('History window must be a positive integer', { status: 400 })
+      const current = map
+      const history = await readCodeHistory(repositoryRoot, current.world, window)
+      return Response.json({ generation: current.generation, history })
+    }],
     ['/scanner-settings', async (_request, url) => {
       const settings = await scannerSession.refresh()
       return Response.json(url.searchParams.has('updates') ? await withScannerUpgrades(settings) : settings)
