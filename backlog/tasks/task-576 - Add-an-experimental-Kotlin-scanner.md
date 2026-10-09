@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-09 15:00'
-updated_date: '2026-10-09 16:20'
+updated_date: '2026-10-09 16:30'
 labels: []
 dependencies: []
 references:
@@ -46,6 +46,13 @@ modified_files:
   - README.md
   - docs/scanners/creating-a-plugin.md
   - groma/systems/groma-md/containers/cli/components/kotlin-src-index.md
+  - plugins/scanners/jvm-worker.ts
+  - plugins/scanners/scala/src/adapter.ts
+  - plugins/scanners/jvm-package.ts
+  - plugins/scanners/scala/build.ts
+  - plugins/scanners/java/build.ts
+  - groma/scanners.json
+  - groma/systems/groma-md/containers/cli/components/scala-src-index.md
 type: feature
 ordinal: 653000
 ---
@@ -107,6 +114,8 @@ Verification on macOS arm64 with Bun 1.4.2 and JDK 25 (Temurin): test-bun/kotlin
 Final full-context complexity review (separate agent): no simpler approach; one blocking defect fixed: a file that is not valid UTF-8 failed without naming itself (AC 4), now reported with its path and covered by one assertion. Also applied: default exclusions written as `**/src/test/` and `**/src/*Test/` because an inner-slash pattern is anchored at the repository root and would have scanned tests in every Gradle module (verified with the selection helper on a nested module); two doc clarifications about nested-type operations and constructor delegation. Re-verified: Kotlin test 15 assertions pass, fresh-checkout kotlin passes, bun run check unchanged (Node 16/16, Bun 771 pass, 52 skip, 6 Swift toolchain failures unrelated to this task). AC 6 stays unchecked on this machine because of those 6 Swift failures; CI has the Swift toolchain. Third-party notices copy the Kotlin NOTICE, the Apache 2.0 text and the upstream third-party list; the individual third-party license texts are referenced by URL at the v2.4.21 tag, not copied.
 
 Third-party notices now carry the full texts: all 30 license files that the Kotlin v2.4.21 third-party list names are copied from the tagged upstream sources into plugins/scanners/kotlin/THIRD-PARTY-NOTICES.txt after the list, with identical texts printed once under the paths that share them (22 distinct texts). This replaces the earlier note that they were only linked.
+
+Review fixes after the PR #124 code review, one commit each: leading byte order mark accepted; outline names without backticks; 512 MB worker stack with a named failure beyond it; package folders named build kept under src/<set>/kotlin and src/<set>/java; variant test source sets excluded; no fixed limit on worker output; calls in function parameter defaults reported; only a val lambda is a function; SHA-256 of downloaded jars verified; worker runner, outline mapping and package assembly shared with the Scala scanner (plugins/scanners/jvm-worker.ts, folded into component scala-src-index) and notices and JDK tool lookup shared with the Java build (plugins/scanners/jvm-package.ts, excluded from the architecture scan like the other build scripts). The shared runner also removes the Scala adapter's 64 MB output limit. bun run check with a JDK on PATH: 771 pass, 6 Swift failures from the missing Swift toolchain.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

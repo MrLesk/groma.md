@@ -33,7 +33,9 @@ newer than that parser supports is not promised.
 ## Evidence and outlines
 
 The TypeScript entry point (`src/index.ts`) filters the selected paths and
-`src/adapter.ts` starts the bundled worker (`worker/md/groma/scanner`). The
+`src/adapter.ts` starts the bundled worker (`worker/md/groma/scanner`). Running
+a worker on the bundled Java runtime and turning its outline into Code entries
+is shared with the Scala scanner in `plugins/scanners/jvm-worker.ts`. The
 worker parses each file without analyzing it and reports:
 
 - **Symbols**: top-level classes, interfaces, objects, enum classes and
@@ -104,6 +106,9 @@ Gradle. This build-time tooling is not part of scanning. The result is
 the scanner before publication. To change the parser version, change `kotlin`
 and the jar checksums in `build.ts`, and the version named in
 `THIRD-PARTY-NOTICES.txt` and on this page.
+
+`build.ts` owns the worker compilation; `plugins/scanners/jvm-package.ts`
+assembles the package around it, as it does for the Scala scanner.
 
 The existing scanner release workflow builds each supported host and combines
 the runtimes. The package contains bundled JavaScript, `dist/worker.jar`, the
