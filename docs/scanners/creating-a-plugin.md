@@ -162,7 +162,7 @@ and are not listed.
   It has no `members` list. Programs are Code declarations, not C4 containers;
   nested programs are omitted.
 - `kind: 'type'` is a top-level class, interface, struct, record, enum, trait,
-  or protocol, a Scala object, or a Go defined type such as `type X struct{}` or `type X int`.
+  or protocol, a Scala or Kotlin object, or a Go defined type such as `type X struct{}` or `type X int`.
   A named type whose form is a function, such as a C# `delegate` or a Go
   `type X func(...)`, is a type with an empty `members` list. Type aliases are
   never listed: TypeScript `type X = ...`, Go `type X = Y`, and Rust
@@ -173,6 +173,7 @@ and are not listed.
   declaration is listed separately, including overloads and TypeScript overload
   signatures. Scala extension groups keep their enclosing scope: their methods
   are top-level functions or members of the declaring type or object.
+  Functions of a Kotlin companion object are members of the enclosing type.
   Constructors use their source name, such as `constructor`,
   `__init__`, `__construct`, or the type name.
 - Fields, properties, property signatures (even with a function type),
@@ -216,6 +217,7 @@ follows; a dash means the language has no such case.
 | Vue | As TypeScript in `<script>` | As TypeScript | - | As TypeScript; every `<script setup>` top-level declaration |
 | Java | `public`; interface members without a modifier | `protected` | No modifier elsewhere (package access) | `private` |
 | Scala | No access modifier | `protected`, `protected[scope]` | `private[scope]` | `private`, `private[this]` |
+| Kotlin | `public`; no modifier | `protected` | `internal` | `private` |
 | C# | `public`; interface members without a modifier | `protected`, `protected internal`, `private protected` | `internal`; top-level types without a modifier | `private`; other members without a modifier |
 | Go | Names starting with an upper-case letter | - | Other names | - |
 | Rust | `pub`. Methods in a trait definition take the trait's visibility, and methods in a trait `impl` are `public` | - | `pub(crate)`, `pub(super)`, `pub(in path)` | No `pub`, `pub(self)` |

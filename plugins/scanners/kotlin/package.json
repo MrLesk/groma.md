@@ -1,0 +1,49 @@
+{
+  "name": "@groma/scanner-kotlin",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "description": "Experimental Kotlin source declarations, outlines and bounded call evidence.",
+  "groma": {
+    "scanner": {
+      "id": "kotlin",
+      "entry": "./src/index.ts",
+      "include": [
+        "**/*.kt"
+      ],
+      "exclude": [
+        "build/",
+        "!**/src/*/kotlin/**/build/",
+        "!**/src/*/java/**/build/",
+        ".gradle/",
+        "**/src/test/",
+        "**/src/test[A-Z]*/",
+        "**/src/*Test/",
+        "**/src/*Test[A-Z]*/"
+      ],
+      "discovery": {
+        "technologies": [
+          "kotlin"
+        ],
+        "rules": [
+          {
+            "type": "file",
+            "files": [
+              "**/*.kt"
+            ],
+            "technology": "kotlin",
+            "kind": "language",
+            "declaration": "Kotlin source; compiler version and build configuration unverified"
+          }
+        ],
+        "compatibility": {
+          "groma": ">=0.6.6"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@groma/scanner": "workspace:*"
+  }
+}
