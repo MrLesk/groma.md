@@ -200,7 +200,7 @@ function whatLines(theme: ViewerTheme, element: AnnotatedElement, world: Termina
   return { lines, cursor }
 }
 
-/** The selected element under one tab: its kind line, then meaning or evidence. */
+/** The selected element under one tab: its kind and criticality, then meaning or evidence. */
 export function detailsLines(
   theme: ViewerTheme,
   element: AnnotatedElement,
@@ -219,7 +219,6 @@ export function detailsLines(
     chunk(` ${kindLabel(element.kind, element.external)}`, theme.foreground, element.external ? TextAttributes.DIM : 0),
     dim(theme, ' · '),
     chunk(element.origin, theme[element.origin], TextAttributes.BOLD),
-    dim(theme, ` · ${element.criticality ?? 'normal'}`),
   ]
   const body = tab === 'tasks'
     ? componentTaskLines(theme, element, world, width, actionCursor, workList)
@@ -227,8 +226,8 @@ export function detailsLines(
     ? howLines(theme, element, world, width, actionCursor, structure)
     : whatLines(theme, element, world, byId, width, pickedId, actionCursor)
   return {
-    lines: [head, ...body.lines],
-    ...(body.cursor === undefined ? {} : { cursor: body.cursor + 1 }),
+    lines: [head, [dim(theme, `Criticality · ${element.criticality ?? 'normal'}`)], ...body.lines],
+    ...(body.cursor === undefined ? {} : { cursor: body.cursor + 2 }),
   }
 }
 

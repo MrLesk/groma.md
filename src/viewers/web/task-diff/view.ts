@@ -171,14 +171,13 @@ export function paintTaskSummary(
     }
     return row
   }))
-  const orderedFiles = payload === undefined ? item.modifiedFiles : taskReviewFiles(payload.files, world).map(file => file.file)
-  const fileRows = orderedFiles.map(file => {
-    const loaded = payload?.files.find(candidate => candidate.file === file)
-    if (loaded === undefined) return pendingFileRow(file, error !== undefined)
-    const row = fileDiffRow(loaded, onOpen, loaded.shared)
-    row.dataset.taskKey = file
-    return row
-  })
+  const fileRows = payload === undefined
+    ? item.modifiedFiles.map(file => pendingFileRow(file, error !== undefined))
+    : taskReviewFiles(payload.files, world).map(file => {
+      const row = fileDiffRow(file, onOpen, file.shared)
+      row.dataset.taskKey = file.file
+      return row
+    })
   section(body, 'files', 'Modified files', fileRows)
   if (payload !== undefined) body.append(sourceIdentity(payload))
   else if (error !== undefined) {

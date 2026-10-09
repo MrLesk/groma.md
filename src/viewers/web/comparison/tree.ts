@@ -1,7 +1,7 @@
 import { compareReviewPriority } from '../../../criticality.ts'
 import type { Comparison, ChangeStatus } from '../../../history/comparison.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
-import { ancestorsOf, semanticTreeRows } from '../../tui/tree.ts'
+import { ancestorsOf, type TreeRow } from '../../tui/tree.ts'
 
 export const changeStatuses = ['added', 'modified', 'removed'] as const
 export type VisibleStatus = typeof changeStatuses[number]
@@ -42,22 +42,20 @@ function changedPaths(world: ArchitectureGraph, comparison: Comparison, enabled:
 export function comparisonTree(world: ArchitectureGraph, comparison: Comparison,
   enabled: ReadonlySet<VisibleStatus> = new Set(changeStatuses)) {
   const { counts, priorities, changed, former } = changedPaths(world, comparison, enabled)
-  const included = new Set([...changed, ...counts.keys()])
-  const elements = world.elements.filter(element => included.has(element.representationId))
-    .map(element => ({ ...element, children: element.children.filter(id => included.has(id)) }))
-  const filtered = { ...world, elements }
-  const compare = (left: typeof elements[number], right: typeof elements[number]) =>
+  const ranked = world.elements.filter(element => changed.has(element.representationId)).sort((left, right) =>
     compareReviewPriority(priorities.get(left.representationId)!, priorities.get(right.representationId)!)
-      || left.title.localeCompare(right.title) || left.id.localeCompare(right.id)
-  const ranked = elements.filter(element => changed.has(element.representationId)).sort(compare)
-  const byRowId = new Map(semanticTreeRows(filtered, [], { expanded: included, collapsed: new Set() }).map(row => [row.id, row]))
-  const rows = ranked.map(element => ({ ...byRowId.get(element.representationId)!, depth: 0, hasChildren: false, expanded: false, count: 0 }))
+      || left.title.localeCompare(right.title) || left.id.localeCompare(right.id))
+  const rows: TreeRow[] = ranked.map(element => ({
+    id: element.representationId, title: element.title, kind: element.kind, external: element.external,
+    origin: element.origin, criticality: element.criticality,
+    depth: 0, hasChildren: false, expanded: false, count: 0,
+  }))
   const relationships = world.relationships.filter(item => {
     const status = comparison.relationships[item.id]
     return isChange(status) && enabled.has(status)
   })
   const order = [...ranked.map(element => element.representationId), ...relationships.map(item => item.id)]
-  return { world: filtered, elements: world.elements, rows, counts, relationships, order, former }
+  return { elements: world.elements, rows, counts, relationships, order, former }
 }
 
 /** Keyboard and button navigation wrap in the same visible list. */

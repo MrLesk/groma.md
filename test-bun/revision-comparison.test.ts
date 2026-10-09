@@ -146,3 +146,36 @@ test.concurrent('prose presentation separates replacements and keeps large rewri
   expect(textChanges('', 'New explanation').mode).toBe('added')
   expect(textChanges('Old explanation', '').mode).toBe('removed')
 })
+
+
+test.concurrent('a parent criticality edit changes inherited priority without marking unchanged components', async () => {
+  const { before, oldSources } = await fixture()
+  for (const element of before.elements) element.criticality = 'normal'
+  const after = structuredClone(before)
+  const parent = after.elements.find(element => element.id === 'api')!
+  parent.declaredCriticality = parent.criticality = 'critical'
+  for (const element of after.elements) if (element.parent === parent.id) element.criticality = 'critical'
+  const compared = compareArchitecture(before, after, oldSources, oldSources)
+  expect(compared.components.checkout!.after!.criticality).toBe('critical')
+  expect(compared.components.checkout!.status).toBe('unchanged')
+  expect(compared.components.payment!.status).toBe('unchanged')
+  expect(comparisonTree(compared.world, { ...compared, from: null }).order).toEqual([])
+})
+
+test.concurrent('declaring or clearing an inherited level is an own change with a criticality reason', async () => {
+  const { before, oldSources } = await fixture()
+  for (const level of ['normal', 'critical'] as const) {
+    const inherited = structuredClone(before)
+    inherited.elements.find(element => element.id === 'checkout')!.criticality = level
+    const explicit = structuredClone(inherited)
+    explicit.elements.find(element => element.id === 'checkout')!.declaredCriticality = level
+    for (const [start, after] of [[inherited, explicit], [explicit, inherited]]) {
+      const compared = compareArchitecture(start!, after!, oldSources, oldSources)
+      const change = compared.components.checkout!
+      expect(change.status).toBe('modified')
+      expect(componentReasons(change)).toMatchObject([{ key: 'declaredCriticality', label: 'criticality', tab: 'what' }])
+      expect(comparisonDefaultTab(change)).toBe('what')
+      expect(compared.components.payment!.status).toBe('unchanged')
+    }
+  }
+})
