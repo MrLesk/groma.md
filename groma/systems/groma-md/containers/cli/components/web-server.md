@@ -17,11 +17,14 @@ groma:
       symbol: renderSetupPage
     - scanner: typescript
       file: src/viewers/web/startup/scanners.ts
+    - scanner: typescript
+      file: src/viewers/web/revision/history.ts
+      symbol: createRevisionHistory
   group: Browser delivery
 description: Serves the local browser map and live architecture operations
 ---
 
-Starts the local HTTP server. Serves project setup and connects the browser to architecture, scanner, task, and source operations.
+Starts the local HTTP server. Serves project setup and connects the browser to architecture, scanner, task, and source operations. Keeps historical architecture snapshots and source text in a session cache, identifies readable frames for playback, and reuses snapshots for commit comparisons.
 
 ## Relationships
 

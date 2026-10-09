@@ -13,6 +13,8 @@ export interface WebDataSource {
   onScanners?: (state: ScannerSettings) => void
   readWorld(revision?: string, from?: string): Promise<WebPayload>
   readRevisions(): Promise<WebRevision[]>
+  /** Live-only compatible commits, ordered from the selected start to end. */
+  readPlaybackRevisions?(revision: string, from: string): Promise<WebRevision[]>
   readCode(element: string, revision?: string, from?: string): Promise<readonly CodeFile[]>
   readSource(element: string, file: string, revision?: string, from?: string): Promise<SourcePayload>
   readTask(id: string): Promise<WorkItemDetails>
@@ -67,6 +69,9 @@ function liveDataSource(): WebDataSource {
     },
     readRevisions() {
       return responseJson('/revisions.json')
+    },
+    readPlaybackRevisions(revision, from) {
+      return responseJson(selected('/playback.json', { revision, from }))
     },
     readWorld(revision, from) {
       return responseJson(selected('/world.json', { revision, from }))

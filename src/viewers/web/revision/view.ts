@@ -64,6 +64,15 @@ export const revisionCss = `
 
   #end-comparison[hidden] { display: none; }
   #end-comparison { margin-left: 4px; font-size: 18px; padding: 6px 9px; animation: revision-fade-in ${motion} both; }
+  .revision-playback { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; flex: none; }
+  .revision-playback[hidden], .revision-playback-caption[hidden] { display: none; }
+  .revision-playback select { width: 54px; padding: 4px; }
+  .revision-playback-caption {
+    position: absolute; top: calc(100% + 8px); left: 0; z-index: 10;
+    max-width: min(560px, 70vw); padding: 7px 10px; border: 1px solid var(--hairline);
+    border-radius: 6px; background: var(--paper); color: var(--ink); font-size: 11px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   @keyframes revision-spin { to { transform: rotate(360deg); } }
   @keyframes revision-fade-in { from { opacity: 0; } }
   @keyframes revision-slide-in { from { opacity: 0; transform: translateX(8px); } }

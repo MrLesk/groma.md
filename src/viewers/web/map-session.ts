@@ -15,6 +15,7 @@ import { readComparison } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
 import { listGitRevisions, withGitRevision } from '../../history/revisions.ts'
 import { renderPage } from './page.ts'
+import { createRevisionHistory } from './revision/history.ts'
 import type { WebMapPayload, WebPayload, WebRevision, WebWorkPayload } from './payload.ts'
 import { bundleRenderer, loadMapRoot } from './runtime.ts'
 import { coverThemes, generateCovers, type CoverImages } from './sharing/images.ts'
@@ -75,6 +76,7 @@ export async function createWebMapSession(
 ): Promise<{ fetch: (request: Request) => Promise<Response>; close: () => Promise<void> }> {
   options.onProgress?.({ phase: 'preparing-viewer' })
   const renderer = await bundleRenderer()
+  const history = createRevisionHistory(repositoryRoot)
   const workSource = options.workSource ?? backlogPlugin.create(repositoryRoot)
   let revisions: WebRevision[] = []
   let revisionRead: Promise<WebRevision[]> | undefined
@@ -120,7 +122,8 @@ export async function createWebMapSession(
     const revision = (await readRevisions()).find(candidate => candidate.id === revisionId)
     if (revision === undefined) return new Response('Unknown Groma revision', { status: 404 })
     try {
-      const snapshot = await loadMap(repositoryRoot, revisions, revision)
+      const { map: stored } = await history.snapshot(revision)
+      const snapshot = { ...stored, revision, revisions }
       if (snapshot.project === null) throw new Error('No Groma architecture in this commit')
       return {
         generation: map.generation,
@@ -157,7 +160,9 @@ export async function createWebMapSession(
 
   /** Both revisions' architecture and the changes between them, without laying out the map. */
   async function compare(from: WebRevision | null, to: WebRevision | null) {
-    const compared = await readComparison(repositoryRoot, from, to)
+    const compared = from !== null && to !== null
+      ? await history.compare(from, to)
+      : await readComparison(repositoryRoot, from, to)
     for (const component of Object.values(compared.comparison.components)) {
       for (const { file } of component.files) sourceFiles.add(file)
     }
@@ -397,6 +402,12 @@ export async function createWebMapSession(
     }],
     ['/render.js', rendererResponse],
     ['/revisions.json', async () => Response.json(await readRevisions())],
+    ['/playback.json', async (_request, url) => {
+      try {
+        return Response.json(await history.range(await readRevisions(),
+          url.searchParams.get('from') ?? '', url.searchParams.get('revision') ?? ''))
+      } catch (error) { return comparisonError(error) }
+    }],
     ['/world.json', worldResponse],
     ['/code.json', selectedSourceResponse],
     ['/source.json', selectedSourceResponse],

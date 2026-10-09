@@ -2,6 +2,7 @@ import type { WebDataSource } from '../data.ts'
 import { bindPopover } from '../atoms/popover.ts'
 import type { WebBootPayload, WebPayload, WebWorkPayload } from '../payload.ts'
 import { NARROW_HEADER, pendingPairFields, revisionFields, revisionOptions, snapshotNotice, type RevisionField } from './view.ts'
+import { createRevisionPlayback } from './playback.ts'
 
 interface RevisionControlOptions {
   box: HTMLElement
@@ -100,6 +101,16 @@ export function createRevisionControl(options: RevisionControlOptions) {
   let navigating = false
   let pendingWorld: WebPayload | undefined
   let appliedWork = boot.workGeneration
+  const playback = createRevisionPlayback({
+    root, data, current: () => current, repaint: paint,
+    present(payload, first) {
+      editing = undefined
+      setRevision(payload)
+      if (first) applyRevision(payload)
+      else applyWorld(payload)
+    },
+    error: showError,
+  })
 
   const selected = () => current.revision?.id
   const from = () => current.comparison === undefined ? undefined : current.comparison.from?.id ?? ''
@@ -151,17 +162,23 @@ export function createRevisionControl(options: RevisionControlOptions) {
     if (editing === undefined || singleSnapshot) delete box.dataset.editing
     else box.dataset.editing = editing
     // Live refreshes repaint often; untouched fields keep their focus and do not replay their entrance.
-    const nextFields = starting() ? pendingPairFields(current.revision) : revisionFields(current)
+    const range = playback.range
+    const displayed = range === undefined ? current : {
+      ...current, revision: range.to,
+      comparison: { components: {}, relationships: {}, ...current.comparison, from: range.from },
+    }
+    const nextFields = starting() ? pendingPairFields(current.revision) : revisionFields(displayed)
     if (nextFields !== paintedFields) { fields.innerHTML = nextFields; paintedFields = nextFields }
     search.hidden = !opened || singleSnapshot
     search.placeholder = placeholders[editing ?? 'revision']
     search.setAttribute('aria-label', searchLabels[editing ?? 'revision'])
     paintCompareEntry()
-    end.hidden = current.comparison === undefined && !starting()
+    end.hidden = current.comparison === undefined && !starting() && range === undefined
     end.title = starting() ? 'Cancel comparison' : 'End comparison'
     end.setAttribute('aria-label', end.title)
     menu.hidden = !opened
     placeMenu()
+    playback.paint()
   }
 
   function close(): void {
@@ -219,6 +236,7 @@ export function createRevisionControl(options: RevisionControlOptions) {
   }
 
   function open(field: RevisionField): void {
+    playback.cancel()
     // Widths are read from the closed layout, also when another field is the search right now.
     close()
     const width = (name: RevisionField) => fields.querySelector(`[data-field="${name}"]`)?.getBoundingClientRect().width
@@ -233,6 +251,7 @@ export function createRevisionControl(options: RevisionControlOptions) {
 
   function setRevision(payload: WebPayload): void {
     current = payload
+    playback.remember(payload)
     body.toggleAttribute('data-revision', !live())
     body.toggleAttribute('data-comparison', payload.comparison !== undefined)
     paint()
@@ -250,6 +269,7 @@ export function createRevisionControl(options: RevisionControlOptions) {
   }
 
   async function load(revision?: string, starting?: string, reset = true): Promise<void> {
+    playback.cancel()
     const loading = ++request
     navigating = true
     error.hidden = true
@@ -312,7 +332,12 @@ export function createRevisionControl(options: RevisionControlOptions) {
     const option = event.target.closest<HTMLButtonElement>('.revision-option')
     if (option !== null && !option.disabled) chooseRevision(option.dataset.revision!)
   })
-  end.addEventListener('click', () => { if (starting()) close(); else void load(selected()) })
+  end.addEventListener('click', () => {
+    const destination = playback.range?.to.id ?? selected()
+    playback.cancel()
+    if (starting()) close()
+    else void load(destination)
+  })
   // The list follows its field whenever the header reflows the box.
   new ResizeObserver(placeMenu).observe(box)
 
@@ -340,6 +365,8 @@ export function createRevisionControl(options: RevisionControlOptions) {
   return {
     get selected() { return selected() },
     get from() { return from() },
+    get urlRevision() { return playback.range?.to.id ?? selected() },
+    get urlFrom() { return playback.range?.from.id ?? from() },
     get comparison() { return current.comparison },
     get live() { return live() },
     paintProjectEdit(root: ParentNode) {
