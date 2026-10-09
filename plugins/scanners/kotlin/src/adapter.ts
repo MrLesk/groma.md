@@ -20,8 +20,9 @@ async function runWorker(mode: 'scan' | 'outline', root: string, files: readonly
   await checkKotlinReadiness()
   return new Promise((resolve, reject) => {
     // The worker walks nested expressions recursively, so long generated chains need more than the default stack.
+    // One observation covers every selected file, so its size grows with the repository and has no fixed limit.
     const child = execFile(runtime, ['-Xss512m', '-cp', classpath, 'md.groma.scanner.MainKt', mode, root], {
-      cwd: root, encoding: 'utf8', timeout: 120000, killSignal: 'SIGKILL', maxBuffer: 64 * 1024 * 1024,
+      cwd: root, encoding: 'utf8', timeout: 120000, killSignal: 'SIGKILL', maxBuffer: Infinity,
     }, (error, stdout, stderr) => {
       if (error) reject(new Error(stderr.trim() || error.message))
       else resolve(stdout)
