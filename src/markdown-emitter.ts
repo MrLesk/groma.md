@@ -19,6 +19,8 @@ export interface MeaningChanges {
   overview?: string
   description?: string
   technology?: string
+  icon?: string
+  colour?: string
   draft?: string
 }
 
@@ -28,6 +30,8 @@ export function withMeaning(source: string, input: MeaningChanges): string {
   if (input.overview !== undefined) source = replaceLeadProse(source, input.overview)
   source = withDescription(source, input.description)
   if (input.technology !== undefined) source = withGromaField(source, 'technology', input.technology || undefined)
+  if (input.icon !== undefined) source = withGromaField(source, 'icon', input.icon || undefined)
+  if (input.colour !== undefined) source = withGromaField(source, 'colour', input.colour || undefined)
   if (input.draft !== undefined) source = withGromaField(source, 'draft', input.draft || undefined)
   return source
 }
@@ -75,7 +79,7 @@ export function withGromaCode(source: string, code: CodeReference[]): string {
 
 export function withGromaField(
   source: string,
-  field: 'id' | 'group' | 'parent' | 'draft' | 'technology',
+  field: 'id' | 'group' | 'parent' | 'draft' | 'technology' | 'icon' | 'colour',
   value: string | undefined,
 ): string {
   return withGromaChange(source, groma => {
@@ -131,6 +135,8 @@ export function renderArchitectureDocument(input: {
   kind: C4Kind
   parent?: string | null
   technology?: string
+  icon?: string
+  colour?: string
   draft?: string
   name: string
   description?: string
@@ -146,6 +152,8 @@ export function renderArchitectureDocument(input: {
     groma.parent = input.parent
   }
   if (input.technology !== undefined) groma.technology = input.technology
+  if (input.icon !== undefined) groma.icon = input.icon
+  if (input.colour !== undefined) groma.colour = input.colour
   if (input.draft !== undefined) groma.draft = input.draft
   if ((input.code?.length ?? 0) > 0) groma.code = input.code
   const content = input.overview.trim() === '' ? '\n' : `\n\n${input.overview.trim()}\n`

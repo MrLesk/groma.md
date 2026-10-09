@@ -19,6 +19,7 @@ export interface ConfiguredWorkSource {
 }
 
 export interface ScannerConfig {
+  icons?: ConfiguredWorkSource[]
   workSources?: ConfiguredWorkSource[]
   scanners: ConfiguredScanner[]
   /** Git ignore patterns every scanner leaves out; Groma never writes them. */
@@ -127,7 +128,7 @@ function parseScannerConfig(
     throw new Error(`${sourceFilename} must be an object`)
   }
   const config = value as Record<string, unknown>
-  if (Object.keys(config).some(key => !['scanners', 'workSources', 'exclude', 'useGitignore'].includes(key)) || !Array.isArray(config.scanners)) {
+  if (Object.keys(config).some(key => !['scanners', 'workSources', 'icons', 'exclude', 'useGitignore'].includes(key)) || !Array.isArray(config.scanners)) {
     throw new Error(`${sourceFilename} must contain a scanners array, and optionally an exclude array and useGitignore`)
   }
   if (config.exclude !== undefined && !stringArray(config.exclude)) {
@@ -136,6 +137,7 @@ function parseScannerConfig(
   if (config.useGitignore !== undefined && typeof config.useGitignore !== 'boolean') {
     throw new Error(`${sourceFilename} useGitignore must be true or false`)
   }
+  const icons = configuredIcons(config.icons, sourceFilename)
   const workSources = configuredWorkSources(config.workSources, sourceFilename)
   const scanners = config.scanners.map((scanner, index) => {
     return configuredScanner(scanner, index, sourceFilename)
@@ -152,6 +154,7 @@ function parseScannerConfig(
   }
   return {
     ...(workSources.length ? { workSources } : {}),
+    ...(icons.length ? { icons } : {}),
     scanners: scanners.sort((left, right) => left.id.localeCompare(right.id)),
     ...(config.exclude === undefined ? {} : { exclude: config.exclude as string[] }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
@@ -180,4 +183,21 @@ export async function writeScannerConfig(
     'plugins.json',
     `${JSON.stringify({ ...config, scanners: ordered, workSources: config.workSources ?? [] }, null, 2)}\n`,
   )
+}
+
+function configuredIcons(value: unknown, filename: string): ConfiguredWorkSource[] {
+  if (value === undefined) return []
+  if (!Array.isArray(value)) throw new Error(`${filename} icons must be an array`)
+  const ids = new Set<string>()
+  return value.map(entry => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)
+      || Object.keys(entry).some(key => !['id', 'source'].includes(key))
+      || typeof entry.id !== 'string' || !scannerId.test(entry.id)
+      || typeof entry.source !== 'string' || !entry.source.trim()) {
+      throw new Error(`${filename} icons entries require a lowercase kebab-case id and a source`)
+    }
+    if (ids.has(entry.id)) throw new Error(`Duplicate icon pack id: ${entry.id}`)
+    ids.add(entry.id)
+    return { id: entry.id, source: entry.source }
+  })
 }

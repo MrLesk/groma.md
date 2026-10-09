@@ -20,8 +20,11 @@ groma:
       file: src/viewers/web/chrome/credits.ts
     - scanner: typescript
       file: src/viewers/web/chrome/frame.ts
+    - scanner: typescript
+      file: src/viewers/web/chrome/colour-legend.ts
+      symbol: paintColourLegend
   group: Browser controls
 description: Browser toolbar, side panels and keyboard shortcuts
 ---
 
-Shows the map toolbar and side panels. Handles keyboard shortcuts, panel expansion and empty map states, and measures the frame the visible chrome leaves for the camera.
+Shows the map toolbar and side panels. Handles keyboard shortcuts, panel expansion and empty map states, and measures the frame the visible chrome leaves for the camera. The map legend lists authored accent colours and the number of elements using each, and hides those rows when no colours are assigned.

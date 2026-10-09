@@ -1,4 +1,5 @@
 import { addPlugin, removePlugin, restoreWorkSource, updatePlugin } from '../../plugin-management.ts'
+import { iconPackInventory, restoreIconPacks } from '../../icon-packs.ts'
 import { configuredWorkSource } from '../../work-sources.ts'
 import { scannerNotice, type ScannerSetting, type ScannerSettings, type ScannerSettingsAction } from './settings-model.ts'
 export * from './settings-model.ts'
@@ -93,6 +94,12 @@ export async function readScannerSettings(root: string, checks: readonly Project
       official: work.id === 'backlog', technologies: [], matches: [], match: 'matched',
       status: work.status === 'found' ? 'ready' : work.status, message: work.message,
     })
+    const icons = await iconPackInventory(root, options)
+    for (const item of icons) state.scanners.push({
+      id: item.id, kind: 'icons', name: item.pack?.name ?? item.id, source: item.source, version: item.pack?.version,
+      official: item.pack?.name === '@groma/icons-architecture', technologies: [], matches: [], match: 'matched',
+      status: item.status === 'found' ? 'ready' : item.status === 'missing' ? 'missing' : 'blocked', message: item.message,
+    })
     return state
   } catch (error) {
     return { scanners: [], notice: { tone: 'error', message: error instanceof Error ? error.message : String(error) }, limits: [] }
@@ -105,7 +112,9 @@ export async function changeScannerSettings(root: string, action: ScannerSetting
     case 'remove': await removePlugin(root, action.id); return
     case 'restore': {
       const work = await configuredWorkSource(root, options)
-      if (work?.id === action.id) await restoreWorkSource(root, options)
+      const icons = await iconPackInventory(root, options)
+      if (icons.some(pack => pack.id === action.id)) await restoreIconPacks(root, options, action.id)
+      else if (work?.id === action.id) await restoreWorkSource(root, options)
       else await restoreScanner(root, action.id, options)
       return
     }
@@ -127,6 +136,7 @@ async function installGroup(root: string, group: 'install-recommended' | 'instal
   for (const item of selected) {
     try {
       if (group === 'install-recommended') await addScanner(root, item.installSource!, options)
+      else if (item.kind === 'icons') await restoreIconPacks(root, options, item.id)
       else if (item.kind === 'workSource') await restoreWorkSource(root, options)
       else await restoreScanner(root, item.id, options)
     } catch (error) { errors.push(`${item.id}: ${error instanceof Error ? error.message : String(error)}`) }

@@ -27,8 +27,10 @@ groma:
       file: src/viewers/web/iso/painting/glow.ts
     - scanner: typescript
       file: src/viewers/web/iso/painting/layer-planes.ts
+    - scanner: typescript
+      file: src/viewers/web/iso/painting/appearance.ts
   group: Map drawing
 description: Paints the browser map as SVG buildings, routes and labels
 ---
 
-Draws the map surfaces, buildings, labels, and connections as SVG. Applies selection and task emphasis.
+Draws the map surfaces, buildings, labels, and connections as SVG. Applies selection and task emphasis. Draws resolved SVG icons and fixed authored accent colours through the same painting functions used by the browser and cover exporter.

@@ -36,6 +36,7 @@ async function stage(output: string) {
   await writeManifest(contract, { ...await manifest('packages/scanner'), license: 'MIT', repository,
     files: ['src', 'LICENSE'], publishConfig: { access: 'public' } })
   const builders = {
+    'icons-architecture': (await import('../plugins/icons/architecture/build.ts')).buildPackage,
     php: (await import('../plugins/scanners/php/build.ts')).buildPackage,
     python: (await import('../plugins/scanners/python/build.ts')).buildPackage,
     typescript: (await import('../plugins/scanners/typescript/build.ts')).buildPackage,
@@ -145,8 +146,12 @@ async function publish(input: string) {
     }
   }
   await publishPackage(path.join(input, 'contract'))
-  await completeTogether(scannerIds.map(id => id === 'csharp'
-    ? publishCSharp(input) : publishPackage(path.join(input, id))))
+  const icons = await manifest(path.join(input, 'icons-architecture'))
+  if (icons.private || !icons.groma?.icons?.icons) throw new Error('Icon pack requires public package metadata')
+  await completeTogether([
+    ...scannerIds.map(id => id === 'csharp' ? publishCSharp(input) : publishPackage(path.join(input, id))),
+    publishPackage(path.join(input, 'icons-architecture')),
+  ])
 }
 
 async function publishCSharp(input: string) {
