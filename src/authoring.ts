@@ -1,3 +1,4 @@
+import { exportPlan, importPlan } from './plan.ts'
 import { addThing } from './add.ts'
 import type { AddInput } from './add.ts'
 import { acceptGhost } from './accept.ts'
@@ -50,6 +51,8 @@ function protectedWrite<Write extends (root: string, input: never) => Promise<un
 
 /** The writes the web shares with the CLI. Storage protects the complete operation, including its first read. */
 export const writes = {
+  exportPlan: protectedWrite(exportPlan),
+  importPlan: protectedWrite(importPlan),
   draft: protectedWrite(draftThing),
   add: protectedWrite(addThing),
   edit: protectedWrite(editArchitecture),

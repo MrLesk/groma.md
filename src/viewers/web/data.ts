@@ -1,3 +1,4 @@
+import type { PlanExportInput } from '../../plan.ts'
 import type { ScannerSettings, ScannerSettingsAction } from '../../scanner/modules/settings-model.ts'
 import type { AcceptInput, AddInput, DraftInput, EditArchitectureInput, RemoveInput } from '../../authoring.ts'
 import type { WorkItemDetails } from '../../types.ts'
@@ -18,6 +19,7 @@ export interface WebDataSource {
   readTask(id: string): Promise<WorkItemDetails>
   readTaskDiff(id: string): Promise<TaskDiffPayload>
   /** The writers, absent in the published delivery, which has none. */
+  exportPlan?(input: PlanExportInput): Promise<void>
   draft?(input: DraftInput): Promise<void>
   add?(input: AddInput): Promise<void>
   remove?(input: RemoveInput): Promise<void>
@@ -83,6 +85,7 @@ function liveDataSource(): WebDataSource {
     readTaskDiff(id) {
       return responseJson(selected('/task-diff.json', { task: id }))
     },
+    exportPlan: input => send('/plan/export', input),
     draft: input => send('/draft', input),
     add: input => send('/add', input),
     remove: input => send('/remove', input),

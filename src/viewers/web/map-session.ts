@@ -416,6 +416,7 @@ export async function createWebMapSession(
       try { await scannerSession.change(parseScannerSettingsAction(await request.json())); return Response.json(scannerSession.state) }
       catch (error) { return new Response(error instanceof Error ? error.message : String(error), { status: 400 }) }
     }],
+    ['/plan/export', request => writeResponse(request, writes.exportPlan)],
     ['/draft', request => writeResponse(request, writes.draft)],
     ['/add', request => writeResponse(request, writes.add)],
     ['/edit', request => writeResponse(request, writes.edit)],

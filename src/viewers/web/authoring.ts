@@ -21,6 +21,7 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
     if (ids.length < 2 || add === undefined || edit === undefined) return undefined
     return {
       members: ids.map(id => ({ id, title: titleOf(id) })),
+      onExport: data.exportPlan === undefined ? undefined : to => data.exportPlan!({ ids: [...ids], to }),
       onGroup: name => add({ thing: 'group', name, members: [...ids] }),
       onCombine: survivor => edit({ id: survivor, combine: ids.filter(id => id !== survivor) }),
     }

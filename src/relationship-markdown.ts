@@ -50,7 +50,8 @@ function readRow(
   const source = endpoint(cells[0], filename, byDocument, invalid)
   const target = endpoint(cells[1], filename, byDocument, invalid)
   const declaredConcept = [source, target].some(end => end.element?.kind === 'actor' || end.element?.external === true)
-  if (!declaredConcept && (!source.file || !target.file)) {
+  const plannedConcepts = status === 'draft' && source.element !== undefined && target.element !== undefined
+  if (!declaredConcept && !plannedConcepts && (!source.file || !target.file)) {
     invalid('INVALID_RELATIONSHIP', filename, 'code relationships require source-file endpoints')
   }
   const description = nodeText(cells[2]).trim()

@@ -13,6 +13,7 @@ export interface ParentOption {
 
 export interface SelectionWrites {
   members: { id: string; title: string }[]
+  onExport?: (to: string) => Promise<void>
   onGroup: (name: string) => Promise<void>
   onCombine: (survivor: string) => Promise<void>
 }
@@ -104,6 +105,24 @@ export function paintSelectionControls(body: Element, selection: SelectionWrites
   }
   submit(group, () => selection.onGroup(name.value))
   submit(combine, () => selection.onCombine(survivor.value))
-  box.append(group, combine, error)
+  box.append(group, combine)
+  if (selection.onExport) {
+    const form = document.createElement('form')
+    form.className = 'group-as'
+    const destination = document.createElement('input')
+    destination.required = true
+    destination.value = `plans/${selection.members[0]!.id}-plan`
+    destination.setAttribute('aria-label', 'Plan directory')
+    const button = document.createElement('button')
+    button.type = 'submit'
+    button.textContent = 'Export as plan'
+    form.append(destination, button)
+    submit(form, async () => {
+      await selection.onExport!(destination.value)
+      error.textContent = `Exported to ${destination.value}`
+    })
+    box.append(form)
+  }
+  box.append(error)
   body.append(box)
 }

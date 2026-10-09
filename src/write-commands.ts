@@ -52,6 +52,28 @@ function addedIds(thing: string, ids: string[]): Pick<AddInput, 'relation' | 'me
 
 /** The commands that change architecture Markdown: draft, add, remove, edit, and accept. */
 export function registerWriteCommands(program: Command): void {
+  const plan = program.command('plan')
+    .description('Share an architecture fragment as draft OKF Markdown')
+    .action(() => {
+      console.log('A plan is an architecture fragment: elements, their relationships and flows, without code or layout.')
+      console.log('groma plan export <ids...> --to <directory>')
+      console.log('groma plan import <directory> [--parent <id>]')
+    })
+  plan.command('export <ids...>')
+    .description('Write selected elements as a plan bundle in a new directory')
+    .requiredOption('--to <directory>', 'new plan directory; its name becomes the plan title')
+    .action(async (ids: string[], options: { to: string }) => {
+      try { printWriteResult(await writes.exportPlan(process.cwd(), { ids, to: options.to })) }
+      catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1 }
+    })
+  plan.command('import <path>')
+    .description('Import a plan as ghosts belonging to one draft')
+    .option('--parent <id>', 'use this existing parent for the selected fragment roots')
+    .action(async (path: string, options: { parent?: string }) => {
+      try { printWriteResult(await writes.importPlan(process.cwd(), { path, parent: options.parent })) }
+      catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1 }
+    })
+
   program
     .command('draft')
     .description('Draft software or a directed relationship')
