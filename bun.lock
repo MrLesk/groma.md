@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "groma.md",
@@ -82,6 +83,13 @@
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "typescript": "6.0.3",
+      },
+    },
+    "plugins/scanners/kotlin": {
+      "name": "@groma/scanner-kotlin",
+      "version": "0.1.0",
+      "dependencies": {
+        "@groma/scanner": "workspace:*",
       },
     },
     "plugins/scanners/nasm": {
@@ -276,6 +284,8 @@
     "@groma/scanner-java": ["@groma/scanner-java@workspace:plugins/scanners/java"],
 
     "@groma/scanner-javascript": ["@groma/scanner-javascript@workspace:plugins/scanners/javascript"],
+
+    "@groma/scanner-kotlin": ["@groma/scanner-kotlin@workspace:plugins/scanners/kotlin"],
 
     "@groma/scanner-nasm": ["@groma/scanner-nasm@workspace:plugins/scanners/nasm"],
 

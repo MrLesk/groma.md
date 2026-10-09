@@ -52,7 +52,7 @@ async function stageHost(input: string, host: string, workers: Record<string, st
   await writeFile(path.join(input, host, 'csharp/package.json'), JSON.stringify({
     name: '@groma/scanner-csharp', version: '0.1.3', optionalDependencies: { [name]: '0.1.3' },
   }))
-  for (const id of ['swift', 'cobol', 'scala']) await writeFile(path.join(input, host, id, 'dist', host, 'runtime-library'), `runtime for ${host}`)
+  for (const id of ['swift', 'cobol', 'scala', 'kotlin']) await writeFile(path.join(input, host, id, 'dist', host, 'runtime-library'), `runtime for ${host}`)
 }
 
 async function verifyHostRuntimes(output: string, id: string, hosts: string[]) {
@@ -61,7 +61,7 @@ async function verifyHostRuntimes(output: string, id: string, hosts: string[]) {
   expect(manifest.cpu.sort()).toEqual(['arm64', 'x64'])
   for (const host of hosts) {
     const directory = path.join(output, id, 'dist', host)
-    const name = { scala: 'runtime/bin/java', cobol: 'runtime/bin/java', swift: 'worker', nasm: 'nasm' }[id]!
+    const name = { scala: 'runtime/bin/java', kotlin: 'runtime/bin/java', cobol: 'runtime/bin/java', swift: 'worker', nasm: 'nasm' }[id]!
     const worker = path.join(directory, name + (host.startsWith('win32-') ? '.exe' : ''))
     expect(await readFile(worker, 'utf8')).toBe(host)
     if (id !== 'nasm') expect(await readFile(path.join(directory, 'runtime-library'), 'utf8')).toBe(`runtime for ${host}`)
@@ -74,13 +74,13 @@ test.concurrent('scanner assembly keeps native workers and runtime libraries fro
   const input = path.join(temporary, 'hosts'), output = path.join(temporary, 'packages')
   const hosts = ['darwin-arm64', 'linux-arm64', 'linux-x64', 'win32-arm64', 'win32-x64']
   const workers = { go: 'worker', rust: 'groma-rust-scanner', typescript: 'tsc',
-    java: 'runtime/bin/java', scala: 'runtime/bin/java', cobol: 'runtime/bin/java', nasm: 'nasm', swift: 'worker' }
+    java: 'runtime/bin/java', scala: 'runtime/bin/java', kotlin: 'runtime/bin/java', cobol: 'runtime/bin/java', nasm: 'nasm', swift: 'worker' }
   try {
     for (const host of hosts) await stageHost(input, host, workers)
     const child = Bun.spawn([process.execPath, path.resolve(import.meta.dir, '../scripts/scanner-release.ts'),
       'assemble', input, output], { stdout: 'pipe', stderr: 'pipe' })
     const error = await new Response(child.stderr).text()
     expect(await child.exited, error).toBe(0)
-    for (const id of ['swift', 'cobol', 'nasm', 'scala']) await verifyHostRuntimes(output, id, hosts)
+    for (const id of ['swift', 'cobol', 'nasm', 'scala', 'kotlin']) await verifyHostRuntimes(output, id, hosts)
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })

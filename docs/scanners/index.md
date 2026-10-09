@@ -216,6 +216,7 @@ authored relationships remain intact.
 - [Python](python/index.md)
 - [PHP](php/index.md)
 - [Scala 3](scala/index.md)
+- [Kotlin](kotlin/index.md)
 - [COBOL](cobol/index.md)
 - [NASM assembly](nasm/index.md)
 - [C#/.NET](dotnet-csharp/index.md)
