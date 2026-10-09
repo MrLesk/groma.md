@@ -1,3 +1,4 @@
+import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 import { backlogPlugin } from '@groma/work-source-backlog'
 import type { Command } from 'commander'
 import { architectureFindingItems, detectDuplicatedLogic, criticalTaskFindings } from './architecture-findings.ts'
@@ -14,7 +15,8 @@ async function lintArchitecture(repositoryRoot: string, window: ListWindow): Pro
   const owners = sourceIndex(model.elements).byFile
   const registry = await loadScannerRegistry(repositoryRoot)
   const { observations, failures } = await registry.collectObservations(repositoryRoot)
-  const work = await backlogPlugin.create(repositoryRoot).read()
+  // A repository without a Backlog.md project, or without the CLI, has no tasks to check.
+  const work = await backlogPlugin.create(repositoryRoot).read().catch(() => EMPTY_WORK_SNAPSHOT)
   const findings = [...criticalTaskFindings(model.elements, work), ...detectDuplicatedLogic(observations, owners)]
   printListPage(architectureFindingItems(findings), window)
   for (const failure of failures) console.error(failure.message)
