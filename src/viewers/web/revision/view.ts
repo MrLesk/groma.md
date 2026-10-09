@@ -149,9 +149,9 @@ function revisionField(field: RevisionField, revision: WebRevision | null): stri
 const versus = '<span class="revision-vs">vs.</span>'
 
 /** One field while browsing; start and destination around "vs." while comparing. */
-export function revisionFields(payload: WebPayload): string {
-  return payload.comparison === undefined ? revisionField('revision', payload.revision)
-    : revisionField('from', payload.comparison.from) + versus + revisionField('to', payload.revision)
+export function revisionFields(destination: WebRevision | null, start?: WebRevision | null): string {
+  return start === undefined ? revisionField('revision', destination)
+    : revisionField('from', start) + versus + revisionField('to', destination)
 }
 
 /** While a start is being chosen the search holds its place; the viewed revision waits as the destination. */
@@ -166,5 +166,5 @@ export function snapshotNotice(revision: WebRevision | null): string {
 }
 
 export function revisionControl(payload: WebPayload, icons: { history: string, loader: string }): string {
-  return `<div class="time-machine"><div id="revision" class="chrome-field" role="group" aria-label="Revision">${icons.history}${icons.loader}<span class="revision-fields">${revisionFields(payload)}</span><input class="revision-search" type="search" aria-label="Find revision by commit ID or message" autocomplete="off" spellcheck="false" hidden><span class="revision-compare" hidden>or<button type="button" data-action="compare">compare 2 revisions</button></span></div><div class="anchored-popover animated revision-menu" hidden><div class="revision-error revision-notice" role="alert" hidden></div><div class="revision-results"></div></div><button id="end-comparison" class="chrome-button" type="button" aria-label="End comparison" title="End comparison" hidden>×</button></div>`
+  return `<div class="time-machine"><div id="revision" class="chrome-field" role="group" aria-label="Revision">${icons.history}${icons.loader}<span class="revision-fields">${revisionFields(payload.revision, payload.comparison?.from)}</span><input class="revision-search" type="search" aria-label="Find revision by commit ID or message" autocomplete="off" spellcheck="false" hidden><span class="revision-compare" hidden>or<button type="button" data-action="compare">compare 2 revisions</button></span></div><div class="anchored-popover animated revision-menu" hidden><div class="revision-error revision-notice" role="alert" hidden></div><div class="revision-results"></div></div><button id="end-comparison" class="chrome-button" type="button" aria-label="End comparison" title="End comparison" hidden>×</button></div>`
 }

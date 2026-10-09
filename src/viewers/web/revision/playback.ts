@@ -5,6 +5,7 @@ interface PlaybackOptions {
   root: HTMLElement
   data: WebDataSource
   current(): WebPayload
+  navigating(): boolean
   present(payload: WebPayload, first: boolean): void
   repaint(): void
   error(reason: unknown): void
@@ -69,7 +70,7 @@ export function createRevisionPlayback(options: PlaybackOptions) {
     control.hidden = data.readPlaybackRevisions === undefined || endpoints() === undefined
     button.textContent = running ? 'Stop' : 'Play'
     button.setAttribute('aria-label', running ? 'Stop history playback' : 'Play history')
-    root.toggleAttribute('data-playing', running)
+    button.disabled = options.navigating()
   }
 
   function stop(clearRange = false): void {
@@ -77,7 +78,7 @@ export function createRevisionPlayback(options: PlaybackOptions) {
     running = false
     wake?.()
     if (clearRange) { range = undefined; caption.hidden = true }
-    else if (options.current().revision !== null) describe(options.current().revision!)
+    else if (range !== undefined && options.current().revision !== null) describe(options.current().revision!)
     paint()
   }
 
@@ -118,7 +119,7 @@ export function createRevisionPlayback(options: PlaybackOptions) {
 
   async function play(): Promise<void> {
     const selected = endpoints()
-    if (selected === undefined || data.readPlaybackRevisions === undefined) return
+    if (options.navigating() || selected === undefined || data.readPlaybackRevisions === undefined) return
     range = selected
     running = true
     const token = ++generation
@@ -147,8 +148,7 @@ export function createRevisionPlayback(options: PlaybackOptions) {
   return {
     paint,
     remember,
-    cancel: () => stop(true),
+    cancel: (clearRange = true) => stop(clearRange),
     get range() { return range },
-    get running() { return running },
   }
 }

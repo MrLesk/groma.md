@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import { execFileSync } from 'node:child_process'
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
@@ -61,6 +61,16 @@ test.concurrent('web history includes source-only commits and reads the selected
     const pairedSource = await (await request(`/source.json?${query}&from=${before}&revision=${after}`)).json()
     expect(pairedSource.source).toBe(source)
     expect((await request(`/world.json?from=${after}&revision=${after}`)).status).toBe(400)
+    // Loaded revisions must also serve historical details without reading Git again.
+    const gitDirectory = path.join(root, '.git')
+    const heldGitDirectory = path.join(root, '.cached-git')
+    await rename(gitDirectory, heldGitDirectory)
+    try {
+      const code = await request(`/code.json?element=${component.representationId}&revision=${before}`)
+      expect(code.status).toBe(200)
+      const cachedSource = await (await request(`/source.json?${query}&revision=${before}`)).json()
+      expect(cachedSource.source).toBe(original)
+    } finally { await rename(heldGitDirectory, gitDirectory) }
     expect(git('rev-parse', 'HEAD')).toBe(after)
     expect(git('status', '--porcelain')).toBe('')
     const reader = (await request('/events')).body!.getReader()

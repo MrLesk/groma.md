@@ -4,7 +4,9 @@ In the live web map, choose a commit, open **compare 2 revisions**, and choose
 an older start commit. **Play** walks the range from oldest to newest. The speed
 selector offers 0.5×, 1×, 2×, and 4×; **Stop** leaves the current step visible.
 The caption shows that step's short commit ID, subject, and local date and time.
-The two revision fields keep the chosen range. Its `from` and `revision` URL
+The two revision fields keep the chosen range, including while editing an
+endpoint after Stop. Play waits for a chosen endpoint to finish loading. Its
+`from` and `revision` URL
 parameters reopen the range without starting playback automatically.
 
 Only commits readable by the current architecture reader are visited, in the
@@ -30,11 +32,14 @@ without discarding their cached data.
 The live [`map-session.ts`](../../../src/viewers/web/map-session.ts) serves
 `/playback.json?from=<commit>&revision=<commit>` to identify readable frames.
 [`revision/history.ts`](../../../src/viewers/web/revision/history.ts) shares
-in-flight historical reads for that server session: each commit's architecture,
-layout, and owned source text are loaded once. Comparisons reuse those snapshots;
-source files owned only on the other side are read and cached when needed.
-Compatibility checks populate the same cache used by playback. Working-tree
-comparisons continue to read current files.
+in-flight historical reads for that server session. Each commit is extracted
+once; its architecture and owned source text are cached. Code outlines and
+source details read that same immutable archive. Ordinary map layouts are
+prepared only when a snapshot view is requested; comparisons prepare their own
+layouts. Source files owned only on the other side are read and cached when
+needed. Compatibility checks populate the same cache used by playback. Closing
+the server session removes its archives. Working-tree comparisons continue to
+read current files.
 
 Playback is transient browser state, not stored architecture knowledge. It adds
 no OKF metadata or C4 element type. Git commits and the existing architecture

@@ -13,7 +13,7 @@ import { pinsOf } from '../../work/pins.ts'
 import { ownedFiles } from '../../history/comparison.ts'
 import { readComparison } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
-import { listGitRevisions, withGitRevision } from '../../history/revisions.ts'
+import { listGitRevisions } from '../../history/revisions.ts'
 import { renderPage } from './page.ts'
 import { createRevisionHistory } from './revision/history.ts'
 import type { WebMapPayload, WebPayload, WebRevision, WebWorkPayload } from './payload.ts'
@@ -29,9 +29,12 @@ async function structureResponse(
   repositoryRoot: string,
   selected: Pick<WebPayload, 'world' | 'revision'>,
   element: string,
+  history: ReturnType<typeof createRevisionHistory>,
 ): Promise<Response> {
   try {
-    const structure = await readCodeStructure(repositoryRoot, selected.world, selected.revision?.id ?? null, element)
+    const structure = selected.revision === null
+      ? await readCodeStructure(repositoryRoot, selected.world, null, element)
+      : await history.structure(selected.revision, selected.world, element)
     return structure === undefined
       ? new Response('Component not found', { status: 404 })
       : Response.json(structure)
@@ -45,10 +48,13 @@ async function sourceResponse(
   selected: Pick<WebPayload, 'world' | 'revision'>,
   element: string,
   file: string | null,
+  history: ReturnType<typeof createRevisionHistory>,
 ): Promise<Response> {
   if (file === null) return new Response('Source selection required', { status: 400 })
   try {
-    const source = await readSource(repositoryRoot, selected.world, selected.revision?.id ?? null, element, file)
+    const source = selected.revision === null
+      ? await readSource(repositoryRoot, selected.world, null, element, file)
+      : await history.source(selected.revision, selected.world, element, file)
     return source === undefined
       ? new Response('Source file not found', { status: 404 })
       : Response.json(source)
@@ -60,13 +66,10 @@ async function sourceResponse(
 async function loadMap(
   repositoryRoot: string,
   revisions: WebRevision[],
-  revision: WebRevision | null,
   onProgress?: (progress: StartupProgress) => void | Promise<void>,
 ): Promise<Omit<WebMapPayload, 'generation'>> {
-  const snapshot = revision === null
-    ? await loadMapRoot(repositoryRoot, phase => onProgress?.({ phase }))
-    : await withGitRevision(repositoryRoot, revision.id, loadMapRoot)
-  return { ...snapshot, revision, revisions }
+  const snapshot = await loadMapRoot(repositoryRoot, phase => onProgress?.({ phase }))
+  return { ...snapshot, revision: null, revisions }
 }
 
 /** Owns the ready map, its request handlers, and its live subscriptions. */
@@ -122,7 +125,7 @@ export async function createWebMapSession(
     const revision = (await readRevisions()).find(candidate => candidate.id === revisionId)
     if (revision === undefined) return new Response('Unknown Groma revision', { status: 404 })
     try {
-      const { map: stored } = await history.snapshot(revision)
+      const stored = await history.view(revision)
       const snapshot = { ...stored, revision, revisions }
       if (snapshot.project === null) throw new Error('No Groma architecture in this commit')
       return {
@@ -215,8 +218,8 @@ export async function createWebMapSession(
         : { ...item, code: [...(change.after?.code ?? []), ...(change.before?.code ?? [])] }) }
     }
     return url.pathname === '/code.json'
-      ? structureResponse(repositoryRoot, selected, element)
-      : sourceResponse(repositoryRoot, selected, element, file)
+      ? structureResponse(repositoryRoot, selected, element, history)
+      : sourceResponse(repositoryRoot, selected, element, file, history)
   }
 
   function worldEvent(): Uint8Array {
@@ -240,7 +243,7 @@ export async function createWebMapSession(
   let worldChain = Promise.resolve()
   async function reloadWorld(): Promise<void> {
     if (closed) return
-    const next = await loadMap(repositoryRoot, revisions, null, options.onProgress)
+    const next = await loadMap(repositoryRoot, revisions, options.onProgress)
     if (closed) return
     map = {
       generation: map.generation + 1,
@@ -280,7 +283,7 @@ export async function createWebMapSession(
   })
   await scannerSession.ready
   // Initial folds are included in this map; later folds queue behind its load.
-  worldChain = loadMap(repositoryRoot, revisions, null, options.onProgress).then(next => {
+  worldChain = loadMap(repositoryRoot, revisions, options.onProgress).then(next => {
     map = { generation: 1, ...next }
     for (const file of ownedFiles(map.world)) sourceFiles.add(file)
   })
@@ -463,6 +466,7 @@ export async function createWebMapSession(
         worldChain,
         workChain,
         revisionRead,
+        history.close(),
         covers,
       ])
     },

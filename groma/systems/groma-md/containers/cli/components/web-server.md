@@ -24,7 +24,7 @@ groma:
 description: Serves the local browser map and live architecture operations
 ---
 
-Starts the local HTTP server. Serves project setup and connects the browser to architecture, scanner, task, and source operations. Keeps historical architecture snapshots and source text in a session cache, identifies readable frames for playback, and reuses snapshots for commit comparisons.
+Starts the local HTTP server. Serves project setup and connects the browser to architecture, scanner, task, and source operations. Keeps one immutable archive per historical revision for the server session, shares its architecture and source data between comparisons and historical details, and removes the archives when the session closes. Identifies readable playback frames and prepares an ordinary snapshot layout only when that view is requested.
 
 ## Relationships
 
