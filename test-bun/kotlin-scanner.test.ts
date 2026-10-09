@@ -16,7 +16,7 @@ async function verifyEvidence(observation: ScanObservation): Promise<void> {
   expect(observation.files.map(file => file.file)).toEqual([orders])
   expect(observation.files[0]!.symbols!.map(item => [item.name, item.kind]).sort()).toEqual([
     ['Orders', 'class'], ['Registry', 'object'], ['Status', 'enum'], ['Store', 'interface'],
-    ['hidden', 'function'], ['shout', 'function'], ['transform', 'function'],
+    ['hidden', 'function'], ['shout', 'function'], ['transform', 'function'], ['quoted name', 'function'],
   ].sort())
   const text = await readFile(path.join(fixture, orders), 'utf8')
   // Companion functions take the enclosing type; a bodiless interface method and a primary constructor do no work.
@@ -27,7 +27,7 @@ async function verifyEvidence(observation: ScanObservation): Promise<void> {
     'Orders.count': text.indexOf('internal fun count'), 'Orders.create': text.indexOf('fun create'),
     'Registry.store': text.indexOf('fun store'), 'Status.label': text.indexOf('fun label'),
     shout: text.indexOf('fun String.shout'), hidden: text.indexOf('private fun hidden'),
-    transform: text.indexOf('val transform'),
+    transform: text.indexOf('val transform'), 'quoted name': text.indexOf('fun `quoted name`'),
   })
   const place = observation.operations!.find(operation => operation.name === 'Orders.place')!
   // Both calls of the chain start at its receiver.
@@ -55,6 +55,8 @@ async function verifyOutline(scanner: ScannerPlugin): Promise<void> {
     ['function', 'shout', 16, 'public', true, []],
     ['function', 'hidden', 17, 'private', false, []],
     ['function', 'transform', 18, 'public', false, []],
+    // A quoted name is outlined as scans report it, without its backticks.
+    ['function', 'quoted name', 21, 'public', false, []],
   ])
 }
 

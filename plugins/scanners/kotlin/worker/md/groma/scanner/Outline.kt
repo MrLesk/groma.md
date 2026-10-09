@@ -41,8 +41,11 @@ object Outline {
         else -> emptyList()
     }
 
-    private fun named(source: Source, declaration: KtNamedDeclaration): OutlineMember? =
-        declaration.nameIdentifier?.let { OutlineMember(it.text, source.line(it.textOffset), visibility(declaration)) }
+    /** The name as scans report it: a backticked identifier loses its backticks. */
+    private fun named(source: Source, declaration: KtNamedDeclaration): OutlineMember? {
+        val name = declaration.name ?: return null
+        return declaration.nameIdentifier?.let { OutlineMember(name, source.line(it.textOffset), visibility(declaration)) }
+    }
 
     /** A primary constructor may omit its keyword; its line is then the line of its parameter list. */
     private fun constructor(source: Source, declaration: KtConstructor<*>): OutlineMember {

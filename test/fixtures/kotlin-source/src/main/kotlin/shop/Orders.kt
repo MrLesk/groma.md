@@ -18,3 +18,4 @@ private fun hidden() {}
 val transform = { n: Int -> n + 1 }
 typealias Id = Int
 val total = 1
+fun `quoted name`() {}
