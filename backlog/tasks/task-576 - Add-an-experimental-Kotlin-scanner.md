@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-09 15:00'
-updated_date: '2026-10-09 15:35'
+updated_date: '2026-10-09 15:52'
 labels: []
 dependencies: []
 references:
@@ -101,6 +101,8 @@ Implemented as planned. Cold simplicity review (separate agent, no conversation 
 Verification on macOS arm64 with Bun 1.4.2 and JDK 25 (Temurin): test-bun/kotlin-scanner.test.ts passes (14 assertions: selection, symbols, operation positions after KDoc and a non-BMP character, unresolved calls, repeat equality, atomic failure naming Broken.kt, outline visibility/constructors/companion/entries, default exclusion of src/test, CRLF). Shared fresh-checkout test passes for kotlin with an empty home and only git on PATH (7 assertions); release-assembly test passes including kotlin (86 assertions). bun run check: lint has only the existing findings, typecheck passes, Node 16/16, Bun 771 pass, 52 skip, 6 fail. All 6 failures are Swift scanner tests failing at `swiftc` with "no such module SwiftParser" on this machine (Command Line Tools without swift-syntax); none involves Kotlin. The machine default Bun 1.3.14 is below the declared 1.4.1 minimum and fails unrelated tests, so the declared version was used. Package size: worker.jar 36 KB, dist/lib 59 MB, runtime 78 MB per host.
 
 Final full-context complexity review (separate agent): no simpler approach; one blocking defect fixed: a file that is not valid UTF-8 failed without naming itself (AC 4), now reported with its path and covered by one assertion. Also applied: default exclusions written as `**/src/test/` and `**/src/*Test/` because an inner-slash pattern is anchored at the repository root and would have scanned tests in every Gradle module (verified with the selection helper on a nested module); two doc clarifications about nested-type operations and constructor delegation. Re-verified: Kotlin test 15 assertions pass, fresh-checkout kotlin passes, bun run check unchanged (Node 16/16, Bun 771 pass, 52 skip, 6 Swift toolchain failures unrelated to this task). AC 6 stays unchecked on this machine because of those 6 Swift failures; CI has the Swift toolchain. Third-party notices copy the Kotlin NOTICE, the Apache 2.0 text and the upstream third-party list; the individual third-party license texts are referenced by URL at the v2.4.21 tag, not copied.
+
+Third-party notices now carry the full texts: all 30 license files that the Kotlin v2.4.21 third-party list names are copied from the tagged upstream sources into plugins/scanners/kotlin/THIRD-PARTY-NOTICES.txt after the list, with identical texts printed once under the paths that share them (22 distinct texts). This replaces the earlier note that they were only linked.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
