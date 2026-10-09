@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -9,25 +10,32 @@ const execute = promisify(execFile)
 const pluginRoot = fileURLToPath(new URL('./', import.meta.url))
 const maven = 'https://repo.maven.apache.org/maven2'
 const kotlin = '2.4.21'
+// Each Maven Central artifact with the SHA-256 of the reviewed jar; a download that differs fails the build.
 // The compiler parses the scanned source; the other two are what it needs to start.
 const libraries = [
-  `org/jetbrains/kotlin/kotlin-compiler-embeddable/${kotlin}/kotlin-compiler-embeddable-${kotlin}.jar`,
-  `org/jetbrains/kotlin/kotlin-stdlib/${kotlin}/kotlin-stdlib-${kotlin}.jar`,
-  'org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.8.0/kotlinx-coroutines-core-jvm-1.8.0.jar',
-]
+  [`org/jetbrains/kotlin/kotlin-compiler-embeddable/${kotlin}/kotlin-compiler-embeddable-${kotlin}.jar`,
+    'ef19419c765e7ac8404465fa026ca8fc4dbb8a822de0fc79aa53c8dce29f1d02'],
+  [`org/jetbrains/kotlin/kotlin-stdlib/${kotlin}/kotlin-stdlib-${kotlin}.jar`,
+    'bd8250210584cb659847dce9cda660f8e9906e5def7fbebcea93dc6dcb6a88a3'],
+  ['org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.8.0/kotlinx-coroutines-core-jvm-1.8.0.jar',
+    '9860906a1937490bf5f3b06d2f0e10ef451e65b95b269f22daf68a3d1f5065c5'],
+] as const
 // Needed only while the compiler compiles the worker; never shipped.
-const buildOnly = 'org/jetbrains/annotations/13.0/annotations-13.0.jar'
+const buildOnly = ['org/jetbrains/annotations/13.0/annotations-13.0.jar',
+  'ace2a10dc8e2d5fd34925ecac03e4988b2c0f851650c94b8cef49ba1bd111478'] as const
 
 function tool(name: string): string {
   const executable = process.platform === 'win32' ? `${name}.exe` : name
   return process.env.JAVA_HOME ? path.join(process.env.JAVA_HOME, 'bin', executable) : executable
 }
 
-async function download(artifact: string, directory: string): Promise<string> {
+async function download([artifact, hash]: readonly [string, string], directory: string): Promise<string> {
   const response = await fetch(`${maven}/${artifact}`)
   if (!response.ok) throw new Error(`Could not download ${artifact}: ${response.status}`)
+  const jar = Buffer.from(await response.arrayBuffer())
+  if (createHash('sha256').update(jar).digest('hex') !== hash) throw new Error(`Unexpected checksum for ${artifact}`)
   const file = path.join(directory, path.posix.basename(artifact))
-  await writeFile(file, Buffer.from(await response.arrayBuffer()))
+  await writeFile(file, jar)
   return file
 }
 

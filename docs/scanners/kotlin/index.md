@@ -96,12 +96,14 @@ Maintainers need Bun, a JDK with `java` and `jlink`, and network access:
 bun plugins/scanners/kotlin/build.ts
 ```
 
-The build downloads the pinned compiler jars from Maven Central and compiles the
+The build downloads the pinned compiler jars from Maven Central, rejects a jar
+whose SHA-256 differs from the one recorded in `build.ts`, and compiles the
 worker with that same compiler, so it needs no installed Kotlin compiler or
 Gradle. This build-time tooling is not part of scanning. The result is
 `plugins/scanners/kotlin/dist/package`; use this local package when working on
-the scanner before publication. To change the parser version, change `kotlin` in
-`build.ts` and the version named in `THIRD-PARTY-NOTICES.txt` and on this page.
+the scanner before publication. To change the parser version, change `kotlin`
+and the jar checksums in `build.ts`, and the version named in
+`THIRD-PARTY-NOTICES.txt` and on this page.
 
 The existing scanner release workflow builds each supported host and combines
 the runtimes. The package contains bundled JavaScript, `dist/worker.jar`, the
