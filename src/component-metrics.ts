@@ -40,15 +40,12 @@ function neighbours(world: ArchitectureGraph) {
   return { incoming, outgoing }
 }
 
-function markOutliers(siblings: Map<string, string[]>, result: Map<string, ComponentMetrics>): void {
-  for (const ids of siblings.values()) {
-    for (const measure of ['files', 'lines', 'connections'] as const) {
-      const middle = median(ids.map(id => result.get(id)![measure]))
-      for (const id of ids) {
-        const metric = result.get(id)!
-        if (metric.files >= 10 && metric[measure] > middle && metric[measure] >= 4 * middle) {
-          metric.outliers.push(measure === 'lines' ? 'lines of code' : measure)
-        }
+function markOutliers(siblings: ComponentMetrics[]): void {
+  for (const measure of ['files', 'lines', 'connections'] as const) {
+    const middle = median(siblings.map(metric => metric[measure]))
+    for (const metric of siblings) {
+      if (metric.files >= 10 && metric[measure] > middle && metric[measure] >= 4 * middle) {
+        metric.outliers.push(measure === 'lines' ? 'lines of code' : measure)
       }
     }
   }
@@ -59,26 +56,27 @@ export function componentMetrics(world: ArchitectureGraph): Map<string, Componen
   const { incoming, outgoing } = neighbours(world)
   const byId = new Map(world.elements.map(element => [element.id, element]))
   const result = new Map<string, ComponentMetrics>()
-  const siblings = new Map<string, string[]>()
+  const siblings = new Map<string, ComponentMetrics[]>()
   for (const element of world.elements) {
     if (element.kind !== 'component') continue
     const ins = incoming.get(element.id)?.size ?? 0
     const outs = outgoing.get(element.id)?.size ?? 0
-    result.set(element.id, {
+    const metrics: ComponentMetrics = {
       files: new Set(element.code.map(reference => reference.file)).size,
       lines: element.codeLines ?? 0,
       connections: ins + outs,
       instability: ins + outs === 0 ? 0 : outs / (ins + outs),
       outliers: [],
-    })
+    }
+    result.set(element.id, metrics)
     if (element.parent === null) continue
     const parent = byId.get(element.parent)
     if (parent?.kind !== 'container') continue
-    const ids = siblings.get(element.parent) ?? []
-    ids.push(element.id)
-    siblings.set(element.parent, ids)
+    const group = siblings.get(element.parent) ?? []
+    group.push(metrics)
+    siblings.set(element.parent, group)
   }
-  markOutliers(siblings, result)
+  for (const group of siblings.values()) markOutliers(group)
   return result
 }
 

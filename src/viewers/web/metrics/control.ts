@@ -28,8 +28,8 @@ const css = `
   #metric-legend[hidden] { display: none; }
   #metric-legend .metric-scale { height: 8px; margin: 5px 0; background: linear-gradient(to right, rgb(66,135,180), rgb(233,153,66)); border-radius: 2px; }
   #map .building[data-metric] .face { fill: var(--metric-fill) !important; }
-  #map .building[data-metric] .left { fill: color-mix(in srgb, var(--metric-fill) 85%, black) !important; }
-  #map .building[data-metric] .right { fill: color-mix(in srgb, var(--metric-fill) 93%, black) !important; }
+  #map .building[data-metric] .face.left { fill: color-mix(in srgb, var(--metric-fill) 85%, black) !important; }
+  #map .building[data-metric] .face.right { fill: color-mix(in srgb, var(--metric-fill) 93%, black) !important; }
   #map .building[data-metric] .label .text { fill: #071d2b !important; }
   #map .building .metric-outlier { fill: #e39342; stroke: var(--paper); stroke-width: 1px; paint-order: stroke; }
   .code-metrics h2, .code-metrics h3 { font-size: 12px; margin: 16px 0 8px; }
@@ -86,17 +86,16 @@ export function createMetricsControl(options: Options) {
     return metric === 'cochange' ? item.cochange.reduce((total, pair) => total + pair.commits, 0) : item[metric]
   }
 
-  function paint() {
-    const enabled = options.live() && history !== null && metric !== 'none'
-    const maximum = metric === 'instability' ? 1 : Math.max(0, ...[...measurements.keys()].map(value))
-    for (const building of document.querySelectorAll<SVGElement>('#map .building')) {
-      const id = building.dataset.id!
-      const tinted = enabled && history?.components[id] !== undefined
-      building.toggleAttribute('data-metric', tinted)
-      if (tinted) building.style.setProperty('--metric-fill', colour(maximum === 0 ? 0 : value(id) / maximum))
-      else building.style.removeProperty('--metric-fill')
-      markOutlier(building, options.live() ? measurements.get(id) : undefined)
-    }
+  function paintBuilding(building: SVGElement, enabled: boolean, maximum: number): void {
+    const id = building.dataset.id!
+    const tinted = enabled && history?.components[id] !== undefined && !building.classList.contains('ghost')
+    building.toggleAttribute('data-metric', tinted)
+    if (tinted) building.style.setProperty('--metric-fill', colour(maximum === 0 ? 0 : value(id) / maximum))
+    else building.style.removeProperty('--metric-fill')
+    markOutlier(building, options.live() ? measurements.get(id) : undefined)
+  }
+
+  function paintLegend(maximum: number): void {
     legend.hidden = metric === 'none' || !options.live()
     if (legend.hidden) return
     if (loading || error || history === null) {
@@ -114,7 +113,31 @@ export function createMetricsControl(options: Options) {
     legend.append(title, scale, range)
   }
 
-  function refresh() {
+  function paint(): void {
+    const enabled = options.live() && history !== null && metric !== 'none'
+    const maximum = metric === 'instability' ? 1 : Math.max(0, ...[...measurements.keys()].map(value))
+    for (const building of document.querySelectorAll<SVGElement>('#map .building')) paintBuilding(building, enabled, maximum)
+    paintLegend(maximum)
+  }
+
+  async function readHistory(currentRequest: number, generation: number): Promise<void> {
+    if (request !== currentRequest) return
+    try {
+      const response = await fetch(`/metrics.json?window=${window}`)
+      if (!response.ok) throw new Error(await response.text())
+      const result = await response.json() as { generation: number; history: CodeHistory | null }
+      if (request !== currentRequest || generation !== options.generation() || result.generation !== generation) return
+      history = result.history
+    } catch (cause) {
+      if (request !== currentRequest) return
+      error = cause instanceof Error ? cause.message : String(cause)
+    }
+    loading = false
+    paint()
+    options.repaint()
+  }
+
+  function refresh(): void {
     const currentRequest = ++request
     const generation = options.generation()
     history = null
@@ -125,23 +148,7 @@ export function createMetricsControl(options: Options) {
     paint()
     if (!options.live()) return
     // Two animation frames and a task put the read after the first rendered frame.
-    requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(async () => {
-      if (request !== currentRequest) return
-      try {
-        const response = await fetch(`/metrics.json?window=${window}`)
-        if (!response.ok) throw new Error(await response.text())
-        const result = await response.json() as { generation: number; history: CodeHistory | null }
-        if (request !== currentRequest || generation !== options.generation()) return
-        if (result.generation !== generation) return
-        history = result.history
-      } catch (cause) {
-        if (request !== currentRequest) return
-        error = cause instanceof Error ? cause.message : String(cause)
-      }
-      loading = false
-      paint()
-      options.repaint()
-    }, 0)))
+    requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => readHistory(currentRequest, generation), 0)))
   }
 
   select.addEventListener('change', () => { metric = select.value as Metric; paint() })

@@ -210,25 +210,27 @@ function paintDetailsState(task: WorkItem | undefined): void {
   }
   if (relationship !== undefined) {
     paintRelationship(detailsHost, relationship, world, select, authoring.relationWrites)
-  } else if (inspected !== undefined) {
-    paintDetails(detailsHost, inspected, {
-      world, comparison: revisionControl.comparison,
-      onSelect: select,
-      onToggleFlow: flow => toggleFlow(flow, selected?.representationId),
-      activeFlows,
-      tab: detailsTab,
-      onTab: tab => {
-        detailsTab = tab
-        paintViewState()
-      },
-      code: detailsTab === 'how' && revisionControl.comparison === undefined ? source.code() : [],
-      onSource: source.open,
-      workGroups: selected?.kind === 'component' ? elementWorkGroups(work, selected.representationId, world) : [],
-      onTask: toggleTask,
-      ...(selected === undefined ? {} : authoring.paneWrites(selected.id, selectedArchitecture(selection))),
-    })
-    if (selected !== undefined && detailsTab !== 'tasks') metrics?.details(detailsHost, selected.id)
-  }
+  } else if (inspected !== undefined) paintInspectedDetails(inspected, selected)
+}
+
+function paintInspectedDetails(inspected: NonNullable<ReturnType<typeof inspectSelection>>, selected: AnnotatedElement | undefined): void {
+  paintDetails(detailsHost, inspected, {
+    world, comparison: revisionControl.comparison,
+    onSelect: select,
+    onToggleFlow: flow => toggleFlow(flow, selected?.representationId),
+    activeFlows,
+    tab: detailsTab,
+    onTab: tab => {
+      detailsTab = tab
+      paintViewState()
+    },
+    code: detailsTab === 'how' && revisionControl.comparison === undefined ? source.code() : [],
+    onSource: source.open,
+    workGroups: selected?.kind === 'component' ? elementWorkGroups(work, selected.representationId, world) : [],
+    onTask: toggleTask,
+    ...(selected === undefined ? {} : authoring.paneWrites(selected.id, selectedArchitecture(selection))),
+  })
+  if (selected !== undefined && detailsTab !== 'tasks') metrics?.details(detailsHost, selected.id)
 }
 
 function select(id: string, additive = false, origin: 'panel' | 'map' = 'panel'): void {

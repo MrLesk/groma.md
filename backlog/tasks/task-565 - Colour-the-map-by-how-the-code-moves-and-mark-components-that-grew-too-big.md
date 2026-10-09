@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-09 08:02'
+updated_date: '2026-10-09 13:15'
 labels:
   - intermediate
 dependencies: []
@@ -46,6 +46,7 @@ modified_files:
   - groma/systems/groma-md/containers/export/components/metrics-control.md
   - groma/systems/groma-md/containers/export/components/details.md
   - groma/systems/groma-md/containers/export/components/code-measurements.md
+  - test-bun/code-metrics.test.ts
 type: feature
 ordinal: 5
 ---
@@ -70,8 +71,8 @@ Build on line counts computed at load (src/core.ts), git reads (src/history/revi
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -79,10 +80,12 @@ Build on line counts computed at load (src/core.ts), git reads (src/history/revi
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Add pure runtime component measurements: unique files, lines, relationship degree, instability, and container-median outliers. Add a Git log reader for commit/committer and co-change counts.
-2. Expose a live metrics endpoint. Fetch after first browser paint; keep window and colouring in a live-only control, decorate buildings and component details, and add the shared outlier line to terminal details.
-3. Document formulas, history window, outlier threshold, and export exclusion. Run no installs, builds or tests per stage instruction; review code and curate scanner output using groma scan.
-4. Perform the required simplicity and complexity reviews, record evidence and limitations, and check completed acceptance criteria without changing status or committing.
+1. Keep metric colouring in the live browser overlay. Limit its solid side fills to face polygons and leave draft ghosts hollow; preserve file-extension facade patterns, all metric choices, themes and None restoration.
+2. Split building decoration, legend painting and guarded history requests into named operations. Group component measurement objects directly for the unchanged ten-file/four-times-median rule. Reuse sourceIndex ownership and one concrete accumulator per component for Git commit, committer and co-change counts. Extract inspected-element detail painting from the dispatcher.
+3. Verify the reported ghost/facade failures through computed browser styles using a temporary minimum fixture. Existing theme, export, revision and details tests do not exercise the live metric CSS; the focused browser regression will detect solid ghost fills or lost facade URLs without freezing decorative source text.
+4. Add minimum runtime measurement and Git history tests only where existing coverage has no count/window/co-change/outlier assertions. The supported authority is AC1/AC3/AC4; failures are double-counted file touches, wrong distinct committers or pairs, ignored window, and changed ten-file/four-times-median eligibility. Reuse existing minimum architecture fixtures and temporary Git roots.
+5. Run focused regressions, a cold simplicity review, implementer specification and quality reviews, a full-context complexity review, and bun run check. Curate only task-caused architecture records through Groma and record each changed path immediately.
+6. Finalize objective evidence and create the authorized local task commit. No push, publication or release tag.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -103,10 +106,21 @@ AC4 implementation review: shared componentMetrics compares files, measured line
 AC5 implementation review: no runtime measurement is added to stored documents or shared export payloads. The browser creates its measurement control only for live delivery and hides it on historical/comparison views; published delivery cannot request the metrics endpoint. Export execution was not run.
 
 Implementer specification and quality source reviews passed; the final full-context complexity review also reported no blocking findings and clear ownership. All implementation acceptance criteria are checked based on source review; executable, visual and performance verification remain explicitly unperformed under the stage instruction. Definition of Done verification/check items remain unchecked. Shared file edits preserved other agents’ changes in render.ts, map-session.ts and terminal details. No status change or commit made.
+
+Review-fix scope is authorized by Alex through the parent agent. Runtime metrics remain evidence about existing C4 components and create no OKF records or new C4 types. Ordinary Markdown remains unchanged; the existing live Code measurements component owns browser interpretation. Source ownership and file-extension patterns remain language-independent; no future framework or cache is added.
+
+Review fixes: metric side selectors now match only .face.left/.face.right; ghosts receive no data-metric attribute or tint variable. Building decoration, legend painting and guarded delayed history reads have named operations. Outlier groups hold the ComponentMetrics objects directly with the unchanged files >=10, measure > median and measure >=4*median predicate. Git history reuses sourceIndex.byFile and one accumulator per component; parsing, recording and output are separate. The details dispatcher delegates inspected-element rendering.
+Focused evidence: 17 tests passed across code-metrics, source-index, inspect-details, web-theme, web-export and web-revisions (122 assertions). New count/window/co-change and threshold tests are parallel-safe and each owns its temporary Git root/in-memory minimum world. Chromium computed-style checks passed all metrics, hollow ghosts, facade URLs, three themes, None restoration, configurable window, co-change links/navigation, outlier details and delayed reads with at least two animation frames and an existing rendered map. The same browser regression fails against the recorded original PR head at a filled ghost. No browser page errors or architecture Markdown mutation.
+Cold simplicity review (GPT-6.1 Sol, xhigh, task/diff/repository only) found no blockers or material simplifications. Implementer specification review matches the original AC1-AC6 scope: formulas/window, choices/themes, pairs/details, exact threshold, live/static boundary and existing documentation stay intact. Quality review traced browser entry -> measurement/history owners -> decoration/details; new tests detect derived wrong counts/thresholds, not wording. All five changed source/test files pass focused Biome with no complexity warnings; typecheck passes; render.ts is 482 lines. No camera/pattern-surface structure was changed. groma scan created no components and left git status --short groma/ empty; C#/Go/Java/Rust workers were unavailable and retained their prior scanner data. Full repository check is running.
+
+Final verification: bun run check passed (Node: 16 pass; Bun: 778 pass, 51 skip, 0 fail, 2907 assertions across 147 files, 177.38 seconds). Repository Biome reports one pre-existing warning in execution-evidence.test.ts and two existing template-style infos; none is in this task’s changed files. All changed functions are at or below complexity 15 and files at or below 500 lines (largest: render.ts, 482). git diff --check passed.
+Chromium validated all 12 metric/theme combinations, hollow draft faces, unchanged facade URL fills, None restoring normal styles, configurable window, co-change links and navigation, outlier details and requests after first rendered map frames. Static delivery produces no metric controls, legend, tint, outliers or metric requests. A separate close-zoom check confirms facade display remains enabled with the same URL fills. Original-head runs independently fail at filled ghosts and replaced facade URLs. Evidence: /private/tmp/pr123-fix-evidence/browser-result.json, browser-closezoom-result.json, browser-before.log, browser-before-facade.log and browser scripts.
+tui-test at 200x60 verified the complete wrapped Outlier line on What and How tabs (tui-what.txt, tui-how.txt, tui-how.svg). Two combined close-zoom/navigation scratch runs missed the offscreen click target; visual close-zoom and fitted-map navigation checks were separated without changing product code or tests.
+The final full-context complexity review (GPT-6.1 Sol, xhigh) found no blockers or material simplifications. Cold and final reviewers were read-only and separate. Existing documentation already states the restored ghost/facade semantics and unchanged metrics contract; no documentation behavior change was required. No caches, generic framework, compatibility or future behavior were added. No Groma files changed after scanning, so no architecture curation or extra architecture commit paths were needed. Scanner worker availability remains the same limitation as the 51 existing test skips.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Implemented live Colour by metrics with a configurable 500-commit history window, consistent tint scale and legend, linked co-change rankings, instability and container-median outlier marks/details. Terminal details share the outlier rule. Static delivery has no metric controls/data. Documented the behavior, ran groma scan, and curated task-owned architecture into existing owners plus Browser map Code measurements. Source reviews and git diff --check passed; no installs, builds, tests, runtime/visual validation, or commits were performed, as requested.
+Fixed live metric tints so draft ghosts remain hollow and file-type facade patterns keep their meaning. Simplified the metrics control, Git aggregation, outlier grouping and details dispatcher without changing formulas, thresholds, timing, themes or static/Markdown exclusion. Added two parallel-safe domain regressions. Focused tests: 17 pass. Full check: Node 16 pass; Bun 778 pass, 51 existing skips, 0 fail. Chromium verified all metric/theme combinations, None, history window, details/navigation, original-head failures and static exclusion; tui-test verified both outlier detail tabs. Cold simplicity and full-context complexity reviews found no blockers. Scan produced no architecture changes. Created only the authorized local task commit; no push or publication.
 <!-- SECTION:FINAL_SUMMARY:END -->
