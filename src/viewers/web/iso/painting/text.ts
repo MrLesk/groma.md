@@ -1,6 +1,7 @@
 import { CONTAINER_FONT, PLANE, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
 import type { ProjectionView, SurfaceLabel, SurfaceText } from '../projection/project.ts'
 import { planeMatrix, project } from '../projection/project.ts'
+import { iconImage } from './appearance.ts'
 import { node, round, type SvgNode } from './svg.ts'
 
 /** Fixed plane-space sizes keep titles readable without relaying out at every camera scale. */
@@ -55,14 +56,15 @@ export function surfaceText(
   size: number,
   className: string,
   view: ProjectionView,
+  iconSvg?: string,
 ): SvgNode {
   const padding = textPadding(size)
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, className,
-    text.lines.map((line, index) => node('text', {
+    [...(iconSvg ? [iconImage(iconSvg, padding, padding, size)] : []), ...text.lines.map((line, index) => node('text', {
       x: padding,
       y: padding + size * 0.9 + index * textLineHeight(size),
       'font-size': size,
-    }, 'text', line)))
+    }, 'text', line))])
 }
 
 /** The label and its short leader share the surface's identity and ground plane. */
@@ -72,9 +74,11 @@ export function surfaceLabel(
   view: ProjectionView,
   spacing = 0,
   zoom = 1,
+  iconSvg?: string,
 ): SvgNode {
   const layout = surfaceLabelLayout(text, size, zoom, view)
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, 'label surface-label', [
+    ...(iconSvg ? [iconImage(iconSvg, layout.x - layout.fontSize * 1.2, layout.baseline - layout.fontSize * 0.9, layout.fontSize)] : []),
     node('rect', { x: layout.x, width: layout.width, height: layout.height }, 'label-hit'),
     node('line', { x1: text.width / 2, x2: text.width / 2, y1: 0, y2: layout.leader }, 'label-leader'),
     node('text', {

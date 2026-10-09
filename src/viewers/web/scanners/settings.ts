@@ -71,6 +71,7 @@ function detectionDetails(scanner: ScannerSetting): string {
 }
 
 function detailLabel(scanner: ScannerSetting): string {
+  if (scanner.kind === 'icons') return 'Icon pack'
   if (scanner.kind === 'workSource') return 'Plugin details'
   if (scanner.status === 'blocked' || scanner.status === 'missing' || !scanner.matches.length) return 'Scanner details'
   const count = scanner.matches.length

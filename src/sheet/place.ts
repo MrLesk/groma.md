@@ -66,6 +66,8 @@ function item(element: AnnotatedElement): SheetItem {
     id: element.id,
     title: element.title,
     origin: element.origin,
+    iconSvg: element.iconSvg,
+    colour: element.colour,
   }
 }
 
@@ -74,7 +76,8 @@ function buildingNode(element: AnnotatedElement, ranges: FileMeasureRanges, degr
     ? { kind: 'round' }
     : element.external ? { kind: 'pill' } : { kind: 'block' }
   const size = buildingFont(element)
-  const lines = shape.kind === 'pill' ? [element.title] : roofLines(element.title, size)
+  const titleLines = shape.kind === 'pill' ? [element.title] : roofLines(element.title, size)
+  const lines = element.iconSvg ? ['', ...titleLines] : titleLines
   const base = footprintOf(lines, shape, degree, size)
   const floors = element.kind === 'component'
     ? floorsOf(element.origin, element.code, ranges, base)
@@ -104,9 +107,9 @@ function subtreeConnections(key: string, children: readonly Node[], relationship
 
 /** The cells a surface's own name needs in its front band. */
 function nameWidth(paint: Node['paint']): number {
-  if (paint.kind === 'island') return nameCells(paint.name.toUpperCase(), ISLAND_FONT, ISLAND_SPACING)
+  if (paint.kind === 'island') return nameCells(paint.name.toUpperCase(), ISLAND_FONT, ISLAND_SPACING) + (paint.element?.iconSvg ? 3 : 0)
   if (paint.kind === 'zone') return nameCells(paint.name, GROUP_FONT)
-  if (paint.kind === 'slab') return nameCells(paint.element.title, CONTAINER_FONT)
+  if (paint.kind === 'slab') return nameCells(paint.element.title, CONTAINER_FONT) + (paint.element.iconSvg ? 3 : 0)
   return 0
 }
 

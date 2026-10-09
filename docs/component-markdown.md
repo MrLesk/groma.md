@@ -166,6 +166,8 @@ groma.md-only fields live together under `groma`:
 | `draft` | no | ID of the draft record this concept belongs to or that touches it. |
 | `group` | no | Readable name of a hand-authored sibling cluster. |
 | `technology` | no | Free text naming implementation technology, comma-separated. |
+| `icon` | no | An installed icon name (optionally `pack-id:name`) or one emoji. |
+| `colour` | no | Theme-independent accent: red, orange, amber, yellow, green, teal, cyan, blue, indigo, violet, purple, pink, brown, grey, or `#RRGGBB`. |
 | `code` | no | Scanner-produced source evidence. |
 
 There is no `kind` field. The standard `type` carries the C4 type, and the
@@ -444,3 +446,11 @@ TypeScript, NestJS, and PostgreSQL.
 
 The live [groma.md system](../groma/systems/groma/system.md) and
 [MVP draft](../groma/drafts/mvp.md) are a complete package example.
+
+## Element appearance
+
+`groma edit <id> --icon <name> --colour <name>` and the web details form
+set the optional `groma.icon` and `groma.colour` fields. Empty values remove
+them. Scans preserve both fields. These are Groma presentation semantics on
+the existing C4 element, not C4 types or OKF requirements.
+See [icon packs and colours](icons.md) for installation and publishing.

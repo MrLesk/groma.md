@@ -1,3 +1,4 @@
+import { attachElementIcons } from './icon-packs.ts'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -80,6 +81,8 @@ export function annotateArchitecture(
     external: element.external,
     ...(element.group === undefined ? {} : { group: element.group }),
     ...(element.technology === undefined ? {} : { technology: element.technology }),
+    ...(element.icon === undefined ? {} : { icon: element.icon }),
+    ...(element.colour === undefined ? {} : { colour: element.colour }),
     code: element.code.map(reference => ({ ...reference, ...(counts.get(reference.file) ?? { dependencies: 0, dependents: 0 }) })),
     // The web pane offers a new parent only for a component the write would move.
     movable: element.kind === 'component'
@@ -138,7 +141,7 @@ export async function loadAnnotatedArchitecture(
   options: { onFilesystemAccess?: FilesystemAccessHandler } = {},
 ): Promise<AnnotatedArchitectureModel> {
   const model = annotateArchitecture(await loadArchitecture(repositoryRoot, options))
-  await attachCodeLines(repositoryRoot, model.elements)
+  await Promise.all([attachCodeLines(repositoryRoot, model.elements), attachElementIcons(repositoryRoot, model.elements)])
   const findings = architectureFindingsFor(repositoryRoot)
   return findings.length === 0 ? model : { ...model, findings }
 }

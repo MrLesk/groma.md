@@ -1,3 +1,4 @@
+import { unknownIcons } from './icon-packs.ts'
 import type { Command } from 'commander'
 import { architectureFindingItems, detectDuplicatedLogic } from './architecture-findings.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
@@ -14,12 +15,13 @@ async function lintArchitecture(repositoryRoot: string, window: ListWindow): Pro
   const registry = await loadScannerRegistry(repositoryRoot)
   const { observations, failures } = await registry.collectObservations(repositoryRoot)
   const findings = detectDuplicatedLogic(observations, owners)
-  printListPage(architectureFindingItems(findings), window)
+  const icons = await unknownIcons(repositoryRoot, model.elements)
+  printListPage([...architectureFindingItems(findings), ...icons], window)
   for (const failure of failures) console.error(failure.message)
-  if (!window.count && findings.length === 0 && failures.length === 0) {
+  if (!window.count && findings.length === 0 && icons.length === 0 && failures.length === 0) {
     console.log('No duplicate findings in available scanner evidence.')
   }
-  return findings.length > 0 || failures.length > 0 ? 1 : 0
+  return findings.length > 0 || icons.length > 0 || failures.length > 0 ? 1 : 0
 }
 
 export function registerLintCommand(program: Command): void {

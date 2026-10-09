@@ -46,6 +46,7 @@ async function stage(output: string) {
   await stageSourcePackage('packages/scanner', path.join(output, 'contract'))
   await stageWorkSourcePackages(output)
   const builders = {
+    'icons-architecture': (await import('../plugins/icons/architecture/build.ts')).buildPackage,
     php: (await import('../plugins/scanners/php/build.ts')).buildPackage,
     python: (await import('../plugins/scanners/python/build.ts')).buildPackage,
     typescript: (await import('../plugins/scanners/typescript/build.ts')).buildPackage,
@@ -158,10 +159,14 @@ async function publish(input: string) {
   if (workSource.private || !workSource.groma.workSource.compatibility.groma) {
     throw new Error('backlog: confirm public name, version and compatibility before publishing')
   }
+  const icons = await manifest(path.join(input, 'icons-architecture'))
+  if (icons.private || !icons.groma?.icons?.icons) throw new Error('Icon pack requires public package metadata')
   await completeTogether(['contract', 'work-source-contract'].map(id => publishPackage(path.join(input, id))))
   await publishPackage(path.join(input, 'work-source-backlog'))
-  await completeTogether(scannerIds.map(id => id === 'csharp'
-    ? publishCSharp(input) : publishPackage(path.join(input, id))))
+  await completeTogether([
+    ...scannerIds.map(id => id === 'csharp' ? publishCSharp(input) : publishPackage(path.join(input, id))),
+    publishPackage(path.join(input, 'icons-architecture')),
+  ])
 }
 
 async function publishCSharp(input: string) {

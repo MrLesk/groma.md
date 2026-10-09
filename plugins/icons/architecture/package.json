@@ -1,0 +1,33 @@
+{
+  "name": "@groma/icons-architecture",
+  "version": "0.1.0",
+  "description": "Generic architecture SVG icons for Groma.md",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "icons",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "groma": {
+    "icons": {
+      "id": "architecture",
+      "icons": {
+        "database": "./icons/database.svg",
+        "queue": "./icons/queue.svg",
+        "cache": "./icons/cache.svg",
+        "browser": "./icons/browser.svg",
+        "mobile-app": "./icons/mobile-app.svg",
+        "service": "./icons/service.svg",
+        "scheduler": "./icons/scheduler.svg",
+        "file-store": "./icons/file-store.svg",
+        "mail": "./icons/mail.svg",
+        "identity": "./icons/identity.svg",
+        "gateway": "./icons/gateway.svg",
+        "search": "./icons/search.svg"
+      }
+    }
+  }
+}

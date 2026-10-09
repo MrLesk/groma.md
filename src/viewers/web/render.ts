@@ -1,3 +1,4 @@
+import { paintColourLegend } from './chrome/colour-legend.ts'
 import { comparisonDefaultTab } from './comparison/details.ts'
 import { createComparisonControl } from './comparison/control.ts'
 import { createProjectSettings } from './settings/control.ts'
@@ -167,6 +168,7 @@ function paintMapState(): void {
 }
 
 function paintViewState(commitUrl = true): void {
+  paintColourLegend(document.getElementById('legend')!, world.elements)
   if (commitUrl) syncUrl()
   const task = selection.kind === 'task' ? workItem(selection.id) : undefined
   changes.update(world, revisionControl.comparison, revisionControl.selected, primarySelection(selection))
