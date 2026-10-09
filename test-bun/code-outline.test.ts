@@ -36,7 +36,7 @@ test.concurrent('outline context includes another component source from the snap
     await mkdir(snapshot)
     await writeFile(path.join(snapshot, 'support.alpha'), 'snapshot helper')
     await writeFile(path.join(root, 'support.alpha'), 'current helper')
-    await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify({ scanners: [
+    await writeFile(path.join(root, 'groma/plugins.json'), JSON.stringify({ scanners: [
       { id: 'alpha', source: './plugins/alpha', include: ['**/*.alpha'], exclude: ['excluded.alpha'] },
     ] }))
     await writeFile(path.join(root, 'plugins/alpha/index.js'), `import { readFile } from 'node:fs/promises';

@@ -2,12 +2,12 @@ import { homedir } from 'node:os'
 import path from 'node:path'
 
 import type { WorkSourcePlugin } from '@groma/work-source'
-import { backlogPlugin } from '@groma/work-source-backlog'
+import { configuredWorkSource } from '../work-sources.ts'
 import packageJson from '../../package.json' with { type: 'json' }
 
 import { humanInstructionGuides } from '../instructions.ts'
 import { readScannerSettings, type ScannerSettings } from '../scanner/modules/settings.ts'
-import type { ScannerReadiness } from '../scanner/modules/inventory.ts'
+
 
 export const documentationUrl = 'https://groma.md'
 export const welcomeVersion = packageJson.version
@@ -23,7 +23,7 @@ export const welcomeActions = [
     command: 'groma scan',
     description: 'refresh architecture from source',
   },
-  { id: 'scanners', command: 'Scanners ›', description: 'Manage project scanners' },
+  { id: 'scanners', command: 'Plugins ›', description: 'Manage project plugins' },
 ] as const
 
 export const instructionsAction = {
@@ -116,7 +116,7 @@ export type WelcomeActionId = typeof welcomeActions[number]['id']
 
 export interface WelcomePlugin {
   id: string
-  status: ScannerReadiness
+  status: 'found' | 'missing' | 'blocked'
   install?: string
 }
 
@@ -164,20 +164,17 @@ function displayFolder(repositoryRoot: string): string {
 
 export async function loadWelcomeModel(
   repositoryRoot: string,
-  workSourcePlugin: WorkSourcePlugin = backlogPlugin,
+  workSourcePlugin?: WorkSourcePlugin,
 ): Promise<WelcomeModel> {
   const root = path.resolve(repositoryRoot)
   const scanners = await readScannerSettings(root)
-  const workSource = workSourcePlugin.readiness()
+  const selected = workSourcePlugin ? { id: workSourcePlugin.id, ...workSourcePlugin.readiness() } : await configuredWorkSource(root)
   return {
     project: path.basename(root),
     folder: displayFolder(root),
     status: 'Architecture ready',
     scanners,
-    plugins: [
-      { id: workSourcePlugin.id, ...workSource },
-
-    ],
+    plugins: selected ? [selected] : [],
   }
 }
 
@@ -212,7 +209,7 @@ export function welcomeSheet(model: WelcomeModel): WelcomeSheet {
 
 export async function renderPlainWelcome(
   repositoryRoot: string,
-  workSourcePlugin: WorkSourcePlugin = backlogPlugin,
+  workSourcePlugin?: WorkSourcePlugin,
 ): Promise<string> {
   const model = await loadWelcomeModel(repositoryRoot, workSourcePlugin)
   return [

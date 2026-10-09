@@ -17,7 +17,7 @@ The worker receives those files as an in-memory snapshot. It cannot discover
 additional files through an editor, a remote copybook library, or a filesystem
 search. Source text must be UTF-8; convert an EBCDIC export before scanning.
 
-Set `copybookPaths` on the scanner entry in `groma/scanners.json`. It is an
+Set `copybookPaths` on the scanner entry in `groma/plugins.json`. It is an
 ordered list of directories relative to the repository root, defaulting to
 `["."]`. Groma's configuration owns these paths; they are not OKF metadata.
 For the supported CardDemo slice, retain the installed `source` and set:

@@ -1,6 +1,6 @@
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 import type { WorkSource } from '@groma/work-source'
-import { backlogPlugin } from '@groma/work-source-backlog'
+import { workSourceSession } from '../../work-sources.ts'
 
 import { watchArchitecture } from '../../architecture-watch.ts'
 import { writes } from '../../authoring.ts'
@@ -75,7 +75,7 @@ export async function createWebMapSession(
 ): Promise<{ fetch: (request: Request) => Promise<Response>; close: () => Promise<void> }> {
   options.onProgress?.({ phase: 'preparing-viewer' })
   const renderer = await bundleRenderer()
-  const workSource = options.workSource ?? backlogPlugin.create(repositoryRoot)
+  const workSource = await workSourceSession(repositoryRoot, options.workSource)
   let revisions: WebRevision[] = []
   let revisionRead: Promise<WebRevision[]> | undefined
   let map: WebMapPayload
@@ -267,6 +267,7 @@ export async function createWebMapSession(
 
   let initialScan = true
   const scannerSession = await createScannerSession(repositoryRoot, {
+    onPluginsChanged: () => workSource.reconfigure(),
     scan: options.scan,
     watchesFile: file => sourceFiles.has(file),
     onProgress: options.onProgress,
@@ -289,7 +290,7 @@ export async function createWebMapSession(
   }
   options.onProgress?.({ phase: 'opening-map' })
   const architectureWatch = await watchArchitecture(repositoryRoot, {
-    onChange: async () => { await scannerSession.reconfigure(); await publishWorld() },
+    onChange: async () => { await workSource.reconfigure(); await scannerSession.reconfigure(); await publishWorld() },
   })
   const workWatch = workSource.watch(() => {
     void publishWork()

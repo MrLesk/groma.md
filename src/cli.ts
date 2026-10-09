@@ -15,6 +15,7 @@ import { ensureInitialized, runInitCommand } from './init-command.ts'
 import { humanInstructionGuide } from './instructions.ts'
 import { listWindowRequested, parseListWindow, withListWindowOptions, type ListWindow } from './list-window.ts'
 import { registerLintCommand } from './lint-command.ts'
+import { registerPluginCommands } from './plugin-cli.ts'
 import { registerScannerCommands } from './scanner/cli.ts'
 import { formatScanReport, scanRepository, watchScan } from './scanner.ts'
 import { renderPlainWelcome, startWelcome } from './welcome.ts'
@@ -291,6 +292,7 @@ program
   })
 
 registerScannerCommands(program)
+registerPluginCommands(program)
 registerLintCommand(program)
 registerWriteCommands(program)
 

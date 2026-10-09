@@ -1,4 +1,5 @@
 export interface ScannerSetting {
+  kind?: 'scanner' | 'workSource'
   id: string
   name: string
   source?: string
@@ -44,6 +45,7 @@ export function scannerNotice(scanners: readonly ScannerSetting[], limits: reado
 
 export function scannerSettingLabel(scanner: ScannerSetting): string {
   if (scanner.status === 'blocked') return scanner.message
+  if (scanner.kind === 'workSource') return scanner.message
   if (scanner.match === 'none' && scanner.status !== 'missing') return 'No matching project files'
   return { ready: '', unchecked: '', missing: 'Package missing', available: 'Not installed' }[scanner.status]
 }
@@ -54,9 +56,10 @@ export function scannerGroups(scanners: readonly ScannerSetting[], query = '') {
   const matching = scanners.filter(scanner => [scanner.id, scanner.name, scanner.source ?? '', ...scanner.technologies]
     .some(value => value.toLocaleLowerCase().includes(search)))
   return [
-    { title: 'Installed', scanners: matching.filter(scanner => scanner.source && scanner.status !== 'missing') },
-    { title: 'Missing on this computer', scanners: matching.filter(scanner => scanner.source && scanner.status === 'missing') },
-    { title: 'Recommended', scanners: matching.filter(scanner => !scanner.source) },
+    { title: 'Scanners · Installed', scanners: matching.filter(scanner => (!scanner.kind || scanner.kind === 'scanner') && scanner.source && scanner.status !== 'missing') },
+    { title: 'Scanners · Missing on this computer', scanners: matching.filter(scanner => (!scanner.kind || scanner.kind === 'scanner') && scanner.source && scanner.status === 'missing') },
+    { title: 'Scanners · Recommended', scanners: matching.filter(scanner => (!scanner.kind || scanner.kind === 'scanner') && !scanner.source) },
+    { title: 'Work sources', scanners: matching.filter(scanner => scanner.kind === 'workSource') },
   ].filter(group => group.scanners.length)
 }
 

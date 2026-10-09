@@ -230,7 +230,7 @@ test.concurrent('the built Angular package and the TypeScript scanner outline a 
 test.concurrent('a file Angular and TypeScript both own shows one outline', async () => {
   const { temporary, root, artifact, scanner } = await outlineSetup()
   try {
-    await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify({ scanners: [
+    await writeFile(path.join(root, 'groma/plugins.json'), JSON.stringify({ scanners: [
       { id: 'typescript', source: path.resolve(import.meta.dir, '../plugins/scanners/typescript'), include: typescriptManifest.groma.scanner.include },
       { id: 'angular', source: artifact, include: manifest.groma.scanner.include },
     ] }))

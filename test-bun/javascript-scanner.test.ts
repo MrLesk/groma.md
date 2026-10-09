@@ -95,7 +95,7 @@ test.concurrent('configured exclusions and include patterns decide which JavaScr
   const { temporary, root, artifact } = await setup()
   try {
     await addScanner(root, artifact)
-    const configFile = path.join(root, 'groma/scanners.json')
+    const configFile = path.join(root, 'groma/plugins.json')
     const config = JSON.parse(await readFile(configFile, 'utf8'))
     await writeFile(configFile, JSON.stringify({ ...config, exclude: ['public/'] }))
     await writeFile(path.join(root, '.gitignore'), 'src/draft.js\n')

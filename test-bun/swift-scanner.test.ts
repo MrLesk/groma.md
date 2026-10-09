@@ -180,7 +180,7 @@ test.concurrent('installed Swift package runs without SDKs and excludes source t
     expect(await readFile(path.join(root, 'Ledger.swift'), 'utf8')).toBe(before)
 
     await addScanner(root, artifact)
-    const configPath = path.join(root, 'groma/scanners.json')
+    const configPath = path.join(root, 'groma/plugins.json')
     const config = JSON.parse(await readFile(configPath, 'utf8'))
     // The entry holds the package defaults, which exclude Pods and Carthage, and restores Carthage.
     const scanners = config.scanners.map((entry: { exclude: string[] }) => ({ ...entry, exclude: [...entry.exclude, '!Carthage/'] }))

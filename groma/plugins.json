@@ -188,5 +188,11 @@
     "/plugins/scanners/*/build.ts",
     "/plugins/scanners/framework-package.ts",
     "/plugins/scanners/rust/notices.ts"
+  ],
+  "workSources": [
+    {
+      "id": "backlog",
+      "source": "./plugins/work-sources/backlog"
+    }
   ]
 }

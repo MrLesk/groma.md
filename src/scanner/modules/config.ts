@@ -13,7 +13,13 @@ export interface ConfiguredScanner {
   exclude?: string[]
 }
 
+export interface ConfiguredWorkSource {
+  id: string
+  source: string
+}
+
 export interface ScannerConfig {
+  workSources?: ConfiguredWorkSource[]
   scanners: ConfiguredScanner[]
   /** Git ignore patterns every scanner leaves out; Groma never writes them. */
   exclude?: string[]
@@ -92,6 +98,26 @@ function configuredScanner(
   }
 }
 
+function configuredWorkSources(value: unknown, filename: string): ConfiguredWorkSource[] {
+  if (value === undefined) return []
+  if (!Array.isArray(value)) throw new Error(`${filename} workSources must be an array`)
+  if (value.length > 1) throw new Error(`${filename} supports at most one work source`)
+  return value.map(entry => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)
+      || Object.keys(entry).some(key => !['id', 'source'].includes(key))) {
+      throw new Error(`${filename} workSources entries must contain only id and source`)
+    }
+    if (typeof entry.id !== 'string' || !scannerId.test(entry.id)) {
+      throw new Error(`${filename} workSources id must be lowercase kebab-case`)
+    }
+    if (entry.id !== 'backlog') throw new Error(`${filename} supports only the backlog work source`)
+    if (typeof entry.source !== 'string' || !entry.source.trim()) {
+      throw new Error(`${filename} workSources source must be non-empty`)
+    }
+    return { id: entry.id, source: entry.source }
+  })
+}
+
 function parseScannerConfig(
   source: string,
   sourceFilename: string,
@@ -101,7 +127,7 @@ function parseScannerConfig(
     throw new Error(`${sourceFilename} must be an object`)
   }
   const config = value as Record<string, unknown>
-  if (Object.keys(config).some(key => !['scanners', 'exclude', 'useGitignore'].includes(key)) || !Array.isArray(config.scanners)) {
+  if (Object.keys(config).some(key => !['scanners', 'workSources', 'exclude', 'useGitignore'].includes(key)) || !Array.isArray(config.scanners)) {
     throw new Error(`${sourceFilename} must contain a scanners array, and optionally an exclude array and useGitignore`)
   }
   if (config.exclude !== undefined && !stringArray(config.exclude)) {
@@ -110,6 +136,7 @@ function parseScannerConfig(
   if (config.useGitignore !== undefined && typeof config.useGitignore !== 'boolean') {
     throw new Error(`${sourceFilename} useGitignore must be true or false`)
   }
+  const workSources = configuredWorkSources(config.workSources, sourceFilename)
   const scanners = config.scanners.map((scanner, index) => {
     return configuredScanner(scanner, index, sourceFilename)
   })
@@ -124,6 +151,7 @@ function parseScannerConfig(
     sources.add(scanner.source)
   }
   return {
+    ...(workSources.length ? { workSources } : {}),
     scanners: scanners.sort((left, right) => left.id.localeCompare(right.id)),
     ...(config.exclude === undefined ? {} : { exclude: config.exclude as string[] }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
@@ -134,8 +162,8 @@ export async function readScannerConfig(repositoryRoot: string): Promise<Scanner
   const filesystem = GromaFileSystem.open(repositoryRoot)
   try {
     return parseScannerConfig(
-      await filesystem.read('scanners.json'),
-      filesystem.sourceFilename('scanners.json'),
+      await filesystem.read('plugins.json'),
+      filesystem.sourceFilename('plugins.json'),
     )
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { scanners: [] }
@@ -149,7 +177,7 @@ export async function writeScannerConfig(
 ): Promise<void> {
   const ordered = [...config.scanners].sort((left, right) => left.id.localeCompare(right.id))
   await GromaFileSystem.open(repositoryRoot).write(
-    'scanners.json',
-    `${JSON.stringify({ ...config, scanners: ordered }, null, 2)}\n`,
+    'plugins.json',
+    `${JSON.stringify({ ...config, scanners: ordered, workSources: config.workSources ?? [] }, null, 2)}\n`,
   )
 }

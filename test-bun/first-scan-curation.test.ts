@@ -71,7 +71,7 @@ test('a scan and the agent guide index point to curation while nobody has curate
     await writeTree(root, {
       'groma/index.md': '---\nokf_version: "0.2"\n---\n',
       'groma/project.md': '---\ntype: Groma Project\ntitle: Shop\ngroma:\n  profile: architecture\n---\n\nArchitecture for Shop.\n',
-      'groma/scanners.json': '{ "scanners": [] }\n',
+      'groma/plugins.json': '{ "scanners": [] }\n',
       'groma/systems/shop/system.md': '---\ntype: C4 System\ntitle: Shop\nstatus: stable\ngroma:\n  id: shop\n---\n',
       'groma/systems/shop/containers/app/container.md': '---\ntype: C4 Container\ntitle: app\nstatus: stable\ngroma:\n  id: app\n  parent: shop\n---\n',
       'groma/systems/shop/containers/app/components/cart.md': component(''),

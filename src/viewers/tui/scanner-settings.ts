@@ -62,7 +62,7 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
     if (selectedRow < scroll) scroll = selectedRow
     if (selectedRow >= scroll + height) scroll = selectedRow - height + 1
     scroll = Math.max(0, Math.min(scroll, rows.length - height))
-    if (!rows.length) line(query ? 'No scanners match your search.' : 'No scanners for this project. [a] Add scanner', y)
+    if (!rows.length) line(query ? 'No plugins match your search.' : 'No plugins for this project. [a] Add plugin', y)
     rows.slice(scroll, scroll + height).forEach((row, index) => {
       if (row.scanner) paintRow(row.scanner, y + index)
       else line(row.title, y + index, blue)
@@ -72,14 +72,14 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
     const state = session.state
     line(message || state.notice.message, frame.height - 3, state.notice.tone === 'hint' ? blue : amber)
     const controls = details ? '[d] Hide details  [PgUp/PgDn] Scroll details' : '[d] Details  [/] Search'
-    line(input ? `${input.action === 'add' ? 'Scanner source' : 'New version source'}: ${input.value}▌`
+    line(input ? `${input.action === 'add' ? 'Plugin source' : 'New version source'}: ${input.value}▌`
       : `[↑↓] Select  [Enter] Action  ${controls}  [Esc] Back`, frame.height - 2)
     line(busy ? 'Working…' : '[x] Remove from project  [u] Update  · Saved architecture is kept.', frame.height - 1)
   }
   function paint() {
     if (closed || frame.isDestroyed) return
     const { contentY: y } = paintShell(frame.frameBuffer, model, sheet)
-    line(`Scanners                 [a] Add scanner${failedAction ? '  [r] Retry installation' : ''}`, y, green)
+    line(`Plugins                  [a] Add plugin${failedAction ? '  [r] Retry installation' : ''}`, y, green)
     const recommended = session.state.scanners.filter(item => !item.source && item.installSource).length
     const missing = session.state.scanners.filter(item => item.status === 'missing').length
     line([recommended ? `[i] Install recommended scanners (${recommended})` : '', missing ? `[m] Install missing scanners (${missing})` : ''].filter(Boolean).join('  '), y + 1)

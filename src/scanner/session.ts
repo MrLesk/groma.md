@@ -15,6 +15,7 @@ export async function createScannerSession(root: string, options: {
   scan?: boolean
   onProgress?: (progress: ScannerProgress) => void
   onSettings?: (settings: ScannerSettings) => void
+  onPluginsChanged?: () => void | Promise<void>
   onFold?: () => void | Promise<void>
   watchesFile?: (file: string) => boolean
 } & ScannerInstallOptions = {}) {
@@ -98,7 +99,7 @@ export async function createScannerSession(root: string, options: {
         // Stop in-flight evidence before a new selection can own source updates.
         await watcher?.close()
         watcher = undefined
-        try { await changeScannerSettings(root, action, options) }
+        try { await changeScannerSettings(root, action, options); await options.onPluginsChanged?.() }
         catch (error) { await start(true); throw error }
         await start(true)
       }, true)

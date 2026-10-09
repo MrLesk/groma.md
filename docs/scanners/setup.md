@@ -1,17 +1,77 @@
-# Project scanner settings
+# Project plugin settings
 
-Open **Scanners** from the groma.md splash screen (`s`), the terminal map
+`<groma-root>/plugins.json` explicitly selects project plugins. A missing file
+selects none. No plugin is loaded just because its package or CLI is installed.
+The file has one section per kind: `scanners` and `workSources`. This revision
+supports at most one work source, whose id is `backlog`. Plugin ids are lowercase
+kebab-case. `exclude` and `useGitignore` apply to scanners at the top level.
+
+```json
+{
+  "scanners": [
+    { "id": "typescript", "source": "./plugins/scanners/typescript", "include": ["**/*.ts"] }
+  ],
+  "workSources": [
+    { "id": "backlog", "source": "./plugins/work-sources/backlog" }
+  ],
+  "exclude": ["/test/"],
+  "useGitignore": true
+}
+```
+
+Scanner entries require `id`, `source`, and `include`, and may contain `settings`
+and `exclude`. Work-source entries contain only `id` and `source`. Sources use
+an exact npm `package@version`, a local `./path`, or a
+`git+https://repository#tag-or-commit`; adding a bare npm name selects a compatible
+stable release and stores its exact version. Git tags are pinned to a commit.
+
+```sh
+groma plugin add @groma/work-source-backlog
+groma plugin list
+groma plugin install
+groma plugin update backlog
+groma plugin remove backlog
+```
+
+These commands manage both kinds; scanner commands remain available for scanner
+setup, discovery, readiness, and existing scanner selections. Web and terminal
+settings group selections by kind. Package availability and readiness are
+separate: a missing package needs restoration; an incompatible Groma version
+blocks loading; a found Backlog adapter needs the `backlog` CLI on PATH.
+Its readiness reports `bun i -g backlog.md` when that CLI is missing. Without a
+Backlog selection, neither the welcome screen nor either viewer invokes it.
+Choosing Backlog during interactive `groma init` installs the adapter and records
+its selection before initializing Backlog.
+
+A work-source package declares its id, relative entry and host compatibility:
+
+```json
+{ "groma": { "workSource": {
+  "id": "backlog", "entry": "./src/index.ts", "compatibility": { "groma": ">=0.6.6" }
+} } }
+```
+
+Its default export implements the work-source contract: `id`, `readiness()`, and
+`create(repositoryRoot)`. The created source owns task reads and its closeable
+watch. Package loading and installation reuse the scanner package resolver.
+
+Plugin selection is operational configuration, not an OKF concept or C4 element.
+Ordinary Markdown and OKF readers retain the same architecture records and links;
+Groma's plugin management owns selection and loading, while each adapter owns
+its external tool interaction.
+
+
+Open **Plugins** from the groma.md splash screen (`s`), the terminal map
 (`Shift+S`), or **Settings → Plugins** in the web toolbar.
 `groma scanner settings` opens the same terminal
 screen; without a terminal it prints the shared settings snapshot as JSON.
 
-The same screen groups **Installed**, **Missing on this computer**, then
-**Recommended** scanners. Empty groups are hidden. Search filters the list by
+Within **Scanners**, the screen groups **Installed**, **Missing on this computer**,
+and **Recommended**. **Work sources** lists the selected task adapter. Empty groups are hidden. Search filters the list by
 scanner name, package or technology. Web rows keep the scanner name, version,
 origin and available action together. **Matching files** expands the source
 detection evidence; **Scanner details** reveals diagnostics for failures.
-The web labels the missing group **Set up for this project** and offers bulk
-installation only when the group has multiple installable scanners. A single
+The web offers bulk installation when a group has multiple installable scanners. A single
 recommendation has one **Install** button; multiple recommendations also offer
 **Install all**. Settings is always available in live web.
 A warning appears only when scanning needs attention and opens the affected
@@ -24,7 +84,7 @@ restores the exact selections shared by the team and scans. Both actions keep
 successful installations if another package fails; Retry attempts the remaining
 work. Existing selections are never silently upgraded.
 
-**Add scanner** accepts a package name, exact npm version, Git source or local
+**Add plugin** accepts a package name, exact npm version, Git source or local
 package path. Bare names use the same published-release selection. For a missing
 local package, restore its directory. **Remove from project** keeps saved
 architecture. For npm scanners, **Update** installs the newest compatible stable
@@ -99,7 +159,7 @@ groma scanner setup
 ```
 
 Only selected additions are installed through the existing exact-version
-installer. `scanners.json` in the selected architecture directory records their
+installer. `plugins.json` in the selected architecture directory records their
 exact package versions. Disable an existing scanner explicitly with
 `groma scanner remove <id>`.
 
