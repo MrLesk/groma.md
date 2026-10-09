@@ -451,8 +451,9 @@ The live [groma.md system](../groma/systems/groma/system.md) and
 A plan is an OKF 0.2 bundle containing a selected architecture fragment. Its
 root `index.md` uses the normal `okf_version: "0.2"` declaration and Markdown
 links. The supporting `plan.md` record has `type: Groma Plan`, a standard
-`title`, outcome prose, and `groma.parents`, a list of required external parent
-IDs. It has no C4 identity, containment level, or box on the map. It is a
+`title` and outcome prose. Required external parents come from the selected
+elements' `groma.parent` IDs that do not name another selected element. It has
+no C4 identity, containment level, or box on the map. It is a
 Groma application-profile record, not a type required by OKF or C4.
 
 Selected C4 documents retain their IDs, types, titles, descriptions,
@@ -466,8 +467,13 @@ Relationships within the selection become authored rows under
 Unlike current code relationships, planned relationships may link internal
 software concepts without source files. They remain draft rows when scanning
 or accepting an element. This permits architecture outcomes to be described
-before implementation exists. The existing exact-file rules for current code
-relationships are unchanged.
+before implementation exists. Existing edit and remove controls accept these
+concept IDs. Accepting a planned internal relationship uses the unique current
+source-file connection between its component owners, transfers the planned text
+to that exact pair, and removes the concept draft. If no unique current pair
+exists, acceptance leaves the draft unchanged and explains the missing or
+ambiguous evidence. Scanning does not invent evidence from planned intent.
+The existing exact-file rules for current code relationships are unchanged.
 
 Flows are included only when every step's endpoints are selected. Their
 ordinary linked Steps tables retain order and actions. A plan carries no

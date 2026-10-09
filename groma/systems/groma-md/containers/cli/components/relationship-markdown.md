@@ -20,4 +20,4 @@ groma:
 description: Stores directed interactions and resolves them to component owners
 ---
 
-Reads and writes directed interactions. Resolves exact source files to their component owners for display on the map.
+Reads and writes directed interactions. Planned internal relationships may name architecture concepts before source exists, while current code interactions name exact source files. Editing and removal preserve planned concept links. Explicit acceptance transfers planned text only to one existing current file pair between the same component owners; missing or ambiguous evidence leaves the plan unchanged. Source ownership projects each stored claim onto its current component pair for the map.

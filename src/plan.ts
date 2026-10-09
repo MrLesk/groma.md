@@ -5,6 +5,7 @@ import { renderFrontmatter } from 'comark/render'
 import { buildArchitectureModel, draftRecordOf, freeId } from './architecture-model.ts'
 import { architectureElementPath, draftRecordPath } from './architecture-path.ts'
 import { loadArchitecture } from './architecture-reader.ts'
+import { escapeMarkdownText } from './architecture-markdown.ts'
 import { resolveFlows } from './flow-model.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
 import { renderArchitectureDocument, renderDraftDocument } from './markdown-emitter.ts'
@@ -20,7 +21,6 @@ export interface PlanImportInput { path: string; parent?: string }
 interface PlanBundle {
   title: string
   overview: string
-  parents: string[]
   documents: ArchitectureDocument[]
   flows: ArchitectureDocument[]
 }
@@ -37,16 +37,16 @@ function frontmatter(data: Record<string, unknown>, body: string): string {
 function conceptSource(element: ArchitectureElement, parent = element.parentId, draft?: string): string {
   return renderArchitectureDocument({
     id: element.id, kind: element.kind, name: element.title,
-    parent, description: element.description, overview: element.overview,
+    parent, description: element.description, overview: escapeMarkdownText(element.overview),
     technology: element.technology, status: 'draft', draft,
   })
 }
 
 function flowSource(flow: ArchitectureFlow, filenames: ReadonlyMap<string, string>, filename: string): string {
   const link = (id: string): string => `[${id}](${path.posix.relative(path.posix.dirname(filename), filenames.get(id)!)})`
-  const rows = flow.steps.map(step => `| ${link(step.source)} | ${link(step.target)} | ${step.action} |`)
+  const rows = flow.steps.map(step => `| ${link(step.source)} | ${link(step.target)} | ${escapeMarkdownText(step.action)} |`)
   return frontmatter({ type: FLOW_TYPE, title: flow.title, description: flow.description, groma: { id: flow.id } },
-    `${flow.overview}\n\n## Steps\n\n| From | To | Action |\n| --- | --- | --- |\n${rows.join('\n')}`)
+    `${escapeMarkdownText(flow.overview)}\n\n## Steps\n\n| From | To | Action |\n| --- | --- | --- |\n${rows.join('\n')}`)
 }
 
 function selectedRelationships(model: ArchitectureModel, ids: ReadonlySet<string>, filenames: ReadonlyMap<string, string>): StoredRelationship[] {
@@ -73,9 +73,8 @@ export async function exportPlan(repositoryRoot: string, input: PlanExportInput)
     const filenames = new Map(selected.map(element => [element.id, element.sourceFilename]))
     const rows = selectedRelationships(model, ids, filenames)
     const files = new Map<string, string>()
-    const parents = [...new Set(selected.flatMap(element => element.parentId && !ids.has(element.parentId) ? [element.parentId] : []))].sort()
     const title = path.basename(to)
-    files.set('plan.md', frontmatter({ type: 'Groma Plan', title, groma: { parents } }, 'Architecture to implement.'))
+    files.set('plan.md', frontmatter({ type: 'Groma Plan', title }, 'Architecture to implement.'))
     for (const element of selected) {
       files.set(filesystem.relative(element.sourceFilename), withStoredRelationships(
         conceptSource(element), element.sourceFilename, rows.filter(row => row.source === element.id), filenames,
@@ -119,8 +118,6 @@ async function readPlan(directory: string): Promise<PlanBundle> {
   requireBundleIndex(index.frontmatter, index.sourceFilename)
   const plan = await documentOf('groma/plan.md', requireText(files.get('plan.md'), 'plan.md'))
   if (plan.frontmatter.type !== 'Groma Plan') throw new Error('plan.md requires type Groma Plan')
-  const parents = requireGromaMapping(plan.frontmatter, plan.sourceFilename).parents
-  if (!Array.isArray(parents) || parents.some(id => typeof id !== 'string')) throw new Error('plan parents must be a list of IDs')
   const documents: ArchitectureDocument[] = [], flows: ArchitectureDocument[] = []
   for (const [filename, source] of files) {
     if (filename === 'index.md' || filename === 'plan.md') continue
@@ -130,7 +127,7 @@ async function readPlan(directory: string): Promise<PlanBundle> {
     else throw new Error(`unsupported plan document "${filename}"`)
   }
   if (documents.length === 0) throw new Error('plan contains no elements')
-  return { title: requireText(plan.frontmatter.title as string, 'plan title'), overview: plan.body.trim(), parents: parents as string[], documents, flows }
+  return { title: requireText(plan.frontmatter.title as string, 'plan title'), overview: plan.body.trim(), documents, flows }
 }
 
 function validateImportIds(bundle: PlanBundle, records: Awaited<ReturnType<typeof loadArchitecture>>, existing: ArchitectureModel): string {
@@ -144,11 +141,14 @@ function validateImportIds(bundle: PlanBundle, records: Awaited<ReturnType<typeo
 }
 
 function importedDocuments(bundle: PlanBundle, existing: ArchitectureModel, parent: string | undefined, draft: string): ArchitectureDocument[] {
-  for (const id of new Set([...bundle.parents, ...(parent === undefined ? [] : [parent])])) {
-    const required = parent ?? id
-    if (!existing.elements.some(element => element.id === required)) throw new Error(`unknown parent "${required}"`)
+  const ids = new Set(bundle.documents.map(document => String(requireGromaMapping(document.frontmatter, document.sourceFilename).id)))
+  const externalParents = new Set(bundle.documents.flatMap(document => {
+    const parentId = requireGromaMapping(document.frontmatter, document.sourceFilename).parent
+    return typeof parentId === 'string' && !ids.has(parentId) ? [parentId] : []
+  }))
+  for (const id of parent === undefined ? externalParents : [parent]) {
+    if (!existing.elements.some(element => element.id === id)) throw new Error(`unknown parent "${id}"`)
   }
-  const externalParents = new Set(bundle.parents)
   return bundle.documents.map(document => {
     const groma = requireGromaMapping(document.frontmatter, document.sourceFilename)
     const parentId = parent !== undefined && externalParents.has(String(groma.parent)) ? parent : groma.parent

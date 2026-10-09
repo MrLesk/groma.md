@@ -31,9 +31,6 @@ An example `plan.md`:
 ---
 type: Groma Plan
 title: payment-plan
-groma:
-  parents:
-    - source-application
 ---
 
 Architecture to implement.
@@ -72,6 +69,11 @@ import before any architecture document is written. Import never renames IDs.
 Implement the imported responsibilities in source, run `groma scan`, and use
 `groma accept <id>` for each matched ghost. The existing scanner matching rules
 apply; import does not invent source paths or force a match. Scanning and
-accepting elements do not accept their planned relationships.
+accepting elements do not accept their planned relationships. Use the imported
+concept IDs with `groma edit relation` or `groma remove relation`. Explicit
+`groma accept relation checkout payments` transfers the planned text to the
+unique existing current source-file connection between those components. Without
+one unique connection, the relationship remains planned; the command explains
+why acceptance cannot proceed.
 
 The [Markdown contract](component-markdown.md#plan-bundles) defines the format.

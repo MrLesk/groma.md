@@ -8,7 +8,7 @@ import { sourceIndex } from './source-index.ts'
 import type { ArchitectureElement, RelationshipConnection, ElementStatus } from './types.ts'
 import { checkEdit, type EditValues } from './authoring-conflict.ts'
 
-/** Code interactions use repository-relative files; actor/external declarations may use concept IDs. */
+/** Current code interactions use files; actor/external declarations and existing internal drafts may use concept IDs. */
 export interface RelationEnds {
   source: string
   target: string
@@ -41,15 +41,16 @@ async function loadEnds(repositoryRoot: string, input: RelationEnds): Promise<En
   if (!source) throw new Error(`unknown source "${input.source}"`)
   const target = index.owner(input.target) ?? index.resolve(input.target)
   if (!target) throw new Error(`unknown target "${input.target}"`)
-  const declaredConcept = [source, target].some(element => element.kind === 'actor' || element.external)
-  if (!declaredConcept && (!index.byFile.has(input.source) || !index.byFile.has(input.target))) {
-    throw new Error('code relationships require source-file endpoints')
-  }
   const connections = storedRelationships(documents, model.elements, (_code, filename, message) => {
     throw new Error(`${filename}: ${message}`)
   })
   const row = [...connections].sort((left, right) => Number(right.authored) - Number(left.authored))
     .find(item => item.source === input.source && item.target === input.target)
+  const declaredConcept = [source, target].some(element => element.kind === 'actor' || element.external)
+  const plannedConcepts = row?.status === 'draft' && input.source === source.id && input.target === target.id
+  if (!declaredConcept && !plannedConcepts && (!index.byFile.has(input.source) || !index.byFile.has(input.target))) {
+    throw new Error('code relationships require source-file endpoints')
+  }
   return { rows: connections, records, model, input, source, target, row }
 }
 
@@ -61,9 +62,10 @@ function requireRow(ends: Ends): RelationshipConnection {
 async function writeRow(
   repositoryRoot: string,
   ends: Ends,
-  change: { drop?: RelationshipConnection; add?: Sentence },
+  change: { drop?: RelationshipConnection | RelationshipConnection[]; add?: Sentence },
 ): Promise<string> {
-  const rows = ends.rows.filter(row => row !== change.drop)
+  const dropped = new Set(Array.isArray(change.drop) ? change.drop : [change.drop])
+  const rows = ends.rows.filter(row => !dropped.has(row))
   if (change.add) rows.push({ ...ends.input, ...change.add, authored: true, document: ends.source.sourceFilename })
   await saveRelationships(repositoryRoot, ends.records.documents, ends.model.elements, ends.rows,
     placeRelationships(rows, ends.model.elements))
@@ -98,11 +100,31 @@ export async function editRelation(repositoryRoot: string, input: RelationInput)
   })
 }
 
+/** Planned concept links become current only through one existing exact-file connection. */
+function acceptanceEnds(ends: Ends): RelationEnds {
+  const index = sourceIndex(ends.model.elements)
+  const declaredConcept = [ends.source, ends.target].some(element => element.kind === 'actor' || element.external)
+  if (declaredConcept || (index.byFile.has(ends.input.source) && index.byFile.has(ends.input.target))) return ends.input
+  const pairs = new Map(ends.rows.filter(row => row.status === 'stable'
+    && index.byFile.get(row.source) === ends.source.id && index.byFile.get(row.target) === ends.target.id)
+    .map(row => [`${row.source}\0${row.target}`, row]))
+  if (pairs.size !== 1) {
+    throw new Error(`cannot accept ${ends.input.source} → ${ends.input.target}: requires one current source-file connection, found ${pairs.size}`)
+  }
+  const { source, target } = [...pairs.values()][0]!
+  return { source, target }
+}
+
 export async function acceptRelation(repositoryRoot: string, input: RelationEnds): Promise<string> {
   const ends = await loadEnds(repositoryRoot, input)
   const current = requireRow(ends)
   if (!current.authored || current.status !== 'draft') throw new Error('not a draft relationship')
-  return writeRow(repositoryRoot, ends, { drop: current, add: { ...current, status: 'stable' } })
+  const accepted = acceptanceEnds(ends)
+  const overwritten = ends.rows.filter(row => row.authored && row.source === accepted.source && row.target === accepted.target)
+  return writeRow(repositoryRoot, { ...ends, input: accepted }, {
+    drop: [current, ...overwritten],
+    add: { description: current.description, technology: current.technology, status: 'stable' },
+  })
 }
 
 export async function removeRelation(repositoryRoot: string, input: RelationEnds): Promise<string> {

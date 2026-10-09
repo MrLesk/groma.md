@@ -8,6 +8,11 @@ import type {
 
 type InvalidMarkdown = (code: string, sourceFilename: string, message: string) => never
 
+/** Render decoded model text as literal Markdown, including inside table cells. */
+export function escapeMarkdownText(text: string): string {
+  return text.replaceAll(/[!-/:-@[-`{-~]/g, '\\$&')
+}
+
 export function nodeText(node: MarkdownNode | undefined): string {
   if (typeof node === 'string') return node
   if (!Array.isArray(node)) return ''

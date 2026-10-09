@@ -7,7 +7,8 @@ import { addScanner } from '../src/scanner/modules/inventory.ts'
 import manifest from '../plugins/scanners/typescript/package.json'
 import { scanTypeScriptSource } from '../plugins/scanners/typescript/src/scan.ts'
 import { loadArchitecture } from '../src/architecture-reader.ts'
-import { loadAnnotatedArchitecture } from '../src/core.ts'
+import { acceptGhost, loadAnnotatedArchitecture } from '../src/core.ts'
+import { exportPlan, importPlan } from '../src/plan.ts'
 import { editArchitecture } from '../src/edit.ts'
 import { addRelation, acceptRelation, editRelation, removeRelation } from '../src/relation.ts'
 import { inferRelationships } from '../src/relationship-inference.ts'
@@ -285,4 +286,78 @@ run({ deliver: choose ? send : wrap })
     owners.set('src/wrapper.ts', 'src/provider.ts')
     expect(inferRelationships([observation], owners).map(row => row.target)).toEqual(['src/provider.ts', 'src/wrapper.ts'])
   } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('an imported concept draft accepts only through a unique existing current file pair', async () => {
+  const root = await repository()
+  const destination = await mkdtemp(path.join(os.tmpdir(), 'groma-imported-relations-'))
+  try {
+    await rm(path.join(root, 'src/wrapper.ts'))
+    await writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'Caller', bin: 'src/caller.ts' }))
+    await scanRepository(root)
+    const model = await loadAnnotatedArchitecture(root)
+    const source = owner(model, 'worker'), target = owner(model, 'provider')
+    const planned = { source: source.id, target: target.id }
+    const bundle = await exportPlan(root, { ids: model.elements.map(element => element.id), to: 'shared-plan' })
+    await cp(path.resolve(import.meta.dir, '../test/fixtures/empty-project'), destination, { recursive: true })
+    await importPlan(destination, { path: bundle })
+    await editRelation(destination, { ...planned, description: 'Publishes the completed result', technology: 'Callback' })
+    const before = await loadAnnotatedArchitecture(destination)
+    await expect(acceptRelation(destination, planned)).rejects.toThrow('found 0')
+    expect(await loadAnnotatedArchitecture(destination)).toEqual(before)
+    await cp(path.join(root, 'src'), path.join(destination, 'src'), { recursive: true })
+    await cp(path.join(root, 'package.json'), path.join(destination, 'package.json'))
+    const git = Bun.spawn(['git', 'init', '--quiet'], { cwd: destination, stdout: 'ignore', stderr: 'pipe' })
+    expect(await git.exited, await new Response(git.stderr).text()).toBe(0)
+    await addScanner(destination, path.resolve(import.meta.dir, '../plugins/scanners/typescript'))
+    await scanRepository(destination)
+    expect(await acceptGhost(destination, source.id)).toBe('accepted')
+    expect(await acceptGhost(destination, target.id)).toBe('accepted')
+    await editRelation(destination, { ...ends, description: 'Earlier current text', technology: 'Function call' })
+    await scanRepository(destination)
+    await acceptRelation(destination, planned)
+    const accepted = (await loadAnnotatedArchitecture(destination)).relationships.find(row =>
+      row.source === source.id && row.target === target.id)!
+    expect(accepted.connections).toEqual([expect.objectContaining({
+      ...ends, status: 'stable', authored: true, description: 'Publishes the completed result', technology: 'Callback',
+    })])
+    await scanRepository(destination)
+    expect((await loadAnnotatedArchitecture(destination)).relationships.find(row =>
+      row.source === source.id && row.target === target.id)).toEqual(accepted)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+    await rm(destination, { recursive: true, force: true })
+  }
+})
+
+test.concurrent('ambiguous current file evidence leaves an imported concept relationship planned', async () => {
+  const root = await repository()
+  const destination = await mkdtemp(path.join(os.tmpdir(), 'groma-ambiguous-relations-'))
+  try {
+    await rm(path.join(root, 'src/wrapper.ts'))
+    await writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'Caller', bin: 'src/caller.ts' }))
+    await scanRepository(root)
+    const model = await loadAnnotatedArchitecture(root)
+    const source = owner(model, 'worker'), target = owner(model, 'provider')
+    const bundle = await exportPlan(root, { ids: model.elements.map(element => element.id), to: 'shared-plan' })
+    await cp(path.resolve(import.meta.dir, '../test/fixtures/empty-project'), destination, { recursive: true })
+    await importPlan(destination, { path: bundle })
+    await cp(path.join(root, 'src'), path.join(destination, 'src'), { recursive: true })
+    await cp(path.join(root, 'package.json'), path.join(destination, 'package.json'))
+    const git = Bun.spawn(['git', 'init', '--quiet'], { cwd: destination, stdout: 'ignore', stderr: 'pipe' })
+    expect(await git.exited, await new Response(git.stderr).text()).toBe(0)
+    await addScanner(destination, path.resolve(import.meta.dir, '../plugins/scanners/typescript'))
+    await writeFile(path.join(destination, 'src/secondary.ts'), 'export function secondary(): void {}\n')
+    await scanRepository(destination)
+    const second = owner(await loadAnnotatedArchitecture(destination), 'secondary')
+    await editArchitecture(destination, { id: second.id, parent: source.parent! })
+    await editArchitecture(destination, { id: source.id, combine: [second.id] })
+    await addRelation(destination, { source: 'src/secondary.ts', target: ends.target, description: 'Another current interaction', technology: 'Callback' })
+    const before = await loadAnnotatedArchitecture(destination)
+    await expect(acceptRelation(destination, { source: source.id, target: target.id })).rejects.toThrow('found 2')
+    expect(await loadAnnotatedArchitecture(destination)).toEqual(before)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+    await rm(destination, { recursive: true, force: true })
+  }
 })

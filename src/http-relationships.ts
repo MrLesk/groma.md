@@ -277,16 +277,11 @@ function provider(request: SentRequest, endpoints: readonly ServedEndpoint[]): S
   return files.size === 1 && (by === 'specificity' || labels.size === 1) ? chosen.map(match => match.endpoint) : []
 }
 
-/** Markdown emphasis would consume these characters inside a stored path. */
-function escapeLabel(text: string): string {
-  return text.replaceAll(/[*_]/g, character => `\\${character}`)
-}
-
-/** `:id`, `:id?`, `:rest+` and `:rest*` survive the Markdown table, unlike braces. */
+/** Display route parameters as :id, :id?, :rest+ or :rest*. Storage owns Markdown escaping. */
 function segmentLabel(segment: HttpEndpointSegment): string {
-  if (segment.kind === 'literal') return escapeLabel(segment.value)
-  if (segment.kind === 'parameter') return `:${escapeLabel(segment.name)}${segment.optional ? '?' : ''}`
-  return `:${escapeLabel(segment.name)}${segment.optional ? '*' : '+'}`
+  if (segment.kind === 'literal') return segment.value
+  if (segment.kind === 'parameter') return `:${segment.name}${segment.optional ? '?' : ''}`
+  return `:${segment.name}${segment.optional ? '*' : '+'}`
 }
 
 function pathLabel(endpoint: ServedEndpoint): string {

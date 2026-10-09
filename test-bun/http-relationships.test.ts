@@ -369,7 +369,7 @@ test.concurrent('scans store derived HTTP rows, keep them while a contributing s
 test.concurrent('a literal segment with Markdown characters is escaped in the row and restored from storage', async () => {
   const endpoints = [endpoint(talks, 'GET', '/__debug__/:id')]
   const sent = [request('GET', '/__debug__/{}')]
-  expect(derive(endpoints, sent)[0]!.description).toBe('Calls HTTP endpoint: GET /\\_\\_debug\\_\\_/:id')
+  expect(derive(endpoints, sent)[0]!.description).toBe('Calls HTTP endpoint: GET /__debug__/:id')
   const root = await repository()
   try {
     await reconcileScanObservations(root, [scan('server', { httpEndpoints: endpoints }), scan('client', { httpRequests: sent })])
