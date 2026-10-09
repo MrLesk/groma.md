@@ -1,7 +1,7 @@
 import groma from '../package.json'
 import { readScannerConfig, writeScannerConfig } from './scanner/modules/config.ts'
 import { configureScanner, installScanners, removeScanner, scannerInventory, updateScanner, type ScannerInstallOptions } from './scanner/modules/inventory.ts'
-import { defaultScannerCacheRoot, installScannerPackage, parseScannerSource, resolveScannerPackage, type ResolvedScannerPackage } from './scanner/modules/package.ts'
+import { defaultScannerCacheRoot, installScannerPackage, parseScannerSource, preparePluginUpdate, resolveScannerPackage, type ResolvedScannerPackage } from './scanner/modules/package.ts'
 import { isNpmPackageName, publishedScannerSource } from './scanner/modules/published.ts'
 import { configuredWorkSource } from './work-sources.ts'
 
@@ -67,16 +67,7 @@ export async function updatePlugin(root: string, id: string, input?: string, opt
   const config = await readScannerConfig(root)
   const selected = config.workSources?.find(work => work.id === id)
   if (!selected) return updateScanner(root, id, input, options)
-  const current = parseScannerSource(root, selected.source)
-  const requested = input?.trim() ?? (current.kind === 'npm' ? current.name : undefined)
-  if (!requested) throw new Error('Git updates require a tag or commit; local plugins run from their configured path')
-  const replacement = await selectedSource(root, requested, options)
-  if (!(current.kind === 'npm' && replacement.kind === 'npm' && current.name === replacement.name)
-    && !(current.kind === 'git' && replacement.kind === 'git' && current.repository === replacement.repository)) {
-    throw new Error('Plugin update must keep the same npm package or Git repository')
-  }
-  const installed = await installScannerPackage(replacement, options.cacheRoot ?? defaultScannerCacheRoot(), options.registry, 'workSource')
-  if (installed.package.id !== id) throw new Error(`Plugin id changed: ${installed.package.id}`)
+  const installed = await preparePluginUpdate(root, selected, input, options, 'workSource')
   validateWorkSource(installed.package)
   await writeScannerConfig(root, { ...config, workSources: [{ id, source: installed.source }] })
   return { id, source: installed.source, status: 'found' as const }

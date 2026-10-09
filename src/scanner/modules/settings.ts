@@ -1,5 +1,6 @@
 import { addPlugin, removePlugin, restoreWorkSource, updatePlugin } from '../../plugin-management.ts'
 import { configuredWorkSource } from '../../work-sources.ts'
+import { readScannerConfig } from './config.ts'
 import { scannerNotice, type ScannerSetting, type ScannerSettings, type ScannerSettingsAction } from './settings-model.ts'
 export * from './settings-model.ts'
 import type { ScannerDiscovery } from './discovery.ts'
@@ -104,8 +105,8 @@ export async function changeScannerSettings(root: string, action: ScannerSetting
     case 'add': await addPlugin(root, action.source, options); return
     case 'remove': await removePlugin(root, action.id); return
     case 'restore': {
-      const work = await configuredWorkSource(root, options)
-      if (work?.id === action.id) await restoreWorkSource(root, options)
+      const config = await readScannerConfig(root)
+      if (config.workSources?.some(work => work.id === action.id)) await restoreWorkSource(root, options)
       else await restoreScanner(root, action.id, options)
       return
     }

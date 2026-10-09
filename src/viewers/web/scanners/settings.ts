@@ -70,6 +70,13 @@ function detectionDetails(scanner: ScannerSetting): string {
     + `<ul class="scanner-evidence">${scanner.matches.map(file => `<li>${escaped(file)}</li>`).join('')}</ul><p data-no-matches hidden>No matching paths</p>`
 }
 
+function detailLabel(scanner: ScannerSetting): string {
+  if (scanner.kind === 'workSource') return 'Plugin details'
+  if (scanner.status === 'blocked' || scanner.status === 'missing' || !scanner.matches.length) return 'Scanner details'
+  const count = scanner.matches.length
+  return `${count} matching ${count === 1 ? 'file' : 'files'}`
+}
+
 function settingRow(scanner: ScannerSetting, upgrades: ScannerSettings['upgrades']): string {
   const { primary, more } = rowActions(scanner, upgrades)
   const upgrade = scanner.source ? upgrades?.[scanner.source] : undefined
@@ -80,9 +87,7 @@ function settingRow(scanner: ScannerSetting, upgrades: ScannerSettings['upgrades
   const version = [scanner.version, upgrade?.version].filter(Boolean).join(' → ')
   const metadata = [version, scanner.official ? 'Official' : 'Third-party'].filter(Boolean).join(' · ')
   const updateError = upgrade?.error ? `<p>Could not check for updates. ${escaped(upgrade.error)}</p>` : ''
-  const count = scanner.matches.length
-  const matchingFiles = `${count} matching ${count === 1 ? 'file' : 'files'}`
-  const details = scanner.kind === 'workSource' ? 'Plugin details' : attention || !count ? 'Scanner details' : matchingFiles
+  const details = detailLabel(scanner)
   return `<section class="scanner-row" data-scanner-id="${escaped(scanner.id)}"><div class="scanner-header"><div class="scanner-heading"><strong>${escaped(scannerName(scanner.id))}</strong><span class="scanner-version">${escaped(metadata)}</span></div>${badge}<div class="scanner-primary">${primary}</div></div>`
     + `<details><summary>${details}</summary><div class="scanner-body"><code class="scanner-package">${escaped(scanner.source ?? scanner.installSource ?? scanner.name)}</code>`
     + `${reason}${scanner.message ? `<p>${escaped(scanner.message)}</p>` : ''}${detectionDetails(scanner)}${updateError}<div class="scanner-actions">${more}</div></div></details></section>`

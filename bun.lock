@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "groma.md",
@@ -165,6 +166,9 @@
     "plugins/work-sources/backlog": {
       "name": "@groma/work-source-backlog",
       "version": "0.1.0",
+      "dependencies": {
+        "@groma/work-source": "0.1.0",
+      },
     },
   },
   "patchedDependencies": {

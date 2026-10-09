@@ -9,7 +9,7 @@ import {
   installScannerPackage,
   parseScannerSource,
   resolveScannerPackage,
-  type ScannerSource,
+  preparePluginUpdate,
   type ResolvedScannerPackage,
 } from './package.ts'
 
@@ -165,12 +165,6 @@ export async function removeScanner(
   return id
 }
 
-function samePackage(current: ScannerSource, replacement: ScannerSource): boolean {
-  if (current.kind === 'npm' && replacement.kind === 'npm') return current.name === replacement.name
-  if (current.kind === 'git' && replacement.kind === 'git') return current.repository === replacement.repository
-  return false
-}
-
 export async function updateScanner(
   repositoryRoot: string,
   id: string,
@@ -180,18 +174,7 @@ export async function updateScanner(
   const config = await readScannerConfig(repositoryRoot)
   const selected = config.scanners.find(scanner => scanner.id === id)
   if (selected === undefined) throw new Error(`scanner is not configured: ${id}`)
-  const current = parseScannerSource(repositoryRoot, selected.source)
-  const requested = input?.trim() ?? (current.kind === 'npm' ? current.name : undefined)
-  if (requested === undefined) throw new Error('Git updates require a tag or commit; local plugins run from their configured path')
-  const replacement = parseScannerSource(repositoryRoot, isNpmPackageName(requested)
-    ? await publishedScannerSource(requested, options.registry) : requested)
-  if (!samePackage(current, replacement)) {
-    throw new Error('scanner update must keep the same npm package or Git repository; local plugins run from their configured path')
-  }
-  const installed = await installScannerPackage(replacement, cacheRoot(options), options.registry, 'scanner')
-  if (installed.package.id !== id) {
-    throw new Error(`replacement scanner id ${installed.package.id} does not match ${id}`)
-  }
+  const installed = await preparePluginUpdate(repositoryRoot, selected, input, options, 'scanner')
   const updated = { ...selected, source: installed.source }
   await writeScannerConfig(repositoryRoot, {
     ...config, scanners: config.scanners.map(scanner => scanner.id === id ? updated : scanner),

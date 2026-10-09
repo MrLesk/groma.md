@@ -118,6 +118,23 @@ function configuredWorkSources(value: unknown, filename: string): ConfiguredWork
   })
 }
 
+function configuredScanners(values: unknown[], sourceFilename: string): ConfiguredScanner[] {
+  const scanners = values.map((scanner, index) => {
+    return configuredScanner(scanner, index, sourceFilename)
+  })
+  const ids = new Set<string>()
+  const sources = new Set<string>()
+  for (const scanner of scanners) {
+    if (ids.has(scanner.id)) throw new Error(`duplicate configured scanner id: ${scanner.id}`)
+    if (sources.has(scanner.source)) {
+      throw new Error(`duplicate configured scanner source: ${scanner.source}`)
+    }
+    ids.add(scanner.id)
+    sources.add(scanner.source)
+  }
+  return scanners.sort((left, right) => left.id.localeCompare(right.id))
+}
+
 function parseScannerConfig(
   source: string,
   sourceFilename: string,
@@ -137,22 +154,9 @@ function parseScannerConfig(
     throw new Error(`${sourceFilename} useGitignore must be true or false`)
   }
   const workSources = configuredWorkSources(config.workSources, sourceFilename)
-  const scanners = config.scanners.map((scanner, index) => {
-    return configuredScanner(scanner, index, sourceFilename)
-  })
-  const ids = new Set<string>()
-  const sources = new Set<string>()
-  for (const scanner of scanners) {
-    if (ids.has(scanner.id)) throw new Error(`duplicate configured scanner id: ${scanner.id}`)
-    if (sources.has(scanner.source)) {
-      throw new Error(`duplicate configured scanner source: ${scanner.source}`)
-    }
-    ids.add(scanner.id)
-    sources.add(scanner.source)
-  }
   return {
     ...(workSources.length ? { workSources } : {}),
-    scanners: scanners.sort((left, right) => left.id.localeCompare(right.id)),
+    scanners: configuredScanners(config.scanners, sourceFilename),
     ...(config.exclude === undefined ? {} : { exclude: config.exclude as string[] }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
   }

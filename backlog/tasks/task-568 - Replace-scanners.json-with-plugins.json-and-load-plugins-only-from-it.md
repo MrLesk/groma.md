@@ -1,11 +1,11 @@
 ---
 id: TASK-568
 title: Replace scanners.json with plugins.json and load plugins only from it
-status: Done
+status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-09 08:04'
+updated_date: '2026-10-09 13:12'
 labels: []
 dependencies: []
 references:
@@ -24,6 +24,12 @@ references:
   - docs/scanners/setup.md
   - .github/workflows/architecture.yml
   - src-cli
+  - scripts/scanner-release.ts
+  - plugins/work-sources/backlog/package.json
+  - packages/work-source/package.json
+  - .github/workflows/release.yml
+  - docs/scanners/publishing.md
+  - test-bun/scanner-release.test.ts
 modified_files:
   - src/scanner/modules/config.ts
   - src/scanner/modules/package.ts
@@ -87,6 +93,10 @@ modified_files:
   - groma/systems/groma-md/containers/export/components/scanners-settings.md
   - groma/systems/groma-md/containers/cli/components/tui-scanner-settings.md
   - groma/systems/groma-md/containers/cli/components/scanner-session.md
+  - scripts/scanner-release.ts
+  - .github/workflows/release.yml
+  - docs/scanners/publishing.md
+  - test-bun/scanner-release.test.ts
 type: feature
 ordinal: 645000
 ---
@@ -120,16 +130,16 @@ Update everything that names scanners.json: docs/scanners/ (setup, discovery, in
 <!-- AC:BEGIN -->
 - [x] #1 <groma-root>/plugins.json holds a scanners and a workSources section; scanner entries keep today's fields and validation, plugin ids are lowercase kebab-case, and the format is documented.
 - [x] #2 No plugin loads without an entry: with no workSources entry, groma.md never runs the Backlog.md CLI, even when it is on the PATH, and a second work-source entry is refused with a clear message.
-- [x] #3 A listed work source resolves from npm, a local folder or git, reports found, missing or blocked with a reason, passes the groma.md version check, and is installed or restored when missing the same way a missing scanner is; the Backlog adapter's readiness also reports whether the backlog CLI is present and how to install it.
+- [ ] #3 A listed work source resolves from npm, a local folder or git, reports found, missing or blocked with a reason, passes the groma.md version check, and is installed or restored when missing the same way a missing scanner is; the Backlog adapter's readiness also reports whether the backlog CLI is present and how to install it.
 - [x] #4 groma plugin add, list, remove, install and update manage scanners and work sources; groma scanner add and the other scanner commands keep working; the web and terminal settings list plugins by kind.
-- [x] #5 Choosing Backlog.md during groma init adds the work source to plugins.json, nothing reads scanners.json any more, and this repository's groma/plugins.json lists its scanners and the Backlog work source.
+- [ ] #5 Choosing Backlog.md during groma init adds the work source to plugins.json, nothing reads scanners.json any more, and this repository's groma/plugins.json lists its scanners and the Backlog work source.
 - [x] #6 Docs, agent guides and .github/workflows/architecture.yml refer to plugins.json.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -138,6 +148,8 @@ Update everything that names scanners.json: docs/scanners/ (setup, discovery, in
 
 <!-- SECTION:PLAN:BEGIN -->
 1. Replace the configuration filename with plugins.json and validate explicit scanner and work-source selections, preserving scanner fields. 2. Share scanner source resolution, package installation and release compatibility with work sources; load only configured work sources. 3. Add plugin management commands, connect init and both viewers, and group settings by plugin kind. 4. Convert repository configuration, fixtures, documentation and CI references. 5. Inspect supported flows and diffs without installs, builds or tests as requested; scan and curate task-owned architecture changes. Existing tests cover scanner configuration and package lifecycle; adapt filename expectations. Add focused coverage only for explicit work-source loading, selection cardinality and compatibility, whose absence currently permits implicit Backlog execution.
+
+Review fixes (9 October 2026): 1. Extend scripts/scanner-release.ts staging and publication to include the Backlog work-source adapter and @groma/work-source contract, with an exact declared contract dependency. Keep init npm-only; public install remains a next-release gate. 2. Put shared update source preparation in src/scanner/modules/package.ts, while callers keep kind validation and scanner settings. Route settings restore by plugins.json; extract scanner-list duplicate validation and web detail labels to keep changed functions at complexity 15 or lower. Retain loadWorkSource for TASK-564 integration. 3. Test authority: TASK-568 AC3/AC5 and the reproduced unpublished adapter failure require the next staged release to yield installable work-source packages. Wrong outcome: adapter or contract missing from staging, invalid dependency metadata, or a packed adapter cannot be added/restored from a registry. Existing scanner-release tests cover scanner assembly only; extend that file with the smallest stage/pack/local-registry add-and-restore test for these packages. Existing scanner-update, scanner-settings, configuration and work-source tests cover the behavior-preserving refactors; do not add duplicate tests. 4. Run focused checks and bun run check, one cold simplicity review, implementer specification/quality review and one full-context complexity review; record release-only gaps and curate any caused architecture changes before the local commit.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -152,10 +164,18 @@ Configuration and format documentation are converted, repository plugins.json ex
 Implementer specification/quality review: all six requested changes are represented and scoped to explicit plugin loading; scanner configuration preserves include/exclude/settings; no compatibility file reader was added. Junior-developer flow is CLI/settings -> package selection -> configured work-source readiness -> viewer-owned read/watch. Three source modules cover command registration, shared package lifecycle, and work-source loading; command and lifecycle modules are folded into existing architecture owners. Cold simplicity re-review closed both reported findings. Runtime verification is limited to read-only CLI commands and scan; automated and interactive tests remain unrun per instruction.
 
 Final full-context complexity review found no material issues or further simplification. Final source CLI scan completed successfully: created 0, refreshed 108, matched 0, with 38 repository findings reported for separate lint review. Curated ownership survived the rescan. All task-owned scanner-written paths were recorded. Definition-of-Done automated/interactive verification remains intentionally unchecked because installs, builds and tests were prohibited.
+
+Context brief: release.yml stages and publishes only scripts/scanner-release.ts outputs. The Backlog manifest has no declared contract dependency and is absent from that pipeline. Plugin selection is operational configuration, not an OKF concept or a C4 element; ordinary Markdown readers still read architecture unchanged, while Groma package resolution owns the configured adapter meaning. The existing package owner is the correct home for shared update preparation. This remains the smallest supported Backlog example and does not add a plugin framework.
+
+Review-fix focused validation: 15 tests passed across scanner-release, work-source-selection, scanner-update, scanner-settings and scanner-restore. The new regression stages real source manifests, packs both work-source packages with npm pack, checks their entry/license and exact contract dependency, then adds and restores Backlog through a local registry with an isolated Bun cache. Changed-file Biome lint and full typecheck passed. Cold simplicity review passed with no blocking findings or material simplifications; applied its one wording correction that both contracts publish first. No package was published.
+
+Implementer specification review: the confirmed AC3/AC5 release defect is corrected in the existing release owner: stage includes both real work-source packages, assembly copies them with the first host artifact, and publish uploads both contracts before Backlog before the main CLI build. The staged package regression proves npm selection and missing-cache restore using the real source manifests. Public-registry Backlog installation and a fresh interactive init remain release-time checks because this task must not publish. Existing AC1/AC2/AC4/AC6 implementation is preserved; original browser/terminal interactive verification and the external groma.md-action inspection are not newly claimed. Implementer quality review: traced workflow-to-package-to-config flow and update/restore entry points as a new junior developer. Each operation remains with its existing owner, caller validation and scanner settings survive, loadWorkSource is retained, and config/web helper branches preserve the supported result. New test fails if either staged package, runnable entry or exact dependency is missing, and observes configured identity/restore rather than prose. All changed source/test files remain under 500 lines; changed-file lint reports no complexity warnings. No new source file or architecture concept was added; git status --short groma/ is empty. Full repository check is still running.
+
+Final full-context complexity review passed with no blocking defects or material simplifications. Full bun run check passed: Biome checked 604 files (one existing warning in unchanged test-bun/execution-evidence.test.ts and two existing informational notices), TypeScript passed, 16 Node tests passed, and 780 Bun tests passed with 51 toolchain-dependent skips and zero failures. git diff --check passed. Existing architecture owners already cover the changed source; no new source file was added and git status --short groma/ is empty. AC3 and AC5 are now unchecked to preserve the outstanding real public-registry delivery gate accurately: the real staged packages pass local-registry install/restore, but @groma/work-source and @groma/work-source-backlog still need first publication, their trusted publisher configuration, and fresh public npm init validation in the next actual release. This work intentionally performs no npm publication, release tag or remote push. Original browser/terminal interactive coverage and external groma.md-action inspection are not newly claimed.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Replaced scanners.json with explicit plugins.json selection, added work-source package resolution/readiness and plugin management commands, made Backlog opt-in across init/welcome/viewers, grouped settings by kind, and updated docs, fixtures and CI. Read-only plugin/scanner commands and architecture scans succeeded; git diff --check passed. New selection/lifecycle regression tests were written but not run, per stage instructions. No installs, builds, commits or status changes. External MrLesk/groma.md-action could not be inspected; its filename usage remains unverified.
+Fixed PR #117 review findings: the existing release path stages and publishes both work-source packages with the adapter exact contract dependency, contracts before adapter, while init keeps npm-only selection. Shared package update preparation, direct configuration restore routing and small config/web label helpers remove duplication and complexity; loadWorkSource is retained for TASK-564. Real staged-package npm add/restore regression passed, focused checks passed, and full bun run check passed (16 Node, 780 Bun, 51 skipped, 0 failed). Both required reviews passed. Code is ready for a local review-fix commit. TASK-568 remains In Progress with AC3/AC5 and DoD1 pending the next actual package publication and public npm fresh-init verification. No packages, tags or remote changes were published.
 <!-- SECTION:FINAL_SUMMARY:END -->

@@ -7,6 +7,9 @@
   },
   "private": false,
   "description": "Read and watch Backlog.md tasks through its CLI.",
+  "dependencies": {
+    "@groma/work-source": "0.1.0"
+  },
   "files": [
     "src"
   ],

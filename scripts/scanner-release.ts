@@ -26,15 +26,25 @@ async function completeTogether(operations: Promise<void>[]) {
   if (failures.length > 0) throw new AggregateError(failures, 'Scanner release operations failed')
 }
 
+async function stageSourcePackage(source: string, directory: string) {
+  await mkdir(directory, { recursive: true })
+  await cp(path.join(source, 'src'), path.join(directory, 'src'), { recursive: true })
+  await cp('LICENSE', path.join(directory, 'LICENSE'))
+  await writeManifest(directory, { ...await manifest(source), license: 'MIT', repository,
+    files: ['src', 'LICENSE'], publishConfig: { access: 'public' } })
+}
+
+/** The Backlog adapter and its contract are platform-independent release packages. */
+export async function stageWorkSourcePackages(output: string) {
+  await stageSourcePackage('packages/work-source', path.join(output, 'work-source-contract'))
+  await stageSourcePackage('plugins/work-sources/backlog', path.join(output, 'work-source-backlog'))
+}
+
 /** Stage runnable packages for this host; publishing is a separate explicit action. */
 async function stage(output: string) {
   await mkdir(output, { recursive: true })
-  const contract = path.join(output, 'contract')
-  await mkdir(contract, { recursive: true })
-  await cp('packages/scanner/src', path.join(contract, 'src'), { recursive: true })
-  await cp('LICENSE', path.join(contract, 'LICENSE'))
-  await writeManifest(contract, { ...await manifest('packages/scanner'), license: 'MIT', repository,
-    files: ['src', 'LICENSE'], publishConfig: { access: 'public' } })
+  await stageSourcePackage('packages/scanner', path.join(output, 'contract'))
+  await stageWorkSourcePackages(output)
   const builders = {
     php: (await import('../plugins/scanners/php/build.ts')).buildPackage,
     python: (await import('../plugins/scanners/python/build.ts')).buildPackage,
@@ -144,7 +154,12 @@ async function publish(input: string) {
       throw new Error(`${id}: confirm public names, versions and compatibility before publishing`)
     }
   }
-  await publishPackage(path.join(input, 'contract'))
+  const workSource = await manifest(path.join(input, 'work-source-backlog'))
+  if (workSource.private || !workSource.groma.workSource.compatibility.groma) {
+    throw new Error('backlog: confirm public name, version and compatibility before publishing')
+  }
+  await completeTogether(['contract', 'work-source-contract'].map(id => publishPackage(path.join(input, id))))
+  await publishPackage(path.join(input, 'work-source-backlog'))
   await completeTogether(scannerIds.map(id => id === 'csharp'
     ? publishCSharp(input) : publishPackage(path.join(input, id))))
 }

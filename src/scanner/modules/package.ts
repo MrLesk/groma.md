@@ -4,7 +4,7 @@ import { homedir } from 'node:os'
 import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { stringArray } from './config.ts'
-import { isNpmPackageName } from './published.ts'
+import { isNpmPackageName, publishedScannerSource } from './published.ts'
 
 export interface NpmScannerSource {
   kind: 'npm'
@@ -291,4 +291,31 @@ export async function installScannerPackage(
     : await resolveScannerPackage(source, cacheRoot, kind)
   if (resolved === undefined) throw new Error(`scanner package not found: ${source.source}`)
   return { source: source.source, package: resolved }
+}
+
+function samePackage(current: ScannerSource, replacement: ScannerSource): boolean {
+  if (current.kind === 'npm' && replacement.kind === 'npm') return current.name === replacement.name
+  if (current.kind === 'git' && replacement.kind === 'git') return current.repository === replacement.repository
+  return false
+}
+
+/** Prepare an update without changing the project selection; callers own kind validation and configuration. */
+export async function preparePluginUpdate(
+  root: string,
+  selected: { id: string; source: string },
+  input: string | undefined,
+  options: { cacheRoot?: string; registry?: string },
+  kind: PluginKind,
+) {
+  const current = parseScannerSource(root, selected.source)
+  const requested = input?.trim() ?? (current.kind === 'npm' ? current.name : undefined)
+  if (!requested) throw new Error('Git updates require a tag or commit; local plugins run from their configured path')
+  const replacement = parseScannerSource(root, isNpmPackageName(requested)
+    ? await publishedScannerSource(requested, options.registry, kind) : requested)
+  if (!samePackage(current, replacement)) {
+    throw new Error('Plugin update must keep the same npm package or Git repository; local plugins run from their configured path')
+  }
+  const installed = await installScannerPackage(replacement, options.cacheRoot ?? defaultScannerCacheRoot(), options.registry, kind)
+  if (installed.package.id !== selected.id) throw new Error(`Plugin id changed: ${installed.package.id}`)
+  return installed
 }
