@@ -85,9 +85,9 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
     await writeFile(path.join(project, 'Deep.kt'), `fun deep() = ${Array(6000).fill('f()').join(' + ')}\n`)
     expect((await scanner.scan!(project, {}, ['Deep.kt']))!.invocations).toHaveLength(6000)
     await rm(path.join(project, 'Deep.kt'))
-    // Gradle writes output to `build/`, yet a package may carry the same name.
+    // Gradle writes output to `build/`, yet a package may carry the same name. Test source sets have variants.
     const tool = 'src/main/kotlin/shop/build/Tool.kt'
-    for (const file of [tool, 'build/generated/Made.kt']) {
+    for (const file of [tool, 'build/generated/Made.kt', 'src/testDebug/kotlin/A.kt', 'src/androidTestDebug/kotlin/A.kt']) {
       await mkdir(path.dirname(path.join(project, file)), { recursive: true })
       await writeFile(path.join(project, file), 'package shop\n')
     }

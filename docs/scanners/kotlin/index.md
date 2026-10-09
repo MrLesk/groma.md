@@ -18,8 +18,10 @@ The scanner reads the `.kt` files selected by Groma's
 [include and exclude lists](../index.md#selecting-source-files), wherever they
 live in the repository. Defaults exclude `build/` and `.gradle/`, but keep a
 package folder named `build` under a source set's `kotlin/` or `java/` root,
-such as `src/main/kotlin/shop/build/`. They also exclude, in every module, `src/test/` and other `src/*Test/` source sets such as `src/commonTest/`
-and `src/androidTest/`.
+such as `src/main/kotlin/shop/build/`. They also exclude, in every module,
+`src/test/` and the other test source sets: `src/*Test/` such as
+`src/commonTest/` and `src/androidTest/`, and their variants and fixtures such
+as `src/testDebug/`, `src/androidTestDebug/` and `src/testFixtures/`.
 Adjust those lists to scan test code or a custom source layout.
 
 It does not evaluate Gradle or Maven builds, discover modules or source sets,

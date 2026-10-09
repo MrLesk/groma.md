@@ -18,7 +18,9 @@
         "!**/src/*/java/**/build/",
         ".gradle/",
         "**/src/test/",
-        "**/src/*Test/"
+        "**/src/test[A-Z]*/",
+        "**/src/*Test/",
+        "**/src/*Test[A-Z]*/"
       ],
       "discovery": {
         "technologies": [
