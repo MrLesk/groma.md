@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -85,11 +85,17 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
     await writeFile(path.join(project, 'Deep.kt'), `fun deep() = ${Array(6000).fill('f()').join(' + ')}\n`)
     expect((await scanner.scan!(project, {}, ['Deep.kt']))!.invocations).toHaveLength(6000)
     await rm(path.join(project, 'Deep.kt'))
+    // Gradle writes output to `build/`, yet a package may carry the same name.
+    const tool = 'src/main/kotlin/shop/build/Tool.kt'
+    for (const file of [tool, 'build/generated/Made.kt']) {
+      await mkdir(path.dirname(path.join(project, file)), { recursive: true })
+      await writeFile(path.join(project, file), 'package shop\n')
+    }
     const init = Bun.spawn(['git', 'init', '--quiet', project], { stderr: 'pipe' })
     expect(await init.exited, await new Response(init.stderr).text()).toBe(0)
     const manifest = JSON.parse(await readFile(path.join(artifact, 'package.json'), 'utf8'))
     const selected = await scannerFiles(project, manifest.groma.scanner, false)
-    expect(selected).toEqual(['Ship.kt', orders])
+    expect(selected).toEqual(['Ship.kt', orders, tool])
     expect(await scanner.listSourceFiles!(project, {}, [...selected, 'build.gradle.kts'])).toEqual(selected)
     const observation = (await scanner.scan!(project, {}, selected))!
     expect(observation.operations!.find(operation => operation.name === 'ship')!.position).toBe(windows.indexOf('fun ship'))
