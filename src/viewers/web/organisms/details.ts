@@ -1,3 +1,4 @@
+import { accentColour } from '../../../element-appearance.ts'
 import type {
   AnnotatedElement,
   ArchitectureFinding,
@@ -52,6 +53,9 @@ export interface Inspected {
   flows: FlowRowData[]
   children: InspectedChild[]
   technology: string
+  icon?: string
+  colour?: string
+  iconSvg?: string
   files: CodeReference[]
   findings: ArchitectureFinding[]
   /** True when groma remove would succeed on it right now. */
@@ -158,6 +162,9 @@ export function inspectDetails(
     })),
     children,
     technology: element.technology ?? '',
+    icon: element.icon,
+    colour: element.colour,
+    iconSvg: element.iconSvg,
     files: element.code,
     findings: findingsForOwner(world.findings ?? [], element.id),
     removable: removalBlocker(world, element.id) === undefined,
@@ -270,6 +277,21 @@ function paintComparedRelationships(list: HTMLElement, pair: RelationshipPairDat
   }
 }
 
+function paintElementAppearance(title: HTMLElement, meta: Element, inspected: Inspected): void {
+  title.style.color = accentColour(inspected.colour) ?? ''
+  if (inspected.iconSvg) {
+    const icon = document.createElement('img')
+    icon.src = inspected.iconSvg; icon.alt = inspected.icon ?? ''; icon.width = 24; icon.height = 24
+    icon.style.cssText = 'vertical-align:middle;margin-right:8px'
+    title.prepend(icon)
+  }
+  if (inspected.icon || inspected.colour) {
+    const appearance = document.createElement('span')
+    appearance.textContent = ` · ${[inspected.icon, inspected.colour].filter(Boolean).join(' · ')}`
+    meta.append(appearance)
+  }
+}
+
 export function paintDetails(host: HTMLElement, inspected: Inspected, options: DetailsOptions): void {
   const { onSelect, onToggleFlow, activeFlows, tab, onTab, code, onSource, workGroups, onTask, onEdit, selection } = options
   if (onEdit !== undefined && isEditing(host, inspected.id)) return
@@ -281,6 +303,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   title.textContent = inspected.title
   meta.textContent = `${inspected.kindLabel} · ${inspected.origin}`
 
+  paintElementAppearance(title, meta, inspected)
   const change = options.comparison?.components[inspected.id]
   if (change !== undefined) {
     meta.append(changeBadge(change.status))
@@ -381,6 +404,8 @@ function elementFields(inspected: Inspected, options: PaneWrites): EditField[] {
     { name: 'description', label: 'Description', value: inspected.description },
     { name: 'overview', label: 'Overview', value: inspected.overview, multiline: true },
     { name: 'technology', label: 'Technology', value: inspected.technology },
+    { name: 'icon', label: 'Icon', value: inspected.icon ?? '' },
+    { name: 'colour', label: 'Colour', value: inspected.colour ?? '' },
   ]
   if (inspected.movable) fields.push({
     name: 'parent', label: 'Parent', value: inspected.parent ?? '', options: options.parents ?? [],

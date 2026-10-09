@@ -5,7 +5,7 @@ export interface PublishedScanner {
   version: string
   os?: string[]
   cpu?: string[]
-  groma?: { workSource?: { id?: string; entry?: string; compatibility?: { groma?: string } }; scanner?: { id?: string; entry?: string; discovery?: { compatibility?: { groma?: string } } } }
+  groma?: { icons?: { id?: string; icons?: Record<string, string>; entry?: string }; workSource?: { id?: string; entry?: string; compatibility?: { groma?: string } }; scanner?: { id?: string; entry?: string; discovery?: { compatibility?: { groma?: string } } } }
 }
 
 export function isNpmPackageName(value: string): boolean {
@@ -23,12 +23,12 @@ export function selectPublishedScanner(
   name: string,
   versions: Record<string, PublishedScanner>,
   host = { groma: groma.version, os: process.platform as string, cpu: process.arch as string },
-  kind: 'scanner' | 'workSource' | 'any' = 'scanner',
+  kind: 'scanner' | 'workSource' | 'icons' | 'any' = 'scanner',
 ): PublishedScanner {
-  const metadata = (item: PublishedScanner) => kind === 'any' ? item.groma?.scanner ?? item.groma?.workSource : item.groma?.[kind]
+  const metadata = (item: PublishedScanner) => kind === 'any' ? item.groma?.scanner ?? item.groma?.workSource ?? item.groma?.icons : item.groma?.[kind]
   const requirement = (item: PublishedScanner) => item.groma?.workSource?.compatibility?.groma ?? item.groma?.scanner?.discovery?.compatibility?.groma
   const releases = Object.values(versions).filter(item => item.name === name
-    && metadata(item)?.id && metadata(item)?.entry && Bun.semver.satisfies(item.version, '*'))
+    && metadata(item)?.id && (metadata(item)?.entry || ('icons' in (metadata(item) ?? {}))) && Bun.semver.satisfies(item.version, '*'))
     .sort((a, b) => Bun.semver.order(b.version, a.version))
   if (!releases.length) throw new Error(`${name}: no published stable scanner release. Ask the plugin author to publish one, then retry.`)
   const platform = releases.filter(item => supports(item.os, host.os) && supports(item.cpu, host.cpu))
@@ -54,7 +54,7 @@ export async function readPublishedScanners(name: string, registry = process.env
   return metadata.versions ?? {}
 }
 
-export async function publishedScannerSource(name: string, registry?: string, kind: 'scanner' | 'workSource' | 'any' = 'scanner'): Promise<string> {
+export async function publishedScannerSource(name: string, registry?: string, kind: 'scanner' | 'workSource' | 'icons' | 'any' = 'scanner'): Promise<string> {
   const release = selectPublishedScanner(name, await readPublishedScanners(name, registry), undefined, kind)
   return `${release.name}@${release.version}`
 }

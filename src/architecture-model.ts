@@ -1,3 +1,4 @@
+import { isAccentColour } from './element-appearance.ts'
 import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
@@ -56,7 +57,7 @@ function invalidElement(sourceFilename: string, message: string): never {
 
 function validateGromaFields(groma: Record<string, unknown>, sourceFilename: string): void {
   const unknownFields = Object.keys(groma).filter(field => {
-    return !['id', 'parent', 'group', 'technology', 'code', 'draft'].includes(field)
+    return !['id', 'parent', 'group', 'technology', 'icon', 'colour', 'code', 'draft'].includes(field)
   })
   if (unknownFields.length > 0) {
     invalidElement(sourceFilename, `unsupported groma field(s): ${unknownFields.join(', ')}`)
@@ -65,7 +66,7 @@ function validateGromaFields(groma: Record<string, unknown>, sourceFilename: str
 
 function optionalText(
   value: unknown,
-  field: 'description' | 'parent' | 'group' | 'technology' | 'draft',
+  field: 'description' | 'parent' | 'group' | 'technology' | 'icon' | 'colour' | 'draft',
   sourceFilename: string,
 ): string | undefined {
   if (value === undefined) return undefined
@@ -138,6 +139,9 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
   const parent = optionalText(groma.parent, 'parent', sourceFilename)
   const group = optionalText(groma.group, 'group', sourceFilename)
   const technology = optionalText(groma.technology, 'technology', sourceFilename)
+  const icon = optionalText(groma.icon, 'icon', sourceFilename)
+  const colour = optionalText(groma.colour, 'colour', sourceFilename)
+  if (colour !== undefined && !isAccentColour(colour)) invalidElement(sourceFilename, 'colour must be a supported colour name or #RRGGBB')
   const draft = draftOf(groma, sourceFilename)
 
   return {
@@ -152,6 +156,8 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     external,
     ...(group === undefined ? {} : { group }),
     ...(technology === undefined ? {} : { technology }),
+    ...(icon === undefined ? {} : { icon }),
+    ...(colour === undefined ? {} : { colour }),
     code: codeReferencesOf(groma.code, kind, message => {
       throw new ArchitectureModelError('INVALID_ELEMENT', sourceFilename, message)
     }),

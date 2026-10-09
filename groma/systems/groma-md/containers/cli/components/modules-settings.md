@@ -16,4 +16,4 @@ groma:
 description: Builds shared settings state and applies plugin actions by kind
 ---
 
-Combines scanner discovery and readiness with the explicitly selected work source. The browser and terminal settings screens group plugins by kind and use the same add, update, remove and restore operations. Scanner recommendations remain scanner-specific.
+Combines scanner discovery and readiness with the explicitly selected work source and icon packs. The browser and terminal settings screens group plugins by kind and use the same add, update, remove and restore operations. Scanner recommendations remain scanner-specific.

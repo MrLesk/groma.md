@@ -133,3 +133,7 @@ home and only Git on PATH, checks useful local facts, repeats the scan and
 compares source bytes. The JavaScript harness rejects network fetches.
 This is evidence for the exercised host, not a claim of testing every target.
 See [fresh-checkout validation](fresh-checkout-validation.md).
+
+The release also stages and publishes the platform-independent
+`@groma/icons-architecture` pack. See [icon packs](../icons.md) for its manifest,
+assets, and third-party publishing contract.

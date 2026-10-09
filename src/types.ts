@@ -96,6 +96,8 @@ export interface ArchitectureElement {
   external: boolean
   group?: string
   technology?: string
+  icon?: string
+  colour?: string
   code: CodeReference[]
   status: ElementStatus
   /** The draft record this element belongs to; a stable element may carry it too. */
@@ -142,6 +144,10 @@ export interface AnnotatedElement {
   external: boolean
   group?: string
   technology?: string
+  icon?: string
+  colour?: string
+  /** Resolved SVG data URI supplied by the icon loader; never stored in Markdown. */
+  iconSvg?: string
   code: CodeReference[]
   /** Total lines across the code files; absent only in hand-built worlds. */
   codeLines?: number

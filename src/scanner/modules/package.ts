@@ -28,10 +28,11 @@ export interface GitScannerSource {
 
 export type ScannerSource = NpmScannerSource | LocalScannerSource | GitScannerSource
 
-export type PluginKind = 'scanner' | 'workSource'
+export type PluginKind = 'scanner' | 'workSource' | 'icons'
 
 export interface ResolvedScannerPackage {
   kind: PluginKind
+  icons?: Record<string, string>
   compatibility?: { groma?: string }
   discovery?: ScannerDiscoveryMetadata
   entry: string
@@ -158,7 +159,8 @@ async function scannerPackage(packageRoot: string, kind?: PluginKind): Promise<R
   }
   const manifest = object(JSON.parse(source), 'scanner package.json')
   const groma = object(manifest.groma, 'scanner package.json groma')
-  kind ??= groma.scanner !== undefined ? 'scanner' : 'workSource'
+  kind ??= groma.scanner !== undefined ? 'scanner' : groma.icons !== undefined ? 'icons' : 'workSource'
+  if (kind === 'icons') return iconPackage(packageRoot, manifest, object(groma.icons, 'groma.icons'))
   const scanner = object(groma[kind], `plugin package.json groma.${kind}`)
   if (Object.keys(scanner).some(field => !(kind === 'scanner' ? ['id', 'entry', 'discovery', 'include', 'exclude'] : ['id', 'entry', 'compatibility']).includes(field))) {
     throw new Error(`plugin package.json groma.${kind} contains unsupported fields`)
@@ -272,7 +274,9 @@ async function installGitScanner(
     await installDependencies(temporary, pinned.source, registry)
     const destination = installDirectory(cacheRoot, pinned.source)
     await rename(temporary, destination)
-    return { source: pinned.source, package: { ...resolved, entry: path.join(destination, path.relative(temporary, resolved.entry)) } }
+    return { source: pinned.source, package: { ...resolved, entry: path.join(destination, path.relative(temporary, resolved.entry)),
+      ...(resolved.icons ? { icons: Object.fromEntries(Object.entries(resolved.icons).map(([name, file]) => [name, path.join(destination, path.relative(temporary, file))])) } : {}),
+    } }
   } finally {
     await rm(temporary, { recursive: true, force: true })
   }
@@ -291,4 +295,25 @@ export async function installScannerPackage(
     : await resolveScannerPackage(source, cacheRoot, kind)
   if (resolved === undefined) throw new Error(`scanner package not found: ${source.source}`)
   return { source: source.source, package: resolved }
+}
+
+/** Icon assets use the same package location and install flow as executable plugins. */
+async function iconPackage(
+  root: string,
+  manifest: Record<string, unknown>,
+  metadata: Record<string, unknown>,
+): Promise<ResolvedScannerPackage> {
+  if (typeof metadata.id !== 'string' || !scannerId.test(metadata.id)) throw new Error('groma.icons.id must be lowercase kebab-case')
+  if (typeof manifest.name !== 'string' || typeof manifest.version !== 'string') throw new Error('Icon package requires name and version')
+  const files = object(metadata.icons, 'groma.icons.icons')
+  if (Object.keys(files).length === 0) throw new Error('Icon pack must declare at least one SVG')
+  const icons: Record<string, string> = {}
+  for (const [name, file] of Object.entries(files)) {
+    if (!scannerId.test(name)) throw new Error(`Invalid icon name: ${name}`)
+    const resolved = await scannerEntry(root, file)
+    if (!resolved || !resolved.endsWith('.svg')) throw new Error(`Icon ${name} must name an existing SVG file`)
+    icons[name] = resolved
+  }
+  return { id: metadata.id, name: manifest.name, version: manifest.version, kind: 'icons',
+    entry: path.join(root, 'package.json'), include: [], icons }
 }

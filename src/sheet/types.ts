@@ -14,6 +14,8 @@ export interface SheetItem {
   id: string
   title: string
   origin: Origin
+  iconSvg?: string
+  colour?: string
 }
 
 export type IslandKind = 'actors' | 'external' | 'system'
