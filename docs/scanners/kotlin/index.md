@@ -38,8 +38,8 @@ worker parses each file without analyzing it and reports:
 
 - **Symbols**: top-level classes, interfaces, objects, enum classes and
   functions. An extension function is a function under its own name. A top-level
-  property initialised directly with a lambda or an anonymous function is a
-  function too.
+  `val` initialised directly with a lambda or an anonymous function is a
+  function too; a `var` is not, because it can be reassigned.
 - **Operations**: functions with a body, secondary constructors, and such
   function-valued properties, with original source positions. A member is named
   by its type, such as `Orders.place`. A secondary
