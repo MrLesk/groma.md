@@ -4,7 +4,7 @@ import type { EditValues } from '../../../authoring-conflict.ts'
 import { message } from './editable.ts'
 
 /** What the edit verb changes from the pane; the id is the selected element's. */
-export type MeaningEdit = Pick<EditArchitectureInput, 'title' | 'description' | 'overview' | 'technology' | 'parent'>
+export type MeaningEdit = Pick<EditArchitectureInput, 'title' | 'description' | 'overview' | 'technology' | 'criticality' | 'parent'>
 
 export interface ParentOption {
   id: string

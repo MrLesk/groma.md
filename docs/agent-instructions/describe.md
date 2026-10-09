@@ -27,7 +27,7 @@ of writing guesses. Optional fields need content only when they add meaning.
 
 | Command | Target | Options |
 | --- | --- | --- |
-| `groma edit <id>` | an element ID: actor, external system, system, container, or component | `--title`, `--description`, `--overview`, `--technology` |
+| `groma edit <id>` | an element ID: actor, external system, system, container, or component | `--title`, `--description`, `--overview`, `--technology`, `--criticality` |
 | `groma edit <draft-id>` | a draft ID | `--title`, `--overview` |
 | `groma edit project` | the word `project`, meaning the project record | `--title`, `--description`, `--overview` |
 
@@ -56,3 +56,17 @@ Every visible element has a responsibility a new reader can understand. Read
 the result with `groma view <id>` and check its name and explanation in the map.
 The short description and overview should complement each other, and the
 record should remain useful as ordinary Markdown outside groma.md.
+
+## Criticality
+
+Use `groma edit <id> --criticality low|normal|high|critical` to record a human
+judgment about the damage a mistake could cause. Pass one level, or an empty
+value to inherit from the parent. Inheritance continues through ancestors and
+defaults to `normal`; files inherit from their owning component. Scans preserve
+this judgment and never assign it.
+
+Critical elements and their files are read-only for agents without a person's
+explicit permission. Explain every high-element change in the task's
+implementation notes. Read the live list from `groma agent-instructions` before
+editing. This is Groma profile metadata about an existing C4 element, not a new
+OKF or C4 concept.

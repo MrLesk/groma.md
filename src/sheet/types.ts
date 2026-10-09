@@ -14,6 +14,7 @@ export interface SheetItem {
   id: string
   title: string
   origin: Origin
+  criticality?: import('../criticality.ts').Criticality
 }
 
 export type IslandKind = 'actors' | 'external' | 'system'

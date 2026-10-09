@@ -52,6 +52,23 @@ ordinary readers can understand titles, descriptions, body text, and links.
 groma.md interprets its own metadata for containment, source ownership, and map
 presentation. Use the CLI to maintain that metadata and source references.
 
+## Criticality and agent changes
+
+An element may carry `groma.criticality`: `low`, `normal`, `high`, or `critical`.
+An omitted value inherits down the parent tree; no explicit ancestor means
+`normal`. Each file takes its owning component's level. These are human
+judgments, never levels selected by a scan.
+
+Read the critical and high element lists printed with this guide before
+changing files. Critical elements and their files are read-only for agents
+unless a person explicitly authorizes the change. For high elements, explain
+every change in the task's implementation notes. Review critical changes
+first, then high, normal, and low; within a level, start with larger changes.
+
+Set a level with `groma edit <id> --criticality <level>` during curation.
+An empty value restores inheritance. The level describes an existing C4
+element; it does not create a new architecture boundary.
+
 ## Curation workflow and expected result
 
 A scan writes no descriptions or overviews. While no element has either, the

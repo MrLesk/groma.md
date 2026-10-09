@@ -1,3 +1,4 @@
+import type { Criticality } from './criticality.ts'
 import type { ScanDiagnostic, ScannerIdentity } from '@groma/scanner'
 
 export type C4Kind = 'actor' | 'system' | 'container' | 'component'
@@ -96,6 +97,7 @@ export interface ArchitectureElement {
   external: boolean
   group?: string
   technology?: string
+  criticality?: Criticality
   code: CodeReference[]
   status: ElementStatus
   /** The draft record this element belongs to; a stable element may carry it too. */
@@ -142,9 +144,12 @@ export interface AnnotatedElement {
   external: boolean
   group?: string
   technology?: string
+  criticality?: Criticality
   code: CodeReference[]
   /** Total lines across the code files; absent only in hand-built worlds. */
   codeLines?: number
+  /** Explicit value for editing; criticality above is the effective inherited level. */
+  declaredCriticality?: Criticality
   /** Core decision that this element may move; absent only in hand-built worlds. */
   movable?: boolean
   origin: Origin
@@ -179,12 +184,12 @@ export interface ArchitectureFindingInstance {
   owner?: string
 }
 
-/** A possible duplicated or similar implementation. Not a collaboration and not a required change. */
+/** A review finding, not an architecture collaboration. */
 export interface ArchitectureFinding {
   id: string
-  kind: 'duplicated-logic'
+  kind: 'duplicated-logic' | 'critical-change'
   title: string
-  match: 'exact' | 'similar'
+  match?: 'exact' | 'similar'
   instances: ArchitectureFindingInstance[]
   differences: string[]
 }

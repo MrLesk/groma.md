@@ -1,3 +1,4 @@
+import { criticalityMark } from '../../../../criticality.ts'
 import { buildingFont } from '../../../../sheet/measure.ts'
 import type { BuildingFloor } from '../../../../sheet/types.ts'
 import type { Plane, ProjectedBuilding, ProjectedScene } from '../projection/project.ts'
@@ -49,7 +50,8 @@ function floorSvg(
 export function buildingsSvg(scene: ProjectedScene): SvgNode[] {
   return scene.buildings.map(projected => {
     const { building, floors, text } = projected
-    return node('g', { 'aria-label': building.title, 'data-id': building.representationId }, classOf(projected), [
+    const mark = criticalityMark(building.criticality)
+    return node('g', { 'aria-label': `${building.title}${mark ? ` · ${building.criticality}` : ''}`, 'data-id': building.representationId }, classOf(projected), [
       ...floors.flatMap((faces, index) => floorSvg(projected, faces, building.floors[index])),
       surfaceText(text, buildingFont(building), 'label', scene.view),
     ])

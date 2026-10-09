@@ -1,3 +1,4 @@
+import { criticalityLevels, type Criticality } from '../../../criticality.ts'
 import type {
   AnnotatedElement,
   ArchitectureFinding,
@@ -52,6 +53,8 @@ export interface Inspected {
   flows: FlowRowData[]
   children: InspectedChild[]
   technology: string
+  criticality?: Criticality
+  declaredCriticality?: Criticality
   files: CodeReference[]
   findings: ArchitectureFinding[]
   /** True when groma remove would succeed on it right now. */
@@ -158,6 +161,8 @@ export function inspectDetails(
     })),
     children,
     technology: element.technology ?? '',
+    criticality: element.criticality ?? 'normal',
+    declaredCriticality: element.declaredCriticality,
     files: element.code,
     findings: findingsForOwner(world.findings ?? [], element.id),
     removable: removalBlocker(world, element.id) === undefined,
@@ -279,7 +284,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   const body = host.querySelector('.body')!
   title.replaceChildren()
   title.textContent = inspected.title
-  meta.textContent = `${inspected.kindLabel} · ${inspected.origin}`
+  meta.textContent = `${inspected.kindLabel} · ${inspected.origin}${inspected.criticality === undefined ? '' : ` · ${inspected.criticality}`}`
 
   const change = options.comparison?.components[inspected.id]
   if (change !== undefined) {
@@ -381,6 +386,8 @@ function elementFields(inspected: Inspected, options: PaneWrites): EditField[] {
     { name: 'description', label: 'Description', value: inspected.description },
     { name: 'overview', label: 'Overview', value: inspected.overview, multiline: true },
     { name: 'technology', label: 'Technology', value: inspected.technology },
+    { name: 'criticality', label: 'Criticality', value: inspected.declaredCriticality ?? '',
+      options: [{ id: '', title: 'Inherit' }, ...criticalityLevels.map(level => ({ id: level, title: level }))] },
   ]
   if (inspected.movable) fields.push({
     name: 'parent', label: 'Parent', value: inspected.parent ?? '', options: options.parents ?? [],

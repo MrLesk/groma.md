@@ -1,3 +1,4 @@
+import { criticalityMark } from '../criticality.ts'
 import { compareSemanticElements } from '../element-order.ts'
 import type { AnnotatedElement, AnnotatedRelationship, ArchitectureGraph } from '../types.ts'
 import { composePlacement } from './compose.ts'
@@ -65,6 +66,7 @@ function item(element: AnnotatedElement): SheetItem {
     representationId: element.representationId,
     id: element.id,
     title: element.title,
+    criticality: element.criticality,
     origin: element.origin,
   }
 }
@@ -74,7 +76,8 @@ function buildingNode(element: AnnotatedElement, ranges: FileMeasureRanges, degr
     ? { kind: 'round' }
     : element.external ? { kind: 'pill' } : { kind: 'block' }
   const size = buildingFont(element)
-  const lines = shape.kind === 'pill' ? [element.title] : roofLines(element.title, size)
+  const title = [criticalityMark(element.criticality), element.title].filter(Boolean).join(' ')
+  const lines = shape.kind === 'pill' ? [title] : roofLines(title, size)
   const base = footprintOf(lines, shape, degree, size)
   const floors = element.kind === 'component'
     ? floorsOf(element.origin, element.code, ranges, base)

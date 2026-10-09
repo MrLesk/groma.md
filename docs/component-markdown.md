@@ -166,7 +166,39 @@ groma.md-only fields live together under `groma`:
 | `draft` | no | ID of the draft record this concept belongs to or that touches it. |
 | `group` | no | Readable name of a hand-authored sibling cluster. |
 | `technology` | no | Free text naming implementation technology, comma-separated. |
+| `criticality` | no | Human judgment: `low`, `normal`, `high`, or `critical`. Inherits from the parent when omitted. |
 | `code` | no | Scanner-produced source evidence. |
+
+### Criticality
+
+Criticality describes the damage a mistake in an element could cause. It is
+supporting knowledge about an existing C4 element, not another element or
+containment level. The optional `groma.criticality` field belongs to Groma's
+application profile; OKF readers still see ordinary titles, Markdown, and links.
+Groma interprets the level for review priority and agent guidance.
+
+The four levels are `low`, `normal`, `high`, and `critical`. An omitted level
+inherits its parent's effective level, recursively; without an explicit
+ancestor, it is `normal`. An explicit level overrides inheritance. Every source
+file takes its owning component's effective level, without a separate file list.
+People and agents may set a level during curation. Scans preserve it and never
+choose or write a level from code structure, language, or file size.
+
+Use `groma edit <id> --criticality <level>` or the details form. An empty value
+removes the explicit level and restores inheritance. `groma view <id> --plain`
+and the details panes show the effective level. High buildings and hierarchy
+rows carry `!`; critical ones carry `‼` in every theme.
+
+Critical elements and their source files are read-only for agents unless a
+person explicitly authorizes the change. Every change to a high element must
+be explained in the task's implementation notes. `groma agent-instructions`
+lists these elements and their files. `groma lint` reports a critical component
+when an in-progress or done task lists one of its files as modified; this
+finding requests human review and does not infer whether permission was given.
+
+Revision comparisons and task reviews prioritize critical, high, normal, then
+low components, breaking ties by added plus deleted source lines. The review
+summary leads with the numbers of critical and high components changed.
 
 There is no `kind` field. The standard `type` carries the C4 type, and the
 body does not repeat `title` as a level-one heading.

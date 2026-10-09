@@ -1,3 +1,5 @@
+import { criticalitySummary } from '../../../criticality.ts'
+import { taskReviewFiles } from './priority.ts'
 import type { ArchitectureGraph, C4Kind, WorkItem, WorkItemDetails } from '../../../types.ts'
 import { sourceIndex } from '../../../source-index.ts'
 import { updateTaskSummary, updateTaskText } from './updates.ts'
@@ -121,6 +123,14 @@ export function paintTaskSummary(
   const body = document.createElement('div')
   body.className = 'task-summary'
   body.dataset.taskId = item.id
+  if (payload !== undefined) {
+    const changed = payload.files.filter(file => file.status !== 'unchanged')
+    const owners = [...new Set(changed.map(file => index.owner(file.file)).filter(owner => owner !== undefined))]
+    const priority = document.createElement('p')
+    priority.dataset.taskKey = 'criticality'
+    priority.textContent = criticalitySummary(owners)
+    body.append(priority)
+  }
   if (detailsError !== undefined) {
     const status = document.createElement('p')
     status.className = 'diff-status'
@@ -161,7 +171,8 @@ export function paintTaskSummary(
     }
     return row
   }))
-  const fileRows = item.modifiedFiles.map(file => {
+  const orderedFiles = payload === undefined ? item.modifiedFiles : taskReviewFiles(payload.files, world).map(file => file.file)
+  const fileRows = orderedFiles.map(file => {
     const loaded = payload?.files.find(candidate => candidate.file === file)
     if (loaded === undefined) return pendingFileRow(file, error !== undefined)
     const row = fileDiffRow(loaded, onOpen, loaded.shared)

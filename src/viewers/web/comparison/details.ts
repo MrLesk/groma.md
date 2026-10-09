@@ -63,7 +63,7 @@ function changedText(className: string, before: string | undefined, after: strin
 
 const fields = [
   ['title', 'name', 'what'], ['technology', 'technology', 'how'], ['parent', 'parent', 'what'],
-  ['group', 'group', 'what'], ['origin', 'status', 'what'], ['draft', 'draft', 'what'],
+  ['criticality', 'criticality', 'what'], ['group', 'group', 'what'], ['origin', 'status', 'what'], ['draft', 'draft', 'what'],
 ] as const
 
 export function componentReasons(change: ComponentChange | undefined) {

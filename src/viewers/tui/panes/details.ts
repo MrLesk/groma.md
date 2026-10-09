@@ -219,6 +219,7 @@ export function detailsLines(
     chunk(` ${kindLabel(element.kind, element.external)}`, theme.foreground, element.external ? TextAttributes.DIM : 0),
     dim(theme, ' · '),
     chunk(element.origin, theme[element.origin], TextAttributes.BOLD),
+    dim(theme, ` · ${element.criticality ?? 'normal'}`),
   ]
   const body = tab === 'tasks'
     ? componentTaskLines(theme, element, world, width, actionCursor, workList)
