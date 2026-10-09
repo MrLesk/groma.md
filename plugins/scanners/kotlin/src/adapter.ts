@@ -19,7 +19,8 @@ export async function checkKotlinReadiness(): Promise<void> {
 async function runWorker(mode: 'scan' | 'outline', root: string, files: readonly string[]): Promise<string> {
   await checkKotlinReadiness()
   return new Promise((resolve, reject) => {
-    const child = execFile(runtime, ['-cp', classpath, 'md.groma.scanner.MainKt', mode, root], {
+    // The worker walks nested expressions recursively, so long generated chains need more than the default stack.
+    const child = execFile(runtime, ['-Xss512m', '-cp', classpath, 'md.groma.scanner.MainKt', mode, root], {
       cwd: root, encoding: 'utf8', timeout: 120000, killSignal: 'SIGKILL', maxBuffer: 64 * 1024 * 1024,
     }, (error, stdout, stderr) => {
       if (error) reject(new Error(stderr.trim() || error.message))

@@ -81,6 +81,10 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
     await writeFile(path.join(project, 'Latin.kt'), Buffer.from([0x2f, 0x2f, 0xe9]))
     await expect(scanner.scan!(project, {}, ['Latin.kt'])).rejects.toThrow('Latin.kt')
     await rm(path.join(project, 'Latin.kt'))
+    // Generated code chains thousands of terms; the walk over them must not exhaust the worker's stack.
+    await writeFile(path.join(project, 'Deep.kt'), `fun deep() = ${Array(6000).fill('f()').join(' + ')}\n`)
+    expect((await scanner.scan!(project, {}, ['Deep.kt']))!.invocations).toHaveLength(6000)
+    await rm(path.join(project, 'Deep.kt'))
     const init = Bun.spawn(['git', 'init', '--quiet', project], { stderr: 'pipe' })
     expect(await init.exited, await new Response(init.stderr).text()).toBe(0)
     const manifest = JSON.parse(await readFile(path.join(artifact, 'package.json'), 'utf8'))

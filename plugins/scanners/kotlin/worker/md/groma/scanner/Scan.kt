@@ -10,7 +10,7 @@ object Scan {
         val files = mutableListOf<Map<String, Any?>>()
         val operations = mutableListOf<Map<String, Any?>>()
         val invocations = mutableListOf<Map<String, Any?>>()
-        for (relative in relatives) {
+        for (relative in relatives) withinStack(relative) {
             val source = parser.read(relative)
             val symbols = Symbols.fromSource(source).map { mapOf("id" to it.id, "name" to it.name, "kind" to it.kind) }
             files += mapOf("file" to relative, "roots" to listOf(ROOT), "symbols" to symbols)
@@ -36,11 +36,21 @@ object Scan {
     }
 
     fun outlineRoot(parser: Parser, relatives: List<String>): List<Map<String, Any?>> = relatives.map { relative ->
-        val source = parser.read(relative)
-        mapOf("file" to relative, "declarations" to Outline.fromSource(source).map { declaration ->
-            mapOf("kind" to declaration.kind, "name" to declaration.name, "line" to declaration.line,
-                "visibility" to declaration.visibility,
-                "members" to declaration.members.map { mapOf("name" to it.name, "line" to it.line, "visibility" to it.visibility) })
-        })
+        withinStack(relative) {
+            val source = parser.read(relative)
+            mapOf("file" to relative, "declarations" to Outline.fromSource(source).map { declaration ->
+                mapOf("kind" to declaration.kind, "name" to declaration.name, "line" to declaration.line,
+                    "visibility" to declaration.visibility,
+                    "members" to declaration.members.map { mapOf("name" to it.name, "line" to it.line, "visibility" to it.visibility) })
+            })
+        }
     }
+
+    /**
+     * The parser and the call walk recurse once per nested expression. The adapter starts the worker with a large
+     * stack; a file nested deeper than that fails by name like any other file the worker cannot read.
+     */
+    private fun <T> withinStack(relative: String, work: () -> T): T =
+        try { work() }
+        catch (error: StackOverflowError) { throw IllegalArgumentException("$relative: expressions are nested too deeply to scan") }
 }
