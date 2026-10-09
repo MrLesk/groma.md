@@ -36,6 +36,9 @@ async function verifyEvidence(observation: ScanObservation): Promise<void> {
   const create = observation.operations!.find(operation => operation.name === 'Orders.create')!
   expect(observation.invocations!.find(call => call.source === create.id))
     .toMatchObject({ member: 'Orders', position: text.indexOf('Orders()'), line: 11 })
+  // A call in a parameter default runs with the function, as it does with a constructor.
+  const hidden = observation.operations!.find(operation => operation.name === 'hidden')!
+  expect(observation.invocations!.filter(call => call.source === hidden.id).map(call => call.member)).toEqual(['store'])
   expect(observation.invocations!.every(call => call.unresolved && call.targets.length === 0)).toBeTrue()
 }
 

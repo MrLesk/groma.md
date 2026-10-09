@@ -14,7 +14,7 @@ interface Store { fun load(id: Int): String }
 object Registry { fun store(): Store = TODO() }
 enum class Status { OPEN; fun label() = "open" }
 fun String.shout() = uppercase()
-private fun hidden() {}
+private fun hidden(store: Store = Registry.store()) {}
 val transform = { n: Int -> n + 1 }
 typealias Id = Int
 val total = 1

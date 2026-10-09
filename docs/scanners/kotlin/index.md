@@ -48,8 +48,8 @@ worker parses each file without analyzing it and reports:
   static functions. Unlike the outline, operations also cover the functions of
   nested types, as `Orders.Nested.run`, and function-valued properties declared
   in a type. A position is the declaration's start after its KDoc and comments.
-- **Invocations**: every call expression inside an operation, at the start of
-  its receiver when it has one. Calls remain unresolved because syntax alone
+- **Invocations**: every call expression inside an operation, parameter
+  defaults included, at the start of its receiver when it has one. Calls remain unresolved because syntax alone
   cannot prove their targets: `Orders()` may construct a type or call a function.
   A secondary constructor's `this(...)` or `super(...)` delegation is not a
   call, though calls in its arguments are. Operators, infix calls such as

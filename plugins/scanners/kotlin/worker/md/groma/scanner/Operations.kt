@@ -25,8 +25,8 @@ object Operations {
             is KtClassOrObject -> walk(file, declaration.declarations, typeOwner(declaration, owner), operations)
             is KtNamedFunction -> {
                 val name = declaration.name
-                val body = declaration.bodyExpression
-                if (name != null && body != null) operations += operation(file, qualified(owner, name), declaration, body)
+                // Like a constructor, a function runs its parameter defaults, so the whole declaration is searched for calls.
+                if (name != null && declaration.hasBody()) operations += operation(file, qualified(owner, name), declaration, declaration)
             }
             is KtSecondaryConstructor -> operations += operation(file, qualified(owner, "constructor"), declaration, declaration)
             is KtProperty -> {
