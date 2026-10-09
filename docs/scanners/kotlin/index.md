@@ -55,7 +55,7 @@ worker parses each file without analyzing it and reports:
 The scanner supplies no body fingerprints for duplicate-code findings and no
 HTTP facts. A parse or read failure rejects the whole observation and names the
 source file, with the line of a syntax error. There is no successful partial scan. In a file with CRLF
-line endings, positions and lines still refer to the file on disk.
+line endings or a leading byte order mark, positions and lines still refer to the file on disk.
 
 The same parser supplies [source outlines](../creating-a-plugin.md#source-outline):
 top-level types and objects with their functions, and top-level functions or

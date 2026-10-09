@@ -73,8 +73,8 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
 
     const project = path.join(temporary, 'project')
     await cp(fixture, project, { recursive: true })
-    // Windows checkouts carry CRLF; offsets and lines still refer to the file as it is on disk.
-    const windows = 'package shop\r\nfun ship() {\r\n    pack()\r\n}\r\n'
+    // Windows checkouts carry CRLF and sometimes a byte order mark; offsets and lines still refer to the file as it is on disk.
+    const windows = '\uFEFFpackage shop\r\nfun ship() {\r\n    pack()\r\n}\r\n'
     await writeFile(path.join(project, 'Ship.kt'), windows)
     await writeFile(path.join(project, 'Latin.kt'), Buffer.from([0x2f, 0x2f, 0xe9]))
     await expect(scanner.scan!(project, {}, ['Latin.kt'])).rejects.toThrow('Latin.kt')

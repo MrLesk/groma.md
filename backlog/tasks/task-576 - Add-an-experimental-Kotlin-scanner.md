@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-09 15:00'
-updated_date: '2026-10-09 15:52'
+updated_date: '2026-10-09 16:20'
 labels: []
 dependencies: []
 references:
@@ -89,6 +89,10 @@ Groma has official scanners for Java and Scala but none for Kotlin, so a Kotlin 
 9. Final worker layout differs from step 2: Main, Scan, Parse, Symbols, Operations, Calls, Outline, Json, and Declarations (the one rule shared by symbols, operations and outline: a property initialised with a function literal is a function). Visibility lives in Outline and operation naming and start position in Operations, each beside its only user.
 10. CRLF: the compiler parser reports a syntax error at the first carriage return (reproduced in the spike on a CRLF file, and Windows hosts ship). Parse replaces each carriage return with a space, a same-length change, so offsets and lines still refer to the file on disk. Test authority: reproduced failure in the supported flow; wrong result detected: a CRLF file fails the scan or shifts positions; gap: no fixture can carry CRLF reliably through Git, so the isolated-package test writes one temporary CRLF file.
 11. Architecture: the two TypeScript sources form one component `kotlin-src-index` (Kotlin source scanner) under container `cli`, group Language scanners, like the Scala scanner. No new C4 level or OKF metadata.
+
+10. Review fixes requested by the user after the PR #124 code review, one commit each: (a) accept a leading byte order mark; (b) outline names without backticks; (c) run the worker on a large stack and name the file when nesting still overflows; (d) restore package folders named build under src/<set>/kotlin and src/<set>/java; (e) exclude variant test source sets (src/testDebug, src/androidTestDebug, src/testFixtures); (f) no fixed size limit on worker output; (g) report calls in function parameter defaults as constructors already do; (h) only a val initialised with a lambda is a function; (i) verify pinned SHA-256 of downloaded jars; (j) share the worker runner, outline mapping and notices writer with the Scala and Java scanners.
+
+11. Tests for 10, all extending test-bun/kotlin-scanner.test.ts and its fixture (authority: the user's request to fix each reproduced review finding). BOM: the CRLF file gains a BOM; detects a rejected scan or shifted positions. Backticks: one quoted top-level function in the fixture; detects an outline name that differs from the symbol name. Deep nesting: a 6000-term chain in the temp project; detects a scan killed by stack overflow. Selection: a package folder named build and a src/testDebug file in the temp project; detects a dropped package or scanned variant tests. Defaults: a function default call in the fixture; detects the missing invocation. var: one var lambda in the fixture; detects it reported as a function. No tests for (f), (i), (j): size limits and checksums are not observable in the fixture, and (j) preserves behaviour covered by the existing Kotlin, Scala and Java tests.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes

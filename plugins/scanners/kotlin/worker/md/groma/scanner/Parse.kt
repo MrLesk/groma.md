@@ -40,8 +40,9 @@ class Parser(private val root: Path, disposable: Disposable) {
     fun read(relative: String): Source {
         val text = try { Files.readString(root.resolve(relative)) }
         catch (error: IOException) { throw IllegalArgumentException("$relative: cannot be read as UTF-8 text: $error") }
-        // The parser rejects the carriage returns of CRLF files. A same-length replacement keeps every offset and line.
-        val source = Source(relative, factory.createFile(relative, text.replace('\r', ' ')))
+        // The parser rejects the carriage returns of CRLF files and a leading byte order mark. Same-length
+        // replacements keep every offset and line.
+        val source = Source(relative, factory.createFile(relative, text.replace('\r', ' ').replaceFirst(Regex("^\uFEFF"), " ")))
         val error = PsiTreeUtil.findChildOfType(source.file, PsiErrorElement::class.java) ?: return source
         throw IllegalArgumentException("$relative:${source.line(error.textOffset)}: ${error.errorDescription}")
     }
