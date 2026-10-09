@@ -26,7 +26,7 @@ import {
 import type { ProjectedScene, ProjectionView } from '../src/viewers/web/iso/projection/project.ts'
 import { presentScene } from '../src/viewers/web/iso/view-motion/presentation.ts'
 import { NESTED_POSE, OVERHEAD_POSE } from '../src/viewers/web/iso/view-motion/orbit.ts'
-import { surfaceLabelLayout } from '../src/viewers/web/iso/painting/text.ts'
+import { surfaceLabel, surfaceLabelLayout } from '../src/viewers/web/iso/painting/text.ts'
 import { box, openclawFixtureRoot, repositoryRoot, viewerFixtureRoot, worldOf } from './helpers.ts'
 
 const profile = (title: string, overview: string): ProjectProfile => ({
@@ -343,7 +343,16 @@ for (const mode of ['iso', '2d'] as const) {
       const camera = fitCamera(scene.bounds, viewport)
       for (const zoom of [camera.k / 2, camera.k, camera.k * 2, 4]) {
         const fitted = surfaces.map(({ rect, text, size }) => {
-          const layout = surfaceLabelLayout(text, size, zoom, scene.view)
+          const layout = surfaceLabelLayout(text, size, zoom, scene.view, true)
+          const painted = surfaceLabel(text, size, scene.view, 0, zoom, 'data:image/svg+xml;base64,PHN2Zy8+')
+          assert.ok(Array.isArray(painted.children))
+          const icon = painted.children.find(child => child.tag === 'image')!
+          const iconX = Number(icon.attributes.x)
+          const iconY = Number(icon.attributes.y)
+          assert.ok(iconX >= layout.x && iconX + Number(icon.attributes.width) <= layout.x + layout.width,
+            'icon fits inside the selectable title width')
+          assert.ok(iconY >= layout.leader && iconY + Number(icon.attributes.height) <= layout.height,
+            'icon fits inside the reserved title height')
           const origin = groundPoint(text.origin, scene.view)
           const label = {
             x: origin.x + layout.x / PLANE, y: origin.y,

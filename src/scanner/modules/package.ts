@@ -149,6 +149,12 @@ function workSourceCompatibility(value: unknown): { groma?: string } | undefined
   return compatibility as { groma?: string }
 }
 
+function packageKind(groma: Record<string, unknown>): PluginKind {
+  if (groma.scanner !== undefined) return 'scanner'
+  if (groma.icons !== undefined) return 'icons'
+  return 'workSource'
+}
+
 async function scannerPackage(packageRoot: string, kind?: PluginKind): Promise<ResolvedScannerPackage | undefined> {
   let source: string
   try {
@@ -159,7 +165,7 @@ async function scannerPackage(packageRoot: string, kind?: PluginKind): Promise<R
   }
   const manifest = object(JSON.parse(source), 'scanner package.json')
   const groma = object(manifest.groma, 'scanner package.json groma')
-  kind ??= groma.scanner !== undefined ? 'scanner' : groma.icons !== undefined ? 'icons' : 'workSource'
+  kind ??= packageKind(groma)
   if (kind === 'icons') return iconPackage(packageRoot, manifest, object(groma.icons, 'groma.icons'))
   const scanner = object(groma[kind], `plugin package.json groma.${kind}`)
   if (Object.keys(scanner).some(field => !(kind === 'scanner' ? ['id', 'entry', 'discovery', 'include', 'exclude'] : ['id', 'entry', 'compatibility']).includes(field))) {
@@ -338,7 +344,7 @@ async function iconPackage(
   for (const [name, file] of Object.entries(files)) {
     if (!scannerId.test(name)) throw new Error(`Invalid icon name: ${name}`)
     const resolved = await scannerEntry(root, file)
-    if (!resolved || !resolved.endsWith('.svg')) throw new Error(`Icon ${name} must name an existing SVG file`)
+    if (!resolved?.endsWith('.svg')) throw new Error(`Icon ${name} must name an existing SVG file`)
     icons[name] = resolved
   }
   return { id: metadata.id, name: manifest.name, version: manifest.version, kind: 'icons',

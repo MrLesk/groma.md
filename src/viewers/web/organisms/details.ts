@@ -278,12 +278,15 @@ function paintComparedRelationships(list: HTMLElement, pair: RelationshipPairDat
 }
 
 function paintElementAppearance(title: HTMLElement, meta: Element, inspected: Inspected): void {
-  title.style.color = accentColour(inspected.colour) ?? ''
+  const name = document.createElement('span')
+  name.textContent = inspected.title
+  name.style.color = accentColour(inspected.colour) ?? ''
+  title.replaceChildren(name)
   if (inspected.iconSvg) {
     const icon = document.createElement('img')
     icon.src = inspected.iconSvg; icon.alt = inspected.icon ?? ''; icon.width = 24; icon.height = 24
     icon.style.cssText = 'vertical-align:middle;margin-right:8px'
-    title.prepend(icon)
+    name.prepend(icon)
   }
   if (inspected.icon || inspected.colour) {
     const appearance = document.createElement('span')
@@ -299,8 +302,6 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   const meta = host.querySelector('.meta')!
   const tabsHost = host.querySelector<HTMLElement>('.tabs')!
   const body = host.querySelector('.body')!
-  title.replaceChildren()
-  title.textContent = inspected.title
   meta.textContent = `${inspected.kindLabel} · ${inspected.origin}`
 
   paintElementAppearance(title, meta, inspected)

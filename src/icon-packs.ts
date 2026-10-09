@@ -85,5 +85,9 @@ export async function saveIconPack(root: string, id: string, source: string, rep
   const config = await readScannerConfig(root)
   if (!replacing && (config.icons ?? []).some(pack => pack.id === id)) throw new Error(`Icon pack already configured: ${id}`)
   if (config.scanners.some(pack => pack.id === id) || config.workSources?.some(pack => pack.id === id)) throw new Error(`Plugin id already configured: ${id}`)
-  await writeScannerConfig(root, { ...config, icons: [...(config.icons ?? []).filter(pack => pack.id !== id), { id, source }] })
+  const icons = [...config.icons ?? []]
+  const index = icons.findIndex(pack => pack.id === id)
+  if (index < 0) icons.push({ id, source })
+  else icons[index] = { id, source }
+  await writeScannerConfig(root, { ...config, icons })
 }

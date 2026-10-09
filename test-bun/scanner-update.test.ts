@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
 import packageJson from '../package.json'
+import { loadIconCatalog, saveIconPack } from '../src/icon-packs.ts'
+import { addPlugin } from '../src/plugin-management.ts'
 import { configuredScannerModules, updateScanner } from '../src/scanner/modules/inventory.ts'
 import { readScannerConfig, writeScannerConfig } from '../src/scanner/modules/config.ts'
 import { changeScannerSettings, parseScannerSettingsAction } from '../src/scanner/modules/settings.ts'
@@ -60,4 +62,28 @@ test.concurrent('npm updates resolve omitted and bare sources, pin compatible re
     await server.stop(true)
     await rm(root, { recursive: true, force: true })
   }
+})
+
+
+test.concurrent('replacing an icon pack preserves its configured resolution priority', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-icon-update-'))
+  try {
+    await cp(path.resolve(import.meta.dir, '../test/fixtures/empty-project'), root, { recursive: true })
+    for (const id of ['primary', 'secondary', 'replacement']) {
+      const directory = path.join(root, id)
+      await mkdir(directory)
+      await writeFile(path.join(directory, 'package.json'), JSON.stringify({ name: `icons-${id}`, version: '1.0.0',
+        groma: { icons: { id: id === 'replacement' ? 'primary' : id, icons: { database: './database.svg' } } } }))
+      await writeFile(path.join(directory, 'database.svg'), `<svg xmlns="http://www.w3.org/2000/svg"><title>${id}</title></svg>`)
+    }
+    await addPlugin(root, './primary')
+    await addPlugin(root, './secondary')
+    const before = await loadIconCatalog(root)
+    expect(before.get('database')).toBe(before.get('primary:database'))
+    await saveIconPack(root, 'primary', './replacement', true)
+    expect((await readScannerConfig(root)).icons?.map(pack => pack.id)).toEqual(['primary', 'secondary'])
+    const after = await loadIconCatalog(root)
+    expect(after.get('database')).toBe(after.get('primary:database'))
+    expect(after.get('database')).not.toBe(before.get('database'))
+  } finally { await rm(root, { recursive: true, force: true }) }
 })

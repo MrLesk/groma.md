@@ -3,7 +3,7 @@ import { test } from 'bun:test'
 
 import type { WorkSnapshot } from '../src/types.ts'
 import { outlineStopKeys } from '../src/viewers/tui/navigation-details.ts'
-import { taskRecordView } from '../src/viewers/tui/panes/details.ts'
+import { detailsLines, outlineRowKey, taskRecordView } from '../src/viewers/tui/panes/details.ts'
 import { viewerTheme } from '../src/viewers/tui/atoms/theme.ts'
 import { detailsContentWidth } from '../src/viewers/tui/layout.ts'
 
@@ -121,4 +121,27 @@ test.concurrent('a task modified file opens its diff and Escape returns to the r
   state = reduceViewer(model, state, 'dismiss')
   assert.equal(state.diffView, undefined)
   assert.deepEqual(state.taskRecord, { id: 'TASK-1', row: readingRow, details: emptyRecord })
+})
+
+
+test.concurrent('element appearance stays readable at the fixed details width without moving its action cursor', () => {
+  const world = navigationWorld()
+  const element = { ...world.elements.find(item => item.kind === 'component')!,
+    code: [{ scanner: 'fixture', file: 'src/example.ts' }] }
+  const theme = viewerTheme()
+  const width = 28
+  const structure = [{ file: 'src/example.ts', declarations: [
+    { kind: 'function' as const, name: 'read', line: 1, visibility: 'public' as const, entry: false },
+  ] }]
+  const before = detailsLines(theme, element, world, width, 'how', undefined, outlineRowKey('src/example.ts', 0), structure)
+  const decorated = { ...element, icon: 'architecture:database', colour: '#397ed1' }
+  const after = detailsLines(theme, decorated, world, width, 'how', undefined, outlineRowKey('src/example.ts', 0), structure)
+  const text = after.lines.map(line => line.map(part => part.text).join(''))
+  assert.ok(text.some(row => row.includes(decorated.icon)))
+  assert.ok(text.some(row => row.includes(decorated.colour)))
+  const appearance = text.filter(row => row.includes(decorated.icon) || row.includes(decorated.colour))
+  assert.equal(appearance.length, 2)
+  assert.ok(appearance.every(row => row.length <= width))
+  assert.ok(before.cursor !== undefined)
+  assert.equal(after.cursor, before.cursor + 2)
 })

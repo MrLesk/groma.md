@@ -25,6 +25,7 @@ export function surfaceLabelLayout(
   size: number,
   zoom: number,
   view: ProjectionView,
+  hasIcon = false,
 ) {
   const step = TITLE_STEPS[surfaceLabelStep(zoom)]!
   const length = (x: number, y: number) => {
@@ -34,14 +35,18 @@ export function surfaceLabelLayout(
   }
   const paddingX = Math.min(step.padding / length(1, 0), text.band.width / 20)
   const paddingY = Math.min(step.padding / length(0, 1), text.band.height / 20)
+  const contentWidth = text.width + (hasIcon ? size * 1.2 : 0)
   const fontSize = Math.min(
     step.size * size / CONTAINER_FONT,
-    size * (text.band.width - 2 * paddingX) / text.width,
+    size * (text.band.width - 2 * paddingX) / contentWidth,
     (text.band.height - 3 * paddingY) / TITLE_LINE_HEIGHT,
   )
-  const width = text.width * fontSize / size
+  const width = contentWidth * fontSize / size
+  const iconWidth = hasIcon ? fontSize * 1.2 : 0
   return {
     fontSize,
+    iconWidth,
+    iconX: (text.width - width) / 2,
     x: (text.width - width) / 2 - paddingX,
     width: width + 2 * paddingX,
     height: 3 * paddingY + fontSize * TITLE_LINE_HEIGHT,
@@ -76,13 +81,13 @@ export function surfaceLabel(
   zoom = 1,
   iconSvg?: string,
 ): SvgNode {
-  const layout = surfaceLabelLayout(text, size, zoom, view)
+  const layout = surfaceLabelLayout(text, size, zoom, view, iconSvg !== undefined)
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, 'label surface-label', [
-    ...(iconSvg ? [iconImage(iconSvg, layout.x - layout.fontSize * 1.2, layout.baseline - layout.fontSize * 0.9, layout.fontSize)] : []),
+    ...(iconSvg ? [iconImage(iconSvg, layout.iconX, layout.baseline - layout.fontSize * 0.9, layout.fontSize)] : []),
     node('rect', { x: layout.x, width: layout.width, height: layout.height }, 'label-hit'),
     node('line', { x1: text.width / 2, x2: text.width / 2, y1: 0, y2: layout.leader }, 'label-leader'),
     node('text', {
-      x: text.width / 2,
+      x: (text.width + layout.iconWidth) / 2,
       y: layout.baseline,
       'text-anchor': 'middle',
       'font-size': layout.fontSize,
