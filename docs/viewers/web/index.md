@@ -61,6 +61,38 @@ without suggesting the same command or offering another port.
 This page is the browser surface. The shared viewer rules live in
 [Viewers](../index.md).
 
+## Live code measurements
+
+On the live working-tree map, **Settings → Colour by** offers **None**,
+**Commits**, **Committers**, **Co-change**, and **Instability**. None restores
+the ordinary building colours. The legend uses the same blue-to-orange scale
+in light, dark, and blueprint themes, from zero to the largest component value.
+Instability always uses a zero-to-one scale.
+
+Git history is read in the background after the first map paint. **History
+window (commits)** defaults to the last 500 commits on the current branch and
+can be changed for the current browser session. Commits counts distinct commits
+touching a component's currently owned files; Committers counts distinct
+committer email addresses. A file contributes only once per component per
+commit. Co-change sums the number of commits shared with each other component.
+Component details list the five highest co-change counts, link to those
+components, and mark pairs with no relationship in either direction.
+Instability is outgoing relationships divided by incoming plus outgoing
+relationships; a component with no relationships has value zero. The details
+pane shows these values. A repository without commits offers no Git metrics.
+
+A component with at least ten distinct files gets an orange triangle when its
+file count, lines of code, or connection count is at least four times its
+container's median and greater than that median. Each measure is compared
+separately against all components in the same container. Connections count
+distinct incoming and outgoing component neighbours, with each direction
+counted separately. Web and terminal details name every outlying measure.
+
+These are runtime measurements of existing C4 components, not new architecture
+elements or stored OKF fields. No metric or control is written to architecture
+Markdown or included in static exports. Historical and comparison views hide
+the live controls and measurements.
+
 ## Static publication
 
 `groma export <directory>` reads stored architecture and writes the Web view as static HTML,
