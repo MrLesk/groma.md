@@ -1,3 +1,5 @@
+import { addPlugin } from './plugin-management.ts'
+import { readScannerConfig } from './scanner/modules/config.ts'
 import { realpath, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -231,11 +233,12 @@ export async function initializeRepository(
   const dependencies = { ...defaultDependencies, ...overrides }
   await ensureGit(repositoryRoot, dependencies)
   const groma = await initializeGroma(repositoryRoot, input, prompts)
-  const backlog = await initializeAvailableBacklog(
+  const selected = (await readScannerConfig(repositoryRoot)).workSources?.length
+  const backlog = selected ? await initializeAvailableBacklog(
     repositoryRoot,
     groma.projectName,
     dependencies,
-  )
+  ) : 'unavailable'
   return { ...groma, backlog }
 }
 
@@ -254,6 +257,7 @@ async function offerBacklog(
   dependencies: InitCommandDependencies,
 ): Promise<void> {
   if (status === 'initialized' || status === 'unchanged') return
+  if ((await readScannerConfig(repositoryRoot)).workSources?.length) return
   if (status === 'failed') {
     dependencies.ui.error(
       'Could not initialize Backlog.md. Groma setup will continue.',
@@ -263,20 +267,21 @@ async function offerBacklog(
   const wanted = await dependencies.ui.confirmBacklogInstall()
   if (wanted === undefined) cancelled()
   if (!wanted) return
-  const inferred = inferPackageInstaller(await dependencies.executablePath())
-  const installer = inferred ?? await dependencies.ui.installer()
-  if (installer === undefined) cancelled()
-  const command = installationCommand(installer)
-  const installed = await dependencies.ui.install(
-    `Installing Backlog.md with ${installer}`,
-    () => dependencies.install(installer),
-  )
-  if (!installed) {
-    dependencies.ui.error(
-      `Could not run ${command.join(' ')}. Groma setup will continue.`,
+  if (!dependencies.backlogAvailable()) {
+    const inferred = inferPackageInstaller(await dependencies.executablePath())
+    const installer = inferred ?? await dependencies.ui.installer()
+    if (installer === undefined) cancelled()
+    const installed = await dependencies.ui.install(
+      `Installing Backlog.md with ${installer}`,
+      () => dependencies.install(installer),
     )
-    return
+    if (!installed) {
+      dependencies.ui.error(`Could not run ${installationCommand(installer).join(' ')}. Groma setup will continue.`)
+      return
+    }
   }
+  await addPlugin(repositoryRoot, '@groma/work-source-backlog')
+  if (await dependencies.backlogInitialized(repositoryRoot)) return
   if (!await dependencies.initializeBacklog(repositoryRoot, projectName)) {
     dependencies.ui.error(
       'Could not initialize Backlog.md. Groma setup will continue.',

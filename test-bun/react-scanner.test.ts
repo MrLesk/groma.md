@@ -337,7 +337,7 @@ test.concurrent('the built React package outlines components, classes and functi
 test.concurrent('a file React and TypeScript both own shows one outline', async () => {
   const { temporary, root, artifact, scanner } = await outlineSetup()
   try {
-    await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify({ scanners: [
+    await writeFile(path.join(root, 'groma/plugins.json'), JSON.stringify({ scanners: [
       { id: 'typescript', source: path.resolve(import.meta.dir, '../plugins/scanners/typescript'), include: typescriptManifest.groma.scanner.include },
       { id: 'react', source: artifact, include: manifest.groma.scanner.include },
     ] }))

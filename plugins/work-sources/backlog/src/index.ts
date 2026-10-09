@@ -1,16 +1,20 @@
 import { spawn } from 'node:child_process'
 
-import {
-  EMPTY_WORK_SOURCE,
-  type WorkItem,
-  type WorkItemDetails,
-  type WorkSource,
-  type WorkSourcePlugin,
+import type {
+  WorkItem,
+  WorkItemDetails,
+  WorkSource,
+  WorkSourcePlugin,
 } from '@groma/work-source'
 
 type BacklogCommandResolver = () => string | null
 
 const installCommand = 'bun i -g backlog.md'
+const EMPTY_WORK_SOURCE: WorkSource = {
+  read: async () => ({ statuses: [], defaultStatus: '', items: [] }),
+  readItem: async id => { throw new Error(`Task not found: ${id}`) },
+  watch: () => ({ close() {} }),
+}
 
 function findBacklogCommand(): string | null {
   return Bun.which('backlog')
@@ -212,7 +216,7 @@ export function createBacklogPlugin(
   resolveCommand: BacklogCommandResolver = findBacklogCommand,
 ): WorkSourcePlugin {
   return {
-    id: 'backlog.md',
+    id: 'backlog',
     readiness() {
       return resolveCommand() === null
         ? { status: 'missing', install: installCommand }
@@ -228,3 +232,5 @@ export function createBacklogPlugin(
 }
 
 export const backlogPlugin = createBacklogPlugin()
+
+export default backlogPlugin

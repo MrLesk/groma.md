@@ -36,7 +36,7 @@ async function repository(hidden = false): Promise<string> {
 
 async function configure(root: string, exclude: unknown, directory = 'groma'): Promise<void> {
   const config = await readScannerConfig(root)
-  await write(root, `${directory}/scanners.json`, JSON.stringify({ ...config, exclude }))
+  await write(root, `${directory}/plugins.json`, JSON.stringify({ ...config, exclude }))
 }
 
 test.concurrent('fully excluded Vue sources skip readiness and scanning until they are included again', async () => {

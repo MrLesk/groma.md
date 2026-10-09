@@ -57,7 +57,7 @@ Dependency and generated directories are excluded by path segment:
 `.angular`, `coverage`, and `generated`. Git metadata and groma.md architecture
 directories are also excluded. A project deliberately placed under one of
 these names is outside this discovery scope. In an initialized project, discovery
-also honors the shared `exclude` patterns in groma.md's `scanners.json`.
+also honors the shared `exclude` patterns in groma.md's `plugins.json`.
 
 Discovery does not evaluate Maven/MSBuild properties, inherited settings,
 profiles, Gradle scripts, or Cargo workspace inheritance. Literal XML tags

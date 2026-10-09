@@ -25,5 +25,5 @@ Owns the scanner state for an open viewer. Applies settings changes and connects
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [src/scanner/session.ts](../../../../../../src/scanner/session.ts) | [src/view-host.ts](../../../../../../src/view-host.ts) | Invokes supplied callbacks: onFold, onSettings | typescript |
-| [src/scanner/session.ts](../../../../../../src/scanner/session.ts) | [src/viewers/web/map-session.ts](../../../../../../src/viewers/web/map-session.ts) | Invokes supplied callbacks: onFold, onSettings, watchesFile | typescript |
+| [src/scanner/session.ts](../../../../../../src/scanner/session.ts) | [src/view-host.ts](../../../../../../src/view-host.ts) | Invokes supplied callbacks: onFold, onPluginsChanged, onSettings | typescript |
+| [src/scanner/session.ts](../../../../../../src/scanner/session.ts) | [src/viewers/web/map-session.ts](../../../../../../src/viewers/web/map-session.ts) | Invokes supplied callbacks: onFold, onPluginsChanged, onSettings, watchesFile | typescript |

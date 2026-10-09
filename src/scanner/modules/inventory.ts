@@ -53,7 +53,7 @@ async function moduleLocation(
   options: ScannerResolutionOptions,
 ): Promise<ScannerModuleLocation> {
   const source = parseScannerSource(repositoryRoot, configured.source)
-  const resolved = await resolveScannerPackage(source, cacheRoot(options))
+  const resolved = await resolveScannerPackage(source, cacheRoot(options), 'scanner')
   if (resolved === undefined) {
     return { ...configured, status: 'missing' }
   }
@@ -104,12 +104,21 @@ export async function addScanner(
   if (configured.some(scanner => scanner.source === source.source)) {
     throw new Error(`scanner source is already configured: ${source.source}`)
   }
-  const installed = await installScannerPackage(source, cacheRoot(options), options.registry)
+  const installed = await installScannerPackage(source, cacheRoot(options), options.registry, 'scanner')
+  return configureScanner(repositoryRoot, installed)
+}
+
+/** Record a resolved scanner once; plugin add and scanner add share the same defaults and validation. */
+export async function configureScanner(
+  repositoryRoot: string,
+  installed: { source: string; package: ResolvedScannerPackage },
+): Promise<ScannerInventoryItem> {
+  const config = await readScannerConfig(repositoryRoot)
+  const configured = config.scanners
   const resolved = installed.package
-  if (configured.some(scanner => scanner.id === resolved.id)) {
-    throw new Error(`scanner id is already configured: ${resolved.id}`)
+  if ([...configured, ...config.workSources ?? []].some(plugin => plugin.id === resolved.id)) {
+    throw new Error(`plugin id is already configured: ${resolved.id}`)
   }
-  // The package's include globs and default exclusions become this project's lists, which people then edit.
   const scanner = { id: resolved.id, source: installed.source, include: resolved.include,
     ...(resolved.exclude?.length ? { exclude: resolved.exclude } : {}) }
   await writeScannerConfig(repositoryRoot, { ...config, scanners: [...configured, scanner] })
@@ -126,12 +135,12 @@ export async function installScanners(
   for (const scanner of configured) {
     const source = parseScannerSource(repositoryRoot, scanner.source)
     if (source.kind === 'local') {
-      if (await resolveScannerPackage(source, cacheRoot(options)) === undefined) {
+      if (await resolveScannerPackage(source, cacheRoot(options), 'scanner') === undefined) {
         throw new Error(`Scanner ${scanner.id} is missing. Restore the local scanner directory: ${scanner.source}`)
       }
       continue
     }
-    const { package: resolved } = await installScannerPackage(source, cacheRoot(options), options.registry)
+    const { package: resolved } = await installScannerPackage(source, cacheRoot(options), options.registry, 'scanner')
     if (resolved.id !== scanner.id) {
       throw new Error(`configured scanner ${scanner.id} resolves to manifest id ${resolved.id}`)
     }
@@ -179,7 +188,7 @@ export async function updateScanner(
   if (!samePackage(current, replacement)) {
     throw new Error('scanner update must keep the same npm package or Git repository; local plugins run from their configured path')
   }
-  const installed = await installScannerPackage(replacement, cacheRoot(options), options.registry)
+  const installed = await installScannerPackage(replacement, cacheRoot(options), options.registry, 'scanner')
   if (installed.package.id !== id) {
     throw new Error(`replacement scanner id ${installed.package.id} does not match ${id}`)
   }
@@ -196,6 +205,6 @@ export async function restoreScanner(repositoryRoot: string, id: string, options
   if (!configured) throw new Error(`scanner is not configured: ${id}`)
   const source = parseScannerSource(repositoryRoot, configured.source)
   if (source.kind === 'local') throw new Error(`Restore the local scanner directory: ${configured.source}`)
-  const installed = await installScannerPackage(source, cacheRoot(options), options.registry)
+  const installed = await installScannerPackage(source, cacheRoot(options), options.registry, 'scanner')
   if (installed.package.id !== id) throw new Error(`restored scanner id ${installed.package.id} does not match ${id}`)
 }

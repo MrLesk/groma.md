@@ -194,7 +194,7 @@ export function createClackInitUi(): InitCommandUi {
   return {
     cancel: message => clackCancel(message),
     confirmBacklogInstall: async () => selected(await confirmPrompt(
-      'Backlog.md is not installed. Install it now?',
+      'Use Backlog.md for project tasks?',
       accent,
     )),
     confirmInit: async () => selected(await confirmPrompt(

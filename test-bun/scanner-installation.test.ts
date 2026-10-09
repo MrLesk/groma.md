@@ -75,14 +75,14 @@ test.concurrent('bulk installation retains successful releases, retries unpublis
     const configured = await readScannerConfig(f.root)
     expect(configured.scanners.map(item => item.source)).toEqual([`@groma/scanner-react@${f.version}`, `@groma/scanner-rust@${f.version}`])
     expect(f.downloads.filter(name => name === 'react.tgz')).toHaveLength(1)
-    const selection = await readFile(path.join(f.root, 'groma/scanners.json'), 'utf8')
+    const selection = await readFile(path.join(f.root, 'groma/plugins.json'), 'utf8')
     await session.close()
     const colleague = await createScannerSession(f.root, { registry: f.options.registry, cacheRoot: path.join(f.root, 'colleague-cache'), scan: false })
     try {
       expect(colleague.state.scanners.filter(item => item.status === 'missing')).toHaveLength(2)
       await colleague.change({ action: 'install-missing' })
       expect(colleague.state.scanners.every(item => item.status === 'ready')).toBe(true)
-      expect(await readFile(path.join(f.root, 'groma/scanners.json'), 'utf8')).toBe(selection)
+      expect(await readFile(path.join(f.root, 'groma/plugins.json'), 'utf8')).toBe(selection)
       expect((await loadAnnotatedArchitecture(f.root)).elements).toEqual(before.elements)
     } finally { await colleague.close() }
   } finally { await session.close(); await f.close() }

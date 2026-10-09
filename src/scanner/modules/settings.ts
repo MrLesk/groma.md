@@ -1,9 +1,11 @@
+import { addPlugin, removePlugin, restoreWorkSource, updatePlugin } from '../../plugin-management.ts'
+import { configuredWorkSource } from '../../work-sources.ts'
 import { scannerNotice, type ScannerSetting, type ScannerSettings, type ScannerSettingsAction } from './settings-model.ts'
 export * from './settings-model.ts'
 import type { ScannerDiscovery } from './discovery.ts'
 import { discoverScanners } from './discovery.ts'
 import { officialScannerCatalog } from './catalog.ts'
-import { configuredScannerModules, addScanner, removeScanner, updateScanner, restoreScanner } from './inventory.ts'
+import { configuredScannerModules, addScanner, restoreScanner } from './inventory.ts'
 import type { ScannerInstallOptions } from './inventory.ts'
 import type { ScannerModuleLocation } from './inventory.ts'
 import type { ProjectReadiness } from './readiness.ts'
@@ -18,7 +20,7 @@ export async function withScannerUpgrades(settings: ScannerSettings, registry?: 
     const source = parseScannerSource('.', scanner.source)
     if (source.kind !== 'npm') return
     try {
-      const release = selectPublishedScanner(source.name, await readPublishedScanners(source.name, registry))
+      const release = selectPublishedScanner(source.name, await readPublishedScanners(source.name, registry), undefined, scanner.kind ?? 'scanner')
       if (Bun.semver.order(release.version, scanner.version) > 0) upgrades[scanner.source] = { version: release.version }
     } catch (error) {
       upgrades[scanner.source] = { error: error instanceof Error ? error.message : String(error) }
@@ -84,7 +86,14 @@ export function scannerSettingsState(proposal: ScannerDiscovery, modules: readon
 export async function readScannerSettings(root: string, checks: readonly ProjectReadiness[] = [], options: ScannerInstallOptions = {}): Promise<ScannerSettings> {
   try {
     const [proposal, modules] = await Promise.all([discoverScanners(root, options), configuredScannerModules(root, options)])
-    return scannerSettingsState(proposal, modules, checks)
+    const state = scannerSettingsState(proposal, modules, checks)
+    const work = await configuredWorkSource(root, options)
+    if (work) state.scanners.push({
+      id: work.id, kind: 'workSource', name: work.name ?? work.id, source: work.source, version: work.version,
+      official: work.id === 'backlog', technologies: [], matches: [], match: 'matched',
+      status: work.status === 'found' ? 'ready' : work.status, message: work.message,
+    })
+    return state
   } catch (error) {
     return { scanners: [], notice: { tone: 'error', message: error instanceof Error ? error.message : String(error) }, limits: [] }
   }
@@ -92,10 +101,15 @@ export async function readScannerSettings(root: string, checks: readonly Project
 
 export async function changeScannerSettings(root: string, action: ScannerSettingsAction, options: ScannerInstallOptions = {}): Promise<void> {
   switch (action.action) {
-    case 'add': await addScanner(root, action.source, options); return
-    case 'remove': await removeScanner(root, action.id); return
-    case 'restore': await restoreScanner(root, action.id, options); return
-    case 'update': await updateScanner(root, action.id, action.source, options); return
+    case 'add': await addPlugin(root, action.source, options); return
+    case 'remove': await removePlugin(root, action.id); return
+    case 'restore': {
+      const work = await configuredWorkSource(root, options)
+      if (work?.id === action.id) await restoreWorkSource(root, options)
+      else await restoreScanner(root, action.id, options)
+      return
+    }
+    case 'update': await updatePlugin(root, action.id, action.source, options); return
     case 'retry': return
     case 'install-recommended': case 'install-missing': await installGroup(root, action.action, options); return
     case 'install': {
@@ -113,6 +127,7 @@ async function installGroup(root: string, group: 'install-recommended' | 'instal
   for (const item of selected) {
     try {
       if (group === 'install-recommended') await addScanner(root, item.installSource!, options)
+      else if (item.kind === 'workSource') await restoreWorkSource(root, options)
       else await restoreScanner(root, item.id, options)
     } catch (error) { errors.push(`${item.id}: ${error instanceof Error ? error.message : String(error)}`) }
   }

@@ -123,15 +123,15 @@ jobs:
         # Export reads saved architecture; source readiness is required only for a new scan.
         run: |
           bun -e '
-            const file = Bun.file("groma/scanners.json");
+            const file = Bun.file("groma/plugins.json");
             const config = await file.json();
-            for (const scanner of config.scanners) {
+            for (const scanner of [...config.scanners, ...(config.workSources ?? [])]) {
               const { name, version } = await Bun.file(`${scanner.source}/package.json`).json();
               scanner.source = `${name}@${version}`;
             }
             await Bun.write(file, JSON.stringify(config, null, 2) + "\n");
           '
-          bun run cli scanner install
+          bun run cli plugin install
 
       - name: Export the committed architecture
         env:

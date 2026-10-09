@@ -4,7 +4,7 @@ import {
 import type { CliRenderer } from '@opentui/core'
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 import type { WorkSource } from '@groma/work-source'
-import { backlogPlugin } from '@groma/work-source-backlog'
+import { workSourceSession } from './work-sources.ts'
 
 import { watchArchitecture } from './architecture-watch.ts'
 import { loadAnnotatedArchitecture } from './core.ts'
@@ -36,7 +36,7 @@ export async function startTerminalViewer(
   repositoryRoot: string,
   options: StartViewerOptions = {},
 ): Promise<TerminalViewer> {
-  const workSource = options.workSource ?? backlogPlugin.create(repositoryRoot)
+  const workSource = await workSourceSession(repositoryRoot, options.workSource)
   let work = EMPTY_WORK_SNAPSHOT
   let viewer: TerminalViewer
   let map: TerminalViewModel
@@ -106,12 +106,13 @@ export async function startTerminalViewer(
     })
     void pullWork()
     const scannerSession = await createScannerSession(repositoryRoot, {
+    onPluginsChanged: () => workSource.reconfigure(),
       scan: options.scan, onFold: publish,
       onSettings: scanners => { map = { ...map, scanners }; viewer.update({ ...map, work: map.revision === undefined ? work : EMPTY_WORK_SNAPSHOT }) },
     })
     map = { ...map, scanners: scannerSession.state }
     viewer.update({ ...map, work })
-    const architectureWatch = await watchArchitecture(repositoryRoot, { onChange: async () => { await scannerSession.reconfigure(); await publish() } })
+    const architectureWatch = await watchArchitecture(repositoryRoot, { onChange: async () => { await workSource.reconfigure(); await scannerSession.reconfigure(); await publish() } })
     const workWatch = workSource.watch(() => {
       void pullWork()
     })
