@@ -1,3 +1,4 @@
+import { criticalityLevels, type Criticality } from './criticality.ts'
 import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
@@ -56,7 +57,7 @@ function invalidElement(sourceFilename: string, message: string): never {
 
 function validateGromaFields(groma: Record<string, unknown>, sourceFilename: string): void {
   const unknownFields = Object.keys(groma).filter(field => {
-    return !['id', 'parent', 'group', 'technology', 'code', 'draft'].includes(field)
+    return !['id', 'parent', 'group', 'technology', 'criticality', 'code', 'draft'].includes(field)
   })
   if (unknownFields.length > 0) {
     invalidElement(sourceFilename, `unsupported groma field(s): ${unknownFields.join(', ')}`)
@@ -138,6 +139,10 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
   const parent = optionalText(groma.parent, 'parent', sourceFilename)
   const group = optionalText(groma.group, 'group', sourceFilename)
   const technology = optionalText(groma.technology, 'technology', sourceFilename)
+  const criticality = groma.criticality
+  if (criticality !== undefined && !criticalityLevels.includes(criticality as Criticality)) {
+    invalidElement(sourceFilename, 'criticality must be low, normal, high or critical')
+  }
   const draft = draftOf(groma, sourceFilename)
 
   return {
@@ -152,6 +157,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     external,
     ...(group === undefined ? {} : { group }),
     ...(technology === undefined ? {} : { technology }),
+    ...(criticality === undefined ? {} : { criticality: criticality as Criticality }),
     code: codeReferencesOf(groma.code, kind, message => {
       throw new ArchitectureModelError('INVALID_ELEMENT', sourceFilename, message)
     }),

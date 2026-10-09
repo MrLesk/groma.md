@@ -1,3 +1,5 @@
+import { criticalityOf } from './criticality.ts'
+import type { ArchitectureElement } from './types.ts'
 import { readFile, realpath, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -77,4 +79,18 @@ export async function initializeAgentInstructions(repositoryRoot: string): Promi
     const reconciled = reconcileManagedBlock(content)
     if (reconciled !== content) await writeFile(file, reconciled)
   }))
+}
+
+/** Live architecture rules precede the static guide so an agent sees its protected scope. */
+export function criticalityInstructions(elements: readonly ArchitectureElement[]): string {
+  const byId = new Map(elements.map(element => [element.id, element]))
+  return (['critical', 'high'] as const).flatMap(level => {
+    const selected = elements.filter(element => criticalityOf(element, byId) === level)
+    if (selected.length === 0) return []
+    const rule = level === 'critical'
+      ? 'Read-only for agents: do not change these elements or their files without explicit permission from a person.'
+      : "Explain every change to these elements or their files in the task's implementation notes."
+    return [`## ${level === 'critical' ? 'Critical' : 'High'} elements`, rule,
+      ...selected.map(element => `- ${element.id} (${element.title})${element.code.length ? `: ${[...new Set(element.code.map(code => code.file))].join(', ')}` : ''}`), '']
+  }).join('\n')
 }

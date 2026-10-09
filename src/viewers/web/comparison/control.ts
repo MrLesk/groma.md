@@ -1,3 +1,4 @@
+import { criticalitySummary } from '../../../criticality.ts'
 import { animateContent } from '../chrome/motion.ts'
 import type { Comparison, ChangeStatus } from '../../../history/comparison.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
@@ -64,7 +65,9 @@ export function createComparisonControl(host: HTMLElement, select: (id: string) 
   previous.onclick = () => step(-1)
   next.onclick = () => step(1)
   stepper.append(previous, position, next)
-  bar.append(filters, stepper)
+  const priority = document.createElement('span')
+  priority.setAttribute('aria-live', 'polite')
+  bar.append(priority, filters, stepper)
   host.append(bar)
   document.addEventListener('keydown', event => {
     if (bar.hidden || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return
@@ -104,6 +107,9 @@ export function createComparisonControl(host: HTMLElement, select: (id: string) 
       const statuses = comparison === undefined ? [] : [...Object.values(comparison.components).map(change => change.status), ...Object.values(comparison.relationships)]
       bar.hidden = !statuses.some(isChange)
       order = comparison === undefined ? [] : comparisonTree(world, comparison, enabled).order
+      priority.textContent = criticalitySummary(Object.values(comparison?.components ?? {})
+        .filter(change => isChange(change.status) && enabled.has(change.status))
+        .map(change => (change.after ?? change.before)!))
       buttons.forEach((button, index) => {
         const status = changeStatuses[index]!
         const count = statuses.filter(item => item === status).length

@@ -1,5 +1,5 @@
 /** Values from the start of a web edit session. CLI commands overwrite the latest fields. */
-export type EditValues = Partial<Record<'title' | 'description' | 'overview' | 'technology' | 'parent', string>>
+export type EditValues = Partial<Record<'title' | 'description' | 'overview' | 'technology' | 'criticality' | 'parent', string>>
 
 /** Both web forms send only changed fields, each paired with its value when editing began. */
 export function changedEdit(original: EditValues, values: EditValues): EditValues & { original: EditValues } {

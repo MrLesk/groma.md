@@ -1,3 +1,6 @@
+import { criticalityOf } from './criticality.ts'
+import { sourceIndex } from './source-index.ts'
+import type { ArchitectureElement, WorkSnapshot } from './types.ts'
 import path from 'node:path'
 import { cpus } from 'node:os'
 import { Worker } from 'node:worker_threads'
@@ -114,6 +117,7 @@ export function copiesOf(
 /** One item per reportable finding: its first instance, the possible duplicates, and whether they differ. */
 export function architectureFindingItems(findings: readonly ArchitectureFinding[]): string[] {
   return findings.flatMap(finding => {
+    if (finding.kind === 'critical-change') return [finding.title]
     const [first, ...rest] = finding.instances
     if (first === undefined || rest.length === 0) return []
     const lines = [
@@ -428,4 +432,20 @@ export function prepareArchitectureFindings(observations: readonly ScanObservati
     },
     close: () => Promise.all(workers.map(worker => worker.terminate())),
   }
+}
+
+/** Report one task/component pair, even when several modified files share that owner. */
+export function criticalTaskFindings(elements: readonly ArchitectureElement[], work: WorkSnapshot): ArchitectureFinding[] {
+  const byId = new Map(elements.map(element => [element.id, element]))
+  const index = sourceIndex(elements)
+  return work.items.filter(item => item.status !== work.defaultStatus && work.statuses.includes(item.status)).flatMap(item => {
+    const owners = new Set(item.modifiedFiles.map(file => index.owner(file)).filter(owner =>
+      owner !== undefined && owner.kind === 'component' && criticalityOf(owner, byId) === 'critical'))
+    return [...owners].map(owner => ({
+      id: `critical-change:${item.id}:${owner!.id}`,
+      kind: 'critical-change' as const,
+      title: `${item.id} (${item.title}) changes critical component ${owner!.id} (${owner!.title})`,
+      instances: [], differences: [],
+    }))
+  })
 }

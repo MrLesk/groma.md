@@ -21,9 +21,9 @@ export function ownedFiles(world: AnnotatedArchitectureModel): string[] {
 }
 
 function ownContent(element: AnnotatedElement): string {
-  const { title, description, overview, parent, external, group, technology, origin, draft } = element
+  const { title, description, overview, parent, external, group, technology, criticality, declaredCriticality, origin, draft } = element
   const code = element.code.map(({ scanner, file, symbol }) => JSON.stringify([scanner, file, symbol])).sort()
-  return JSON.stringify({ title, description, overview, parent, external, group, technology, origin, draft, code })
+  return JSON.stringify({ title, description, overview, parent, external, group, technology, criticality, declaredCriticality, origin, draft, code })
 }
 
 function componentChange(before: AnnotatedElement | undefined, after: AnnotatedElement | undefined,

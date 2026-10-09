@@ -136,6 +136,7 @@ function listedElement(element: AnnotatedElement): string {
 function elementDetails(element: AnnotatedElement): string[] {
   const lines = [headerTokens(element).join('  ')]
   if (element.parent !== null) lines.push(`parent: ${element.parent}`)
+  lines.push(`criticality: ${element.criticality ?? 'normal'}`)
   if (element.technology !== undefined) lines.push(`technology: ${element.technology}`)
   if (element.description !== undefined) lines.push(`description: ${element.description}`)
   if (element.overview !== '') lines.push(...element.overview.split(/\n\s*\n/))

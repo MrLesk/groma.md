@@ -49,6 +49,7 @@ Say what must be true, not how to build it. Do not specify frameworks, file layo
   Same box, still solid; the tag says the draft changes it. An empty --draft value clears the tag.
 - Rename a part or a draft record, id unchanged: groma edit <id> --title <text>
 - Rename the id of a system, container, or component: groma edit <id> --id <new-id>. Its document and the documents under it move, and relationship rows and flow steps that link them follow.
+- Criticality of an element: groma edit <id> --criticality <low|normal|high|critical>. Empty inherits from the parent; default normal. Critical requires a person's permission for agent changes; explain high changes in task notes.
 - Technology of an element: groma edit <id> --technology <text>. Pass an empty value to remove it.
 - Current long overview: groma edit <id> --overview <markdown>. Pass an empty value to clear it.
 - Optional concise description: groma edit <id> --description <text>. Pass an empty value to remove it.
