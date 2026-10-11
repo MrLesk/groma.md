@@ -134,7 +134,9 @@ test.concurrent('staged Backlog release installs its contract and supports npm s
       await rm(options.cacheRoot, { recursive: true, force: true })
       await changePluginSettings(root, { action: 'restore', id: 'backlog' }, options)
       const restored = await checkWorkSourceReadiness(root, options)
-      console.log(JSON.stringify({ installed, config: await readPluginConfig(root), id: restored?.plugin?.id }))
+      // The restored package is read from the cache again. Whether the Backlog CLI is on this machine is the adapter's
+      // own readiness and not part of this check.
+      console.log(JSON.stringify({ installed, config: await readPluginConfig(root), restoredVersion: restored?.version }))
     `
     const child = Bun.spawn([process.execPath, '--eval', script], { stdout: 'pipe', stderr: 'pipe',
       env: { ...process.env, BUN_INSTALL_CACHE_DIR: path.join(root, 'bun-cache') } })
@@ -145,7 +147,7 @@ test.concurrent('staged Backlog release installs its contract and supports npm s
     const source = `@groma/work-source-backlog@${adapter.version}`
     expect(JSON.parse(stdout)).toEqual({
       installed: { id: 'backlog', kind: 'workSource', source, status: 'found' },
-      config: { scanners: [], workSources: [{ id: 'backlog', source }] }, id: 'backlog',
+      config: { scanners: [], workSources: [{ id: 'backlog', source }] }, restoredVersion: adapter.version,
     })
   } finally { server.stop(true); await rm(root, { recursive: true, force: true }) }
 })
