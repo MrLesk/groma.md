@@ -1,9 +1,9 @@
-import { criticalityOf } from './criticality.ts'
-import type { ArchitectureElement } from './types.ts'
 import { readFile, realpath, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { compiledAsset } from './compiled-asset.ts'
+import { criticalityOf } from './criticality.ts'
+import type { ArchitectureElement } from './types.ts'
 
 const instructionFiles = ['AGENTS.md', 'CLAUDE.md'] as const
 const managedBlockPattern = /<!-- groma:start -->[\s\S]*?<!-- groma:end -->/g

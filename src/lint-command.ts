@@ -1,7 +1,7 @@
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 import { backlogPlugin } from '@groma/work-source-backlog'
 import type { Command } from 'commander'
-import { architectureFindingItems, detectDuplicatedLogic, criticalTaskFindings } from './architecture-findings.ts'
+import { architectureFindingItems, criticalTaskFindings, detectDuplicatedLogic } from './architecture-findings.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { sourceIndex } from './source-index.ts'

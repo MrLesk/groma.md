@@ -186,19 +186,19 @@ choose or write a level from code structure, language, or file size.
 
 Use `groma edit <id> --criticality <level>` or the details form. An empty value
 removes the explicit level and restores inheritance. `groma view <id> --plain`
-and the details panes show the effective level. High buildings and hierarchy
-rows carry `!`; critical ones carry `‼` in every theme.
+prints the effective level. The details panes show it unless it is `normal`.
+High buildings and hierarchy rows carry `!`; critical ones carry `‼` in every
+theme.
+
+Revision comparisons and task reviews list critical components first, then
+high, normal, and low, breaking ties by added plus deleted source lines. When a
+changed component is critical or high, the changes bar and the task summary
+start with how many of each changed.
 
 Critical elements and their source files are read-only for agents unless a
-person explicitly authorizes the change. Every change to a high element must
-be explained in the task's implementation notes. `groma agent-instructions`
-lists these elements and their files. `groma lint` reports a critical component
-when an in-progress or done task lists one of its files as modified; this
-finding requests human review and does not infer whether permission was given.
-
-Revision comparisons and task reviews prioritize critical, high, normal, then
-low components, breaking ties by added plus deleted source lines. The review
-summary leads with the numbers of critical and high components changed.
+person allows the change: the
+[agent guide index](agent-instructions/index.md#criticality-and-agent-changes)
+states that rule, the rule for high elements, and what `groma lint` reports.
 
 There is no `kind` field. The standard `type` carries the C4 type, and the
 body does not repeat `title` as a level-one heading.

@@ -1,6 +1,7 @@
 import { componentReasons, comparisonDefaultTab, textChanges } from '../src/viewers/web/comparison/details.ts'
 import { expect, test } from 'bun:test'
 import { readFile } from 'node:fs/promises'
+import { criticalitySummary } from '../src/criticality.ts'
 import { compareArchitecture, type SourceTexts } from '../src/history/comparison.ts'
 import { filterComparisonScene } from '../src/viewers/web/comparison/control.ts'
 import { presentScene } from '../src/viewers/web/iso/view-motion/presentation.ts'
@@ -82,7 +83,7 @@ test.concurrent('an id that changes kind keeps both elements, so both comparison
 })
 
 
-test.concurrent('comparison hierarchy includes changed paths and independent relationships, with counts owned by ancestors', async () => {
+test.concurrent('the Changes list holds changed components and independent relationships, with counts owned by ancestors', async () => {
   const { before, after, oldSources, newSources } = await fixture()
   const compared = compareArchitecture(before, after, oldSources, newSources)
   const comparison = { ...compared, from: null }
@@ -178,4 +179,9 @@ test.concurrent('declaring or clearing an inherited level is an own change with 
       expect(compared.components.payment!.status).toBe('unchanged')
     }
   }
+})
+
+test.concurrent('the review summary says nothing unless a changed component is critical or high', () => {
+  expect(criticalitySummary([{ criticality: 'normal' }, { criticality: 'low' }, {}])).toBe('')
+  expect(criticalitySummary([{ criticality: 'normal' }, { criticality: 'high' }])).not.toBe('')
 })

@@ -20,15 +20,11 @@ Element IDs also link actors, systems, drafts, and architecture-only work.
 Titles, group addresses, and issue URLs remain context. A file only maps once
 the loaded architecture records its owner; References do not declare ownership.
 
-## Review priority
+## Critical and high elements
 
-Before changing files, read the critical and high elements listed by
-`groma agent-instructions`. Levels are `low`, `normal`, `high`, and `critical`;
-an unset level inherits through parents and defaults to `normal`. Files take
-the level of their owner. Critical elements require explicit permission from
-a person before an agent changes them. Explain each high-element change in
-the task's implementation notes. `groma lint` reports in-progress and done
-tasks whose modified files belong to critical components for human review.
+Before changing files, follow "Criticality and agent changes" in
+`groma agent-instructions`, which also explains the `groma lint` finding for a
+task that changes a critical component.
 
 ## After each file change
 

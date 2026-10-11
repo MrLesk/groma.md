@@ -1,5 +1,5 @@
-import { criticalitySummary } from '../../../criticality.ts'
 import { animateContent } from '../chrome/motion.ts'
+import { criticalitySummary } from '../../../criticality.ts'
 import type { Comparison, ChangeStatus } from '../../../history/comparison.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import type { LayeredScene } from '../iso/projection/separation.ts'
@@ -106,10 +106,11 @@ export function createComparisonControl(host: HTMLElement, select: (id: string) 
       if (nextPair !== pair) { enabled = new Set(changeStatuses); pair = nextPair }
       const statuses = comparison === undefined ? [] : [...Object.values(comparison.components).map(change => change.status), ...Object.values(comparison.relationships)]
       bar.hidden = !statuses.some(isChange)
-      order = comparison === undefined ? [] : comparisonTree(world, comparison, enabled).order
-      priority.textContent = criticalitySummary(Object.values(comparison?.components ?? {})
-        .filter(change => isChange(change.status) && enabled.has(change.status))
-        .map(change => (change.after ?? change.before)!))
+      const changes = comparison === undefined ? undefined : comparisonTree(world, comparison, enabled)
+      order = changes?.order ?? []
+      // The summary counts the rows of the Changes list and hides when none of them is critical or high.
+      priority.textContent = criticalitySummary(changes?.rows ?? [])
+      priority.hidden = priority.textContent === ''
       buttons.forEach((button, index) => {
         const status = changeStatuses[index]!
         const count = statuses.filter(item => item === status).length

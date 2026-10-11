@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import type { ArchitectureFinding, ArchitectureFindingInstance } from '../src/types.ts'
+import type { ArchitectureFindingInstance, DuplicatedLogicFinding } from '../src/types.ts'
 import { compareOperations, comparisonReader, duplicateGroups, operationSource } from '../src/viewers/web/duplicates/model.ts'
 
 function instance(owner: string, startLine = 2, endLine = 4): ArchitectureFindingInstance {
@@ -7,7 +7,7 @@ function instance(owner: string, startLine = 2, endLine = 4): ArchitectureFindin
 }
 
 test.concurrent('owner filters keep outside copies and combine with match filtering', () => {
-  const findings: ArchitectureFinding[] = [
+  const findings: DuplicatedLogicFinding[] = [
     { id: 'shared', kind: 'duplicated-logic', title: '', match: 'similar', instances: [instance('a'), instance('b')], differences: [] },
     { id: 'local', kind: 'duplicated-logic', title: '', match: 'exact', instances: [instance('b'), instance('b', 8, 10)], differences: [] },
   ]

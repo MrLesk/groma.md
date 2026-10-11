@@ -33,7 +33,9 @@ of writing guesses. Optional fields need content only when they add meaning.
 
 `--title` renames the record; its ID stays. An empty `--description` or
 `--technology` value removes that field, and an empty `--overview` clears the
-body. `groma view` has no `project` target: the project record is
+body. `--criticality` takes a level, or an empty value to inherit the parent's;
+see "Criticality and agent changes" in `groma agent-instructions`.
+`groma view` has no `project` target: the project record is
 `<groma-root>/project.md`. Read that file, and change it only through
 `groma edit project`.
 
@@ -56,17 +58,3 @@ Every visible element has a responsibility a new reader can understand. Read
 the result with `groma view <id>` and check its name and explanation in the map.
 The short description and overview should complement each other, and the
 record should remain useful as ordinary Markdown outside groma.md.
-
-## Criticality
-
-Use `groma edit <id> --criticality low|normal|high|critical` to record a human
-judgment about the damage a mistake could cause. Pass one level, or an empty
-value to inherit from the parent. Inheritance continues through ancestors and
-defaults to `normal`; files inherit from their owning component. Scans preserve
-this judgment and never assign it.
-
-Critical elements and their files are read-only for agents without a person's
-explicit permission. Explain every high-element change in the task's
-implementation notes. Read the live list from `groma agent-instructions` before
-editing. This is Groma profile metadata about an existing C4 element, not a new
-OKF or C4 concept.

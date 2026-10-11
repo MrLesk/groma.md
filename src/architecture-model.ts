@@ -1,7 +1,7 @@
-import { criticalityLevels, type Criticality } from './criticality.ts'
 import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
+import { criticalityLevels, type Criticality } from './criticality.ts'
 import { isReservedId, kebabCase } from './naming.ts'
 import { DRAFT_TYPE, c4Kind, requireGromaMapping } from './okf-profile.ts'
 import { storedConnections } from './relationship-markdown.ts'

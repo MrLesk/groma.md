@@ -9,12 +9,20 @@ import { createScanObservation, type ScanOperation } from '@groma/scanner'
 import { addScanner } from '../src/scanner/modules/inventory.ts'
 import manifest from '../plugins/scanners/typescript/package.json'
 import { scanTypeScriptSource } from '../plugins/scanners/typescript/src/scan.ts'
-import { copiesOf, detectDuplicatedLogic, findingsForOwner, prepareArchitectureFindings, rememberArchitectureFindings } from '../src/architecture-findings.ts'
+import {
+  architectureFindingItems,
+  copiesOf,
+  criticalTaskFindings,
+  detectDuplicatedLogic,
+  findingsForOwner,
+  prepareArchitectureFindings,
+  rememberArchitectureFindings,
+} from '../src/architecture-findings.ts'
 
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import { scanRepository } from '../src/scanner.ts'
 import { inspectDetails } from '../src/viewers/web/organisms/details.ts'
-import type { ArchitectureFinding } from '../src/types.ts'
+import type { ArchitectureElement, C4Kind, DuplicatedLogicFinding, WorkItem } from '../src/types.ts'
 import { scannerFiles } from '../src/scanner/modules/selection.ts'
 
 /** The files Groma hands the TypeScript scanner with its package defaults. */
@@ -70,7 +78,7 @@ async function scannedFixture(fixture = 'duplicated-logic', bin = 'src/ready-a.t
   return root
 }
 
-function namesOf(finding: ArchitectureFinding): string[] {
+function namesOf(finding: DuplicatedLogicFinding): string[] {
   return finding.instances.map(instance => instance.name).sort()
 }
 
@@ -108,7 +116,7 @@ test.concurrent('operations starting on one line each take the other as their co
   const starting = (name: string, endLine: number): ScanOperation => ({
     id: `src/min.js#${name}`, file: 'src/min.js', name, startLine: 1, endLine, tokens: ruleTokens,
   })
-  const copyNames = (findings: ArchitectureFinding[], name: string) => copiesOf(findings, 'src/min.js', 1, name)?.copies.map(instance => instance.name)
+  const copyNames = (findings: DuplicatedLogicFinding[], name: string) => copiesOf(findings, 'src/min.js', 1, name)?.copies.map(instance => instance.name)
   const oneLine = detectDuplicatedLogic([observation([starting('Rules.canStart', 1), starting('Rules.readyToRun', 1)])], new Map<string, string>())
   expect(copyNames(oneLine, 'canStart')).toEqual(['Rules.readyToRun'])
   expect(copyNames(oneLine, 'readyToRun')).toEqual(['Rules.canStart'])
@@ -289,4 +297,36 @@ test.concurrent('shared tokens still require matching multiplicity and sequence 
   expect(findingsFor([repeated, spread('abcxxxxyyy')])[0]?.match).toBe('similar')
   expect(findingsFor([repeated, spread('abcxxxyyyy')])).toEqual([])
   expect(findingsFor([spread('abcdefghij'), spread('abcjihgfed')])).toEqual([])
+})
+
+// AC4: lint reports an in-progress or done task once for each critical component that owns one of its modified files.
+test.concurrent('a critical change names each in-progress or done task with its critical component, never a task still to do', () => {
+  const element = (id: string, kind: C4Kind, parentId: string | null, extra: Partial<ArchitectureElement> = {}): ArchitectureElement => ({
+    id, kind, title: id, overview: '', parentId, external: false, code: [], status: 'stable', sourceFilename: `${id}.md`, ...extra,
+  })
+  const code = (...files: string[]) => files.map(file => ({ scanner: 'typescript', file }))
+  const elements = [
+    element('shop', 'system', null),
+    element('api', 'container', 'shop', { criticality: 'critical' }),
+    // payments inherits critical from its container; catalog overrides it.
+    element('payments', 'component', 'api', { code: code('src/pay.ts', 'src/refund.ts') }),
+    element('catalog', 'component', 'api', { criticality: 'normal', code: code('src/catalog.ts') }),
+  ]
+  const task = (id: string, status: string, ...modifiedFiles: string[]): WorkItem => ({
+    id, title: id, status, assignees: [], references: [], modifiedFiles, acceptanceCriteriaCompleted: 0, acceptanceCriteriaCount: 0, updatedAt: '',
+  })
+  const printed = architectureFindingItems(criticalTaskFindings(elements, {
+    statuses: ['To Do', 'In Progress', 'Done'],
+    defaultStatus: 'To Do',
+    items: [
+      task('TASK-1', 'To Do', 'src/pay.ts'),
+      task('TASK-2', 'In Progress', 'src/pay.ts', 'src/refund.ts'),
+      task('TASK-3', 'Done', 'src/catalog.ts', 'src/pay.ts'),
+      task('TASK-4', 'In Progress', 'src/catalog.ts'),
+    ],
+  }))
+  expect(printed).toHaveLength(2)
+  expect(printed[0]).toContain('TASK-2')
+  expect(printed[1]).toContain('TASK-3')
+  for (const item of printed) expect(item).toContain('payments')
 })

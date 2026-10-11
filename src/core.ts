@@ -1,10 +1,10 @@
-import { criticalityOf } from './criticality.ts'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { architectureFindingsFor } from './architecture-findings.ts'
 import { buildArchitectureModel, draftRecordOf } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
+import { criticalityOf } from './criticality.ts'
 import { moveBlocker } from './movable.ts'
 import { resolveFlows } from './flow-model.ts'
 import type {

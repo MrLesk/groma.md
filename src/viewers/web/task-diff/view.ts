@@ -1,7 +1,7 @@
-import { criticalitySummary } from '../../../criticality.ts'
-import { taskReviewFiles } from './priority.ts'
 import type { ArchitectureGraph, C4Kind, WorkItem, WorkItemDetails } from '../../../types.ts'
+import { criticalitySummary } from '../../../criticality.ts'
 import { sourceIndex } from '../../../source-index.ts'
+import { taskReviewFiles } from './priority.ts'
 import { updateTaskSummary, updateTaskText } from './updates.ts'
 import { kindGlyph } from '../../atoms/kind.ts'
 import { fileDiffRow, leaveFileDiff, paintFileDiff } from '../source/diff-view.ts'
@@ -123,12 +123,14 @@ export function paintTaskSummary(
   const body = document.createElement('div')
   body.className = 'task-summary'
   body.dataset.taskId = item.id
-  if (payload !== undefined) {
-    const changed = payload.files.filter(file => file.status !== 'unchanged')
-    const owners = [...new Set(changed.map(file => index.owner(file.file)).filter(owner => owner !== undefined))]
+  // The first line of a loaded task: how many of the components it changed are critical and high, when any is.
+  const changed = payload?.files.filter(file => file.status !== 'unchanged') ?? []
+  const owners = [...new Set(changed.map(file => index.owner(file.file)).filter(owner => owner !== undefined))]
+  const summary = criticalitySummary(owners)
+  if (summary !== '') {
     const priority = document.createElement('p')
     priority.dataset.taskKey = 'criticality'
-    priority.textContent = criticalitySummary(owners)
+    priority.textContent = summary
     body.append(priority)
   }
   if (detailsError !== undefined) {

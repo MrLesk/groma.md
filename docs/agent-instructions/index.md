@@ -54,20 +54,24 @@ presentation. Use the CLI to maintain that metadata and source references.
 
 ## Criticality and agent changes
 
-An element may carry `groma.criticality`: `low`, `normal`, `high`, or `critical`.
-An omitted value inherits down the parent tree; no explicit ancestor means
-`normal`. Each file takes its owning component's level. These are human
-judgments, never levels selected by a scan.
+Every element has a criticality level: `low`, `normal`, `high`, or `critical`.
+An element without one takes its parent's; the
+[field contract](https://github.com/MrLesk/Groma.md/blob/main/docs/component-markdown.md#criticality)
+defines the levels and how to set one.
 
-Read the critical and high element lists printed with this guide before
-changing files. Critical elements and their files are read-only for agents
-unless a person explicitly authorizes the change. For high elements, explain
-every change in the task's implementation notes. Review critical changes
-first, then high, normal, and low; within a level, start with larger changes.
+When any element is critical or high, this command prints those elements and
+their files above the guide it was asked for. Read that list before changing
+files:
 
-Set a level with `groma edit <id> --criticality <level>` during curation.
-An empty value restores inheritance. The level describes an existing C4
-element; it does not create a new architecture boundary.
+- Critical elements and their files are read-only for agents. Change one only
+  after a person explicitly allows it.
+- Explain every change to a high element or its files in the task's
+  implementation notes.
+
+`groma lint` reports each in-progress or done task whose modified files belong
+to a critical component. The finding asks a person to review the change. It
+stays for as long as the task is on the board, because groma.md does not record
+whether the change was allowed.
 
 ## Curation workflow and expected result
 

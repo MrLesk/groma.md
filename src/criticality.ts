@@ -1,4 +1,4 @@
-import type { ArchitectureElement, AnnotatedElement } from './types.ts'
+import type { AnnotatedElement, ArchitectureElement } from './types.ts'
 
 export const criticalityLevels = ['low', 'normal', 'high', 'critical'] as const
 export type Criticality = typeof criticalityLevels[number]
@@ -10,7 +10,7 @@ export function criticalityOf(element: ArchitectureElement, byId: ReadonlyMap<st
   return parent === undefined ? 'normal' : criticalityOf(parent, byId)
 }
 
-export function criticalityRank(level: Criticality | undefined): number {
+function criticalityRank(level: Criticality | undefined): number {
   return criticalityLevels.indexOf(level ?? 'normal')
 }
 
@@ -19,9 +19,12 @@ export function criticalityMark(level: Criticality | undefined): string {
   return level === 'critical' ? '‼' : level === 'high' ? '!' : ''
 }
 
+/** How many of the changed components are critical and high. Empty when none is, so a review shows no line of zeros. */
 export function criticalitySummary(elements: readonly Pick<AnnotatedElement, 'criticality'>[]): string {
   const count = (level: Criticality) => elements.filter(element => element.criticality === level).length
-  return `${count('critical')} critical · ${count('high')} high`
+  const critical = count('critical')
+  const high = count('high')
+  return critical + high === 0 ? '' : `${critical} critical · ${high} high`
 }
 
 /** Highest risk first; larger changes break ties within one level. */

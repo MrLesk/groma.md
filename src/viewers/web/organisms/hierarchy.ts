@@ -1,8 +1,8 @@
-import { criticalityMark } from '../../../criticality.ts'
 import { animateRow } from '../chrome/motion.ts'
 import type { Comparison, ComponentChange } from '../../../history/comparison.ts'
 import { chromeButton } from '../atoms/button.ts'
 import { comparisonTree, changeStatuses, changeMarks, changeLabels, isChange, type ChangeCounts, type VisibleStatus } from '../comparison/tree.ts'
+import { criticalityMark } from '../../../criticality.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import { initialTree, semanticTreeRows, toggleExpansion, type TreeRow } from '../../tui/tree.ts'
 import { replaceTreeChildren, sidebarBranches, sidebarRow } from './sidebar-row.ts'
@@ -52,6 +52,10 @@ function hierarchyRow(
   return button
 }
 
+/**
+ * A system or container row of the All tree shows how many components below it changed, in place of its child
+ * count. A changed component row, in either list, shows its changed lines and its status.
+ */
 function appendChangeMarks(button: HTMLButtonElement, row: TreeRow, change: ComponentChange | undefined, counts: ChangeCounts | undefined): void {
   if (counts !== undefined) {
     button.querySelector('.name')!.textContent = row.title

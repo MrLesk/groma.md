@@ -1,4 +1,4 @@
-import { compareReviewPriority } from '../../../criticality.ts'
+import { compareReviewPriority, type Criticality } from '../../../criticality.ts'
 import type { Comparison, ChangeStatus } from '../../../history/comparison.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import { ancestorsOf, type TreeRow } from '../../tui/tree.ts'
@@ -12,11 +12,12 @@ export function isChange(status: ChangeStatus | undefined): status is VisibleSta
   return status !== undefined && status !== 'unchanged'
 }
 
-function changedPaths(world: ArchitectureGraph, comparison: Comparison, enabled: ReadonlySet<VisibleStatus>) {
+/** One pass over the compared components collects what comparisonTree returns about them and their ancestors. */
+function componentChanges(world: ArchitectureGraph, comparison: Comparison, enabled: ReadonlySet<VisibleStatus>) {
   const byId = new Map(world.elements.map(element => [element.representationId, element]))
   const counts = new Map<string, ChangeCounts>()
-  const priorities = new Map<string, { criticality?: import('../../../criticality.ts').Criticality; size: number }>()
-  const changed = new Set<string>()
+  /** Each changed component whose status is enabled, with what the review order compares. */
+  const priorities = new Map<string, { criticality?: Criticality; size: number }>()
   const current = new Set<string>()
   const former = new Set<string>()
   for (const element of world.elements) {
@@ -25,24 +26,36 @@ function changedPaths(world: ArchitectureGraph, comparison: Comparison, enabled:
     const parents = ancestorsOf(element.representationId, byId)
     for (const id of parents) (change.after === undefined ? former : current).add(id)
     if (!isChange(change.status) || !enabled.has(change.status)) continue
-    changed.add(element.representationId)
-    const priority = { criticality: (change.after ?? change.before)!.criticality,
-      size: change.files.reduce((total, file) => total + file.additions + file.deletions, 0) }
-    priorities.set(element.representationId, priority)
+    priorities.set(element.representationId, {
+      criticality: element.criticality,
+      size: change.files.reduce((total, file) => total + file.additions + file.deletions, 0),
+    })
     for (const id of parents) {
       const total = counts.get(id) ?? { added: 0, modified: 0, removed: 0 }
       total[change.status] += 1
       counts.set(id, total)
     }
   }
-  return { counts, priorities, changed, former: new Set([...former].filter(id => !current.has(id))) }
+  return { counts, priorities, former: new Set([...former].filter(id => !current.has(id))) }
 }
 
-/** The Changes list and navigation share global review priority; All retains the containment tree. */
+/**
+ * One comparison as the hierarchy pane, the changes bar and the map filter read it. A status missing from
+ * `enabled` is left out of rows, relationships, order and counts.
+ * - rows: the Changes list. Only changed components, flat, without their ancestors: critical first, then high,
+ *   normal and low, and within one level the change with more added and deleted lines first.
+ * - relationships: the changed relationships, listed below the rows.
+ * - order: the row ids, then the relationship ids. Previous and Next walk it.
+ * - counts: for each system and container, how many components below it were added, modified and removed. The
+ *   All tree shows them on that row.
+ * - former: systems and containers that hold only removed components. The All tree mutes them, and the map
+ *   hides them while Removed is filtered out.
+ * - elements: every element of `world`, so a relationship row can name its two ends.
+ */
 export function comparisonTree(world: ArchitectureGraph, comparison: Comparison,
   enabled: ReadonlySet<VisibleStatus> = new Set(changeStatuses)) {
-  const { counts, priorities, changed, former } = changedPaths(world, comparison, enabled)
-  const ranked = world.elements.filter(element => changed.has(element.representationId)).sort((left, right) =>
+  const { counts, priorities, former } = componentChanges(world, comparison, enabled)
+  const ranked = world.elements.filter(element => priorities.has(element.representationId)).sort((left, right) =>
     compareReviewPriority(priorities.get(left.representationId)!, priorities.get(right.representationId)!)
       || left.title.localeCompare(right.title) || left.id.localeCompare(right.id))
   const rows: TreeRow[] = ranked.map(element => ({

@@ -7,12 +7,13 @@ import { Command, Option } from 'commander'
 import { confirm } from '@clack/prompts'
 import packageJson from '../package.json' with { type: 'json' }
 
-import { agentGuideNames, firstScanAgentNote, readAgentGuide, criticalityInstructions } from './agent-instructions.ts'
-import { gromaInitialization } from './initialize.ts'
+import { agentGuideNames, criticalityInstructions, firstScanAgentNote, readAgentGuide } from './agent-instructions.ts'
+import { buildArchitectureModel } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { annotateArchitecture } from './core.ts'
 import { awaitsCuration, firstScanHint, firstScanTitle } from './empty-world.ts'
 import { ensureInitialized, runInitCommand } from './init-command.ts'
+import { gromaInitialization } from './initialize.ts'
 import { humanInstructionGuide } from './instructions.ts'
 import { listWindowRequested, parseListWindow, withListWindowOptions, type ListWindow } from './list-window.ts'
 import { registerLintCommand } from './lint-command.ts'
@@ -331,7 +332,6 @@ program
     if (guide === undefined && await awaitingCuration(process.cwd())) console.log(`${firstScanAgentNote}\n`)
     if (gromaInitialization(process.cwd()).initialized) {
       const records = await loadArchitecture(process.cwd())
-      const { buildArchitectureModel } = await import('./architecture-model.ts')
       const guidance = criticalityInstructions(buildArchitectureModel(records.documents).elements)
       if (guidance) console.log(guidance)
     }

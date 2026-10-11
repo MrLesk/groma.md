@@ -1,12 +1,19 @@
-import { criticalityOf } from './criticality.ts'
-import { sourceIndex } from './source-index.ts'
-import type { ArchitectureElement, WorkSnapshot } from './types.ts'
 import path from 'node:path'
 import { cpus } from 'node:os'
 import { Worker } from 'node:worker_threads'
 import type { CodeDeclaration, CodeSymbol, ScanObservation, ScanOperation } from '@groma/scanner'
 
-import type { ArchitectureFinding, ArchitectureFindingInstance } from './types.ts'
+import { criticalityOf } from './criticality.ts'
+import { sourceIndex } from './source-index.ts'
+import type {
+  ArchitectureElement,
+  ArchitectureFinding,
+  ArchitectureFindingInstance,
+  CriticalChangeFinding,
+  DuplicatedLogicFinding,
+  WorkItem,
+  WorkSnapshot,
+} from './types.ts'
 
 /** Every compared body, including each identical copy, needs this many tokens. */
 const MIN_COMPARED_TOKENS = 8
@@ -29,7 +36,7 @@ interface Candidate {
   owner?: string
 }
 
-const remembered = new Map<string, readonly ArchitectureFinding[]>()
+const remembered = new Map<string, readonly DuplicatedLogicFinding[]>()
 
 function keyOf(root: string): string {
   return path.resolve(root)
@@ -37,19 +44,19 @@ function keyOf(root: string): string {
 
 export function rememberArchitectureFindings(
   repositoryRoot: string,
-  findings: readonly ArchitectureFinding[],
+  findings: readonly DuplicatedLogicFinding[],
 ): void {
   remembered.set(keyOf(repositoryRoot), findings)
 }
 
-export function architectureFindingsFor(repositoryRoot: string): readonly ArchitectureFinding[] {
+export function architectureFindingsFor(repositoryRoot: string): readonly DuplicatedLogicFinding[] {
   return remembered.get(keyOf(repositoryRoot)) ?? []
 }
 
 export function findingsForOwner(
-  findings: readonly ArchitectureFinding[],
+  findings: readonly DuplicatedLogicFinding[],
   ownerId: string,
-): ArchitectureFinding[] {
+): DuplicatedLogicFinding[] {
   return findings.filter(finding => finding.instances.some(instance => instance.owner === ownerId))
 }
 
@@ -63,7 +70,7 @@ function holdsLine(instance: ArchitectureFindingInstance, file: string, line: nu
 }
 
 interface FoundOperation {
-  finding: ArchitectureFinding
+  finding: DuplicatedLogicFinding
   instance: ArchitectureFindingInstance
 }
 
@@ -81,7 +88,7 @@ function endsInName(instance: ArchitectureFindingInstance, name: string): boolea
  * scanner may qualify the name the row shows and several operations can share a line. Undefined unless exactly one.
  */
 function operationAt(
-  findings: readonly ArchitectureFinding[],
+  findings: readonly DuplicatedLogicFinding[],
   file: string,
   line: number,
   name: string,
@@ -94,7 +101,7 @@ function operationAt(
 
 /** The copies of an outline row's operation. A type row declares no body, so only function and member rows have them. */
 export function copiesOfSymbol(
-  findings: readonly ArchitectureFinding[],
+  findings: readonly DuplicatedLogicFinding[],
   file: string,
   symbol: CodeSymbol | CodeDeclaration,
 ): OperationCopies | undefined {
@@ -103,7 +110,7 @@ export function copiesOfSymbol(
 
 /** Other locations that look like the operation named `name` at this line. Undefined when it has no copies. */
 export function copiesOf(
-  findings: readonly ArchitectureFinding[],
+  findings: readonly DuplicatedLogicFinding[],
   file: string,
   line: number,
   name: string,
@@ -114,7 +121,10 @@ export function copiesOf(
   return copies.length === 0 ? undefined : { similar: found.finding.match === 'similar', copies }
 }
 
-/** One item per reportable finding: its first instance, the possible duplicates, and whether they differ. */
+/**
+ * One printed item per reportable finding. A critical change is its title. Duplicated logic is its first
+ * instance, the possible duplicates, and whether they differ.
+ */
 export function architectureFindingItems(findings: readonly ArchitectureFinding[]): string[] {
   return findings.flatMap(finding => {
     if (finding.kind === 'critical-change') return [finding.title]
@@ -367,7 +377,7 @@ function findingId(members: readonly Candidate[]): string {
   return `duplicated-logic:${members.map(member => `${member.file}:${member.startLine}:${member.name}`).sort().join('|')}`
 }
 
-function findingOf(members: readonly Candidate[]): ArchitectureFinding {
+function findingOf(members: readonly Candidate[]): DuplicatedLogicFinding {
   const ordered = [...members].sort((left, right) => {
     return `${left.file}:${left.startLine}`.localeCompare(`${right.file}:${right.startLine}`)
   })
@@ -386,12 +396,12 @@ function findingOf(members: readonly Candidate[]): ArchitectureFinding {
 export function detectDuplicatedLogic(
   observations: readonly Pick<ScanObservation, 'operations'>[],
   owners: ReadonlyMap<string, string>,
-): ArchitectureFinding[] {
+): DuplicatedLogicFinding[] {
   const items = candidates(observations, owners)
   return findingsIn(items, clusters(items))
 }
 
-function findingsIn(items: readonly Candidate[], groups: number[][]): ArchitectureFinding[] {
+function findingsIn(items: readonly Candidate[], groups: number[][]): DuplicatedLogicFinding[] {
   return groups
     .map(group => findingOf(group.map(index => items[index]!)))
     .sort((left, right) => left.id.localeCompare(right.id))
@@ -419,7 +429,7 @@ export function prepareArchitectureFindings(observations: readonly ScanObservati
   // Capture an early worker failure until reconciliation reaches its result.
   const settled = Promise.allSettled(ready)
   return {
-    async complete(owners: ReadonlyMap<string, string>): Promise<ArchitectureFinding[]> {
+    async complete(owners: ReadonlyMap<string, string>): Promise<DuplicatedLogicFinding[]> {
       const items = candidates(compared, owners)
       const sets = unionFind(items.length)
       for (const result of await settled) {
@@ -434,18 +444,24 @@ export function prepareArchitectureFindings(observations: readonly ScanObservati
   }
 }
 
-/** Report one task/component pair, even when several modified files share that owner. */
-export function criticalTaskFindings(elements: readonly ArchitectureElement[], work: WorkSnapshot): ArchitectureFinding[] {
+/**
+ * One finding for each in-progress or done task and each critical component that owns one of its modified
+ * files, however many of that component's files the task lists.
+ */
+export function criticalTaskFindings(elements: readonly ArchitectureElement[], work: WorkSnapshot): CriticalChangeFinding[] {
   const byId = new Map(elements.map(element => [element.id, element]))
   const index = sourceIndex(elements)
-  return work.items.filter(item => item.status !== work.defaultStatus && work.statuses.includes(item.status)).flatMap(item => {
-    const owners = new Set(item.modifiedFiles.map(file => index.owner(file)).filter(owner =>
-      owner !== undefined && owner.kind === 'component' && criticalityOf(owner, byId) === 'critical'))
-    return [...owners].map(owner => ({
-      id: `critical-change:${item.id}:${owner!.id}`,
-      kind: 'critical-change' as const,
-      title: `${item.id} (${item.title}) changes critical component ${owner!.id} (${owner!.title})`,
-      instances: [], differences: [],
-    }))
+  // In progress or done: any configured status except the default one, in which a task waits to be started.
+  const inProgressOrDone = (item: WorkItem) => item.status !== work.defaultStatus && work.statuses.includes(item.status)
+  return work.items.filter(inProgressOrDone).flatMap(item => {
+    // Only a component declares code, so every owner is a component.
+    const owners = new Set(item.modifiedFiles.map(file => index.owner(file)).filter(owner => owner !== undefined))
+    return [...owners]
+      .filter(owner => criticalityOf(owner, byId) === 'critical')
+      .map(owner => ({
+        id: `critical-change:${item.id}:${owner.id}`,
+        kind: 'critical-change' as const,
+        title: `${item.id} (${item.title}) changes critical component ${owner.id} (${owner.title})`,
+      }))
   })
 }

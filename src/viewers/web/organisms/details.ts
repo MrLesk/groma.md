@@ -1,10 +1,9 @@
-import { criticalityLevels, type Criticality } from '../../../criticality.ts'
 import type {
   AnnotatedElement,
-  ArchitectureFinding,
   ArchitectureGraph,
   C4Kind,
   CodeReference,
+  DuplicatedLogicFinding,
   Origin,
 } from '../../../types.ts'
 import type { Comparison, ComponentChange } from '../../../history/comparison.ts'
@@ -12,6 +11,7 @@ import { changeBadge, comparisonReasons, comparisonOverview, comparisonTechnolog
 import type { ElementWorkGroup } from '../../../work/pins.ts'
 import type { Zone } from '../../../sheet/types.ts'
 import { findingsForOwner } from '../../../architecture-findings.ts'
+import { criticalityLevels, type Criticality } from '../../../criticality.ts'
 import { removalBlocker } from '../../../removable.ts'
 import { flowsThrough } from '../../flows.ts'
 import type { FlowRef } from '../../flows.ts'
@@ -53,10 +53,12 @@ export interface Inspected {
   flows: FlowRowData[]
   children: InspectedChild[]
   technology: string
+  /** The effective level after inheritance; a placement group has none. */
   criticality?: Criticality
+  /** The level written on the element itself; absent while it inherits. */
   declaredCriticality?: Criticality
   files: CodeReference[]
-  findings: ArchitectureFinding[]
+  findings: DuplicatedLogicFinding[]
   /** True when groma remove would succeed on it right now. */
   removable: boolean
   /** A draft with scan evidence can be accepted. */
@@ -161,7 +163,7 @@ export function inspectDetails(
     })),
     children,
     technology: element.technology ?? '',
-    criticality: element.criticality ?? 'normal',
+    criticality: element.criticality,
     declaredCriticality: element.declaredCriticality,
     files: element.code,
     findings: findingsForOwner(world.findings ?? [], element.id),
@@ -284,7 +286,9 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   const body = host.querySelector('.body')!
   title.replaceChildren()
   title.textContent = inspected.title
-  meta.textContent = `${inspected.kindLabel} · ${inspected.origin}${inspected.criticality === undefined ? '' : ` · ${inspected.criticality}`}`
+  // Normal is the default level, so the meta line names only the other three.
+  const level = inspected.criticality ?? 'normal'
+  meta.textContent = [inspected.kindLabel, inspected.origin, ...(level === 'normal' ? [] : [level])].join(' · ')
 
   const change = options.comparison?.components[inspected.id]
   if (change !== undefined) {

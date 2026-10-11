@@ -1,3 +1,4 @@
+import type { Criticality } from '../criticality.ts'
 import type { AnnotatedRelationship, C4Kind, Origin } from '../types.ts'
 
 /** A rectangle in map cells: `gx`, `gy` is the north corner, `w` runs along gx, `d` along gy. */
@@ -14,7 +15,7 @@ export interface SheetItem {
   id: string
   title: string
   origin: Origin
-  criticality?: import('../criticality.ts').Criticality
+  criticality?: Criticality
 }
 
 export type IslandKind = 'actors' | 'external' | 'system'
