@@ -27,22 +27,6 @@ export function monogram(assignee: string): string {
   return assignee.replace(/^@/, '').slice(0, 2).toUpperCase()
 }
 
-/** Numeric ids compare one dotted segment at a time (TASK-416.10 sorts after TASK-416.2); ids without numbers sort last, consistently. */
-function compareTaskIds(a: string, b: string): number {
-  const segments = (id: string): number[] => {
-    const remainder = id.replace(/^\D+/, '')
-    return remainder === '' ? [] : remainder.split('.').map(Number).filter(Number.isFinite)
-  }
-  const left = segments(a)
-  const right = segments(b)
-  if (left.length === 0 || right.length === 0) return right.length - left.length
-  for (let index = 0; index < Math.min(left.length, right.length); index++) {
-    const order = left[index]! - right[index]!
-    if (order !== 0) return order
-  }
-  return left.length - right.length
-}
-
 /** The elements a task touches, each once: those whose code holds one of its modified files, newest file first, then those it references. */
 export function touchedElements(item: WorkItem, world: Pick<ArchitectureGraph, 'elements'>): string[] {
   const index = sourceIndex(world.elements)
@@ -93,7 +77,8 @@ export function pinsOf(
   defaultStatus?: string,
 ): WorkPin[] {
   const pins: WorkPin[] = []
-  for (const item of [...items].sort((a, b) => compareTaskIds(a.id, b.id))) {
+  // Numeric collation compares each run of digits as a number, so TASK-416.2 comes before TASK-416.10.
+  for (const item of [...items].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))) {
     const elementId = touchedElements(item, world)[0]
     if (elementId === undefined) continue
     const assignees = item.assignees.length === 0 ? [null] : item.assignees

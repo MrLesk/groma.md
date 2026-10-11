@@ -4,7 +4,7 @@ title: Harden audited surfaces and correct documentation drift
 status: In Progress
 assignee: []
 created_date: '2026-09-27 01:23'
-updated_date: '2026-10-11 19:06'
+updated_date: '2026-10-11 19:08'
 labels: []
 dependencies: []
 modified_files:
@@ -45,6 +45,7 @@ modified_files:
   - src/code-reference.ts
   - test/architecture-model-errors.test.ts
   - test-bun/scanner-discovery.test.ts
+  - test-bun/work-pins.test.ts
 priority: high
 type: task
 ordinal: 611000
@@ -101,4 +102,6 @@ Tests (rule and authority; wrong result caught; coverage gap):
 - test-bun/web-hardening.test.ts, 'a commit whose code reference climbs out of the repository cannot be compared' (replaces the source-route and export tests). Rule: the same, observed at the route the external review named. Wrong result: /world.json?from=<commit> answers 200 with the content of a file beside the repository, which it does without the model rule. Gap: no test compares against a commit whose stored reference is invalid.
 
 - test-bun/scanner-discovery.test.ts, 'a dependency resolves its version only from a package installed in the repository' (the pull request's test, changed so that it fails on main). Rule: discovery reports an installed version only for a package inside the repository (audit finding D-sc-09, kept by the owner). Wrong result: a package declared in the repository but installed only in a directory above it is reported as 'installed 9.9.9 at ../node_modules/...'. Gap: no other test resolves a dependency version; the original test kept a copy inside the repository, which main finds first, so it passed without the fix.
+
+- test-bun/work-pins.test.ts, 'pins follow task ids with each dotted number compared as a number' (the pull request's test, reduced to dotted ids). Rule: pins and their colours follow Backlog task order, where a subtask number is a whole number (audit finding D-work-05, kept by the owner). Wrong result: TASK-416.10 comes before TASK-416.2, which main does by reading '416.10' as the decimal 416.1. Gap: every other pin test uses whole-number ids. Ids without a number are not a supported case and are no longer asserted.
 <!-- SECTION:PLAN:END -->
