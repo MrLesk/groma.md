@@ -4,7 +4,7 @@ title: Harden audited surfaces and correct documentation drift
 status: In Progress
 assignee: []
 created_date: '2026-09-27 01:23'
-updated_date: '2026-10-11 19:31'
+updated_date: '2026-10-11 19:32'
 labels: []
 dependencies: []
 modified_files:
@@ -29,7 +29,7 @@ modified_files:
   - test-bun/backlog-cli.test.ts
   - test-bun/scanner-source-listing.test.ts
   - test-bun/cli-actions.test.ts
-  - test-bun/web-hardening.test.ts
+  - test-bun/web-server.test.ts
   - docs/viewers/web/index.md
   - src/code-reference.ts
   - test/architecture-model-errors.test.ts
