@@ -6,6 +6,7 @@ export * from './settings-model.ts'
 import type { ScannerDiscovery } from './discovery.ts'
 import { discoverScanners } from './discovery.ts'
 import { officialScannerCatalog } from './catalog.ts'
+import { officialWorkSourceIds } from './official-catalog.ts'
 import { configuredScannerModules, addScanner, restoreScanner } from './inventory.ts'
 import type { ScannerInstallOptions } from './inventory.ts'
 import type { ScannerModuleLocation } from './inventory.ts'
@@ -91,7 +92,7 @@ export async function readScannerSettings(root: string, checks: readonly Project
     const work = await configuredWorkSource(root, options)
     if (work) state.scanners.push({
       id: work.id, kind: 'workSource', name: work.name ?? work.id, source: work.source, version: work.version,
-      official: work.id === 'backlog', technologies: [], matches: [], match: 'matched',
+      official: officialWorkSourceIds.includes(work.id), technologies: [], matches: [], match: 'matched',
       status: work.status === 'found' ? 'ready' : work.status, message: work.message,
     })
     return state

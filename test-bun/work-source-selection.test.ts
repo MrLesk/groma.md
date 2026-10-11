@@ -13,11 +13,11 @@ async function project(range = '*') {
   await mkdir(path.join(root, 'adapter'))
   await writeFile(path.join(root, 'adapter/package.json'), JSON.stringify({
     name: 'work-source-fixture', version: '1.0.0', type: 'module',
-    groma: { workSource: { id: 'backlog', entry: './index.js', compatibility: { groma: range } } },
+    groma: { workSource: { id: 'tasks', entry: './index.js', compatibility: { groma: range } } },
   }))
   await writeFile(path.join(root, 'adapter/index.js'), range === '*' ? `
     import { appendFileSync } from 'node:fs'
-    export default { id: 'backlog', readiness: () => ({ status: 'found' }), create(root) {
+    export default { id: 'tasks', readiness: () => ({ status: 'found' }), create(root) {
       return {
         read: async () => { appendFileSync(root + '/calls', 'read\\n'); return { statuses: [], defaultStatus: '', items: [{ id: 'WORK-1' }] } },
         readItem: async id => ({ id }),
@@ -40,7 +40,7 @@ test.concurrent('work-source selection controls reads and closes its watch when 
     await addPlugin(root, './adapter')
     await session.reconfigure()
     expect((await session.read()).items[0]?.id).toBe('WORK-1')
-    await removePlugin(root, 'backlog')
+    await removePlugin(root, 'tasks')
     await session.reconfigure()
     expect((await session.read()).items).toEqual([])
     expect((await readFile(path.join(root, 'calls'), 'utf8')).trim().split('\n')).toEqual(['watch', 'read', 'close'])
@@ -50,7 +50,7 @@ test.concurrent('work-source selection controls reads and closes its watch when 
 test.concurrent('a work-source version mismatch blocks loading before plugin code executes', async () => {
   const root = await project('>=99.0.0')
   try {
-    await writeScannerConfig(root, { scanners: [], workSources: [{ id: 'backlog', source: './adapter' }] })
+    await writeScannerConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }] })
     const selection = await configuredWorkSource(root)
     expect(selection?.status).toBe('blocked')
     expect(selection?.message).toContain('>=99.0.0')
@@ -61,7 +61,7 @@ test.concurrent('a second work-source entry is rejected before either adapter lo
   const root = await project()
   try {
     await writeScannerConfig(root, { scanners: [], workSources: [
-      { id: 'backlog', source: './adapter' }, { id: 'other', source: './other' },
+      { id: 'tasks', source: './adapter' }, { id: 'other', source: './other' },
     ] })
     await expect(readScannerConfig(root)).rejects.toThrow('at most one work source')
   } finally { await rm(root, { recursive: true, force: true }) }
@@ -71,15 +71,15 @@ test.concurrent('a plugin id shared by a scanner and a work source is rejected',
   const root = await project()
   try {
     await writeScannerConfig(root, {
-      scanners: [{ id: 'backlog', source: './scanner', include: ['**/*.fixture'] }],
-      workSources: [{ id: 'backlog', source: './adapter' }],
+      scanners: [{ id: 'tasks', source: './scanner', include: ['**/*.fixture'] }],
+      workSources: [{ id: 'tasks', source: './adapter' }],
     })
     await expect(readScannerConfig(root)).rejects.toThrow('more than once')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-test.concurrent('groma init reports a failed Backlog initialization when the work source is already selected', async () => {
-  const root = await project()
+/** Runs the interactive wizard on a project where the `backlog` CLI exists and Backlog.md is not initialized yet. */
+async function runWizard(root: string, initializeBacklog: () => Promise<boolean>): Promise<string[]> {
   const errors: string[] = []
   const ui: InitCommandUi = {
     cancel() {}, intro() {}, note() {}, outro() {}, error: message => { errors.push(message) },
@@ -87,13 +87,27 @@ test.concurrent('groma init reports a failed Backlog initialization when the wor
     directory: async () => 'groma', install: async () => false, installer: async () => undefined,
     projectName: async current => current, selectScanners: async () => [],
   }
+  await runInitCommand({ repositoryRoot: root, interactive: true, opensViewer: true }, { openWeb: async () => {} }, {
+    ui, gitInitialized: async () => true, setupScanners: async () => true,
+    backlogAvailable: () => true, backlogInitialized: async () => false, initializeBacklog,
+  })
+  return errors
+}
+
+test.concurrent('groma init reports a failed Backlog initialization when the work source is already selected', async () => {
+  const root = await project()
   try {
-    await writeScannerConfig(root, { scanners: [], workSources: [{ id: 'backlog', source: './adapter' }] })
-    const outcome = await runInitCommand({ repositoryRoot: root, interactive: true, opensViewer: true }, { openWeb: async () => {} }, {
-      ui, gitInitialized: async () => true, setupScanners: async () => true,
-      backlogAvailable: () => true, backlogInitialized: async () => false, initializeBacklog: async () => false,
-    })
-    expect(outcome).toBe('completed')
-    expect(errors).toHaveLength(1)
+    await writeScannerConfig(root, { scanners: [], workSources: [{ id: 'backlog', source: '@groma/work-source-backlog@0.1.0' }] })
+    expect(await runWizard(root, async () => false)).toHaveLength(1)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('groma init leaves Backlog alone when the project selects another work source', async () => {
+  const root = await project()
+  let initialized = 0
+  try {
+    await writeScannerConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }] })
+    await runWizard(root, async () => { initialized++; return true })
+    expect(initialized).toBe(0)
   } finally { await rm(root, { recursive: true, force: true }) }
 })

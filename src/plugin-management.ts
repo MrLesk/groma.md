@@ -1,16 +1,13 @@
-import groma from '../package.json'
 import { readScannerConfig, writeScannerConfig } from './scanner/modules/config.ts'
 import { configureScanner, installScanners, removeScanner, scannerInventory, updateScanner, type ScannerInstallOptions } from './scanner/modules/inventory.ts'
 import { defaultScannerCacheRoot, installScannerPackage, parseScannerSource, preparePluginUpdate, resolveScannerPackage, type ResolvedScannerPackage } from './scanner/modules/package.ts'
 import { isNpmPackageName, publishedScannerSource } from './scanner/modules/published.ts'
-import { configuredWorkSource } from './work-sources.ts'
+import { configuredWorkSource, hostIncompatibility } from './work-sources.ts'
 
-function validateWorkSource(resolved: ResolvedScannerPackage): void {
-  if (resolved.id !== 'backlog') throw new Error('Only the backlog work source is supported')
-  const required = resolved.compatibility?.groma
-  if (required && !Bun.semver.satisfies(groma.version, required)) {
-    throw new Error(`Requires Groma ${required}; this computer has ${groma.version}. Update Groma.`)
-  }
+/** Selecting, restoring or updating a work source this groma.md version cannot load is refused with the reason. */
+function requireCompatibleHost(resolved: ResolvedScannerPackage): void {
+  const incompatible = hostIncompatibility(resolved)
+  if (incompatible) throw new Error(incompatible)
 }
 
 async function selectedSource(root: string, input: string, options: ScannerInstallOptions) {
@@ -31,7 +28,7 @@ export async function addPlugin(root: string, input: string, options: ScannerIns
   const installed = await installScannerPackage(source, options.cacheRoot ?? defaultScannerCacheRoot(), options.registry)
   const resolved = installed.package
   if (resolved.kind === 'scanner') return configureScanner(root, installed)
-  validateWorkSource(resolved)
+  requireCompatibleHost(resolved)
   const config = await readScannerConfig(root)
   if (config.workSources?.length) throw new Error('This project supports at most one work source; remove the current selection first')
   if (config.scanners.some(plugin => plugin.id === resolved.id)) throw new Error(`Plugin id already configured: ${resolved.id}`)
@@ -54,7 +51,7 @@ export async function restoreWorkSource(root: string, options: ScannerInstallOpt
   const resolved = source.kind === 'local' ? await resolveScannerPackage(source, cache, 'workSource')
     : (await installScannerPackage(source, cache, options.registry, 'workSource')).package
   if (!resolved) throw new Error(`Restore the local work source directory: ${selected.source}`)
-  validateWorkSource(resolved)
+  requireCompatibleHost(resolved)
   if (resolved.id !== selected.id) throw new Error(`Configured work source ${selected.id} resolves to ${resolved.id}`)
   return source.kind === 'local' ? 0 : 1
 }
@@ -68,7 +65,7 @@ export async function updatePlugin(root: string, id: string, input?: string, opt
   const selected = config.workSources?.find(work => work.id === id)
   if (!selected) return updateScanner(root, id, input, options)
   const installed = await preparePluginUpdate(root, selected, input, options, 'workSource')
-  validateWorkSource(installed.package)
+  requireCompatibleHost(installed.package)
   await writeScannerConfig(root, { ...config, workSources: [{ id, source: installed.source }] })
   return { id, source: installed.source, status: 'found' as const }
 }

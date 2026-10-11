@@ -3,8 +3,9 @@
 `<groma-root>/plugins.json` explicitly selects project plugins. A missing file
 selects none. No plugin is loaded just because its package or CLI is installed.
 The file has one section per kind: `scanners` and `workSources`. This revision
-supports at most one work source, whose id is `backlog`. Plugin ids are lowercase
-kebab-case. `exclude` and `useGitignore` apply to scanners at the top level.
+supports at most one work source. Plugin ids are lowercase kebab-case, and one id
+names one plugin across both sections. `exclude` and `useGitignore` apply to
+scanners at the top level.
 
 ```json
 {

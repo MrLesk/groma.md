@@ -110,7 +110,6 @@ function configuredWorkSources(value: unknown, filename: string): ConfiguredWork
     if (typeof entry.id !== 'string' || !scannerId.test(entry.id)) {
       throw new Error(`${filename} workSources id must be lowercase kebab-case`)
     }
-    if (entry.id !== 'backlog') throw new Error(`${filename} supports only the backlog work source`)
     if (typeof entry.source !== 'string' || !entry.source.trim()) {
       throw new Error(`${filename} workSources source must be non-empty`)
     }
