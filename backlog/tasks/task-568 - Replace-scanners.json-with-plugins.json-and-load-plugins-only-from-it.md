@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-11 19:23'
+updated_date: '2026-10-11 19:25'
 labels: []
 dependencies: []
 references:
@@ -246,6 +246,30 @@ H. .github/workflows/architecture.yml rewrites only scanner sources and runs gro
 Observable changes outside the mechanical rename, for the reviewer: the settings snapshot (groma scanner settings without a terminal, and the web settings payload) lists rows under plugins, each with kind; the terminal label reads Install missing plugins; the web error titles read Could not load plugins and Plugin action failed; package and release messages say plugin; a scanner warning no longer opens a work-source row.
 
 Verification run in this worktree: bun run typecheck passes. bunx biome lint reports 1 warning and 2 infos, the same as before the pass, all in unchanged files. Focused Bun tests pass: 59 across the plugin, settings, selection, release and scanner module files; 62 across web startup, shell, export, chrome, terminal lifecycle, plain view and scan files; 51 passed with 12 toolchain skips across the go, python, php, angular, vue and csharp scanner files; compiled-scanner passes. Each new or changed regression test was seen failing without its fix. bun src/cli.ts scan ran and left groma/ unchanged. The terminal Plugins screen was read through tui-test, and the web Plugins rows through a private headless Chromium, both showing the Work sources group with the Backlog row. The full bun run check was not run in this lane.
+
+Review list applied (second pass, twenty items), committed locally and not pushed.
+
+Foundations (items 10, 11, 17): PluginResolutionOptions, PluginInstallOptions and the one cache-root fallback live in src/scanner/modules/package.ts; resolvePluginPackage and installPluginPackage take the options object. selectPublishedPlugin and publishedPluginSource take an optional kind where undefined means any, read the required groma.md range from the same manifest section, and no caller passes a placeholder. The package reader names both sections when a manifest has neither, lists the allowed fields, and states why the kind-specific return types hold.
+
+plugins.json (items 6, 7): PluginConfig.workSources is a required array; the writer uses one key order (scanners, workSources, exclude, useGitignore) and runs the parser before saving, so the unique-id, one-work-source and duplicate-source rules have one owner. The hand checks in the add paths are gone. This repository's groma/plugins.json was rewritten through the writer (key order only).
+
+Plugin operations (items 8, 9, 18): src/plugin-management.ts owns addPlugin, removePlugin, updatePlugin, restorePlugin and installPlugins for every kind, addressed by id; the scanner entry points in inventory.ts are the same operations limited to the scanners section. requestedPluginSource turns an input into an exact source in one place and restorePluginPackage is the one body that restores a selection. Plugin commands answer plugin is not configured, scanner commands scanner is not configured.
+
+Work source (items 1, 3, 12): loadWorkSource is deleted; configuredWorkSource is now checkWorkSourceReadiness and its comment says it imports the adapter and calls readiness(); WorkSourceSelection carries the adapter exactly when the status is found; WorkSourceSession is declared and documents that a session serves one watcher.
+
+Welcome (items 4, 13): the unused adapter parameter is gone; the welcome reads the work source from the plugin settings it already loads, labels the row work source and prints it only when one is selected. Outside a Git repository the settings cannot be read, so that row is absent there.
+
+groma init (items 2, 14): selecting the adapter is the injected selectBacklog dependency, reported like its sibling steps; the order is select, install the CLI, initialize; RepositoryInitResult.backlog distinguishes unselected, unavailable, unchanged, initialized and failed, and a selected adapter without its CLI is reported.
+
+CLI (item 5): groma plugin prints ok and one tab-separated line with the kind first, like groma scanner; every command has a description; both command sets share runPluginCommand.
+
+Adapter and names (items 15, 16): the Backlog adapter imports EMPTY_WORK_SOURCE from @groma/work-source and exports its factory and the default plugin only; the settings route is /plugin-settings, the server event plugin-settings, the welcome action id plugins.
+
+Architecture records (item 19): work-sources, tui-scanner-settings, scanners-settings and package overviews corrected through groma edit; the scan pinned the adapter record to createBacklogPlugin.
+
+Tests (item 20): the two parser tests say what they assert and also observe the writer refusing; two wizard tests cover choosing Backlog (select, install CLI, initialize, selection recorded) and a failed selection (reported, nothing installed, setup continues), both seen failing under the previous order.
+
+Verification in this worktree: bun run typecheck passes; bunx biome lint reports 1 warning and 2 infos, as before the lane started, in unchanged files. Focused Bun tests pass: 62 across plugin, settings, selection, release and scanner module files; 90 across web startup, shell, export, chrome, terminal lifecycle, plain view and scan files; 64 with 12 toolchain skips across language scanner files. The plugin commands were exercised in a scratch project (add, list, second add, update, remove of unknown ids, install, both manifest errors, remove). The welcome screen and its Plugins action were read through tui-test and the web Plugins rows through a private headless Chromium over the renamed route. bun src/cli.ts scan ran; its only change is the adapter record's symbol. The full bun run check was not run in this lane.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
