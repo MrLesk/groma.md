@@ -1,13 +1,21 @@
 import { expect, test } from 'bun:test'
+import { cp, mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import { criticalityLevels, type Criticality } from '../src/criticality.ts'
 import { sheetScene } from '../src/sheet/scene.ts'
 import { viewerTheme } from '../src/viewers/tui/atoms/theme.ts'
 import { detailsLines } from '../src/viewers/tui/panes/details.ts'
 
-/** The details pane of the fixture component that has a relationship, at the ordinary 28 content columns. */
+/**
+ * The details pane of the fixture component that has a relationship, at the ordinary 28 content columns.
+ * Each test loads its own copy of the fixture, which other tests copy and edit at the same time.
+ */
 async function detailsOf() {
-  const architecture = await loadAnnotatedArchitecture(new URL('../test/fixtures/edit/', import.meta.url).pathname)
+  const root = await mkdtemp(path.join(tmpdir(), 'groma-tui-criticality-'))
+  await cp(path.resolve(import.meta.dir, '../test/fixtures/edit'), root, { recursive: true })
+  const architecture = await loadAnnotatedArchitecture(root).finally(() => rm(root, { recursive: true, force: true }))
   const world = { ...architecture, sheet: sheetScene(architecture) }
   const relationship = world.relationships[0]!
   const element = world.elements.find(element => element.representationId === relationship.source)!
