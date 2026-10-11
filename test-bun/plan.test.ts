@@ -28,12 +28,21 @@ async function architecture(root: string) {
 
 const entryPath = 'groma/systems/service/containers/api/components/entry.md'
 
-test.concurrent('a plan round trip preserves literal overview, relationship and ordered flow meaning', async () => {
+/** Every path below the Groma directory, in a stable order: the listing order of a directory is not. */
+async function architectureFiles(root: string): Promise<string[]> {
+  return (await readdir(path.join(root, 'groma'), { recursive: true })).sort()
+}
+
+test.concurrent('a plan round trip carries element bodies as written, declarations as stable, and relationship and flow meaning', async () => {
   const { root, source, destination } = await repositories()
   try {
+    // Formatting, an escaped list marker and a section of its own: none of it survives a decode and re-encode.
+    const body = 'Coordinates the `*pending*` request for [the team](https://example.com/team), **in order**.\n\n'
+      + '1986\\. A great year.\n\n## Requirements\n\nAnswers within one second.'
     const entry = path.join(source, entryPath)
     await writeFile(entry, (await readFile(entry, 'utf8'))
-      .replace('Coordinates a request.', 'Coordinates the `*pending*` request and `&copy;` value.')
+      .replace('  parent: api\n', '  parent: api\n  group: Core\n')
+      .replace('Coordinates a request.', body)
       .replace('Dispatches work | Function call', 'Dispatches A \\| B | Function A \\| B'))
     const flowPath = path.join(source, 'groma/flows/process-request.md')
     await writeFile(flowPath, (await readFile(flowPath, 'utf8'))
@@ -43,6 +52,15 @@ test.concurrent('a plan round trip preserves literal overview, relationship and 
     const bundle = await exportPlan(source, { ids: before.elements.map(element => element.id), to: '../shared-plan' })
     await importPlan(destination, { path: bundle })
     const after = await architecture(destination)
+    expect(await readFile(path.join(destination, entryPath), 'utf8')).toContain(body)
+    // Software is planned and becomes a ghost. A person and an external system are declared, in the plan and after import.
+    expect(await readFile(path.join(bundle, 'actors/requester.md'), 'utf8')).toContain('status: stable')
+    expect(Object.fromEntries(after.elements.map(element => [element.id, element.status]))).toEqual({
+      requester: 'stable', journal: 'stable', service: 'draft', api: 'draft', entry: 'draft', worker: 'draft',
+    })
+    expect(after.elements.map(element => element.draft)).toEqual(after.elements.map(() => 'shared-plan'))
+    // Code ownership and groups belong to the repository the elements came from.
+    expect(after.elements.filter(element => element.code.length > 0 || element.group !== undefined)).toEqual([])
     const elements = (model: typeof before) => model.elements.map(({ id, kind, title, description, technology, parentId, overview }) =>
       ({ id, kind, title, description, technology, parentId, overview }))
     const relationships = (model: typeof before) => model.relationships.map(({ sourceId, targetId, description, technology }) =>
@@ -59,9 +77,9 @@ test.concurrent('element parent IDs drive missing-parent validation and destinat
   const { root, source, destination } = await repositories()
   try {
     const bundle = await exportPlan(source, { ids: ['entry', 'worker'], to: '../shared-plan' })
-    const before = await readdir(path.join(destination, 'groma'), { recursive: true })
-    await expect(importPlan(destination, { path: bundle })).rejects.toThrow('api')
-    expect(await readdir(path.join(destination, 'groma'), { recursive: true })).toEqual(before)
+    const before = await architectureFiles(destination)
+    await expect(importPlan(destination, { path: bundle })).rejects.toThrow('"api"')
+    expect(await architectureFiles(destination)).toEqual(before)
     await draftElement(destination, { kind: 'system', name: 'Destination', overview: '' })
     await draftElement(destination, { kind: 'container', name: 'Application', parent: 'destination', overview: '' })
     await importPlan(destination, { path: bundle, parent: 'application' })
@@ -77,18 +95,9 @@ test.concurrent('imported concept draft relationships can be edited and removed 
     const bundle = await exportPlan(source, { ids: ['service', 'api', 'entry', 'worker'], to: '../shared-plan' })
     await importPlan(destination, { path: bundle })
     const ends = { source: 'entry', target: 'worker' }
-    const relationship = async () => (await architecture(destination)).relationships.find(row => row.sourceId === 'entry' && row.targetId === 'worker')!
-    // Every part of this text is Markdown syntax to the reader unless storage escapes it.
-    const syntax = {
-      description: 'Sets *pending* and __init__ for A | B, `code` [text] <b> ~~kept~~ &amp; C:\\.git',
-      technology: ':queue {id} at https://example.com/a_b',
-    }
-    await editRelation(destination, { ...ends, ...syntax })
-    expect(await relationship()).toMatchObject({ status: 'draft', ...syntax })
-    const ordinary = 'Reads user.name, then retries (HTTPS/JSON): 3 times; why? #12 + a=b - done!'
-    await editRelation(destination, { ...ends, description: `${ordinary}\nSecond line`, technology: 'HTTPS' })
-    expect(await readFile(path.join(destination, entryPath), 'utf8')).toContain(`| ${ordinary} Second line | HTTPS |`)
-    expect((await relationship()).description).toBe(`${ordinary} Second line`)
+    await editRelation(destination, { ...ends, description: 'Dispatches work in batches', technology: 'Queue' })
+    const changed = (await architecture(destination)).relationships.find(row => row.sourceId === 'entry' && row.targetId === 'worker')!
+    expect(changed).toMatchObject({ status: 'draft', description: 'Dispatches work in batches', technology: 'Queue' })
     await removeRelation(destination, ends)
     expect((await architecture(destination)).relationships.some(row => row.sourceId === 'entry' && row.targetId === 'worker')).toBe(false)
   } finally { await rm(root, { recursive: true, force: true }) }
@@ -118,4 +127,13 @@ test.concurrent('the live map exports a plan only into a new directory inside it
     await session?.close()
     await rm(root, { recursive: true, force: true })
   }
+})
+
+test.concurrent('a plan is never exported into the Groma directory', async () => {
+  const { root, source } = await repositories()
+  try {
+    const before = await architectureFiles(source)
+    await expect(exportPlan(source, { ids: ['entry', 'worker'], to: 'groma/plans/inside' })).rejects.toThrow('inside groma/')
+    expect(await architectureFiles(source)).toEqual(before)
+  } finally { await rm(root, { recursive: true, force: true }) }
 })

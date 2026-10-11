@@ -90,6 +90,19 @@ export function requireBundleIndex(
   }
 }
 
+/**
+ * The index.md of an OKF bundle: one link per entry of its root directory, a directory named with a
+ * trailing slash. The architecture directory and a plan bundle both use it.
+ */
+export function renderBundleIndex(entries: readonly string[]): string {
+  const links = [...entries].sort().map(name => {
+    const label = name.replace(/[\\[\]]/g, '\\$&')
+    const href = name.split('/').map(encodeURIComponent).join('/')
+    return `- [${label}](<${href}>)`
+  })
+  return `---\nokf_version: "${OKF_VERSION}"\n---\n\n# Contents\n\n${links.join('\n')}\n`
+}
+
 export interface GromaProjectMetadata {
   title: string
   description?: string

@@ -2,7 +2,9 @@
 
 A plan shares an intended architecture without source ownership or map layout.
 Export the elements you want, then import them in another initialized Groma
-project. Imported elements are ghosts under one draft record.
+project. Imported systems, containers and components arrive as ghosts. People
+and external systems arrive as stable declarations, because those are declared
+and never drafted. One draft record tags everything a plan brought in.
 
 ```sh
 # In the source repository, select two components.
@@ -18,7 +20,7 @@ repository; Groma writes the same bundle as the CLI and confirms where it went.
 The command line may export to a new directory anywhere.
 
 The directory name becomes the plan title. Export refuses a directory that
-already exists.
+already exists or lies inside the Groma directory.
 The bundle contains an OKF `index.md`, a `plan.md` record, selected element
 Markdown files, and flows whose steps stay entirely inside the selection.
 Unselected parents are referenced by ID and must already exist at import.
@@ -37,6 +39,9 @@ title: payment-plan
 
 Architecture to implement.
 ```
+
+Export writes that body as a placeholder. Replace it with the outcome the plan
+is for before you share the bundle: import copies it into the draft record.
 
 The selected `checkout` document remains normal architecture Markdown:
 
@@ -61,8 +66,13 @@ Collects an order and asks Payments to authorize it.
 
 Both component documents live together at their source architecture paths
 inside the bundle. Their parent is an ID reference, not a copied container.
-Import computes their destination paths from the destination parent, keeps
-IDs and overviews, and adds `groma.draft: payment-plan`. It also creates
+
+A plan carries each document's Markdown body as written: the overview with its
+formatting and links, and sections such as `## Requirements`. It replaces only
+the status, leaves out code ownership, the group and an earlier draft tag, and
+rebuilds the relationship sections from the relationships inside the selection.
+Import computes the destination paths from the destination parent, keeps IDs
+and bodies, and adds `groma.draft: payment-plan`. It also creates
 `drafts/payment-plan.md`. Relationships remain draft rows with concept links.
 
 A colliding element, flow or draft ID, or a missing parent, rejects the whole

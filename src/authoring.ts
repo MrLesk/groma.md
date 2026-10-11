@@ -8,7 +8,6 @@ import { editArchitecture } from './edit.ts'
 import type { EditArchitectureInput } from './edit.ts'
 import { removeThing } from './remove.ts'
 import type { RemoveInput } from './remove.ts'
-import { exportPlan, importPlan } from './plan.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
 
 export interface AcceptInput {
@@ -56,7 +55,4 @@ export const writes = {
   edit: protectedWrite(editArchitecture),
   remove: protectedWrite(removeThing),
   accept: protectedWrite(acceptThing),
-  // Command line only: the web exports through exportPlanIntoRepository and has no import.
-  exportPlan: protectedWrite(exportPlan),
-  importPlan: protectedWrite(importPlan),
 }

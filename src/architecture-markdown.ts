@@ -12,18 +12,28 @@ type InvalidMarkdown = (code: string, sourceFilename: string, message: string) =
  * Where Comark, the parser behind the architecture reader, reads inline syntax in text. Each match gets a
  * backslash; all other punctuation is stored as written, so documents stay ordinary Markdown.
  * Block syntax at the start of a line, such as "# " or "- ", is not covered.
+ * Guarded by "relationship text is stored as written and read back unchanged" in test-bun/source-relationships.test.ts.
  */
 const markdownSyntax = new RegExp([
-  // Escape, code, emphasis, link or span, HTML, character reference, strikethrough, attributes, table cell.
-  /[\\`*_[<&~{|]/,
-  // An inline component such as :icon. It starts a word, so the colon of /users/:id or "note: text" stays plain.
-  /(?<=^|[\s*_[]):(?=[a-z$])/,
+  // Escape, code, emphasis, link or span, HTML, strikethrough, attributes, table cell.
+  /[\\`*[<~{|]/,
+  // Emphasis. An underscore between two letters or digits, as in user_id, never starts it and stays plain.
+  /(?<![a-zA-Z\d])_|_(?![a-zA-Z\d])/,
+  // A character reference such as &amp; or &#35;. Any other ampersand, as in "Auth & billing", stays plain.
+  /&(?=#?[a-zA-Z\d]+;)/,
+  // An inline component such as :icon. Comark accepts one only at the start of the text or after a space, *, _
+  // or [, and its name starts with a letter or $. The colon of /users/:id or "note: text" fits neither and stays plain.
+  /(?<=^|[\s*_[]):(?=[a-zA-Z$])/,
   // The colon of an address such as https://example.com. Unescaped, Comark links the address and copies it
   // without reading the backslashes added above.
   /:(?=\/\/)/,
-].map(rule => rule.source).join('|'), 'gi')
+].map(rule => rule.source).join('|'), 'g')
 
-/** This text as Markdown the reader shows literally. Line breaks are kept, which suits prose paragraphs. */
+/**
+ * Literal text as Markdown that the reader shows unchanged. Pass text, never Markdown: formatting would be
+ * stored as visible characters, and escaping twice adds visible backslashes. Line breaks are kept, which
+ * suits prose paragraphs.
+ */
 export function escapeMarkdownText(text: string): string {
   return text.replaceAll(markdownSyntax, '\\$&')
 }

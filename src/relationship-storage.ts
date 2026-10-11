@@ -5,7 +5,7 @@ import { sourceIndex } from './source-index.ts'
 import { escapeTableCell } from './architecture-markdown.ts'
 import { readDocument, writeDocument } from './markdown-emitter.ts'
 import type { StoredRelationship } from './relationship-markdown.ts'
-import type { ArchitectureDocument, CodeReference } from './types.ts'
+import type { ArchitectureDocument, CodeReference, RelationshipConnection } from './types.ts'
 
 interface Owner {
   id: string
@@ -72,7 +72,7 @@ export function changedRelationshipDocuments(
 export function withStoredRelationships(
   source: string,
   filename: string,
-  rows: readonly StoredRelationship[],
+  rows: readonly RelationshipConnection[],
   concepts: ReadonlyMap<string, string>,
 ): string {
   const href = (endpoint: string) => path.posix.relative(path.posix.dirname(filename), concepts.get(endpoint) ?? endpoint)

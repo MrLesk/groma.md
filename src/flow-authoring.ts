@@ -1,12 +1,10 @@
 import { parseMarkdown, parseFrontmatter } from 'comark'
-import { renderFrontmatter } from 'comark/render'
 import { buildArchitectureModel, freeId } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { resolveFlows } from './flow-model.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
-import { readDocument, replaceLeadProse, withDescription, withTitle, writeDocument } from './markdown-emitter.ts'
+import { readDocument, renderFlowDocument, replaceLeadProse, withDescription, withTitle, writeDocument } from './markdown-emitter.ts'
 import { requireText } from './naming.ts'
-import { FLOW_TYPE } from './okf-profile.ts'
 import type { ArchitectureDocument, ArchitectureRecords } from './types.ts'
 
 export interface FlowChanges {
@@ -27,9 +25,10 @@ async function writeFlow(repositoryRoot: string, records: ArchitectureRecords, f
 export async function addFlow(repositoryRoot: string, title: string, input: FlowChanges): Promise<string> {
   const records = await loadArchitecture(repositoryRoot)
   const id = freeId(records, buildArchitectureModel(records.documents), title)
-  const source = `---\n${renderFrontmatter({
-    type: FLOW_TYPE, title, ...(input.description === undefined ? {} : { description: input.description }), groma: { id },
-  })}\n---\n\n${requireText(input.overview, '--overview')}\n\n## Steps\n\n${requireText(input.steps, '--steps')}\n`
+  const source = renderFlowDocument({
+    id, title, description: input.description,
+    overview: requireText(input.overview, '--overview'), steps: requireText(input.steps, '--steps'),
+  })
   const filename = GromaFileSystem.open(repositoryRoot).sourceFilename(`flows/${id}.md`)
   await writeFlow(repositoryRoot, records, filename, source)
   return id
