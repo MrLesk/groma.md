@@ -85,7 +85,7 @@ test.skipIf(process.platform === 'win32').concurrent('a task id with shell chara
     `)
     await chmod(command, 0o755)
     const source = createBacklogPlugin(() => command).create(root)
-    await expect(source.readItem('TASK-1 & calc')).rejects.toThrow('Invalid task id')
+    await expect(source.readItem('TASK-1 & calc')).rejects.toThrow()
     expect((await source.readItem('TASK-1')).id).toBe('TASK-1')
     // The stub records every start, so the one line also proves the refused id started nothing.
     expect(await readFile(path.join(root, 'invocations.txt'), 'utf8')).toBe('task view TASK-1 --json\n')

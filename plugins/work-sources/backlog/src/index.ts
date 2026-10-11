@@ -23,9 +23,8 @@ function startBacklog(
   detached = false,
 ) {
   const shim = process.platform === 'win32' && command.toLowerCase().endsWith('.cmd')
-  // cmd.exe receives one command line; the quotes keep each argument whole.
   const args = shim
-    ? ['/d', '/s', '/c', `""${command}" ${arguments_.map(argument => `"${argument}"`).join(' ')}"`]
+    ? ['/d', '/s', '/c', `""${command}" ${arguments_.join(' ')}"`]
     : arguments_
   return spawn(shim ? 'cmd.exe' : command, args, {
     cwd: repositoryRoot,
@@ -151,8 +150,9 @@ type BacklogTaskDetails = Omit<WorkItemDetails,
 
 /**
  * A task id is repository content: Backlog reads it from a task file and a viewer passes it back to
- * `backlog task view`. The Windows npm shim runs through cmd.exe, so only an id made of letters,
- * digits, `.`, `_` and `-` reaches the command line.
+ * `backlog task view`. The Windows npm shim joins the arguments into one cmd.exe command line, so
+ * only an id made of letters, digits, `.`, `_` and `-` reaches it. The first character is a letter
+ * or digit: a leading `-` would read as an option.
  */
 const safeTaskId = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
 
