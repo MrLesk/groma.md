@@ -4,7 +4,7 @@ title: Harden audited surfaces and correct documentation drift
 status: In Progress
 assignee: []
 created_date: '2026-09-27 01:23'
-updated_date: '2026-10-11 16:38'
+updated_date: '2026-10-11 19:06'
 labels: []
 dependencies: []
 modified_files:
@@ -44,6 +44,7 @@ modified_files:
   - docs/viewers/web/index.md
   - src/code-reference.ts
   - test/architecture-model-errors.test.ts
+  - test-bun/scanner-discovery.test.ts
 priority: high
 type: task
 ordinal: 611000
@@ -98,4 +99,6 @@ Tests (rule and authority; wrong result caught; coverage gap):
 
 - test/architecture-model-errors.test.ts, 'reports a code reference that climbs out of the repository' and 'reports a code reference with an absolute file'. Rule: a stored code reference's file is repository-relative (docs/component-markdown.md, Code references), so the model rejects an absolute path or a '..' segment (owner decision, lane step 4b). Wrong result: buildArchitectureModel accepts the component and every reader joins that file to the repository root. Gap: no model test gives a component a code reference.
 - test-bun/web-hardening.test.ts, 'a commit whose code reference climbs out of the repository cannot be compared' (replaces the source-route and export tests). Rule: the same, observed at the route the external review named. Wrong result: /world.json?from=<commit> answers 200 with the content of a file beside the repository, which it does without the model rule. Gap: no test compares against a commit whose stored reference is invalid.
+
+- test-bun/scanner-discovery.test.ts, 'a dependency resolves its version only from a package installed in the repository' (the pull request's test, changed so that it fails on main). Rule: discovery reports an installed version only for a package inside the repository (audit finding D-sc-09, kept by the owner). Wrong result: a package declared in the repository but installed only in a directory above it is reported as 'installed 9.9.9 at ../node_modules/...'. Gap: no other test resolves a dependency version; the original test kept a copy inside the repository, which main finds first, so it passed without the fix.
 <!-- SECTION:PLAN:END -->

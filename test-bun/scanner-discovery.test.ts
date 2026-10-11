@@ -85,16 +85,26 @@ test.concurrent('a dependency resolves its version only from a package installed
   }]
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-discovery-'))
   const root = path.join(temporary, 'project')
-  await mkdir(path.join(root, 'node_modules/groma-hostpkg'), { recursive: true })
-  await mkdir(path.join(temporary, 'node_modules/groma-hostpkg'), { recursive: true })
-  await writeFile(path.join(root, 'package.json'), JSON.stringify({ dependencies: { 'groma-hostpkg': '^1.0.0' } }))
-  await writeFile(path.join(root, 'node_modules/groma-hostpkg/package.json'), JSON.stringify({ version: '1.2.3' }))
-  await writeFile(path.join(temporary, 'node_modules/groma-hostpkg/package.json'), JSON.stringify({ version: '9.9.9' }))
-  const git = Bun.spawn(['git', 'init', '--quiet', root], { stdout: 'ignore', stderr: 'pipe' })
-  expect(await git.exited).toBe(0)
+  const install = async (directory: string, version: string) => {
+    await mkdir(path.join(directory, 'node_modules/groma-hostpkg'), { recursive: true })
+    await writeFile(path.join(directory, 'node_modules/groma-hostpkg/package.json'), JSON.stringify({ version }))
+  }
   try {
+    // Both packages declare the dependency. Only `inside` has it installed; the nearest copy for `above` sits over the repository.
+    for (const name of ['inside', 'above']) {
+      await mkdir(path.join(root, name), { recursive: true })
+      await writeFile(path.join(root, name, 'package.json'), JSON.stringify({ dependencies: { 'groma-hostpkg': '^1.0.0' } }))
+    }
+    await install(path.join(root, 'inside'), '1.2.3')
+    await install(temporary, '9.9.9')
+    const git = Bun.spawn(['git', 'init', '--quiet', root], { stdout: 'ignore', stderr: 'pipe' })
+    expect(await git.exited).toBe(0)
     const discovery = await discoverScanners(root, {}, catalog)
-    const finding = discovery.findings.find(finding => finding.technology === 'hostlang')!
-    expect(finding.resolvedVersion).toEqual({ version: '1.2.3', file: 'node_modules/groma-hostpkg/package.json' })
+    const resolved = discovery.findings.filter(finding => finding.technology === 'hostlang')
+      .map(finding => [finding.file, finding.resolvedVersion])
+    expect(resolved).toEqual([
+      ['above/package.json', undefined],
+      ['inside/package.json', { version: '1.2.3', file: 'inside/node_modules/groma-hostpkg/package.json' }],
+    ])
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
