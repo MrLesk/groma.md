@@ -250,11 +250,12 @@ gives way: the counts, which show only above 1400 px, take just the width
 nothing else wants and leave whole when less than 150 px is left for them;
 Search narrows to 200 px; then the commit messages clip together. The project
 title never gives way, so a revision box with no room left clips its fields
-rather than draw them over the buttons beside it. Up to 1320 px the header has
-no spare room for a comparison being started, for compare words outside a short
-revision field, or for Play and the speed menu beside a pair, so Search folds to
-its icon while one of them shows; opening Search, by key or by clicking its
-icon, unfolds it. At 1080 px and below Fit, Help and Info
+rather than draw them over the buttons beside it. While Play and the speed menu
+show beside a pair, Search folds to its icon at every width, and the freed width
+goes to the two commit messages. Up to 1320 px the header has no spare room for
+a comparison being started or for compare words outside a short revision field,
+so Search folds to its icon until the list closes. Opening Search, by key or by
+clicking its icon, unfolds it. At 1080 px and below Fit, Help and Info
 show only their icons, a revision field shows its exact tag or short ID instead of its
 message, Search may narrow to 120 px, and an open revision search takes the whole
 box. At 1000 px and below Search also stays folded while a comparison is open, so

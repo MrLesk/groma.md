@@ -3,6 +3,12 @@ import { bindPopover } from '../atoms/popover.ts'
 import type { WebPayload, WebRevision } from '../payload.ts'
 import { revisionDate } from './view.ts'
 
+/**
+ * Where a presented payload stands in the walk. The first frame and the final comparison arrive like any other
+ * revision change, so the camera may fit them; a frame in between never moves the camera.
+ */
+type PlaybackStep = 'first' | 'between' | 'last'
+
 interface PlaybackOptions {
   root: HTMLElement
   data: WebDataSource
@@ -11,7 +17,7 @@ interface PlaybackOptions {
   /** The payload on screen. */
   current(): WebPayload
   navigating(): boolean
-  present(payload: WebPayload, first: boolean): void
+  present(payload: WebPayload, step: PlaybackStep): void
   error(reason: unknown): void
 }
 
@@ -170,7 +176,7 @@ export function createRevisionPlayback(options: PlaybackOptions) {
       if (token !== generation) return false
       if (payload === undefined) continue
       describe(revision)
-      options.present(payload, shown === undefined)
+      options.present(payload, shown === undefined ? 'first' : 'between')
       shown = revision
       await pause()
       if (token !== generation) return false
@@ -198,7 +204,7 @@ export function createRevisionPlayback(options: PlaybackOptions) {
       const final = await read(selected.to.id, selected.from.id)
       if (token !== generation) return
       running = false
-      options.present(final, false)
+      options.present(final, 'last')
       paint()
     } catch (reason) {
       if (token !== generation) return

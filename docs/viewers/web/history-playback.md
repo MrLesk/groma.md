@@ -19,8 +19,14 @@ from the previous readable commit to the next, including retained removed
 elements and their parent context. The map's existing keyed geometry transition
 moves shared buildings and routes and grows new ones. Reduced motion applies
 each frame immediately. When playback finishes, the original start-to-end
-comparison returns with its changes bar and stepper. A person can pan and zoom
-while playback continues.
+comparison returns with its changes bar and stepper.
+
+The camera fits the first frame, as it does for any revision that is opened.
+The frames after it never move the camera: the map morphs in place, and a pan
+or zoom made while it plays is kept. The final comparison fits the camera again
+unless the person moved it. Each presented payload carries that intent:
+`present` in `revision/playback.ts` names the step, and `applyWorld` in
+[`render.ts`](../../../src/viewers/web/render.ts) acts on it.
 
 ## In the browser
 

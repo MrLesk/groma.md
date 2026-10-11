@@ -219,12 +219,14 @@ const style = `
   @media (max-width: 1400px) {
     #stats .world-counts { display: none; }
   }
-  /* Up to this width the header has no spare room for a comparison being started, for compare words standing
-     outside a short revision field, or for Play and the speed menu beside a pair, so Search folds to its 34px icon
-     while one of them shows. Opening Search itself unfolds it. */
+  /* While Play and the speed menu show beside a pair, Search folds to its 34px icon at every width, so the freed width
+     goes to the two commit messages. Opening Search itself unfolds it. */
+  #header > #web-search { transition: flex-basis var(--chrome-motion) var(--chrome-ease), min-width var(--chrome-motion) var(--chrome-ease); }
+  #header:has(.revision-playback:not([hidden])) > #web-search:not([data-open]) { flex-basis: 34px; min-width: 34px; overflow: hidden; }
+  /* Up to this width the header has no spare room for a comparison being started or for compare words standing
+     outside a short revision field, so Search folds to its 34px icon until the list closes. */
   @media (max-width: 1320px) {
-    #header > #web-search { transition: flex-basis var(--chrome-motion) var(--chrome-ease), min-width var(--chrome-motion) var(--chrome-ease); }
-    #header:has(#revision[data-starting], .time-machine > .revision-compare:not([hidden]), .revision-playback:not([hidden])) > #web-search:not([data-open]) { flex-basis: 34px; min-width: 34px; overflow: hidden; }
+    #header:has(#revision[data-starting], .time-machine > .revision-compare:not([hidden])) > #web-search:not([data-open]) { flex-basis: 34px; min-width: 34px; overflow: hidden; }
   }
   @media (max-width: 1080px) {
     #header { gap: 12px; padding: 0 12px; }

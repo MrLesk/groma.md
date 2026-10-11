@@ -9,8 +9,12 @@ interface RevisionControlOptions {
   body: HTMLElement
   boot: WebBootPayload
   data: WebDataSource
+  /** Another revision or pair was opened: the camera fits it. */
   applyRevision: (payload: WebPayload) => void
+  /** The open view changed: the camera follows unless the person moved it. */
   applyWorld: (payload: WebPayload) => void
+  /** A playback frame: the map blends in place and the camera stays where it is. */
+  applyFrame: (payload: WebPayload) => void
   applyWork: (payload: WebWorkPayload) => void
 }
 
@@ -76,7 +80,7 @@ function revisionTooltip(list: HTMLElement) {
  * below name the two. An open field is only a draft: the displayed view changes when a commit is chosen.
  */
 export function createRevisionControl(options: RevisionControlOptions) {
-  const { box, body, boot, data, applyRevision, applyWorld, applyWork } = options
+  const { box, body, boot, data, applyRevision, applyWorld, applyFrame, applyWork } = options
   // `box` is the text field that holds the revision fields; `root` also holds the commit list and the x.
   const root = box.parentElement!
   const fields = box.querySelector<HTMLElement>('.revision-fields')!
@@ -103,10 +107,11 @@ export function createRevisionControl(options: RevisionControlOptions) {
   let appliedWork = boot.workGeneration
   const playback = createRevisionPlayback({
     root, data, live: boot.delivery.kind === 'live', current: () => current, navigating: () => navigating,
-    present(payload, first) {
+    present(payload, step) {
       editing = undefined
       setRevision(payload)
-      if (first) applyRevision(payload)
+      if (step === 'first') applyRevision(payload)
+      else if (step === 'between') applyFrame(payload)
       else applyWorld(payload)
     },
     error: showError,

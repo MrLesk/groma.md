@@ -93,7 +93,7 @@ let activeTaskIds: string[] = selection.kind === 'task' ? [selection.id] : []
 let detailsTab: DetailsTab = opened.tab
 const revisionControl = createRevisionControl({
   box: revisionBox, body: document.body, boot, data,
-  applyRevision: payload => applyWorld(payload, true), applyWorld, applyWork,
+  applyRevision: payload => applyWorld(payload, 'revision'), applyWorld, applyFrame: payload => applyWorld(payload, 'frame'), applyWork,
 })
 const authoring = createAuthoring(host, map, data, {
   live: () => revisionControl.live,
@@ -127,6 +127,8 @@ const camera = createCameraSession({
 })
 /** A world update's blend: the camera tracks its fit on every frame, through the last, instead of refitting a selection. */
 let following = false
+/** Whether the world update that is blending may move the camera; `applyWorld` sets it from how the payload arrived. */
+let updateMovesCamera = true
 function worldElement(id: string | undefined): AnnotatedElement | undefined { return id === undefined ? undefined : world.elements.find(element => element.representationId === id) }
 function worldRelationship(id: string | undefined): AnnotatedRelationship | undefined { return id === undefined ? undefined : world.relationships.find(item => item.id === id) }
 function unidentifiedGroup(id: string | undefined) { return sheet.zones.find(zone => zone.unidentifiedContainer && zone.key === id) }
@@ -377,7 +379,7 @@ function repaintScene(fit: boolean): void {
   pins.paint(currentPins.filter(pin => map.anchorOf(pin.elementId) !== undefined))
   const fitted = camera.refitTo(frame)
   if (fit && (mapMotion.morphing || following)) {
-    if (!camera.touched) camera.frame(fitted, 1)
+    if (updateMovesCamera && !camera.touched) camera.frame(fitted, 1)
   } else if (fit) {
     const focus = mapMotion.view === 'layers' ? undefined : fitArchitecture(scene, world, selectedArchitecture(selection), frame)
     camera.frame(focus === undefined ? fitted : pan(focus, frame.x, frame.y), mapMotion.framing)
@@ -401,7 +403,12 @@ bindChromeActions({
   deselect,
 })
 
-function applyWorld(payload: WebPayload, reset = false): void {
+/**
+ * `change` says how the payload arrives. 'revision': another revision or pair was opened, so the selection state resets
+ * and the camera fits. 'update': the open view changed, so the camera follows the new fit unless the person moved it.
+ * 'frame': a playback frame, which blends the map in place and never moves the camera.
+ */
+function applyWorld(payload: WebPayload, change: 'revision' | 'update' | 'frame' = 'update'): void {
   mapMeta = { generation: payload.generation, timings: payload.timings }
   world = payload.world
   changes.update(world, payload.comparison, payload.revision?.id, primarySelection(selection))
@@ -415,7 +422,8 @@ function applyWorld(payload: WebPayload, reset = false): void {
   const fitted = camera.refitTo(viewport())
   // A settling sheet is followed from where the camera is; an instant change flies to the new fit.
   const settle = () => mapMotion.morphing ? camera.frame(fitted, 0) : camera.navigate(fitted)
-  if (reset) {
+  updateMovesCamera = change !== 'frame'
+  if (change === 'revision') {
     authoring.cancel()
     source.clear()
     hierarchy.reset()
@@ -428,7 +436,7 @@ function applyWorld(payload: WebPayload, reset = false): void {
     settle()
     camera.touched = false
   } else {
-    if (!camera.touched) settle()
+    if (updateMovesCamera && !camera.touched) settle()
     activeTaskIds = activeTaskIds.filter(id => workItem(id) !== undefined)
     activeFlows = retainFlows(activeFlows, world)
     if (selection.kind === 'flow') selection = flowSelection(activeFlows)
