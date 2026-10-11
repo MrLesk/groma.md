@@ -61,7 +61,7 @@ export function paintAcceptControl(body: Element, accept: () => Promise<void>): 
   body.append(box)
 }
 
-/** Several selected components: name them as one group, or fold them into the survivor the person picks. */
+/** Several selected components: name them as one group, fold them into the survivor the person picks, or export them as a plan. */
 export function paintSelectionControls(body: Element, selection: SelectionWrites): void {
   body.append(heading(`${selection.members.length} selected`))
   const box = document.createElement('div')
@@ -92,10 +92,13 @@ export function paintSelectionControls(body: Element, selection: SelectionWrites
   combine.append(survivor, combineButton)
   const error = paragraph('error', '')
   error.setAttribute('role', 'status')
+  const confirmation = paragraph('confirmation', '')
+  confirmation.setAttribute('role', 'status')
   const submit = (form: HTMLFormElement, write: () => Promise<void>): void => {
     form.addEventListener('submit', async event => {
       event.preventDefault()
       error.textContent = ''
+      confirmation.textContent = ''
       try {
         await write()
       } catch (cause) {
@@ -106,23 +109,25 @@ export function paintSelectionControls(body: Element, selection: SelectionWrites
   submit(group, () => selection.onGroup(name.value))
   submit(combine, () => selection.onCombine(survivor.value))
   box.append(group, combine)
-  if (selection.onExport) {
-    const form = document.createElement('form')
-    form.className = 'group-as'
+  const { onExport } = selection
+  if (onExport) {
+    const exportForm = document.createElement('form')
+    exportForm.className = 'export-as-plan'
     const destination = document.createElement('input')
     destination.required = true
     destination.value = `plans/${selection.members[0]!.id}-plan`
     destination.setAttribute('aria-label', 'Plan directory')
-    const button = document.createElement('button')
-    button.type = 'submit'
-    button.textContent = 'Export as plan'
-    form.append(destination, button)
-    submit(form, async () => {
-      await selection.onExport!(destination.value)
-      error.textContent = `Exported to ${destination.value}`
+    const exportButton = document.createElement('button')
+    exportButton.type = 'submit'
+    exportButton.textContent = 'Export as plan'
+    exportForm.append(destination, exportButton)
+    // The other two writes repaint the pane with their result. An export changes nothing on the map, so it is confirmed here.
+    submit(exportForm, async () => {
+      await onExport(destination.value)
+      confirmation.textContent = `Exported to ${destination.value}`
     })
-    box.append(form)
+    box.append(exportForm)
   }
-  box.append(error)
+  box.append(error, confirmation)
   body.append(box)
 }

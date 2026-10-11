@@ -8,9 +8,29 @@ import type {
 
 type InvalidMarkdown = (code: string, sourceFilename: string, message: string) => never
 
-/** Render decoded model text as literal Markdown, including inside table cells. */
+/**
+ * Where Comark, the parser behind the architecture reader, reads inline syntax in text. Each match gets a
+ * backslash; all other punctuation is stored as written, so documents stay ordinary Markdown.
+ * Block syntax at the start of a line, such as "# " or "- ", is not covered.
+ */
+const markdownSyntax = new RegExp([
+  // Escape, code, emphasis, link or span, HTML, character reference, strikethrough, attributes, table cell.
+  /[\\`*_[<&~{|]/,
+  // An inline component such as :icon. It starts a word, so the colon of /users/:id or "note: text" stays plain.
+  /(?<=^|[\s*_[]):(?=[a-z$])/,
+  // The colon of an address such as https://example.com. Unescaped, Comark links the address and copies it
+  // without reading the backslashes added above.
+  /:(?=\/\/)/,
+].map(rule => rule.source).join('|'), 'gi')
+
+/** This text as Markdown the reader shows literally. Line breaks are kept, which suits prose paragraphs. */
 export function escapeMarkdownText(text: string): string {
-  return text.replaceAll(/[!-/:-@[-`{-~]/g, '\\$&')
+  return text.replaceAll(markdownSyntax, '\\$&')
+}
+
+/** The same for one table cell. A line break would end the row, so the text continues after a space. */
+export function escapeTableCell(text: string): string {
+  return escapeMarkdownText(text).replaceAll(/\s*[\r\n]\s*/g, ' ')
 }
 
 export function nodeText(node: MarkdownNode | undefined): string {

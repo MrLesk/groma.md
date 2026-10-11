@@ -50,7 +50,7 @@ function addedIds(thing: string, ids: string[]): Pick<AddInput, 'relation' | 'me
   return {}
 }
 
-/** The commands that change architecture Markdown: draft, add, remove, edit, and accept. */
+/** The commands that change architecture Markdown: draft, add, remove, edit, accept, and plan import. Plan export only reads it. */
 export function registerWriteCommands(program: Command): void {
   const plan = program.command('plan')
     .description('Share an architecture fragment as draft OKF Markdown')

@@ -13,10 +13,12 @@ groma plan import ../source/plans/payment-plan --parent application
 ```
 
 On the live browser map, select several components and use **Export as plan**
-beside **Group as** and **Combine into**. Enter a new directory relative to the
-repository; Groma writes the same bundle as the CLI.
+beside **Group as** and **Combine into**. Enter a new directory inside the
+repository; Groma writes the same bundle as the CLI and confirms where it went.
+The command line may export to a new directory anywhere.
 
-The directory name becomes the plan title. Export requires a new directory.
+The directory name becomes the plan title. Export refuses a directory that
+already exists.
 The bundle contains an OKF `index.md`, a `plan.md` record, selected element
 Markdown files, and flows whose steps stay entirely inside the selection.
 Unselected parents are referenced by ID and must already exist at import.
@@ -68,12 +70,23 @@ import before any architecture document is written. Import never renames IDs.
 
 Implement the imported responsibilities in source, run `groma scan`, and use
 `groma accept <id>` for each matched ghost. The existing scanner matching rules
-apply; import does not invent source paths or force a match. Scanning and
-accepting elements do not accept their planned relationships. Use the imported
-concept IDs with `groma edit relation` or `groma remove relation`. Explicit
-`groma accept relation checkout payments` transfers the planned text to the
-unique existing current source-file connection between those components. Without
-one unique connection, the relationship remains planned; the command explains
-why acceptance cannot proceed.
+apply; import does not invent source paths or force a match.
+
+An imported relationship stays a draft row between its two element IDs.
+Scanning and accepting the elements do not change it. Use those IDs to edit,
+remove or accept it:
+
+```sh
+groma edit relation checkout payments --description "Requests a refund"
+groma remove relation checkout payments
+groma accept relation checkout payments
+```
+
+Accepting needs exactly one current relationship from a source file of the
+first component to a source file of the second, which a scan records once the
+code exists. The planned description and technology move to that file pair.
+With none or more than one, the command says how many it found and the draft
+stays as it is. A relationship with a person or an external system needs no
+code.
 
 The [Markdown contract](component-markdown.md#plan-bundles) defines the format.

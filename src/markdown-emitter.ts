@@ -36,7 +36,8 @@ function normalizeNewlines(source: string): string {
   return source.replaceAll('\r\n', '\n')
 }
 
-function sourceWithFrontmatter(
+/** A document from its front matter and everything after the closing fence, which starts with a blank line. */
+export function sourceWithFrontmatter(
   frontmatter: Record<string, unknown>,
   content: string,
 ): string {

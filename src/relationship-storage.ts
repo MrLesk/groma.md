@@ -2,7 +2,7 @@ import path from 'node:path'
 import { parseMarkdown, parseFrontmatter } from 'comark'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { sourceIndex } from './source-index.ts'
-import { escapeMarkdownText } from './architecture-markdown.ts'
+import { escapeTableCell } from './architecture-markdown.ts'
 import { readDocument, writeDocument } from './markdown-emitter.ts'
 import type { StoredRelationship } from './relationship-markdown.ts'
 import type { ArchitectureDocument, CodeReference } from './types.ts'
@@ -80,7 +80,7 @@ export function withStoredRelationships(
   for (const row of rows) {
     const heading = row.authored ? (row.status === 'draft' ? '## Draft relationships' : '## Relationships') : '## Derived relationships'
     const lines = sections.get(heading) ?? []
-    lines.push(`| [${row.source}](${href(row.source)}) | [${row.target}](${href(row.target)}) | ${escapeMarkdownText(row.description)} | ${escapeMarkdownText(row.technology)} |`)
+    lines.push(`| [${row.source}](${href(row.source)}) | [${row.target}](${href(row.target)}) | ${escapeTableCell(row.description)} | ${escapeTableCell(row.technology)} |`)
     sections.set(heading, lines)
   }
   const tables = [...sections].map(([heading, lines]) =>

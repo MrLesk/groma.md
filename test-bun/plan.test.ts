@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 import { cp, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 
 import { buildArchitectureModel } from '../src/architecture-model.ts'
 import { loadArchitecture } from '../src/architecture-reader.ts'
@@ -9,6 +10,7 @@ import { draftElement } from '../src/draft.ts'
 import { resolveFlows } from '../src/flow-model.ts'
 import { exportPlan, importPlan } from '../src/plan.ts'
 import { editRelation, removeRelation } from '../src/relation.ts'
+import { createWebMapSession } from '../src/viewers/web/map-session.ts'
 
 async function repositories() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-plan-'))
@@ -75,10 +77,45 @@ test.concurrent('imported concept draft relationships can be edited and removed 
     const bundle = await exportPlan(source, { ids: ['service', 'api', 'entry', 'worker'], to: '../shared-plan' })
     await importPlan(destination, { path: bundle })
     const ends = { source: 'entry', target: 'worker' }
-    await editRelation(destination, { ...ends, description: 'Dispatches A | B', technology: 'Callback | queue' })
-    const changed = (await architecture(destination)).relationships.find(row => row.sourceId === 'entry' && row.targetId === 'worker')!
-    expect(changed).toMatchObject({ status: 'draft', description: 'Dispatches A | B', technology: 'Callback | queue' })
+    const relationship = async () => (await architecture(destination)).relationships.find(row => row.sourceId === 'entry' && row.targetId === 'worker')!
+    // Every part of this text is Markdown syntax to the reader unless storage escapes it.
+    const syntax = {
+      description: 'Sets *pending* and __init__ for A | B, `code` [text] <b> ~~kept~~ &amp; C:\\.git',
+      technology: ':queue {id} at https://example.com/a_b',
+    }
+    await editRelation(destination, { ...ends, ...syntax })
+    expect(await relationship()).toMatchObject({ status: 'draft', ...syntax })
+    const ordinary = 'Reads user.name, then retries (HTTPS/JSON): 3 times; why? #12 + a=b - done!'
+    await editRelation(destination, { ...ends, description: `${ordinary}\nSecond line`, technology: 'HTTPS' })
+    expect(await readFile(path.join(destination, entryPath), 'utf8')).toContain(`| ${ordinary} Second line | HTTPS |`)
+    expect((await relationship()).description).toBe(`${ordinary} Second line`)
     await removeRelation(destination, ends)
     expect((await architecture(destination)).relationships.some(row => row.sourceId === 'entry' && row.targetId === 'worker')).toBe(false)
   } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('the live map exports a plan only into a new directory inside its repository', async () => {
+  const { root, source } = await repositories()
+  let session: Awaited<ReturnType<typeof createWebMapSession>> | undefined
+  try {
+    session = await createWebMapSession(source, { scan: false, workSource: {
+      async read() { return EMPTY_WORK_SNAPSHOT },
+      async readItem() { throw new Error('No task') },
+      watch() { return { close() {} } },
+    } })
+    const send = (to: string) => session!.fetch(new Request('http://localhost/plan/export', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: ['entry', 'worker'], to }),
+    }))
+    // Outside by a relative path, outside by an absolute path, and the repository itself, which is not new.
+    for (const refused of ['../outside-plan', path.join(root, 'absolute-plan'), '.']) {
+      expect((await send(refused)).status).toBe(400)
+    }
+    expect((await readdir(root)).sort()).toEqual(['destination', 'source'])
+    expect((await send('plans/inside')).ok).toBe(true)
+    expect(await readdir(path.join(source, 'plans/inside'))).toContain('plan.md')
+    expect((await send('plans/inside')).status).toBe(400)
+  } finally {
+    await session?.close()
+    await rm(root, { recursive: true, force: true })
+  }
 })

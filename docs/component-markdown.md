@@ -286,7 +286,10 @@ system IDs as endpoints. This includes interactions without imports, such as
 an HTTP client and its endpoint. An actor or external-system declaration may
 use C4 concept links. Each ordered endpoint pair has one authored row.
 `Description` states the interaction; `Technology` states its mechanism or a
-required constraint. Both cells are required and non-empty. A stored row may
+required constraint. Both cells are required and non-empty. Groma stores each
+on one line and puts a backslash before characters Markdown would read as
+syntax, such as `*`, `_` or `|`, so the text reads back as written. A stored
+row may
 name a file that currently has no component owner, for example after a detach:
 the row stays in its previous document and stays off the map. Once a scan gives
 that file an owner, it transfers the row into the new owner document and the

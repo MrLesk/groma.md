@@ -7,6 +7,7 @@ import { writes } from '../../authoring.ts'
 import { EditConflict } from '../../authoring-conflict.ts'
 import { GromaBusyError } from '../../groma-filesystem.ts'
 import type { StructuralResult } from '../../curate.ts'
+import { exportPlanIntoRepository } from '../../plan.ts'
 import { createScannerSession } from '../../scanner/session.ts'
 import { parseScannerSettingsAction, withScannerUpgrades } from '../../scanner/modules/settings.ts'
 import { pinsOf } from '../../work/pins.ts'
@@ -416,7 +417,11 @@ export async function createWebMapSession(
       try { await scannerSession.change(parseScannerSettingsAction(await request.json())); return Response.json(scannerSession.state) }
       catch (error) { return new Response(error instanceof Error ? error.message : String(error), { status: 400 }) }
     }],
-    ['/plan/export', request => writeResponse(request, writes.exportPlan)],
+    // A plan export changes nothing the map shows, so unlike the writes below it does not reload the world.
+    ['/plan/export', async request => {
+      try { await exportPlanIntoRepository(repositoryRoot, await request.json()); return new Response(null, { status: 204 }) }
+      catch (error) { return new Response(error instanceof Error ? error.message : String(error), { status: 400 }) }
+    }],
     ['/draft', request => writeResponse(request, writes.draft)],
     ['/add', request => writeResponse(request, writes.add)],
     ['/edit', request => writeResponse(request, writes.edit)],

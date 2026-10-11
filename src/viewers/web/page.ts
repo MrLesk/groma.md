@@ -290,6 +290,8 @@ const style = `
   #details .selection-writes button:hover { color: var(--ink); background: var(--hover); }
   #details .selection-writes .error { margin: 0; color: var(--highlight-text); font-size: 11px; }
   #details .selection-writes .error:empty { display: none; }
+  #details .selection-writes .confirmation { margin: 0; color: var(--muted); font-size: 11px; }
+  #details .selection-writes .confirmation:empty { display: none; }
   #details .overview { margin: 0 0 10px; line-height: 1.65; }
   #hierarchy .section, #details .section { padding-bottom: 6px; border-bottom: 1px solid var(--hairline); }
   #details .section {

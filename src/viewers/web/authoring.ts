@@ -14,16 +14,16 @@ export interface AuthoringDependencies {
 /** Shared write operations for details and group actions. */
 export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSource, deps: AuthoringDependencies) {
   const gestures = createMapEditor(host, map, data, () => deps.world().elements, deps.live)
-  const { accept, add, edit, remove } = data
+  const { accept, add, edit, exportPlan, remove } = data
   const titleOf = (id: string): string => deps.world().elements.find(element => element.id === id)?.title ?? id
-  /** Group as and Combine into, while several components are selected. */
+  /** Group as, Combine into and Export as plan, while several components are selected. */
   function selectionWrites(ids: readonly string[]): SelectionWrites | undefined {
     if (ids.length < 2 || add === undefined || edit === undefined) return undefined
     return {
       members: ids.map(id => ({ id, title: titleOf(id) })),
-      onExport: data.exportPlan === undefined ? undefined : to => data.exportPlan!({ ids: [...ids], to }),
       onGroup: name => add({ thing: 'group', name, members: [...ids] }),
       onCombine: survivor => edit({ id: survivor, combine: ids.filter(id => id !== survivor) }),
+      ...(exportPlan === undefined ? {} : { onExport: to => exportPlan({ ids: [...ids], to }) }),
     }
   }
 
