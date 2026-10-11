@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-11 09:51'
-updated_date: '2026-10-11 10:11'
+updated_date: '2026-10-11 10:41'
 labels: []
 dependencies: []
 references:
@@ -47,6 +47,7 @@ Update main Groma dependencies and Bun workflow pins to 1.4.3. Include the lates
 - [x] #2 Main dependencies include OpenTUI 0.6.0, with its breaking APIs handled in existing terminal owners; scanner and example packages remain unchanged.
 - [x] #3 Welcome-to-action handoff and terminal close wait for OpenTUI transitions, while map, init, and settings still render and navigate correctly.
 - [x] #4 bun run check, a standalone build, and focused terminal smoke checks pass; PR 126 contains the task-scoped changes.
+- [x] #5 Pin the comparison action to the tested fix that exports plugin-based revisions without scanners.json.
 <!-- AC:END -->
 
 ## Definition of Done
@@ -63,6 +64,8 @@ Update main Groma dependencies and Bun workflow pins to 1.4.3. Include the lates
 1. Check OpenTUI 0.6.0 release notes and all affected renderer APIs and existing test coverage. 2. Update root OpenTUI and lockfile, then fix lifecycle/resource API breaks in their existing terminal owners; record each file immediately. 3. Add or extend only tests that close a concrete lifecycle regression gap, after recording the rule and missing coverage. Use existing rendering/navigation coverage and tui-test for real terminal verification. 4. Run bun run check, build the standalone executable, and exercise welcome handoff, map, details, container, resize, and settings. 5. Self-review the supported flow, update task evidence and PR description, and push to PR 126.
 
 Regression coverage: Alex authorized preserving terminal flows while upgrading OpenTUI. Current tests cover navigation models but do not mount welcome/viewer renderers or check transition completion. A controlled suspend promise must prevent a selected welcome action from resolving early. A controlled renderer.closed promise must prevent welcome cancellation and viewer.closed from finishing before terminal restoration. Add one concurrent renderer-owned test for suspension and one parameterized close test for welcome/map; no shared mocks or live groma data. Confirm these fail before the lifecycle fix. The installed OpenTUI 0.6.0 test API provides per-renderer mock input and dispose(), which awaits closed. Bun 1.4.3 lifecycle documentation matches the declared runner; keep current runner options.
+
+Alex approved fixing the legacy scanner-file failure. Update .github/workflows/architecture.yml to the tested action commit from groma.md-action TASK-8. Comparison preparation no longer reads scanner configuration; the action exports committed data in an empty temporary working root. The published scan path remains on its existing CLI until the plugin system is released. Existing dependency/source validation remains valid; run bun run check for the final PR revision.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -81,10 +84,18 @@ Alex explicitly requested the latest OpenTUI and fixes for its breaking changes 
 OpenTUI 0.6.0 implementation: welcome awaits suspend() before exposing the selected action and awaits renderer.closed on cancel. WelcomeSession.close() is asynchronous and its CLI owner awaits it before reopening or finishing. The terminal viewer returns the renderer completion promise directly, removing its premature independent close promise. Viewer setup failure and standalone settings cleanup await terminal restoration. Existing FrameBuffer, palette, and rendering APIs still type-check and run without changes. No scanner package files or versions changed.
 
 Verification after the OpenTUI fixes on macOS arm64 / Bun 1.4.3: all three new lifecycle tests failed before the fix (early action/close completion) and passed afterward. bun run check passed: 16 Node tests and 779 Bun tests passed, 51 optional skips, zero failures. A frozen install made no changes. Standalone build passed. Real compiled tui-test flows passed: welcome -> settings child -> welcome -> quit; map root -> container -> arrow selection -> details -> resize to 200x60 -> Ctrl+C. Visually inspected screenshots in /tmp/groma-task-579-opentui. git diff --check passed and groma/ stayed unchanged. Self specification and quality review found no blocker. The implementation keeps cleanup with the existing resource owners and removes an unnecessary close promise. Each concurrent test owns its renderer and controlled transition; assertions prove ordering rather than exact copy or layout. No new architecture concepts, contracts, scanner APIs, or runner options were added.
+
+The previous PR 118 failure came from action prepare.mjs opening scanners.json on the task-568-plugins-json base. The action fix is tracked independently in its TASK-8. No scanner package changes or legacy file restoration are in scope.
+
+Updated architecture action pin to b5eb98ce51df144ba276182a5b80a7a2ce6d11a3 from https://github.com/MrLesk/groma.md-action/pull/6. The action exports the exact previously failing PR 118 commits successfully with released CLI 0.6.6 and does not require scanners.json for comparisons. The normal scan path remains on released commands until the plugin CLI is published. This pin will apply to pull_request_target runs once PR 126 is merged; those runs use the default branch workflow.
+
+Alex confirmed the selected scope: fix comparisons now and keep the released scan path until the plugin CLI is released.
+
+Final verification after the action pin: bun run check passed on Bun 1.4.3, with 16 Node tests and 779 Bun tests passing, 51 optional skips, zero failures. Both Check runs for action PR 6 passed on its exact pinned commit b5eb98ce. The action also exported the exact PR 118 revisions locally. Self specification and quality review found no blocking issue: the only new Groma runtime change in this slice is the action pin; project plugin settings, scanner packages, and architecture are unchanged. git diff --check passed and groma/ is unchanged. The new pin takes effect in pull_request_target comparisons when PR 126 lands on the default branch.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Updated Bun pins to 1.4.3 and main-package dependencies, including latest OpenTUI 0.6.0. Welcome actions now wait for terminal suspension; welcome, map, and standalone settings wait for terminal restoration before reporting completion or reusing streams. Added three focused lifecycle regressions that failed before the fix and now pass. bun run check passed (795 tests passed total, 51 optional skips), frozen install and standalone build passed, and compiled welcome/settings handoff, map navigation, resize, and exit passed tui-test. Scanner and example package files and versions are unchanged. PR: https://github.com/MrLesk/groma.md/pull/126
+Updated Bun to 1.4.3 and main-package dependencies, including OpenTUI 0.6.0. Terminal transitions now wait for suspension and restoration, with three regression tests. Pinned the architecture action to the tested comparison fix from groma.md-action PR 6: comparisons no longer require scanners.json or rewrite plugin settings, and the exact PR 118 comparison now exports. The released scanning path remains unchanged until the plugin CLI is released, as Alex confirmed. Final bun run check passed: 795 tests passed, 51 optional skips, zero failures. Standalone build and terminal checks passed. Action validation passed all 26 tests, both CI runs, released scanning, and comparisons with released and plugin CLIs. Scanner and example package versions remain unchanged. PR: https://github.com/MrLesk/groma.md/pull/126; action PR: https://github.com/MrLesk/groma.md-action/pull/6.
 <!-- SECTION:FINAL_SUMMARY:END -->
