@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-11 16:58'
+updated_date: '2026-10-11 19:22'
 labels: []
 dependencies: []
 references:
@@ -137,6 +137,7 @@ modified_files:
   - test-bun/scanner-update.test.ts
   - test-bun/source-coverage.test.ts
   - test-bun/web-startup.test.ts
+  - src/welcome.ts
 type: feature
 ordinal: 645000
 ---

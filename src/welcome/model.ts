@@ -20,7 +20,7 @@ export const welcomeActions = [
     command: 'groma scan',
     description: 'refresh architecture from source',
   },
-  { id: 'scanners', command: 'Plugins ›', description: 'Manage project plugins' },
+  { id: 'plugins', command: 'Plugins ›', description: 'Manage project plugins' },
 ] as const
 
 export const instructionsAction = {
