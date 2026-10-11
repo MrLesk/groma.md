@@ -3,6 +3,11 @@ import type { CodeHistory } from '../../../history/code-history.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import { heading, paragraph } from '../atoms/text.ts'
 
+/** "1 commit", "2 commits". */
+function counted(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`
+}
+
 /** Live measurements stay outside the authored description and published detail model. */
 export function paintMetricDetails(
   host: HTMLElement,
@@ -22,9 +27,9 @@ export function paintMetricDetails(
   if (codeHistory !== null && changes !== undefined) {
     section.prepend(heading('Code metrics'))
     section.append(
-      paragraph('', `${changes.commits} commits · ${changes.committers} committers · last ${codeHistory.window} commits`),
-      paragraph('', `Instability: ${metrics.instability.toFixed(2)} · ${metrics.connections} connections`),
-      paragraph('', `Co-change: ${changes.cochange} shared commits`),
+      paragraph('', `${counted(changes.commits, 'commit')} · ${counted(changes.committers, 'committer')} · last ${codeHistory.window} commits`),
+      paragraph('', `Instability: ${metrics.instability.toFixed(2)} · ${counted(metrics.connections, 'connection')}`),
+      paragraph('', `Co-change: ${counted(changes.cochange, 'shared commit')}`),
     )
     if (changes.peers.length > 0) {
       const list = document.createElement('ul')

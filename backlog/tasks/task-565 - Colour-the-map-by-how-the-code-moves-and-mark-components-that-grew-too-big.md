@@ -1,11 +1,11 @@
 ---
 id: TASK-565
 title: Colour the map by how the code moves and mark components that grew too big
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-11 16:43'
+updated_date: '2026-10-11 16:47'
 labels:
   - intermediate
 dependencies: []
@@ -138,6 +138,8 @@ Consolidated review list, 22 items (2026-10-11, second pass). Behaviour: merge c
 Deviation from review item 10, which asked for one exported co-change function beside the history types: the browser cannot import a value from src/history/code-history.ts, because that module imports the Git runner and the browser build fails on it ('Browser build cannot require() Node.js builtin: child_process'). The total therefore has one owner on the server: ComponentHistory.cochange is the number, computed once in componentHistory(), and the per-component list is ComponentHistory.peers. The control reads all three Git metrics as item[metric] and the details read the number, so neither sums anything.
 
 Evidence, second pass. The merge assertion fails with the old flags (a: 4 commits, 3 committers instead of 3 and 2) and the direction assertion fails with incoming and outgoing swapped. bun run typecheck passes. bunx biome lint: 1 warning and 2 infos in total, the count from before the first pass, none in a changed file. Focused tests: 67 pass, 0 fail across code-history, component-metrics, source-index, inspect-details, web-theme, web-export, web-revisions, web-page-inset, web-sharing, web-startup, web-shell, chrome, navigation, tui-source, work-folding, editing and revision-comparison. Headless Chromium on the minimum fixture: at boot the outlier mark and outlier line are present before the first answer and the Git lines after it; legend layout and titles (Instability without a window); tints in three themes and None; selected label ink; a live update keeps tints, legend and previous counts while its read is held and shows the new world's outlier wording at once on the mark and in the details; a changed window shows the wait and removes the tints; slow older answer, two changes before a paint, late failure, current failure and newer-generation answer behave as described; the published page has no metric element or request. A real web map session answers /code-history.json?window=500 and rejects a missing or zero window with 400. Terminal detailsLines prints the outlier line for the fixture outlier on What and How; tui-test was not run. Scan after the rename created the stand-alone component code-history; it was moved under cli and combined into history-revisions through the CLI, and a rescan created nothing. The full bun run check was not run; the orchestrator runs it.
+
+Orchestrator verification, 11 October 2026, on main with Bun 1.4.3 merged: bun run check passed (16 Node tests; 783 Bun tests passed, 52 skipped for missing optional toolchains, 0 failed; Biome reports one existing warning and two infos outside this task's files). Live viewer on a clone of this repository: Colour by Commits tints 115 component buildings and no draft, the legend shows its 326 px blue-to-orange scale with '0 to 39', a selected building keeps its selection outline, and the details pane lists commits, committers, instability and co-change. Counts read '1 committer' in the singular. Known and accepted: the history read waits for the next painted frame, so a hidden browser tab reads it when it becomes visible; each world paint starts a read and only the newest answer is used.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
