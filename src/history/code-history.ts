@@ -2,6 +2,9 @@ import { sourceIndex } from '../source-index.ts'
 import type { ArchitectureGraph } from '../types.ts'
 import { hasCommits, runGit } from './revisions.ts'
 
+// This module runs Git, so it runs on the host only. Browser code may import its types, never its functions:
+// a value import pulls node:child_process into the browser bundle and the build fails.
+
 /** What the commits read from the current branch did to one component's files. */
 export interface ComponentHistory {
   commits: number
