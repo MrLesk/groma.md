@@ -144,7 +144,7 @@ test.concurrent('staged Backlog release installs its contract and supports npm s
     expect(code, stderr).toBe(0)
     const source = `@groma/work-source-backlog@${adapter.version}`
     expect(JSON.parse(stdout)).toEqual({
-      installed: { id: 'backlog', source, status: 'found' },
+      installed: { id: 'backlog', kind: 'workSource', source, status: 'found' },
       config: { scanners: [], workSources: [{ id: 'backlog', source }] }, id: 'backlog',
     })
   } finally { server.stop(true); await rm(root, { recursive: true, force: true }) }

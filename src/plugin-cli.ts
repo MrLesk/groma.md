@@ -1,10 +1,19 @@
 import type { Command } from 'commander'
-import { addPlugin, installPlugins, pluginInventory, removePlugin, updatePlugin } from './plugin-management.ts'
+import { addPlugin, installPlugins, removePlugin, updatePlugin } from './plugin-management.ts'
 import { parseListWindow, printListPage, withListWindowOptions } from './list-window.ts'
+import { scannerInventory } from './scanner/modules/inventory.ts'
+import { configuredWorkSource } from './work-sources.ts'
 
 async function run(action: () => Promise<void>): Promise<void> {
   try { await action() }
   catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1 }
+}
+
+/** Every selection with what this computer has of it; reading a work source's readiness imports its adapter. */
+async function pluginInventory(root: string) {
+  const scanners = (await scannerInventory(root)).map(scanner => ({ ...scanner, kind: 'scanner' as const, message: '' }))
+  const work = await configuredWorkSource(root)
+  return [...scanners, ...(work ? [{ id: work.id, kind: work.kind, source: work.source, status: work.status, message: work.message }] : [])]
 }
 
 export function registerPluginCommands(program: Command): void {

@@ -22,7 +22,7 @@ for (const present of [false, true]) {
       const selection = await readFile(path.join(root, 'groma/plugins.json'), 'utf8')
       const architecture = await loadAnnotatedArchitecture(root)
       if (present) expect(await installScanners(root)).toBe(0)
-      else await expect(installScanners(root)).rejects.toThrow('local scanner directory: ./plugin')
+      else await expect(installScanners(root)).rejects.toThrow('local directory: ./plugin')
       expect(await readFile(path.join(root, 'groma/plugins.json'), 'utf8')).toBe(selection)
       const after = await loadAnnotatedArchitecture(root)
       expect(after.elements).toEqual(architecture.elements)

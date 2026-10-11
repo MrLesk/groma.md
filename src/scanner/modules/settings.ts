@@ -4,13 +4,12 @@ import type { ScannerDiscovery } from './discovery.ts'
 import { discoverScanners } from './discovery.ts'
 import { officialScannerCatalog } from './catalog.ts'
 import { officialWorkSourceIds } from './official-catalog.ts'
-import { configuredScannerModules, addScanner, restoreScanner } from './inventory.ts'
+import { configuredScannerModules, addScanner } from './inventory.ts'
 import type { ScannerModuleLocation } from './inventory.ts'
 import type { ProjectReadiness } from './readiness.ts'
 import { parsePluginSource, type PluginInstallOptions } from './package.ts'
 import { readPublishedPlugins, selectPublishedPlugin } from './published.ts'
-import { readPluginConfig } from './config.ts'
-import { addPlugin, removePlugin, restoreWorkSource, updatePlugin } from '../../plugin-management.ts'
+import { addPlugin, removePlugin, restorePlugin, updatePlugin } from '../../plugin-management.ts'
 import { configuredWorkSource, type WorkSourceSelection } from '../../work-sources.ts'
 
 /** Optional registry reads for an open settings dialog; scan readiness stays unchanged. */
@@ -112,12 +111,7 @@ export async function changePluginSettings(root: string, action: PluginSettingsA
   switch (action.action) {
     case 'add': await addPlugin(root, action.source, options); return
     case 'remove': await removePlugin(root, action.id); return
-    case 'restore': {
-      const config = await readPluginConfig(root)
-      if (config.workSources.some(work => work.id === action.id)) await restoreWorkSource(root, options)
-      else await restoreScanner(root, action.id, options)
-      return
-    }
+    case 'restore': await restorePlugin(root, action.id, options); return
     case 'update': await updatePlugin(root, action.id, action.source, options); return
     case 'retry': return
     case 'install-recommended': case 'install-missing': await installGroup(root, action.action, options); return
@@ -136,8 +130,7 @@ async function installGroup(root: string, group: 'install-recommended' | 'instal
   for (const item of selected) {
     try {
       if (group === 'install-recommended') await addScanner(root, item.installSource!, options)
-      else if (item.kind === 'workSource') await restoreWorkSource(root, options)
-      else await restoreScanner(root, item.id, options)
+      else await restorePlugin(root, item.id, options)
     } catch (error) { errors.push(`${item.id}: ${error instanceof Error ? error.message : String(error)}`) }
   }
   if (errors.length) throw new Error(errors.join('\n'))

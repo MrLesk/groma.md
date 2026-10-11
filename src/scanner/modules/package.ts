@@ -353,6 +353,15 @@ export async function installPluginPackage(
   return { source: source.source, package: resolved }
 }
 
+/** The exact source an input names: a bare npm package name becomes its newest published release this computer can run. */
+export async function requestedPluginSource(
+  root: string, input: string, options: PluginInstallOptions, kind?: PluginKind,
+): Promise<PluginSource> {
+  const requested = input.trim()
+  return parsePluginSource(root, isNpmPackageName(requested)
+    ? await publishedPluginSource(requested, options.registry, kind) : requested)
+}
+
 function samePackage(current: PluginSource, replacement: PluginSource): boolean {
   if (current.kind === 'npm' && replacement.kind === 'npm') return current.name === replacement.name
   if (current.kind === 'git' && replacement.kind === 'git') return current.repository === replacement.repository
@@ -370,12 +379,30 @@ export async function preparePluginUpdate<K extends PluginKind>(
   const current = parsePluginSource(root, selected.source)
   const requested = input?.trim() ?? (current.kind === 'npm' ? current.name : undefined)
   if (!requested) throw new Error('Git updates require a tag or commit; local plugins run from their configured path')
-  const replacement = parsePluginSource(root, isNpmPackageName(requested)
-    ? await publishedPluginSource(requested, options.registry, kind) : requested)
+  const replacement = await requestedPluginSource(root, requested, options, kind)
   if (!samePackage(current, replacement)) {
     throw new Error('Plugin update must keep the same npm package or Git repository; local plugins run from their configured path')
   }
   const installed = await installPluginPackage(replacement, options, kind)
   if (installed.package.id !== selected.id) throw new Error(`Plugin id changed: ${installed.package.id}`)
   return installed
+}
+
+/**
+ * Puts one selection's package back on this computer without changing the selection: an npm or Git source is
+ * installed again, a local path only has to be there. Reports whether anything was installed.
+ */
+export async function restorePluginPackage<K extends PluginKind>(
+  root: string,
+  selected: { id: string; source: string },
+  options: PluginInstallOptions,
+  kind: K,
+): Promise<{ installed: boolean; package: ResolvedPackages[K] }> {
+  const source = parsePluginSource(root, selected.source)
+  const resolved = source.kind === 'local'
+    ? await resolvePluginPackage(source, options, kind)
+    : (await installPluginPackage(source, options, kind)).package
+  if (resolved === undefined) throw new Error(`Plugin ${selected.id} is missing. Restore its local directory: ${selected.source}`)
+  if (resolved.id !== selected.id) throw new Error(`Configured plugin ${selected.id} resolves to manifest id ${resolved.id}`)
+  return { installed: source.kind !== 'local', package: resolved }
 }
