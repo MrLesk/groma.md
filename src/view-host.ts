@@ -136,6 +136,7 @@ export async function startTerminalViewer(
     }
   } catch (error) {
     renderer.destroy()
+    await renderer.closed
     throw error
   }
 }

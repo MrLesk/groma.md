@@ -26,7 +26,7 @@ type WelcomeSelectionExit = 'destroy' | 'suspend'
 
 export interface WelcomeSession {
   selection: WelcomeActionId | undefined
-  close(): void
+  close(): Promise<void>
 }
 
 interface LauncherState {
@@ -118,10 +118,7 @@ export function mountWelcome(
   }
   let arrowVisible = true
   let closed = false
-  let resolveSelected!: (selection: WelcomeActionId | undefined) => void
-  const selected = new Promise<WelcomeActionId | undefined>(resolve => {
-    resolveSelected = resolve
-  })
+  const selected = Promise.withResolvers<WelcomeActionId | undefined>()
   const frame = new FrameBufferRenderable(renderer, {
     id: 'groma-welcome',
     width: Math.max(1, renderer.width),
@@ -184,17 +181,17 @@ export function mountWelcome(
     clearInterval(blinkTimer)
     renderer.keyInput.off('keypress', onKeypress)
     renderer.off('destroy', onRendererDestroy)
+    void finishClose(selection).catch(selected.reject)
+  }
+
+  async function finishClose(selection: WelcomeActionId | undefined): Promise<void> {
     if (selection !== undefined && selectionExit === 'suspend') {
-      renderer.suspend()
-      resolveSelected(selection)
-      return
+      await renderer.suspend()
+    } else {
+      renderer.destroy()
+      await renderer.closed
     }
-    if (renderer.isDestroyed) {
-      resolveSelected(selection)
-      return
-    }
-    renderer.once('destroy', () => resolveSelected(selection))
-    renderer.destroy()
+    selected.resolve(selection)
   }
 
   function onRendererDestroy(): void {
@@ -346,7 +343,7 @@ export function mountWelcome(
   renderer.once('destroy', onRendererDestroy)
   repaint()
 
-  return selected
+  return selected.promise
 }
 
 export async function startWelcome(
@@ -363,9 +360,10 @@ export async function startWelcome(
   })
   try {
     const selection = await mountWelcome(renderer, model, initialScreen, 'suspend')
-    return { selection, close: () => renderer.destroy() }
+    return { selection, async close() { renderer.destroy(); await renderer.closed } }
   } catch (error) {
     renderer.destroy()
+    await renderer.closed
     throw error
   }
 }
