@@ -81,7 +81,7 @@ Network installation happens only after explicit selection in setup,
 
 Bare `groma` shows the scanner notice above its commands and, in one fixed
 bottom row, the readiness of the work source that `plugins.json` selects. That
-row names no plugin when none is selected. The complete scanner inventory and
+row stays empty when none is selected. The complete scanner inventory and
 scanner management syntax remain under Advanced commands.
 
 ## Fresh checkouts
