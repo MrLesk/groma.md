@@ -73,7 +73,7 @@ test.concurrent('a pattern decides with the whole list, so a later negation rest
     await writePluginConfig(root, { ...config, exclude: ['**/*.generated.ts', '!src/keep.generated.ts'] })
     expect(await reason(root, 'src/keep.generated.ts')).toContain('read by first, second')
     await writePluginConfig(root, { exclude: ['/scripts/'], scanners: config.scanners.map(scanner =>
-      scanner.id === 'first' ? { ...scanner, exclude: ['!/scripts/'] } : scanner) })
+      scanner.id === 'first' ? { ...scanner, exclude: ['!/scripts/'] } : scanner), workSources: [], icons: [] })
     const answer = await reason(root, 'scripts/hidden.ts')
     expect(answer).toContain('read by first')
     expect(answer).toContain('excluded for second')

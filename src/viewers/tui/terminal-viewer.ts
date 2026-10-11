@@ -358,7 +358,7 @@ export function mountTerminalViewer(
     return true
   }
 
-  function openScannerSettings(key: KeyEvent): boolean {
+  function openPluginSettings(key: KeyEvent): boolean {
     if (key.name === 's' && key.shift && !key.ctrl && state.search === undefined && options.openPluginSettings) {
       pluginSettingsOpen = true
       void options.openPluginSettings().finally(() => { pluginSettingsOpen = false; repaint() })
@@ -369,7 +369,7 @@ export function mountTerminalViewer(
 
   function globalKey(key: KeyEvent): boolean {
     if (key.eventType === 'release' || pluginSettingsOpen) return true
-    if (openScannerSettings(key)) return true
+    if (openPluginSettings(key)) return true
     // Groma owns pane navigation; focused toolkit scrollbars must not scroll again.
     key.preventDefault()
     if (key.ctrl && key.name === 'c') { destroy(); return true }

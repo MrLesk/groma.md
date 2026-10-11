@@ -12,7 +12,8 @@ import { officialScannerCatalog, recommendScanners } from './catalog.ts'
 import type { TechnologyFinding, ScannerRecommendation, OfficialScanner } from './catalog.ts'
 import { scannerInventory, configuredScannerModules } from './inventory.ts'
 import { exclusion, readPluginConfig, type PluginConfig } from './config.ts'
-import type { ScannerInventoryItem, PluginResolutionOptions } from './inventory.ts'
+import type { ScannerInventoryItem } from './inventory.ts'
+import type { PluginResolutionOptions } from './package.ts'
 
 export interface ScannerDiscovery {
   findings: TechnologyFinding[]

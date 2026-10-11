@@ -6,10 +6,8 @@ import { repositoryListing } from '../repository-listing.ts'
 import { exclusion, readPluginConfig, type PluginConfig } from './modules/config.ts'
 import { configuredScannerModules } from './modules/inventory.ts'
 import { configuredSelection, selectedFiles, type ScannerSelection } from './modules/selection.ts'
-import type {
-  FoundScannerModule,
-  PluginResolutionOptions,
-} from './modules/inventory.ts'
+import type { FoundScannerModule } from './modules/inventory.ts'
+import type { PluginResolutionOptions } from './modules/package.ts'
 import { officialScannerCatalog } from './modules/official-catalog.ts'
 import { discoverScanners } from './modules/discovery.ts'
 import { compileWatchPatterns } from './watch-patterns.ts'

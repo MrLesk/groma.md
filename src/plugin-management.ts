@@ -1,87 +1,118 @@
-import { addIconPack, iconPackInventory, replaceIconPackSource, restoreIconPacks } from './icon-packs.ts'
-import { readPluginConfig, writePluginConfig } from './scanner/modules/config.ts'
-import { configureScanner, installScanners, removeScanner, scannerInventory, updateScanner, type PluginInstallOptions } from './scanner/modules/inventory.ts'
-import { defaultPluginCacheRoot, installPluginPackage, parsePluginSource, preparePluginUpdate, resolvePluginPackage, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
-import { isNpmPackageName, publishedPluginSource } from './scanner/modules/published.ts'
-import { configuredWorkSource, hostIncompatibility } from './work-sources.ts'
+import { readPluginConfig, writePluginConfig, type PluginConfig } from './scanner/modules/config.ts'
+import {
+  installPluginPackage,
+  preparePluginUpdate,
+  requestedPluginSource,
+  restorePluginPackage,
+  type PluginInstallOptions,
+  type PluginKind,
+  type ResolvedPluginPackage,
+} from './scanner/modules/package.ts'
+import { hostIncompatibility } from './work-sources.ts'
 
-/** Selecting, restoring or updating a work source this groma.md version cannot load is refused with the reason. */
-function requireCompatibleHost(resolved: ResolvedWorkSourcePackage): void {
-  const incompatible = hostIncompatibility(resolved)
+/** A selection as a command reports it after adding or updating it. */
+export interface PluginSelection {
+  id: string
+  kind: PluginKind
+  source: string
+  status: 'found'
+}
+
+/**
+ * A work source this groma.md version cannot load is refused with the reason. A scanner passes: its compatibility
+ * is judged from its discovery metadata when the settings are read.
+ */
+function requireCompatibleHost(resolved: ResolvedPluginPackage): void {
+  const incompatible = resolved.kind === 'workSource' ? hostIncompatibility(resolved) : undefined
   if (incompatible) throw new Error(incompatible)
 }
 
-async function selectedSource(root: string, input: string, options: PluginInstallOptions) {
-  const value = input.trim()
-  return parsePluginSource(root, isNpmPackageName(value)
-    ? await publishedPluginSource(value, options.registry, 'any') : value)
+/** Every selection with the kind of its section. A scanner command passes its kind and sees no other section. */
+function selections(config: PluginConfig, kind?: PluginKind): { kind: PluginKind; entry: { id: string; source: string } }[] {
+  return [
+    ...config.scanners.map(entry => ({ kind: 'scanner' as const, entry })),
+    ...config.workSources.map(entry => ({ kind: 'workSource' as const, entry })),
+    ...config.icons.map(entry => ({ kind: 'icons' as const, entry })),
+  ].filter(selected => kind === undefined || selected.kind === kind)
 }
 
-export async function pluginInventory(root: string, options: PluginInstallOptions = {}) {
-  const scanners = (await scannerInventory(root, options)).map(scanner => ({ ...scanner, kind: 'scanner' as const, message: '' }))
-  const work = await configuredWorkSource(root, options)
-  const icons = await iconPackInventory(root, options)
-  return [...scanners, ...icons, ...(work ? [{ id: work.id, kind: work.kind, source: work.source, status: work.status, message: work.message }] : [])]
+function selection(config: PluginConfig, id: string, kind?: PluginKind) {
+  const selected = selections(config, kind).find(candidate => candidate.entry.id === id)
+  if (!selected) throw new Error(`${kind ?? 'plugin'} is not configured: ${id}`)
+  return selected
 }
 
-/** Package metadata determines the kind; every selection still lives in one project file. */
-export async function addPlugin(root: string, input: string, options: PluginInstallOptions = {}) {
-  const source = await selectedSource(root, input, options)
-  const installed = await installPluginPackage(source, options.cacheRoot ?? defaultPluginCacheRoot(), options.registry)
-  const resolved = installed.package
-  if (resolved.kind === 'scanner') return configureScanner(root, { source: installed.source, package: resolved })
-  if (resolved.kind === 'icons') {
-    await addIconPack(root, resolved.id, installed.source)
-    return { id: resolved.id, source: installed.source, status: 'found' as const }
-  }
-  requireCompatibleHost(resolved)
+/** The config with a newly installed package selected in the section of its kind. */
+function withAdded(config: PluginConfig, source: string, resolved: ResolvedPluginPackage): PluginConfig {
+  if (resolved.kind === 'workSource') return { ...config, workSources: [...config.workSources, { id: resolved.id, source }] }
+  // A pack joins after the configured ones, which keep answering the icon names they share with it.
+  if (resolved.kind === 'icons') return { ...config, icons: [...config.icons, { id: resolved.id, source }] }
+  // A scanner entry starts with the include globs and default exclusions its package declares; people edit them afterwards.
+  const scanner = { id: resolved.id, source, include: resolved.include, ...(resolved.exclude?.length ? { exclude: resolved.exclude } : {}) }
+  return { ...config, scanners: [...config.scanners, scanner] }
+}
+
+/**
+ * Installs the package a source names and selects it. Its manifest decides the kind unless the caller accepts only
+ * one. plugins.json refuses a repeated id, a repeated scanner source and a second work source when it is written.
+ */
+export async function addPlugin(
+  root: string, input: string, options: PluginInstallOptions = {}, kind?: PluginKind,
+): Promise<PluginSelection> {
+  const source = await requestedPluginSource(root, input, options, kind)
+  const installed = await installPluginPackage(source, options, kind)
+  requireCompatibleHost(installed.package)
+  await writePluginConfig(root, withAdded(await readPluginConfig(root), installed.source, installed.package))
+  return { id: installed.package.id, kind: installed.package.kind, source: installed.source, status: 'found' }
+}
+
+/** Ids are unique across sections, so removing by id drops exactly the one entry, whichever section holds it. */
+export async function removePlugin(root: string, id: string, kind?: PluginKind): Promise<string> {
   const config = await readPluginConfig(root)
-  if (config.workSources?.length) throw new Error('This project supports at most one work source; remove the current selection first')
-  if ([...config.scanners, ...(config.icons ?? [])].some(plugin => plugin.id === resolved.id)) throw new Error(`Plugin id already configured: ${resolved.id}`)
-  await writePluginConfig(root, { ...config, workSources: [{ id: resolved.id, source: installed.source }] })
-  return { id: resolved.id, source: installed.source, status: 'found' as const }
-}
-
-export async function removePlugin(root: string, id: string): Promise<string> {
-  const config = await readPluginConfig(root)
-  if (config.icons?.some(pack => pack.id === id)) {
-    await writePluginConfig(root, { ...config, icons: config.icons.filter(pack => pack.id !== id) })
-    return id
-  }
-  if (!config.workSources?.some(work => work.id === id)) return removeScanner(root, id)
-  await writePluginConfig(root, { ...config, workSources: [] })
+  selection(config, id, kind)
+  await writePluginConfig(root, {
+    ...config,
+    scanners: config.scanners.filter(entry => entry.id !== id),
+    workSources: config.workSources.filter(entry => entry.id !== id),
+    icons: config.icons.filter(entry => entry.id !== id),
+  })
   return id
 }
 
-export async function restoreWorkSource(root: string, options: PluginInstallOptions = {}): Promise<number> {
-  const selected = (await readPluginConfig(root)).workSources?.[0]
-  if (!selected) return 0
-  const source = parsePluginSource(root, selected.source)
-  const cache = options.cacheRoot ?? defaultPluginCacheRoot()
-  const resolved = source.kind === 'local' ? await resolvePluginPackage(source, cache, 'workSource')
-    : (await installPluginPackage(source, cache, options.registry, 'workSource')).package
-  if (!resolved) throw new Error(`Restore the local work source directory: ${selected.source}`)
-  requireCompatibleHost(resolved)
-  if (resolved.id !== selected.id) throw new Error(`Configured work source ${selected.id} resolves to ${resolved.id}`)
-  return source.kind === 'local' ? 0 : 1
-}
-
-export async function installPlugins(root: string, options: PluginInstallOptions = {}): Promise<number> {
-  return await installScanners(root, options) + await restoreWorkSource(root, options) + await restoreIconPacks(root, options)
-}
-
-export async function updatePlugin(root: string, id: string, input?: string, options: PluginInstallOptions = {}) {
+/** Moves one selection to another release of the same package; everything else in its entry stays. */
+export async function updatePlugin(
+  root: string, id: string, input?: string, options: PluginInstallOptions = {}, kind?: PluginKind,
+): Promise<PluginSelection> {
   const config = await readPluginConfig(root)
-  const icon = config.icons?.find(pack => pack.id === id)
-  if (icon) {
-    const installed = await preparePluginUpdate(root, icon, input, options, 'icons')
-    await replaceIconPackSource(root, id, installed.source)
-    return { id, source: installed.source, status: 'found' as const }
-  }
-  const selected = config.workSources?.find(work => work.id === id)
-  if (!selected) return updateScanner(root, id, input, options)
-  const installed = await preparePluginUpdate(root, selected, input, options, 'workSource')
+  const selected = selection(config, id, kind)
+  const installed = await preparePluginUpdate(root, selected.entry, input, options, selected.kind)
   requireCompatibleHost(installed.package)
-  await writePluginConfig(root, { ...config, workSources: [{ id, source: installed.source }] })
-  return { id, source: installed.source, status: 'found' as const }
+  // As in removePlugin, the id finds its one entry in whichever section holds it.
+  await writePluginConfig(root, {
+    ...config,
+    scanners: config.scanners.map(entry => entry.id === id ? { ...entry, source: installed.source } : entry),
+    workSources: config.workSources.map(entry => entry.id === id ? { ...entry, source: installed.source } : entry),
+    icons: config.icons.map(entry => entry.id === id ? { ...entry, source: installed.source } : entry),
+  })
+  return { id, kind: selected.kind, source: installed.source, status: 'found' }
+}
+
+async function restore(root: string, selected: ReturnType<typeof selection>, options: PluginInstallOptions): Promise<boolean> {
+  const restored = await restorePluginPackage(root, selected.entry, options, selected.kind)
+  requireCompatibleHost(restored.package)
+  return restored.installed
+}
+
+/** Puts one selection's package back on this computer and reports whether anything was installed. */
+export async function restorePlugin(root: string, id: string, options: PluginInstallOptions = {}): Promise<boolean> {
+  return restore(root, selection(await readPluginConfig(root), id), options)
+}
+
+/** Restores every selection, the first failure stopping the rest, and counts the packages installed. */
+export async function installPlugins(root: string, options: PluginInstallOptions = {}, kind?: PluginKind): Promise<number> {
+  let installed = 0
+  for (const selected of selections(await readPluginConfig(root), kind)) {
+    if (await restore(root, selected, options)) installed += 1
+  }
+  return installed
 }

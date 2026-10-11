@@ -1,17 +1,13 @@
-import { isNpmPackageName, publishedPluginSource } from './published.ts'
-import {
-  readPluginConfig,
-  writePluginConfig,
-} from './config.ts'
+import { readPluginConfig } from './config.ts'
 import type { ConfiguredScanner } from './config.ts'
 import {
-  defaultPluginCacheRoot,
-  installPluginPackage,
   parsePluginSource,
   resolvePluginPackage,
-  preparePluginUpdate,
+  type PluginInstallOptions,
+  type PluginResolutionOptions,
   type ResolvedScannerPackage,
 } from './package.ts'
+import { addPlugin, installPlugins, removePlugin, updatePlugin } from '../../plugin-management.ts'
 
 export type ScannerReadiness = 'found' | 'missing'
 
@@ -35,25 +31,13 @@ export interface MissingScannerModule extends ScannerInventoryItem {
 
 export type ScannerModuleLocation = FoundScannerModule | MissingScannerModule
 
-export interface PluginResolutionOptions {
-  cacheRoot?: string
-}
-
-export interface PluginInstallOptions extends PluginResolutionOptions {
-  registry?: string
-}
-
-function cacheRoot(options: PluginResolutionOptions): string {
-  return options.cacheRoot ?? defaultPluginCacheRoot()
-}
-
 async function moduleLocation(
   repositoryRoot: string,
   configured: ConfiguredScanner,
   options: PluginResolutionOptions,
 ): Promise<ScannerModuleLocation> {
   const source = parsePluginSource(repositoryRoot, configured.source)
-  const resolved = await resolvePluginPackage(source, cacheRoot(options), 'scanner')
+  const resolved = await resolvePluginPackage(source, options, 'scanner')
   if (resolved === undefined) {
     return { ...configured, status: 'missing' }
   }
@@ -91,103 +75,35 @@ export async function scannerInventory(
   return configured.map(({ id, source, status }) => ({ id, source, status }))
 }
 
-export async function addScanner(
+// The scanner commands' entry points: the operations of plugin-management.ts limited to the scanners section.
+
+export function addScanner(
   repositoryRoot: string,
   input: string,
   options: PluginInstallOptions = {},
 ): Promise<ScannerInventoryItem> {
-  const selected = input.trim()
-  const source = parsePluginSource(repositoryRoot, isNpmPackageName(selected)
-    ? await publishedPluginSource(selected, options.registry) : selected)
-  const config = await readPluginConfig(repositoryRoot)
-  const configured = config.scanners
-  if (configured.some(scanner => scanner.source === source.source)) {
-    throw new Error(`scanner source is already configured: ${source.source}`)
-  }
-  const installed = await installPluginPackage(source, cacheRoot(options), options.registry, 'scanner')
-  return configureScanner(repositoryRoot, installed)
+  return addPlugin(repositoryRoot, input, options, 'scanner')
 }
 
-/** Record a resolved scanner once; plugin add and scanner add share the same defaults and validation. */
-export async function configureScanner(
-  repositoryRoot: string,
-  installed: { source: string; package: ResolvedScannerPackage },
-): Promise<ScannerInventoryItem> {
-  const config = await readPluginConfig(repositoryRoot)
-  const configured = config.scanners
-  const resolved = installed.package
-  if ([...configured, ...config.workSources ?? [], ...config.icons ?? []].some(plugin => plugin.id === resolved.id)) {
-    throw new Error(`plugin id is already configured: ${resolved.id}`)
-  }
-  const scanner = { id: resolved.id, source: installed.source, include: resolved.include,
-    ...(resolved.exclude?.length ? { exclude: resolved.exclude } : {}) }
-  await writePluginConfig(repositoryRoot, { ...config, scanners: [...configured, scanner] })
-  return { id: scanner.id, source: scanner.source, status: 'found' }
-}
-
-export async function installScanners(
+export function installScanners(
   repositoryRoot: string,
   options: PluginInstallOptions = {},
 ): Promise<number> {
-  const config = await readPluginConfig(repositoryRoot)
-  const configured = config.scanners
-  let installed = 0
-  for (const scanner of configured) {
-    const source = parsePluginSource(repositoryRoot, scanner.source)
-    if (source.kind === 'local') {
-      if (await resolvePluginPackage(source, cacheRoot(options), 'scanner') === undefined) {
-        throw new Error(`Scanner ${scanner.id} is missing. Restore the local scanner directory: ${scanner.source}`)
-      }
-      continue
-    }
-    const { package: resolved } = await installPluginPackage(source, cacheRoot(options), options.registry, 'scanner')
-    if (resolved.id !== scanner.id) {
-      throw new Error(`configured scanner ${scanner.id} resolves to manifest id ${resolved.id}`)
-    }
-    installed += 1
-  }
-  return installed
+  return installPlugins(repositoryRoot, options, 'scanner')
 }
 
-export async function removeScanner(
+export function removeScanner(
   repositoryRoot: string,
   id: string,
 ): Promise<string> {
-  const config = await readPluginConfig(repositoryRoot)
-  const configured = config.scanners
-  if (!configured.some(scanner => scanner.id === id)) {
-    throw new Error(`scanner is not configured: ${id}`)
-  }
-  await writePluginConfig(
-    repositoryRoot,
-    { ...config, scanners: configured.filter(scanner => scanner.id !== id) },
-  )
-  return id
+  return removePlugin(repositoryRoot, id, 'scanner')
 }
 
-export async function updateScanner(
+export function updateScanner(
   repositoryRoot: string,
   id: string,
   input?: string,
   options: PluginInstallOptions = {},
 ): Promise<ScannerInventoryItem> {
-  const config = await readPluginConfig(repositoryRoot)
-  const selected = config.scanners.find(scanner => scanner.id === id)
-  if (selected === undefined) throw new Error(`scanner is not configured: ${id}`)
-  const installed = await preparePluginUpdate(repositoryRoot, selected, input, options, 'scanner')
-  const updated = { ...selected, source: installed.source }
-  await writePluginConfig(repositoryRoot, {
-    ...config, scanners: config.scanners.map(scanner => scanner.id === id ? updated : scanner),
-  })
-  return { id, source: updated.source, status: 'found' }
-}
-
-/** Restore one project selection without installing unrelated configured packages. */
-export async function restoreScanner(repositoryRoot: string, id: string, options: PluginInstallOptions = {}): Promise<void> {
-  const configured = (await readPluginConfig(repositoryRoot)).scanners.find(scanner => scanner.id === id)
-  if (!configured) throw new Error(`scanner is not configured: ${id}`)
-  const source = parsePluginSource(repositoryRoot, configured.source)
-  if (source.kind === 'local') throw new Error(`Restore the local scanner directory: ${configured.source}`)
-  const installed = await installPluginPackage(source, cacheRoot(options), options.registry, 'scanner')
-  if (installed.package.id !== id) throw new Error(`restored scanner id ${installed.package.id} does not match ${id}`)
+  return updatePlugin(repositoryRoot, id, input, options, 'scanner')
 }

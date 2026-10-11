@@ -189,7 +189,7 @@ async function runWelcomeAction(action: WelcomeActionId): Promise<void> {
   switch (action) {
     case 'web': return openWeb()
     case 'scan': return scanOnce()
-    case 'scanners': return openTerminalFromWelcome('scanner', 'settings')
+    case 'plugins': return openTerminalFromWelcome('scanner', 'settings')
     default: return unhandledWelcomeAction(action)
   }
 }
@@ -204,7 +204,7 @@ async function runInteractiveWelcome(screen: WelcomeScreen = 'launcher'): Promis
       try {
         if (session.selection !== undefined) await runWelcomeAction(session.selection)
       } finally { await session.close() }
-      reopen = session.selection === 'scanners'
+      reopen = session.selection === 'plugins'
     }
   } finally {
     clearInterval(lifecycle)

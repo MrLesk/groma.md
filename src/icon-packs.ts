@@ -1,35 +1,33 @@
 import { readFile } from 'node:fs/promises'
-import { readPluginConfig, writePluginConfig } from './scanner/modules/config.ts'
-import type { PluginInstallOptions, PluginResolutionOptions } from './scanner/modules/inventory.ts'
-import { defaultPluginCacheRoot, installPluginPackage, parsePluginSource, resolvePluginPackage, type ResolvedIconPackage } from './scanner/modules/package.ts'
-import type { AnnotatedElement } from './types.ts'
+import { readPluginConfig } from './scanner/modules/config.ts'
+import { parsePluginSource, resolvePluginPackage, type PluginResolutionOptions, type ResolvedIconPackage } from './scanner/modules/package.ts'
+import type { AnnotatedElement, ResolvedIcon } from './types.ts'
 
-/** A pack selected in plugins.json and what this computer has for it. */
-export interface IconPackSelection {
+interface IconPackSelectionFields {
   id: string
   source: string
   kind: 'icons'
-  status: 'found' | 'missing' | 'blocked'
   message: string
-  /** The installed package; absent while the pack is missing or blocked. */
-  pack?: ResolvedIconPackage
 }
 
-/** One grapheme that is a pictograph, a flag or a keycap; any other icon value is a name for a pack to resolve. */
-export function isEmoji(value: string): boolean {
-  const segments = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(value)]
-  return segments.length === 1 && /\p{Extended_Pictographic}|\p{Regional_Indicator}|[0-9#*]\ufe0f?\u20e3/u.test(value)
-}
+/** A pack selected in plugins.json as it stands on this computer. The package is there exactly when the pack is found. */
+export type IconPackSelection =
+  | IconPackSelectionFields & { status: 'found'; pack: ResolvedIconPackage }
+  | IconPackSelectionFields & { status: 'missing' | 'blocked' }
 
-/** Every configured pack in its configured order; a pack that cannot be read is blocked with the reason instead of failing the caller. */
+/**
+ * Every configured pack, in its configured order, with what this computer has of it. A pack that cannot be used
+ * (another id than configured, a manifest error, a declared icon without its SVG file) is blocked with the reason
+ * instead of failing the caller, so the map still opens; the plugin settings and `groma plugin list` show it.
+ */
 export async function iconPackInventory(root: string, options: PluginResolutionOptions = {}): Promise<IconPackSelection[]> {
   const config = await readPluginConfig(root)
-  return Promise.all((config.icons ?? []).map(async (selected): Promise<IconPackSelection> => {
+  return Promise.all(config.icons.map(async (selected): Promise<IconPackSelection> => {
     const base = { ...selected, kind: 'icons' as const }
     try {
-      const pack = await resolvePluginPackage(parsePluginSource(root, selected.source), options.cacheRoot ?? defaultPluginCacheRoot(), 'icons')
+      const pack = await resolvePluginPackage(parsePluginSource(root, selected.source), options, 'icons')
       if (!pack) return { ...base, status: 'missing', message: '' }
-      if (pack.id !== selected.id) throw new Error(`Pack id is ${pack.id}, expected ${selected.id}`)
+      if (pack.id !== selected.id) throw new Error(`Configured icon pack ${selected.id} resolves to ${pack.id}`)
       return { ...base, status: 'found', message: '', pack }
     } catch (error) {
       return { ...base, status: 'blocked', message: error instanceof Error ? error.message : String(error) }
@@ -37,21 +35,35 @@ export async function iconPackInventory(root: string, options: PluginResolutionO
   }))
 }
 
-/** Invalid or missing packs are findings, never a reason to lose the architecture map. */
-export async function loadIconCatalog(root: string): Promise<Map<string, string>> {
+/**
+ * The icons of the found packs as SVG data URIs: each under `pack:name`, and under its bare name for the first
+ * configured pack that has it. A missing or blocked pack adds nothing, so its names stop resolving and
+ * `groma lint` lists the elements that use them.
+ */
+async function loadIconCatalog(root: string): Promise<Map<string, string>> {
   const catalog = new Map<string, string>()
-  for (const item of await iconPackInventory(root)) {
-    for (const [name, file] of Object.entries(item.pack?.icons ?? {})) {
-      try {
-        const svg = await readFile(file, 'utf8')
-        if (!svg.includes('<svg')) continue
-        const uri = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
-        catalog.set(`${item.id}:${name}`, uri)
-        if (!catalog.has(name)) catalog.set(name, uri)
-      } catch { /* A missing icon remains unresolved and lint reports it. */ }
+  for (const selected of await iconPackInventory(root)) {
+    if (selected.status !== 'found') continue
+    for (const [name, file] of Object.entries(selected.pack.icons)) {
+      const uri = `data:image/svg+xml;base64,${(await readFile(file)).toString('base64')}`
+      catalog.set(`${selected.id}:${name}`, uri)
+      if (!catalog.has(name)) catalog.set(name, uri)
     }
   }
   return catalog
+}
+
+/** One grapheme that is a pictograph, a flag or a keycap. */
+function isEmoji(value: string): boolean {
+  const segments = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(value)]
+  return segments.length === 1 && /\p{Extended_Pictographic}|\p{Regional_Indicator}|[0-9#*]️?⃣/u.test(value)
+}
+
+/** What an icon value means: a pack icon when a pack has that name, else an emoji, else nothing a viewer can draw. */
+function resolveIcon(catalog: ReadonlyMap<string, string>, icon: string): ResolvedIcon | undefined {
+  const uri = catalog.get(icon)
+  if (uri !== undefined) return { kind: 'image', uri }
+  return isEmoji(icon) ? { kind: 'emoji', text: icon } : undefined
 }
 
 /**
@@ -62,42 +74,14 @@ export async function attachElementIcons(root: string, elements: AnnotatedElemen
   if (!elements.some(element => element.icon)) return
   const catalog = await loadIconCatalog(root)
   for (const element of elements) {
-    if (element.icon === undefined) continue
-    const uri = catalog.get(element.icon)
-    if (uri !== undefined) element.resolvedIcon = { kind: 'image', uri }
-    else if (isEmoji(element.icon)) element.resolvedIcon = { kind: 'emoji', text: element.icon }
+    const resolved = element.icon ? resolveIcon(catalog, element.icon) : undefined
+    if (resolved !== undefined) element.resolvedIcon = resolved
   }
 }
 
+/** One lint line for each element whose icon neither a found pack nor the emoji rule resolves. */
 export async function unknownIcons(root: string, elements: readonly { id: string; icon?: string }[]): Promise<string[]> {
   const catalog = await loadIconCatalog(root)
-  return elements.filter(element => element.icon && !isEmoji(element.icon) && !catalog.has(element.icon))
+  return elements.filter(element => element.icon && resolveIcon(catalog, element.icon) === undefined)
     .map(element => `${element.id}: unknown icon "${element.icon}"`)
-}
-
-export async function restoreIconPacks(root: string, options: PluginInstallOptions = {}, id?: string): Promise<number> {
-  const config = await readPluginConfig(root)
-  let count = 0
-  for (const selected of (config.icons ?? []).filter(pack => id === undefined || pack.id === id)) {
-    const source = parsePluginSource(root, selected.source)
-    const installed = await installPluginPackage(source, options.cacheRoot ?? defaultPluginCacheRoot(), options.registry, 'icons')
-    if (installed.package.id !== selected.id) throw new Error(`Pack id is ${installed.package.id}, expected ${selected.id}`)
-    if (source.kind !== 'local') count++
-  }
-  return count
-}
-
-/** Selects a pack after the ones already configured, which keep answering the names they share with it. */
-export async function addIconPack(root: string, id: string, source: string): Promise<void> {
-  const config = await readPluginConfig(root)
-  if ([...config.scanners, ...config.workSources ?? [], ...config.icons ?? []].some(plugin => plugin.id === id)) {
-    throw new Error(`Plugin id already configured: ${id}`)
-  }
-  await writePluginConfig(root, { ...config, icons: [...config.icons ?? [], { id, source }] })
-}
-
-/** Points a configured pack at another source; the pack keeps its place in the order. */
-export async function replaceIconPackSource(root: string, id: string, source: string): Promise<void> {
-  const config = await readPluginConfig(root)
-  await writePluginConfig(root, { ...config, icons: config.icons?.map(pack => pack.id === id ? { id, source } : pack) })
 }

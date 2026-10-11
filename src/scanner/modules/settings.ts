@@ -4,16 +4,14 @@ import type { ScannerDiscovery } from './discovery.ts'
 import { discoverScanners } from './discovery.ts'
 import { officialScannerCatalog } from './catalog.ts'
 import { officialIconPackIds, officialWorkSourceIds } from './official-catalog.ts'
-import { configuredScannerModules, addScanner, restoreScanner } from './inventory.ts'
-import type { PluginInstallOptions } from './inventory.ts'
+import { configuredScannerModules, addScanner } from './inventory.ts'
 import type { ScannerModuleLocation } from './inventory.ts'
 import type { ProjectReadiness } from './readiness.ts'
-import { parsePluginSource } from './package.ts'
+import { parsePluginSource, type PluginInstallOptions } from './package.ts'
 import { readPublishedPlugins, selectPublishedPlugin } from './published.ts'
-import { readPluginConfig } from './config.ts'
-import { iconPackInventory, restoreIconPacks, type IconPackSelection } from '../../icon-packs.ts'
-import { addPlugin, removePlugin, restoreWorkSource, updatePlugin } from '../../plugin-management.ts'
-import { configuredWorkSource, type WorkSourceSelection } from '../../work-sources.ts'
+import { iconPackInventory, type IconPackSelection } from '../../icon-packs.ts'
+import { addPlugin, removePlugin, restorePlugin, updatePlugin } from '../../plugin-management.ts'
+import { checkWorkSourceReadiness, type WorkSourceSelection } from '../../work-sources.ts'
 
 /** Optional registry reads for an open settings dialog; scan readiness stays unchanged. */
 export async function withPluginUpgrades(settings: PluginSettings, registry?: string): Promise<PluginSettings> {
@@ -23,7 +21,7 @@ export async function withPluginUpgrades(settings: PluginSettings, registry?: st
     const source = parsePluginSource('.', plugin.source)
     if (source.kind !== 'npm') return
     try {
-      const release = selectPublishedPlugin(source.name, await readPublishedPlugins(source.name, registry), undefined, plugin.kind)
+      const release = selectPublishedPlugin(source.name, await readPublishedPlugins(source.name, registry), plugin.kind)
       if (Bun.semver.order(release.version, plugin.version) > 0) upgrades[plugin.source] = { version: release.version }
     } catch (error) {
       upgrades[plugin.source] = { error: error instanceof Error ? error.message : String(error) }
@@ -99,11 +97,12 @@ function workSourceSetting(work: WorkSourceSelection): WorkSourceSetting {
   }
 }
 
-function iconPackSetting(pack: IconPackSelection): IconPackSetting {
+function iconPackSetting(selected: IconPackSelection): IconPackSetting {
+  const pack = selected.status === 'found' ? selected.pack : undefined
   return {
-    kind: 'icons', id: pack.id, name: pack.pack?.name ?? pack.id, source: pack.source, version: pack.pack?.version,
-    official: officialIconPackIds.includes(pack.id),
-    status: pack.status === 'found' ? 'ready' : pack.status, message: pack.message,
+    kind: 'icons', id: selected.id, name: pack?.name ?? selected.id, source: selected.source, version: pack?.version,
+    official: officialIconPackIds.includes(selected.id),
+    status: selected.status === 'found' ? 'ready' : selected.status, message: selected.message,
   }
 }
 
@@ -111,7 +110,7 @@ export async function readPluginSettings(root: string, checks: readonly ProjectR
   try {
     const [proposal, modules] = await Promise.all([discoverScanners(root, options), configuredScannerModules(root, options)])
     const state = scannerSettingsState(proposal, modules, checks)
-    const work = await configuredWorkSource(root, options)
+    const work = await checkWorkSourceReadiness(root, options)
     const icons = (await iconPackInventory(root, options)).map(iconPackSetting)
     return { ...state, plugins: [...state.plugins, ...(work ? [workSourceSetting(work)] : []), ...icons] }
   } catch (error) {
@@ -123,13 +122,7 @@ export async function changePluginSettings(root: string, action: PluginSettingsA
   switch (action.action) {
     case 'add': await addPlugin(root, action.source, options); return
     case 'remove': await removePlugin(root, action.id); return
-    case 'restore': {
-      const config = await readPluginConfig(root)
-      if (config.icons?.some(pack => pack.id === action.id)) await restoreIconPacks(root, options, action.id)
-      else if (config.workSources?.some(work => work.id === action.id)) await restoreWorkSource(root, options)
-      else await restoreScanner(root, action.id, options)
-      return
-    }
+    case 'restore': await restorePlugin(root, action.id, options); return
     case 'update': await updatePlugin(root, action.id, action.source, options); return
     case 'retry': return
     case 'install-recommended': case 'install-missing': await installGroup(root, action.action, options); return
@@ -148,9 +141,7 @@ async function installGroup(root: string, group: 'install-recommended' | 'instal
   for (const item of selected) {
     try {
       if (group === 'install-recommended') await addScanner(root, item.installSource!, options)
-      else if (item.kind === 'icons') await restoreIconPacks(root, options, item.id)
-      else if (item.kind === 'workSource') await restoreWorkSource(root, options)
-      else await restoreScanner(root, item.id, options)
+      else await restorePlugin(root, item.id, options)
     } catch (error) { errors.push(`${item.id}: ${error instanceof Error ? error.message : String(error)}`) }
   }
   if (errors.length) throw new Error(errors.join('\n'))

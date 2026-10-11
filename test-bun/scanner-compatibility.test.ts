@@ -34,7 +34,7 @@ test.concurrent('a Groma mismatch blocks plugin code while another selection can
       await writeFile(path.join(root, 'package.json'), JSON.stringify({ dependencies: { react: '19.0.0' } }))
       const blocked = await plugin(root, 'blocked', '>=99.0.0', true)
       const eligible = await plugin(root, 'eligible', '*', false)
-      await writePluginConfig(root, { scanners: [blocked, eligible] })
+      await writePluginConfig(root, { scanners: [blocked, eligible], workSources: [], icons: [] })
       const before = await loadAnnotatedArchitecture(root)
       const registry = await loadScannerRegistry(root)
       expect(registry.scannerIds).toEqual(['eligible'])

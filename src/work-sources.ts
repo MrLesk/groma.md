@@ -2,29 +2,36 @@ import { pathToFileURL } from 'node:url'
 import { EMPTY_WORK_SOURCE, type WorkSource, type WorkSourcePlugin } from '@groma/work-source'
 import groma from '../package.json' with { type: 'json' }
 import { readPluginConfig } from './scanner/modules/config.ts'
-import { defaultPluginCacheRoot, parsePluginSource, resolvePluginPackage, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
-import type { PluginResolutionOptions } from './scanner/modules/inventory.ts'
+import { parsePluginSource, resolvePluginPackage, type PluginResolutionOptions, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
 
-export interface WorkSourceSelection {
+interface WorkSourceSelectionFields {
   id: string
   source: string
   kind: 'workSource'
-  status: 'found' | 'missing' | 'blocked'
   message: string
+  /** The command the adapter's readiness names for what it lacks. */
   install?: string
   name?: string
   version?: string
-  plugin?: WorkSourcePlugin
 }
 
-/** Read only the selected package; an absent selection never imports or probes a work source. */
-export async function configuredWorkSource(root: string, options: PluginResolutionOptions = {}): Promise<WorkSourceSelection | undefined> {
-  const selected = (await readPluginConfig(root)).workSources?.[0]
+/** The selected work source as it stands on this computer. The adapter is there exactly when it is ready to create a source. */
+export type WorkSourceSelection =
+  | WorkSourceSelectionFields & { status: 'found'; plugin: WorkSourcePlugin }
+  | WorkSourceSelectionFields & { status: 'missing' | 'blocked' }
+
+/**
+ * Reports whether the work source that plugins.json selects can run here. Unlike `configuredScannerModules`, this
+ * executes plugin code: once the package is found and accepts this groma.md version, it imports the adapter and
+ * calls its `readiness()`. Without a selection nothing is imported or probed.
+ */
+export async function checkWorkSourceReadiness(root: string, options: PluginResolutionOptions = {}): Promise<WorkSourceSelection | undefined> {
+  const selected = (await readPluginConfig(root)).workSources[0]
   if (!selected) return undefined
   const base = { ...selected, kind: 'workSource' as const }
   try {
     const source = parsePluginSource(root, selected.source)
-    const resolved = await resolvePluginPackage(source, options.cacheRoot ?? defaultPluginCacheRoot(), 'workSource')
+    const resolved = await resolvePluginPackage(source, options, 'workSource')
     if (!resolved) return { ...base, status: 'missing', message: `Restore ${selected.source} with groma plugin install, or restore its local path.` }
     if (resolved.id !== selected.id) throw new Error(`Configured work source ${selected.id} resolves to ${resolved.id}`)
     const details = { ...base, name: resolved.name, version: resolved.version }
@@ -54,30 +61,35 @@ async function importedWorkSource(
     throw new Error(`Work source ${details.id} must export a default WorkSourcePlugin with matching id, readiness and create`)
   }
   const readiness = plugin.readiness()
+  const install = readiness.install ? { install: readiness.install } : {}
+  if (readiness.status === 'found') return { ...details, ...install, plugin, status: 'found', message: 'Work source is ready.' }
   // The contract names what an adapter lacks only through its install command, so this wording fits every adapter.
-  const missing = readiness.install ? `Required tool missing. Install with ${readiness.install}.` : 'Required tool missing.'
-  return { ...details, plugin, status: readiness.status === 'found' ? 'found' : 'blocked',
-    message: readiness.status === 'found' ? 'Work source is ready.' : missing,
-    ...(readiness.install ? { install: readiness.install } : {}) }
+  const message = readiness.install ? `Required tool missing. Install with ${readiness.install}.` : 'Required tool missing.'
+  return { ...details, ...install, status: 'blocked', message }
 }
 
-/** Viewers share this boundary so an unselected or blocked adapter cannot run its CLI. */
-export async function loadWorkSource(root: string): Promise<WorkSource> {
-  const selection = await configuredWorkSource(root)
-  return activeSource(root, selection)
-}
-
+/** Only a ready selection creates its source, so an unselected or blocked adapter never runs its tool. */
 function activeSource(root: string, selection: WorkSourceSelection | undefined): WorkSource {
-  return selection?.status === 'found' ? selection.plugin!.create(root) : EMPTY_WORK_SOURCE
+  return selection?.status === 'found' ? selection.plugin.create(root) : EMPTY_WORK_SOURCE
 }
 
 function selectionSignature(selection: WorkSourceSelection | undefined): string {
   return selection ? JSON.stringify([selection.id, selection.source, selection.status, selection.version]) : ''
 }
 
-/** Retains the selected adapter until configuration changes and closes its watch before replacing it. */
-export async function workSourceSession(root: string, supplied?: WorkSource) {
-  let selection = supplied ? undefined : await configuredWorkSource(root)
+/** A work source that follows plugins.json for as long as a viewer is open. */
+export interface WorkSourceSession extends WorkSource {
+  /** Reads the selection again and swaps the adapter when the selection or its readiness changed. */
+  reconfigure(): Promise<void>
+}
+
+/**
+ * Retains the selected adapter until configuration changes and closes its watch before replacing it.
+ * A session serves one watcher: call `watch` once. A second call would replace the listener and leave the
+ * first subscription open. A supplied source is used as it is and never reconfigured.
+ */
+export async function workSourceSession(root: string, supplied?: WorkSource): Promise<WorkSourceSession> {
+  let selection = supplied ? undefined : await checkWorkSourceReadiness(root)
   let source = supplied ?? activeSource(root, selection)
   let signature = selectionSignature(selection)
   let subscription: ReturnType<WorkSource['watch']> | undefined
@@ -85,7 +97,7 @@ export async function workSourceSession(root: string, supplied?: WorkSource) {
   let pending = Promise.resolve()
   async function refresh() {
     if (supplied) return
-    selection = await configuredWorkSource(root)
+    selection = await checkWorkSourceReadiness(root)
     const next = selectionSignature(selection)
     if (next === signature) return
     await subscription?.close()

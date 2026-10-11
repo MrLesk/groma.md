@@ -18,11 +18,11 @@ for (const present of [false, true]) {
           groma: { scanner: { id: 'local', entry: './index.js', include: ['**/*.local'] } } }))
         await writeFile(path.join(root, source, 'index.js'), 'throw new Error("Restore must not execute the scanner")')
       }
-      await writePluginConfig(root, { scanners: [{ id: 'local', source, include: ['**/*.local'] }] })
+      await writePluginConfig(root, { scanners: [{ id: 'local', source, include: ['**/*.local'] }], workSources: [], icons: [] })
       const selection = await readFile(path.join(root, 'groma/plugins.json'), 'utf8')
       const architecture = await loadAnnotatedArchitecture(root)
       if (present) expect(await installScanners(root)).toBe(0)
-      else await expect(installScanners(root)).rejects.toThrow('local scanner directory: ./plugin')
+      else await expect(installScanners(root)).rejects.toThrow('local directory: ./plugin')
       expect(await readFile(path.join(root, 'groma/plugins.json'), 'utf8')).toBe(selection)
       const after = await loadAnnotatedArchitecture(root)
       expect(after.elements).toEqual(architecture.elements)

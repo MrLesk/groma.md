@@ -58,7 +58,7 @@ test.concurrent('lint checks fresh scanner evidence and reports failures without
     expect(failed.error).toContain('lint-fixture-failure')
     expect(await snapshot(path.join(root, 'groma'))).toEqual(withFailure)
 
-    await writePluginConfig(root, { scanners: [] })
+    await writePluginConfig(root, { scanners: [], workSources: [], icons: [] })
     const empty = await snapshot(path.join(root, 'groma'))
     expect((await command(root, 'lint')).code).toBe(0)
     expect((await command(root, 'duplicates')).code).toBe(1)

@@ -4,12 +4,9 @@ import { randomUUID } from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
 import packageJson from '../package.json'
-import { attachElementIcons, loadIconCatalog, replaceIconPackSource } from '../src/icon-packs.ts'
-import { addPlugin } from '../src/plugin-management.ts'
 import { configuredScannerModules, updateScanner } from '../src/scanner/modules/inventory.ts'
 import { readPluginConfig, writePluginConfig } from '../src/scanner/modules/config.ts'
 import { changePluginSettings, parsePluginSettingsAction } from '../src/scanner/modules/settings.ts'
-import { box } from './helpers.ts'
 
 test.concurrent('npm updates resolve omitted and bare sources, pin compatible releases and preserve project settings', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-update-'))
@@ -38,7 +35,7 @@ test.concurrent('npm updates resolve omitted and bare sources, pin compatible re
       versions[version] = { ...manifest, dist: { tarball: `${server.url.origin}/${version}.tgz` } }
     }
     const options = { registry: server.url.href, cacheRoot: path.join(root, 'cache') }
-    const config = { exclude: ['generated/**'], scanners: [
+    const config = { workSources: [], icons: [], exclude: ['generated/**'], scanners: [
       { id: 'other', source: './other', include: ['**/*.other'] },
       // An update keeps the entry's own lists rather than the package's current defaults.
       { id: 'sample', source: `${name}@1.0.0`, settings: { mode: 'strict' }, include: ['src/**/*.sample'], exclude: ['**/*.gen.ts'] },
@@ -63,59 +60,4 @@ test.concurrent('npm updates resolve omitted and bare sources, pin compatible re
     await server.stop(true)
     await rm(root, { recursive: true, force: true })
   }
-})
-
-
-test.concurrent('replacing an icon pack preserves its configured resolution priority', async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-icon-update-'))
-  try {
-    await cp(path.resolve(import.meta.dir, '../test/fixtures/empty-project'), root, { recursive: true })
-    for (const id of ['primary', 'secondary', 'replacement']) {
-      const directory = path.join(root, id)
-      await mkdir(directory)
-      await writeFile(path.join(directory, 'package.json'), JSON.stringify({ name: `icons-${id}`, version: '1.0.0',
-        groma: { icons: { id: id === 'replacement' ? 'primary' : id, icons: { database: './database.svg' } } } }))
-      await writeFile(path.join(directory, 'database.svg'), `<svg xmlns="http://www.w3.org/2000/svg"><title>${id}</title></svg>`)
-    }
-    await addPlugin(root, './primary')
-    await addPlugin(root, './secondary')
-    const before = await loadIconCatalog(root)
-    expect(before.get('database')).toBe(before.get('primary:database'))
-    await replaceIconPackSource(root, 'primary', './replacement')
-    expect((await readPluginConfig(root)).icons?.map(pack => pack.id)).toEqual(['primary', 'secondary'])
-    const after = await loadIconCatalog(root)
-    expect(after.get('database')).toBe(after.get('primary:database'))
-    expect(after.get('database')).not.toBe(before.get('database'))
-  } finally { await rm(root, { recursive: true, force: true }) }
-})
-
-test.concurrent('an icon resolves to its pack image or to the emoji itself, and an unknown name to nothing', async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-icon-resolve-'))
-  try {
-    await cp(path.resolve(import.meta.dir, '../test/fixtures/empty-project'), root, { recursive: true })
-    const pack = path.join(root, 'pack')
-    await mkdir(pack)
-    await writeFile(path.join(pack, 'package.json'), JSON.stringify({ name: 'icons-pack', version: '1.0.0',
-      groma: { icons: { id: 'pack', icons: { database: './database.svg' } } } }))
-    await writeFile(path.join(pack, 'database.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>')
-    await addPlugin(root, './pack')
-    const elements = ['pack:database', '📦', 'missing']
-      .map(icon => ({ ...box(icon, 'component', { x: 0, y: 0, width: 1, height: 1 }), icon }))
-    await attachElementIcons(root, elements)
-    expect(elements.map(element => element.resolvedIcon?.kind)).toEqual(['image', 'emoji', undefined])
-  } finally { await rm(root, { recursive: true, force: true }) }
-})
-
-test.concurrent('an icon pack id that a scanner or another pack already uses is rejected', async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-icon-ids-'))
-  try {
-    await cp(path.resolve(import.meta.dir, '../test/fixtures/empty-project'), root, { recursive: true })
-    await writePluginConfig(root, {
-      scanners: [{ id: 'shared', source: './scanner', include: ['**/*.fixture'] }],
-      icons: [{ id: 'shared', source: './pack' }],
-    })
-    await expect(readPluginConfig(root)).rejects.toThrow('more than once')
-    await writePluginConfig(root, { scanners: [], icons: [{ id: 'pack', source: './one' }, { id: 'pack', source: './two' }] })
-    await expect(readPluginConfig(root)).rejects.toThrow('more than once')
-  } finally { await rm(root, { recursive: true, force: true }) }
 })

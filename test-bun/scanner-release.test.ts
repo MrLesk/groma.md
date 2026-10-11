@@ -126,14 +126,14 @@ test.concurrent('staged Backlog release installs its contract and supports npm s
       import { addPlugin } from ${JSON.stringify(path.join(moduleRoot, 'plugin-management.ts'))}
       import { changePluginSettings } from ${JSON.stringify(path.join(moduleRoot, 'scanner/modules/settings.ts'))}
       import { readPluginConfig } from ${JSON.stringify(path.join(moduleRoot, 'scanner/modules/config.ts'))}
-      import { configuredWorkSource } from ${JSON.stringify(path.join(moduleRoot, 'work-sources.ts'))}
+      import { checkWorkSourceReadiness } from ${JSON.stringify(path.join(moduleRoot, 'work-sources.ts'))}
       import { rm } from 'node:fs/promises'
       const root = ${JSON.stringify(root)}
       const options = { registry: ${JSON.stringify(server.url.href)}, cacheRoot: root + '/cache' }
       const installed = await addPlugin(root, '@groma/work-source-backlog', options)
       await rm(options.cacheRoot, { recursive: true, force: true })
       await changePluginSettings(root, { action: 'restore', id: 'backlog' }, options)
-      const restored = await configuredWorkSource(root, options)
+      const restored = await checkWorkSourceReadiness(root, options)
       console.log(JSON.stringify({ installed, config: await readPluginConfig(root), id: restored?.plugin?.id }))
     `
     const child = Bun.spawn([process.execPath, '--eval', script], { stdout: 'pipe', stderr: 'pipe',
@@ -144,8 +144,8 @@ test.concurrent('staged Backlog release installs its contract and supports npm s
     expect(code, stderr).toBe(0)
     const source = `@groma/work-source-backlog@${adapter.version}`
     expect(JSON.parse(stdout)).toEqual({
-      installed: { id: 'backlog', source, status: 'found' },
-      config: { scanners: [], workSources: [{ id: 'backlog', source }] }, id: 'backlog',
+      installed: { id: 'backlog', kind: 'workSource', source, status: 'found' },
+      config: { scanners: [], workSources: [{ id: 'backlog', source }], icons: [] }, id: 'backlog',
     })
   } finally { server.stop(true); await rm(root, { recursive: true, force: true }) }
 })

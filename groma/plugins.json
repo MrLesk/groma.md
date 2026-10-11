@@ -179,6 +179,12 @@
       ]
     }
   ],
+  "workSources": [
+    {
+      "id": "backlog",
+      "source": "./plugins/work-sources/backlog"
+    }
+  ],
   "exclude": [
     "/scripts/",
     "/test/",
@@ -189,11 +195,5 @@
     "/plugins/scanners/framework-package.ts",
     "/plugins/scanners/jvm-package.ts",
     "/plugins/scanners/rust/notices.ts"
-  ],
-  "workSources": [
-    {
-      "id": "backlog",
-      "source": "./plugins/work-sources/backlog"
-    }
   ]
 }

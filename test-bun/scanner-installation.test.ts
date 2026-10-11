@@ -19,7 +19,7 @@ async function fixture() {
   await writeFile(path.join(root, 'Cargo.toml'), '[package]\nname="sample"\nversion="0.1.0"\n')
   // The registry packages, their tarballs and the scanner caches are test scaffolding, not project source.
   await writeFile(path.join(root, '.gitignore'), 'packages/\ncache/\ncolleague-cache/\n*.tgz\n')
-  await writePluginConfig(root, { scanners: [] })
+  await writePluginConfig(root, { scanners: [], workSources: [], icons: [] })
   const version = `1.0.${randomInt(1000000, 1000000000)}`
   const manifests: Record<string, Record<string, unknown>> = {}
   for (const id of ['react', 'rust']) {

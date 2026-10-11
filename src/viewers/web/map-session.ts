@@ -272,7 +272,7 @@ export async function createWebMapSession(
     watchesFile: file => sourceFiles.has(file),
     onProgress: options.onProgress,
     onFold: () => initialScan ? undefined : publishWorld(),
-    onSettings: settings => broadcast(encoder.encode(`event: scanners\ndata: ${JSON.stringify(settings)}\n\n`)),
+    onSettings: settings => broadcast(encoder.encode(`event: plugin-settings\ndata: ${JSON.stringify(settings)}\n\n`)),
   })
   await scannerSession.ready
   // Initial folds are included in this map; later folds queue behind its load.
@@ -392,7 +392,7 @@ export async function createWebMapSession(
   }
 
   const routes = new Map<string, Route>([
-    ['/scanner-settings', async (_request, url) => {
+    ['/plugin-settings', async (_request, url) => {
       const settings = await scannerSession.refresh()
       return Response.json(url.searchParams.has('updates') ? await withPluginUpgrades(settings) : settings)
     }],
@@ -413,7 +413,7 @@ export async function createWebMapSession(
 
   /** The shared writes at the path of their verb; each posts the input the CLI builds from its flags. */
   const writeRoutes = new Map<string, (request: Request) => Promise<Response>>([
-    ['/scanner-settings', async request => {
+    ['/plugin-settings', async request => {
       try { await scannerSession.change(parsePluginSettingsAction(await request.json())); return Response.json(scannerSession.state) }
       catch (error) { return new Response(error instanceof Error ? error.message : String(error), { status: 400 }) }
     }],

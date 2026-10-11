@@ -1,4 +1,5 @@
 import groma from '../../../package.json'
+import type { PluginKind } from './package.ts'
 
 export interface PublishedPlugin {
   name: string
@@ -18,24 +19,34 @@ function supports(values: string[] | undefined, current: string): boolean {
     && (values.includes(current) || values.includes('any') || values.every(value => value.startsWith('!')))
 }
 
-/** Language versions never select releases; the scanner validates its projects. */
+/**
+ * What a release declares for the wanted kind, or for the kind it is when any will do: its id, whether it has what
+ * makes it usable (an entry to run, or icons to draw) and its required groma.md range.
+ */
+function declaration(item: PublishedPlugin, kind?: PluginKind): { id?: string; usable: boolean; requires?: string } | undefined {
+  const wanted = (candidate: PluginKind) => kind === undefined || kind === candidate
+  const { scanner, workSource, icons } = item.groma ?? {}
+  if (scanner && wanted('scanner')) return { id: scanner.id, usable: Boolean(scanner.entry), requires: scanner.discovery?.compatibility?.groma }
+  if (workSource && wanted('workSource')) return { id: workSource.id, usable: Boolean(workSource.entry), requires: workSource.compatibility?.groma }
+  if (icons && wanted('icons')) return { id: icons.id, usable: icons.icons !== undefined }
+  return undefined
+}
+
+/**
+ * The newest stable release of a kind that this groma.md version and computer can run; without a kind, any plugin
+ * release. Language versions never select releases; a scanner validates its projects.
+ */
 export function selectPublishedPlugin(
   name: string,
   versions: Record<string, PublishedPlugin>,
+  kind?: PluginKind,
   host = { groma: groma.version, os: process.platform as string, cpu: process.arch as string },
-  kind: 'scanner' | 'workSource' | 'icons' | 'any' = 'scanner',
 ): PublishedPlugin {
-  const metadata = (item: PublishedPlugin) => kind === 'any' ? item.groma?.scanner ?? item.groma?.workSource ?? item.groma?.icons : item.groma?.[kind]
-  const requirement = (item: PublishedPlugin) => item.groma?.workSource?.compatibility?.groma ?? item.groma?.scanner?.discovery?.compatibility?.groma
-  /** A scanner or a work source is usable with an entry to run; an icon pack with icons to draw. */
-  const usable = (item: PublishedPlugin): boolean => {
-    const declared = metadata(item)
-    if (!declared?.id) return false
-    return 'entry' in declared ? Boolean(declared.entry) : 'icons' in declared && Boolean(declared.icons)
-  }
-  const releases = Object.values(versions).filter(item => item.name === name
-    && usable(item) && Bun.semver.satisfies(item.version, '*'))
-    .sort((a, b) => Bun.semver.order(b.version, a.version))
+  const requirement = (item: PublishedPlugin) => declaration(item, kind)?.requires
+  const releases = Object.values(versions).filter(item => {
+    const declared = declaration(item, kind)
+    return item.name === name && declared?.id && declared.usable && Bun.semver.satisfies(item.version, '*')
+  }).sort((a, b) => Bun.semver.order(b.version, a.version))
   if (!releases.length) throw new Error(`${name}: no published stable release. Ask the plugin author to publish one, then retry.`)
   const platform = releases.filter(item => supports(item.os, host.os) && supports(item.cpu, host.cpu))
   if (!platform.length) throw new Error(`${name}: no published release supports ${host.os}/${host.cpu}. Ask the plugin author for a build for this computer.`)
@@ -60,7 +71,7 @@ export async function readPublishedPlugins(name: string, registry = process.env.
   return metadata.versions ?? {}
 }
 
-export async function publishedPluginSource(name: string, registry?: string, kind: 'scanner' | 'workSource' | 'icons' | 'any' = 'scanner'): Promise<string> {
-  const release = selectPublishedPlugin(name, await readPublishedPlugins(name, registry), undefined, kind)
+export async function publishedPluginSource(name: string, registry?: string, kind?: PluginKind): Promise<string> {
+  const release = selectPublishedPlugin(name, await readPublishedPlugins(name, registry), kind)
   return `${release.name}@${release.version}`
 }

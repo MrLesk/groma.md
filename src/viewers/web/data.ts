@@ -59,9 +59,9 @@ function selected(path: string, values: Record<string, string | undefined>): str
 
 function liveDataSource(): WebDataSource {
   return {
-    readPluginSettings: checkUpdates => responseJson(checkUpdates ? '/scanner-settings?updates' : '/scanner-settings'),
+    readPluginSettings: checkUpdates => responseJson(checkUpdates ? '/plugin-settings?updates' : '/plugin-settings'),
     async changePluginSettings(action) {
-      const response = await fetch('/scanner-settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(action) })
+      const response = await fetch('/plugin-settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(action) })
       if (!response.ok) throw new Error(await response.text())
       return response.json() as Promise<PluginSettings>
     },
@@ -90,7 +90,7 @@ function liveDataSource(): WebDataSource {
     accept: input => send('/accept', input),
     subscribe(handlers) {
       const events = new EventSource('/events')
-      events.addEventListener('scanners', event => this.onPluginSettings?.(JSON.parse(event.data) as PluginSettings))
+      events.addEventListener('plugin-settings', event => this.onPluginSettings?.(JSON.parse(event.data) as PluginSettings))
       events.addEventListener('world', event => {
         handlers.world(JSON.parse(event.data) as WebPayload)
       })

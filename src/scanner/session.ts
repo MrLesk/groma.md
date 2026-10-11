@@ -4,7 +4,7 @@ import { watchObservations } from './source-watch.ts'
 import { readPluginConfig } from './modules/config.ts'
 import type { ProjectReadiness } from './modules/readiness.ts'
 import { changePluginSettings, readPluginSettings, type PluginSettings, type PluginSettingsAction } from './modules/settings.ts'
-import type { PluginInstallOptions } from './modules/inventory.ts'
+import type { PluginInstallOptions } from './modules/package.ts'
 
 export type ScannerProgress =
   | { phase: 'preparing-scanners' | 'updating-architecture' }

@@ -26,8 +26,8 @@ const host = { groma: '0.3.0', os: 'linux', cpu: 'x64' }
 
 test.concurrent('installation chooses the newest published stable release for Groma and this computer', () => {
   const versions = [release('1.0.0'), release('1.1.0'), release('2.0.0', '^0.4.0'), release('3.0.0', '^0.3.0', ['darwin']), release('4.0.0-beta.1')]
-  expect(selectPublishedPlugin('example-scanner', Object.fromEntries(versions.map(item => [item.version, item])), host).version).toBe('1.1.0')
-  expect(() => selectPublishedPlugin('example-scanner', {}, host)).toThrow('no published stable release')
-  expect(() => selectPublishedPlugin('example-scanner', { one: release('1.0.0', '^0.4.0') }, host)).toThrow('Update Groma')
-  expect(() => selectPublishedPlugin('example-scanner', { one: release('1.0.0', '^0.3.0', ['darwin']) }, host)).toThrow('linux/x64')
+  expect(selectPublishedPlugin('example-scanner', Object.fromEntries(versions.map(item => [item.version, item])), 'scanner', host).version).toBe('1.1.0')
+  expect(() => selectPublishedPlugin('example-scanner', {}, 'scanner', host)).toThrow('no published stable release')
+  expect(() => selectPublishedPlugin('example-scanner', { one: release('1.0.0', '^0.4.0') }, 'scanner', host)).toThrow('Update Groma')
+  expect(() => selectPublishedPlugin('example-scanner', { one: release('1.0.0', '^0.3.0', ['darwin']) }, 'scanner', host)).toThrow('linux/x64')
 })
