@@ -145,8 +145,8 @@ function zoomStep(factor: number, control: HTMLElement): void {
 
 function syncUrl(): void {
   const query = writeView({
-    ...(revisionControl.urlRevision === undefined ? {} : { revision: revisionControl.urlRevision }),
-    ...(revisionControl.urlFrom === undefined ? {} : { from: revisionControl.urlFrom }),
+    ...(revisionControl.chosenRevision === undefined ? {} : { revision: revisionControl.chosenRevision }),
+    ...(revisionControl.chosenFrom === undefined ? {} : { from: revisionControl.chosenFrom }),
     ...(source.file === undefined ? {} : { file: source.file }),
     ...(source.line === undefined ? {} : { line: source.line }),
     selection, flows: activeFlows,

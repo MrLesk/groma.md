@@ -1,14 +1,17 @@
 import { UnreadableRevisionError, type WebDataSource } from '../data.ts'
 import { bindPopover } from '../atoms/popover.ts'
 import type { WebPayload, WebRevision } from '../payload.ts'
+import { revisionDate } from './view.ts'
 
 interface PlaybackOptions {
   root: HTMLElement
   data: WebDataSource
+  /** Play needs the live host; a published map holds only the views it was exported with. */
+  live: boolean
+  /** The payload on screen. */
   current(): WebPayload
   navigating(): boolean
   present(payload: WebPayload, first: boolean): void
-  repaint(): void
   error(reason: unknown): void
 }
 
@@ -73,10 +76,6 @@ export function createRevisionPlayback(options: PlaybackOptions) {
   root.append(control)
 
   const keyOf = (revision: string, from?: string) => JSON.stringify([revision, from])
-  function remember(payload: WebPayload): void {
-    if (payload.revision === null || payload.comparison?.from === null) return
-    cache.set(keyOf(payload.revision.id, payload.comparison?.from.id), Promise.resolve(payload))
-  }
 
   function read(revision: string, from?: string): Promise<WebPayload> {
     const key = keyOf(revision, from)
@@ -84,32 +83,47 @@ export function createRevisionPlayback(options: PlaybackOptions) {
     if (pending === undefined) {
       pending = data.readWorld(revision, from)
       cache.set(key, pending)
-      // A preloaded frame that fails is handled only when playback reaches that step.
-      void pending.catch(() => {})
+      // A preloaded frame that fails is handled only when playback reaches that step. A failed frame is not kept, so
+      // Play asks for it again; an unreadable commit stays unreadable and is kept.
+      void pending.catch(reason => { if (!(reason instanceof UnreadableRevisionError)) cache.delete(key) })
     }
     return pending
   }
 
-  function endpoints() {
+  /** The pair the person chose: the range Play was pressed on, else the displayed revision or pair. */
+  function chosen(): { to: WebRevision | null; from: WebRevision | null | undefined } {
     const current = options.current()
-    const from = current.comparison?.from
-    return range ?? (from && current.revision ? { from, to: current.revision } : undefined)
+    return range ?? { to: current.revision, from: current.comparison?.from }
+  }
+
+  /** The chosen pair when Play can walk it: two commits in the live map. */
+  function playable() {
+    const { from, to } = chosen()
+    return options.live && from && to ? { from, to } : undefined
   }
 
   function paint(): void {
-    control.hidden = data.readPlaybackRevisions === undefined || endpoints() === undefined
+    control.hidden = playable() === undefined
     button.textContent = running ? 'Stop' : 'Play'
     button.setAttribute('aria-label', running ? 'Stop history playback' : 'Play history')
     button.disabled = options.navigating()
   }
 
-  function stop(clearRange = false): void {
+  /** Stops playing. The frame on screen and the chosen range stay. */
+  function stop(): void {
     generation++
     running = false
     wake?.()
-    if (clearRange) { range = undefined; caption.hidden = true }
-    else if (range !== undefined && options.current().revision !== null) describe(options.current().revision!)
+    const shown = options.current().revision
+    if (range !== undefined && shown !== null) describe(shown)
     paint()
+  }
+
+  /** Stops playing and drops the chosen range, because another revision or pair is being opened. */
+  function clear(): void {
+    range = undefined
+    caption.hidden = true
+    stop()
   }
 
   function pause(): Promise<void> {
@@ -121,12 +135,14 @@ export function createRevisionPlayback(options: PlaybackOptions) {
   }
 
   function describe(revision: WebRevision): void {
-    const date = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(revision.date))
-    caption.textContent = `${revision.shortId} · ${revision.subject} · ${date}`
+    caption.textContent = `${revision.shortId} · ${revision.subject} · ${revisionDate(revision.date)}`
     caption.hidden = false
   }
 
-  /** Loads the next two frames ahead. It assumes each commit follows a readable one; a wrong guess costs one request. */
+  /**
+   * Loads the next two frames ahead; the host keeps OPEN_ARCHIVES commits open for exactly that (revision-archives.ts),
+   * so change both together. It assumes each commit follows a readable one; a wrong guess costs one request.
+   */
   function preload(revisions: WebRevision[], index: number): void {
     for (const next of [index + 1, index + 2]) {
       const revision = revisions[next]
@@ -163,18 +179,21 @@ export function createRevisionPlayback(options: PlaybackOptions) {
   }
 
   async function play(): Promise<void> {
-    const selected = endpoints()
-    if (options.navigating() || selected === undefined || data.readPlaybackRevisions === undefined) return
+    const selected = playable()
+    if (options.navigating() || selected === undefined) return
+    const current = options.current()
+    // Without a chosen range, the comparison on screen is the pair itself: the walk ends on it, so it is kept.
+    if (range === undefined) cache.set(keyOf(selected.to.id, selected.from.id), Promise.resolve(current))
     range = selected
     running = true
     const token = ++generation
     caption.textContent = 'Loading history…'
     caption.hidden = false
-    options.repaint()
     paint()
     try {
-      const revisions = await data.readPlaybackRevisions(selected.to.id, selected.from.id)
-      if (token !== generation) return
+      // Every payload lists the revisions newest first; the walk runs from the older commit to the newer one.
+      const position = (target: WebRevision) => current.revisions.findIndex(revision => revision.id === target.id)
+      const revisions = current.revisions.slice(position(selected.to), position(selected.from) + 1).reverse()
       if (!await walk(revisions, token)) return
       const final = await read(selected.to.id, selected.from.id)
       if (token !== generation) return
@@ -189,10 +208,5 @@ export function createRevisionPlayback(options: PlaybackOptions) {
   }
 
   button.addEventListener('click', () => { if (running) stop(); else void play() })
-  return {
-    paint,
-    remember,
-    cancel: (clearRange = true) => stop(clearRange),
-    get range() { return range },
-  }
+  return { paint, chosen, stop, clear }
 }

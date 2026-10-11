@@ -1,24 +1,23 @@
 import { openGitRevision } from '../../history/revisions.ts'
 import { compareSnapshots, readSnapshot, type Snapshot } from '../../history/snapshots.ts'
-import { measuredSheetScene } from '../../sheet/scene.ts'
 import type { ArchitectureGraph } from '../../types.ts'
 import { readSource } from '../source/read.ts'
 import { readSnapshotCodeStructure } from '../source/structure.ts'
-import type { WebMapPayload, WebRevision } from './payload.ts'
+import type { WebRevision } from './payload.ts'
+import { layOutMap, type MapView } from './runtime.ts'
 
 /**
  * How many commits stay extracted once the requests reading them have finished. Playback needs four: a frame
- * compares the previous commit with the current one, and the browser preloads the next two frames.
+ * compares the previous commit with the current one, and the browser preloads the next two frames (`preload` in
+ * revision/playback.ts).
  */
-const OPEN_ARCHIVES = 4
-
-type SnapshotView = Pick<WebMapPayload, 'project' | 'world' | 'sheet' | 'timings'>
+export const OPEN_ARCHIVES = 4
 
 /** One commit, extracted into a temporary folder and read by the current architecture reader. */
 interface Archive extends Snapshot {
   architectureLoadMilliseconds: number
   /** The commit's ordinary map. The first request for it stores it here; a comparison lays out its own map. */
-  view?: SnapshotView
+  view?: MapView
   /** Deletes the temporary folder. */
   close(): Promise<void>
 }
@@ -26,15 +25,11 @@ interface Archive extends Snapshot {
 /** A commit that is open or still being opened. */
 interface Entry {
   opened: Promise<Archive>
-  /** How many requests are reading the folder right now. Only a folder without readers is deleted to make room. */
+  /**
+   * How many requests are reading the folder right now. Only a folder without readers is deleted to make room: a
+   * folder deleted under a reader makes every file look deleted, with no error.
+   */
   readers: number
-}
-
-function layOut(archive: Archive): SnapshotView {
-  const sheet = measuredSheetScene(archive.world)
-  return { project: archive.project, world: archive.world, sheet: sheet.scene,
-    timings: { architectureLoadMilliseconds: archive.architectureLoadMilliseconds, ...sheet.timings,
-      totalMilliseconds: archive.architectureLoadMilliseconds + sheet.timings.placementMilliseconds + sheet.timings.routingMilliseconds } }
 }
 
 /**
@@ -69,17 +64,13 @@ export function createRevisionArchives(repositoryRoot: string) {
     void removal.then(() => removals.delete(removal), () => {})
   }
 
-  /**
-   * Counts one more reader of the commit and starts opening it when it is not open. Every `hold` needs one `release`;
-   * use `withArchive`, which pairs them, unless two commits must be open at the same time.
-   */
+  /** Counts one more reader of the commit and starts opening it when it is not open. */
   function hold(revision: WebRevision): Entry {
     let entry = entries.get(revision.id)
     if (entry === undefined) {
-      const opening: Entry = { opened: open(revision), readers: 0 }
+      entry = { opened: open(revision), readers: 0 }
       // A commit that failed to open is not kept, so the next request tries again.
-      void opening.opened.catch(() => { if (entries.get(revision.id) === opening) entries.delete(revision.id) })
-      entry = opening
+      void entry.opened.catch(() => entries.delete(revision.id))
     }
     // Inserting again moves the commit to the most recently used end.
     entries.delete(revision.id)
@@ -99,7 +90,7 @@ export function createRevisionArchives(repositoryRoot: string) {
     }
   }
 
-  /** Runs `read` on the open commit; its folder exists until `read` settles. */
+  /** The one way to read a commit: runs `read` on the open commit, whose folder exists until `read` settles. */
   async function withArchive<T>(revision: WebRevision, read: (archive: Archive) => T | Promise<T>): Promise<T> {
     const entry = hold(revision)
     try {
@@ -110,23 +101,16 @@ export function createRevisionArchives(repositoryRoot: string) {
   }
 
   /** The commit's ordinary map, laid out once while the commit stays open. */
-  function view(revision: WebRevision): Promise<SnapshotView> {
+  function view(revision: WebRevision): Promise<MapView> {
     return withArchive(revision, archive => {
-      archive.view ??= layOut(archive)
+      archive.view ??= layOutMap(archive.world, archive.project, archive.architectureLoadMilliseconds)
       return archive.view
     })
   }
 
-  /** The changes from one commit to a newer one. Both are opened at the same time and held until their files are read. */
-  async function compare(from: WebRevision, to: WebRevision) {
-    const older = hold(from)
-    const newer = hold(to)
-    try {
-      return await compareSnapshots(from, await older.opened, await newer.opened)
-    } finally {
-      release(older)
-      release(newer)
-    }
+  /** The changes from one commit to a newer one. Both commits stay open until their files have been read. */
+  function compare(from: WebRevision, to: WebRevision) {
+    return withArchive(from, before => withArchive(to, after => compareSnapshots(from, before, after)))
   }
 
   function structure(revision: WebRevision, world: ArchitectureGraph, element: string) {
@@ -134,12 +118,8 @@ export function createRevisionArchives(repositoryRoot: string) {
   }
 
   function source(revision: WebRevision, world: ArchitectureGraph, element: string, file: string) {
+    // The open folder is read in place: it is passed as the root, and `null` means "do not extract a commit again".
     return withArchive(revision, archive => readSource(archive.root, world, null, element, file))
-  }
-
-  /** Rejects unless the commit can be opened and the current reader can read its architecture. */
-  function requireReadable(revision: WebRevision): Promise<void> {
-    return withArchive(revision, () => {})
   }
 
   /** Deletes every folder, including the ones still being deleted in the background. */
@@ -149,5 +129,5 @@ export function createRevisionArchives(repositoryRoot: string) {
     await Promise.all(removals)
   }
 
-  return { view, compare, structure, source, requireReadable, close }
+  return { withArchive, view, compare, structure, source, close }
 }

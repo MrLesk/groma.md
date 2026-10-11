@@ -1,12 +1,14 @@
 import { expect, test } from 'bun:test'
 import { execFileSync } from 'node:child_process'
-import { cp, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 import { createWebMapSession } from '../src/viewers/web/map-session.ts'
 import type { WebPayload, WebRevision } from '../src/viewers/web/payload.ts'
-import { listGromaRevisions } from '../src/history/revisions.ts'
+import { createRevisionArchives, OPEN_ARCHIVES } from '../src/viewers/web/revision-archives.ts'
+import { listGitRevisions, listGromaRevisions } from '../src/history/revisions.ts'
+import { readSnapshot, UnreadableArchitectureError } from '../src/history/snapshots.ts'
 
 const fixture = path.resolve(import.meta.dir, '../test/fixtures/source-view')
 
@@ -102,33 +104,34 @@ test.concurrent('web history includes source-only commits and reads the selected
   }
 })
 
-test.concurrent('web history keeps few commits extracted, retries a failed read, and lists a playback range without reading its middle', async () => {
+/** A repository whose history holds `count` commits, oldest first; `sources` are the texts of the one source file. */
+async function repositoryWithCommits(count: number) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-web-archives-'))
   const git = gitIn(root)
-  const commit = (message: string) => { git('add', '--all'); git('commit', '--quiet', '-m', message); return git('rev-parse', 'HEAD') }
+  git('init', '--quiet')
+  git('config', 'core.autocrlf', 'false')
+  await cp(fixture, root, { recursive: true })
+  const commits: string[] = []
+  const sources: string[] = []
+  for (let receipt = 1; receipt <= count; receipt++) {
+    sources.push(`export const receipt = ${receipt}\n`)
+    await writeFile(path.join(root, 'src/orders.ts'), sources.at(-1)!)
+    git('add', '--all')
+    git('commit', '--quiet', '-m', `Receipt ${receipt}`)
+    commits.push(git('rev-parse', 'HEAD'))
+  }
+  return { root, commits, sources }
+}
+
+test.concurrent('web history keeps few commits extracted and retries a failed read', async () => {
+  // One more commit than the host keeps extracted at once.
+  const { root, commits } = await repositoryWithCommits(OPEN_ARCHIVES + 1)
+  const [oldest, newest] = [commits[0]!, commits.at(-1)!]
   let session: Awaited<ReturnType<typeof createWebMapSession>> | undefined
   try {
-    git('init', '--quiet')
-    git('config', 'core.autocrlf', 'false')
-    await cp(fixture, root, { recursive: true })
-    const readable = [commit('Architecture')]
-    const project = path.join(root, 'groma/project.md')
-    const profile = await readFile(project, 'utf8')
-    await rm(project)
-    const unreadable = commit('Architecture without its project document')
-    await writeFile(project, profile)
-    // More readable commits than the host keeps extracted at once.
-    for (let receipt = 1; receipt <= 5; receipt++) {
-      await writeFile(path.join(root, 'src/orders.ts'), `export const receipt = ${receipt}\n`)
-      readable.push(commit(`Receipt ${receipt}`))
-    }
-    const [oldest, newest] = [readable[0]!, readable.at(-1)!]
     session = await openSession(root)
     const status = async (url: string) => (await session!.fetch(new Request(`http://localhost${url}`))).status
-    const range = await session.fetch(new Request(`http://localhost/playback.json?from=${oldest}&revision=${newest}`))
-    expect((await range.json() as WebRevision[]).map(revision => revision.id)).toEqual([oldest, unreadable, ...readable.slice(1)])
-    expect(await status(`/playback.json?from=${unreadable}&revision=${newest}`)).toBe(422)
-    for (const id of readable) expect(await status(`/world.json?revision=${id}`)).toBe(200)
+    for (const id of commits) expect(await status(`/world.json?revision=${id}`)).toBe(200)
     // With Git out of reach, only a commit that is still extracted can be served.
     const gitDirectory = path.join(root, '.git')
     const heldGitDirectory = path.join(root, '.held-git')
@@ -141,6 +144,40 @@ test.concurrent('web history keeps few commits extracted, retries a failed read,
     expect(await status(`/world.json?revision=${oldest}`)).toBe(200)
   } finally {
     await session?.close()
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test.concurrent('a commit stays extracted while a request reads it, however many other commits are opened', async () => {
+  const { root, sources } = await repositoryWithCommits(OPEN_ARCHIVES + 3)
+  const archives = createRevisionArchives(root)
+  try {
+    const [held, ...others] = await listGitRevisions(root)
+    const read = await archives.withArchive(held!, async archive => {
+      // Each of these closes the least recently used commit nobody is reading, which would be the held one.
+      for (const other of others) await archives.withArchive(other, () => {})
+      return readFile(path.join(archive.root, 'src/orders.ts'), 'utf8')
+    })
+    expect(read).toBe(sources.at(-1)!)
+  } finally {
+    await archives.close()
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test.concurrent('a missing document is an unreadable architecture; a file that cannot be opened is a failure', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-web-snapshot-'))
+  try {
+    await cp(fixture, root, { recursive: true })
+    const index = path.join(root, 'groma/index.md')
+    await rm(index)
+    expect(await readSnapshot(root).catch(error => error)).toBeInstanceOf(UnreadableArchitectureError)
+    // A directory cannot be opened as a file: the operating system fails, which says nothing about the architecture.
+    await mkdir(index)
+    const failure = await readSnapshot(root).catch(error => error)
+    expect(failure).toBeInstanceOf(Error)
+    expect(failure).not.toBeInstanceOf(UnreadableArchitectureError)
+  } finally {
     await rm(root, { recursive: true, force: true })
   }
 })

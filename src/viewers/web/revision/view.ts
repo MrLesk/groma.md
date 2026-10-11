@@ -12,7 +12,8 @@ export const NARROW_HEADER = '(max-width: 1080px)'
 export const revisionCss = `
   .time-machine { position: relative; display: flex; align-items: center; min-width: 0; flex: 0 1 auto; }
   .time-machine .revision-menu { right: auto; left: var(--field-left, 0px); }
-  #revision { min-width: 0; gap: 6px; padding: 0 6px 0 10px; color: var(--ink); }
+  /* The box shrinks before the buttons beside it do; fields it has no room for are clipped, never drawn over them. */
+  #revision { min-width: 0; overflow: hidden; gap: 6px; padding: 0 6px 0 10px; color: var(--ink); }
   /* One search input follows the fields in the DOM. The order property moves it into the first or second slot,
      which only works while the fields are the box's own flex items. */
   #revision .revision-fields { display: contents; }
@@ -122,6 +123,13 @@ export const revisionCss = `
     #revision, #revision *, .revision-compare, #end-comparison { animation: none !important; transition: none !important; }
   }
 `
+
+const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+
+/** A commit date in the browser's locale, as the commit list and the playback caption show it. */
+export function revisionDate(date: string): string {
+  return dateFormat.format(new Date(date))
+}
 
 function revisionTitle(revision: WebRevision | null): string {
   return revision === null ? 'Current working tree' : `${revision.id} - ${revision.subject}`

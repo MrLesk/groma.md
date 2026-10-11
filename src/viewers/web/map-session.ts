@@ -329,24 +329,6 @@ export async function createWebMapSession(
     return sourceSelection(url)
   }
 
-  /**
-   * Every commit a playback walks, oldest first. Only the two endpoints are read here, so a long range answers at
-   * once; the browser skips a commit in between that the current reader cannot read when it reaches it.
-   */
-  async function playbackResponse(_request: Request, url: URL): Promise<Response> {
-    const pair = await comparedPair(url)
-    if (pair instanceof Response) return pair
-    const [from, to] = pair ?? [null, null]
-    if (from === null || to === null) return new Response('Playback runs between two commits', { status: 400 })
-    try {
-      await Promise.all([archives.requireReadable(from), archives.requireReadable(to)])
-    } catch (error) {
-      return revisionError('Cannot play these revisions', error)
-    }
-    // The history list runs newest first.
-    return Response.json(revisions.slice(revisions.indexOf(to), revisions.indexOf(from) + 1).reverse())
-  }
-
   async function taskDiffResponse(_request: Request, url: URL): Promise<Response> {
     const taskId = url.searchParams.get('task')
     const item = workState.work.items.find(candidate => candidate.id === taskId)
@@ -429,7 +411,6 @@ export async function createWebMapSession(
     }],
     ['/render.js', rendererResponse],
     ['/revisions.json', async () => Response.json(await readRevisions())],
-    ['/playback.json', playbackResponse],
     ['/world.json', worldResponse],
     ['/code.json', selectedSourceResponse],
     ['/source.json', selectedSourceResponse],

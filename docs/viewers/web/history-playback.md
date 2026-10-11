@@ -25,46 +25,53 @@ while playback continues.
 ## In the browser
 
 [`revision/control.ts`](../../../src/viewers/web/revision/control.ts) owns the
-selected revision and connects the playback controls to the browser session.
+displayed revision or pair and connects the playback controls to the browser
+session. While a range plays or is stopped on a frame, the displayed pair is
+that frame; the chosen pair, which the fields and the URL show, stays the range.
 [`revision/playback.ts`](../../../src/viewers/web/revision/playback.ts) owns the
-clock, cancellation, speed, caption, range, and a cache of the frames it has
-requested, so a replay does not ask the host again. Stopping invalidates pending
-frame applications without discarding their cached data.
+clock, cancellation, speed, caption, chosen range, and a cache of the frames it
+has requested. Stopping invalidates pending frame applications without
+discarding their cached data.
 
-Play first asks `/playback.json?from=<commit>&revision=<commit>` for every
-commit of the range, oldest first. The walk then requests one frame per commit
-from `/world.json` and loads the next two frames ahead. A commit the current
-reader cannot read is skipped, and the next frame is the comparison from the
-last commit shown. Any other failure stops playback and shows its message.
+Play takes the commits between the chosen pair from the revision list that every
+payload carries, oldest first, so starting needs no request of its own. The walk
+requests one frame per commit from `/world.json` and loads the next two frames
+ahead. Each frame is requested once per page session: a replay shows the kept
+frames and does not ask the host again. A commit the current reader cannot read
+is skipped, and the next frame is the comparison from the last commit shown. Any
+other failure stops playback and shows its message; that frame is not kept, so
+the next Play asks for it again.
 
 ## In the web host
 
-[`map-session.ts`](../../../src/viewers/web/map-session.ts) serves both routes.
-`/playback.json` reads only the two endpoints, so a long range answers at once.
-A request that names a commit whose architecture the current reader cannot read
-is answered with status 422 (`UNREADABLE_REVISION_STATUS` in
+[`map-session.ts`](../../../src/viewers/web/map-session.ts) serves the frames.
+A request that names a commit whose architecture the reader rejects, because the
+commit holds none or it follows an older Markdown contract, is answered with
+status 422 (`UNREADABLE_REVISION_STATUS` in
 [`payload.ts`](../../../src/viewers/web/payload.ts)), and the browser data source
 turns that status into `UnreadableRevisionError`. This status is the only signal
-for an unreadable commit. A Git error, a full disk, or any other failure is
-answered with status 500.
+for an unreadable commit. Every other failure is answered with status 500: a Git
+error, a full disk or another operating-system failure, and a busy project lock.
+`readSnapshot` in [`history/snapshots.ts`](../../../src/history/snapshots.ts)
+draws that line.
 
 [`revision-archives.ts`](../../../src/viewers/web/revision-archives.ts) opens the
 commits. Opening one extracts the whole repository at that commit into a
 temporary folder and reads its architecture. Once no request is reading, at
 most four commits stay open (`OPEN_ARCHIVES`): the two a frame compares and the
 two the browser preloads. Beyond that, the least recently used commit that no
-request is reading is closed and its folder deleted. A commit that failed to
-open is not kept, so the next request tries again. Code outlines and source details read the open
+request is reading is closed and its folder deleted; a folder is never deleted
+under a request that reads it. A commit that failed to open is not kept, so the
+next request tries again. Code outlines and source details read the open
 folder of their commit. An ordinary map layout is prepared on the first request
 for a snapshot view and kept while the commit stays open; comparisons prepare
 their own layouts. Closing the server session deletes the remaining folders. A
 host process that is killed cannot delete the folders open at that moment; they
 stay in the system's temporary directory, named `groma-revision-*`.
 
-`compareSnapshots` in
-[`history/snapshots.ts`](../../../src/history/snapshots.ts) assembles every
-comparison from two loaded snapshots. Working-tree comparisons call it through
-`readComparison`, which reads current files and removes its archive afterwards.
+`compareSnapshots` in `history/snapshots.ts` assembles every comparison from two
+loaded snapshots. Working-tree comparisons call it through `readComparison`,
+which reads current files and removes its archive afterwards.
 
 Playback is transient browser state, not stored architecture knowledge. It adds
 no OKF metadata or C4 element type. Git commits and the existing architecture

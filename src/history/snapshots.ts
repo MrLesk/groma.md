@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
+import { ArchitectureReadError } from '../architecture-reader.ts'
 import { loadAnnotatedArchitecture } from '../core.ts'
+import { GromaBusyError } from '../groma-filesystem.ts'
 import { loadProjectProfile, type ProjectProfile } from '../project-profile.ts'
 import type { AnnotatedArchitectureModel } from '../types.ts'
 import type { GitRevision } from './revisions.ts'
@@ -15,9 +17,8 @@ export interface Snapshot {
 }
 
 /**
- * The architecture reader failed in a folder: usually the folder holds no architecture, or one that follows an older
- * Markdown contract. Extracting a commit into the folder is a separate step, so a Git error or a full disk while
- * extracting is not this error.
+ * The architecture reader rejects what a folder holds: no architecture, or one that follows an older Markdown
+ * contract. A Git error, a full disk, another operating-system failure or a busy project lock is never this error.
  */
 export class UnreadableArchitectureError extends Error {
   constructor(cause: unknown) {
@@ -31,14 +32,25 @@ export function atRevision<T>(root: string, revision: GitRevision | null, read: 
   return revision === null ? read(root) : withGitRevision(root, revision.id, read)
 }
 
-/** Whatever the architecture reader throws in this folder is reported as UnreadableArchitectureError. */
+/**
+ * A busy project lock or an operating-system failure says nothing about the architecture. The reader wraps a file it
+ * could not open; only a missing file there is a missing document, which is a rejected architecture.
+ */
+function isIoFailure(error: unknown): boolean {
+  const failure = error instanceof ArchitectureReadError ? error.cause : error
+  if (failure instanceof GromaBusyError) return true
+  const system = failure as NodeJS.ErrnoException | undefined
+  return system?.syscall !== undefined && system.code !== 'ENOENT'
+}
+
+/** Reads the architecture in a folder. Only what the reader rejects is reported as UnreadableArchitectureError. */
 export async function readSnapshot(root: string): Promise<Snapshot> {
   try {
     const [world, project] = await Promise.all([loadAnnotatedArchitecture(root), loadProjectProfile(root)])
     if (project === undefined) throw new Error('No Groma architecture in this revision')
     return { root, world, project }
   } catch (error) {
-    throw new UnreadableArchitectureError(error)
+    throw isIoFailure(error) ? error : new UnreadableArchitectureError(error)
   }
 }
 

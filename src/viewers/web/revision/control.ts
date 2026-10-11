@@ -2,7 +2,7 @@ import type { WebDataSource } from '../data.ts'
 import { bindPopover } from '../atoms/popover.ts'
 import type { WebBootPayload, WebPayload, WebWorkPayload } from '../payload.ts'
 import { createRevisionPlayback } from './playback.ts'
-import { NARROW_HEADER, pendingPairFields, revisionFields, revisionOptions, snapshotNotice, type RevisionField } from './view.ts'
+import { NARROW_HEADER, pendingPairFields, revisionDate, revisionFields, revisionOptions, snapshotNotice, type RevisionField } from './view.ts'
 
 interface RevisionControlOptions {
   box: HTMLElement
@@ -27,9 +27,8 @@ const searchLabels: Record<RevisionField, string> = {
 }
 
 function localizeDates(root: ParentNode): void {
-  const format = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
   for (const time of root.querySelectorAll<HTMLTimeElement>('time[datetime]')) {
-    time.textContent = format.format(new Date(time.dateTime))
+    time.textContent = revisionDate(time.dateTime)
   }
 }
 
@@ -72,8 +71,9 @@ function revisionTooltip(list: HTMLElement) {
 }
 
 /**
- * Owns one authoritative revision or pair, and which field is the commit search right now.
- * An open field is only a draft: the displayed view changes when a commit is chosen.
+ * Owns the displayed revision or pair and which field is the commit search right now. While a range plays or is
+ * stopped on a frame, the pair the person chose differs from the frame on screen; `selected` and `chosenRevision`
+ * below name the two. An open field is only a draft: the displayed view changes when a commit is chosen.
  */
 export function createRevisionControl(options: RevisionControlOptions) {
   const { box, body, boot, data, applyRevision, applyWorld, applyWork } = options
@@ -102,7 +102,7 @@ export function createRevisionControl(options: RevisionControlOptions) {
   let pendingWorld: WebPayload | undefined
   let appliedWork = boot.workGeneration
   const playback = createRevisionPlayback({
-    root, data, current: () => current, navigating: () => navigating, repaint: paint,
+    root, data, live: boot.delivery.kind === 'live', current: () => current, navigating: () => navigating,
     present(payload, first) {
       editing = undefined
       setRevision(payload)
@@ -112,14 +112,17 @@ export function createRevisionControl(options: RevisionControlOptions) {
     error: showError,
   })
 
+  /** A start's id: undefined outside a comparison, '' for the working tree. */
+  const startId = (start: WebPayload['revision'] | undefined) => start === undefined ? undefined : start?.id ?? ''
+  /** The displayed pair: what the map shows now, a playback frame while a range plays. Source details read it. */
   const selected = () => current.revision?.id
-  const from = () => current.comparison === undefined ? undefined : current.comparison.from?.id ?? ''
-  // Fields and URLs keep the chosen range while source details follow the displayed frame above.
-  const destination = () => playback.range?.to.id ?? selected()
-  const start = () => playback.range?.from.id ?? from()
+  const from = () => startId(current.comparison?.from)
+  /** The chosen pair: the range Play was pressed on, else the displayed pair. The fields and the URL show it. */
+  const chosenRevision = () => playback.chosen().to?.id
+  const chosenFrom = () => startId(playback.chosen().from)
   const live = () => current.comparison === undefined && current.revision === null && boot.delivery.kind === 'live'
   /** A start is being chosen for a comparison that does not exist yet. */
-  const starting = () => editing === 'from' && current.comparison === undefined && playback.range === undefined
+  const starting = () => editing === 'from' && playback.chosen().from === undefined
 
   /** The commit list sits under the slot it edits: the box for the first slot, the rule after "vs." for the second. */
   function placeMenu(): void {
@@ -132,9 +135,9 @@ export function createRevisionControl(options: RevisionControlOptions) {
   function paintResults(): void {
     if (singleSnapshot) { results.innerHTML = snapshotNotice(current.revision); localizeDates(results); return }
     // Ids use '' for the working tree. A start that is still being chosen holds nothing yet.
-    const viewed = destination() ?? ''
-    const held = editing === 'from' ? start() : viewed
-    const otherEndpoint = { revision: undefined, from: viewed, to: start() }[editing ?? 'revision']
+    const viewed = chosenRevision() ?? ''
+    const held = editing === 'from' ? chosenFrom() : viewed
+    const otherEndpoint = { revision: undefined, from: viewed, to: chosenFrom() }[editing ?? 'revision']
     results.innerHTML = revisionOptions(revisions, held, search.value, workingTree)
     // A comparison runs from an older revision to a newer one. The list runs newest first under the working tree, so a
     // start must sit below its destination and a destination above its start.
@@ -165,15 +168,14 @@ export function createRevisionControl(options: RevisionControlOptions) {
     if (editing === undefined || singleSnapshot) delete box.dataset.editing
     else box.dataset.editing = editing
     // Live refreshes repaint often; untouched fields keep their focus and do not replay their entrance.
-    const range = playback.range
-    const nextFields = starting() ? pendingPairFields(current.revision)
-      : revisionFields(range?.to ?? current.revision, range?.from ?? current.comparison?.from)
+    const chosen = playback.chosen()
+    const nextFields = starting() ? pendingPairFields(current.revision) : revisionFields(chosen.to, chosen.from)
     if (nextFields !== paintedFields) { fields.innerHTML = nextFields; paintedFields = nextFields }
     search.hidden = !opened || singleSnapshot
     search.placeholder = placeholders[editing ?? 'revision']
     search.setAttribute('aria-label', searchLabels[editing ?? 'revision'])
     paintCompareEntry()
-    end.hidden = current.comparison === undefined && !starting() && range === undefined
+    end.hidden = chosen.from === undefined && !starting()
     end.title = starting() ? 'Cancel comparison' : 'End comparison'
     end.setAttribute('aria-label', end.title)
     menu.hidden = !opened
@@ -236,7 +238,7 @@ export function createRevisionControl(options: RevisionControlOptions) {
   }
 
   function open(field: RevisionField): void {
-    playback.cancel(false)
+    playback.stop()
     // Widths are read from the closed layout, also when another field is the search right now.
     close()
     const width = (name: RevisionField) => fields.querySelector(`[data-field="${name}"]`)?.getBoundingClientRect().width
@@ -251,19 +253,18 @@ export function createRevisionControl(options: RevisionControlOptions) {
 
   function setRevision(payload: WebPayload): void {
     current = payload
-    playback.remember(payload)
     body.toggleAttribute('data-revision', !live())
     body.toggleAttribute('data-comparison', payload.comparison !== undefined)
     paint()
   }
 
-  /** Errors live at the top of the commit list, so a failure with nothing open opens the viewed revision's list. */
+  /** Errors live at the top of the commit list, so a failure with nothing open opens the chosen destination's list. */
   function showError(reason: unknown): void {
     error.textContent = reason instanceof Error ? reason.message : String(reason)
     error.hidden = false
     menu.scrollTop = 0
     if (editing !== undefined) return
-    editing = current.comparison === undefined ? 'revision' : 'to'
+    editing = playback.chosen().from === undefined ? 'revision' : 'to'
     paint()
     paintResults()
   }
@@ -271,7 +272,7 @@ export function createRevisionControl(options: RevisionControlOptions) {
   async function load(revision?: string, starting?: string, reset = true): Promise<void> {
     const loading = ++request
     navigating = true
-    playback.cancel()
+    playback.clear()
     error.hidden = true
     hideTooltip()
     box.setAttribute('aria-busy', 'true')
@@ -298,8 +299,8 @@ export function createRevisionControl(options: RevisionControlOptions) {
   }
 
   function chooseRevision(revision: string): void {
-    if (editing === 'from') void load(destination(), revision)
-    else if (editing === 'to') void load(revision || undefined, start())
+    if (editing === 'from') void load(chosenRevision(), revision)
+    else if (editing === 'to') void load(revision || undefined, chosenFrom())
     else void load(revision || undefined)
   }
 
@@ -333,12 +334,7 @@ export function createRevisionControl(options: RevisionControlOptions) {
     const option = event.target.closest<HTMLButtonElement>('.revision-option')
     if (option !== null && !option.disabled) chooseRevision(option.dataset.revision!)
   })
-  end.addEventListener('click', () => {
-    const revision = destination()
-    playback.cancel()
-    if (starting()) close()
-    else void load(revision)
-  })
+  end.addEventListener('click', () => { if (starting()) close(); else void load(chosenRevision()) })
   // The list follows its field whenever the header reflows the box.
   new ResizeObserver(placeMenu).observe(box)
 
@@ -366,8 +362,8 @@ export function createRevisionControl(options: RevisionControlOptions) {
   return {
     get selected() { return selected() },
     get from() { return from() },
-    get urlRevision() { return destination() },
-    get urlFrom() { return start() },
+    get chosenRevision() { return chosenRevision() },
+    get chosenFrom() { return chosenFrom() },
     get comparison() { return current.comparison },
     get live() { return live() },
     paintProjectEdit(root: ParentNode) {

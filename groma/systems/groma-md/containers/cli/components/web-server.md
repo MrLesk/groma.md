@@ -24,7 +24,7 @@ groma:
 description: Serves the local browser map and live architecture operations
 ---
 
-Starts the local HTTP server. Serves project setup and connects the browser to architecture, scanner, task, and source operations. Extracts each historical commit the browser asks for into a temporary folder and keeps only the few most recently used commits open, so comparisons, playback frames, and historical details share one extraction without filling the disk. The folders are deleted when the session closes. Lists the commits of a playback range, and answers with a status of its own when the current reader cannot read a commit, so the browser can skip it.
+Starts the local HTTP server. Serves project setup and connects the browser to architecture, scanner, task, and source operations. Extracts each historical commit the browser asks for into a temporary folder and keeps only the few most recently used commits open, so comparisons, playback frames, and historical details share one extraction without filling the disk. The folders are deleted when the session closes. Answers with a status of its own when the current reader rejects the architecture of a commit, so playback in the browser can skip it.
 
 ## Relationships
 
