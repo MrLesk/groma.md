@@ -148,7 +148,7 @@ async function declaredEntries(root: string, declarations: readonly string[], pa
     } catch (error) {
       // JSON.parse reports invalid JSON with a SyntaxError; any other error is a defect and stays visible.
       if (!(error instanceof SyntaxError)) throw error
-      diagnostics.push({ severity: 'warning', code: 'javascript-unreadable-manifest', file,
+      diagnostics.push({ severity: 'warning', code: 'JAVASCRIPT_MANIFEST_INVALID', file,
         message: `The file is not valid JSON; the entry points it declares are not read. ${error.message}` })
     }
   }

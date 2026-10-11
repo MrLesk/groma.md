@@ -17,7 +17,7 @@ test.concurrent('one malformed manifest is skipped with a diagnostic while a sib
   try {
     const scan = (await javascript.scan(root, {}, files))!
     expect(scan.entryPoints?.map(entry => entry.declaration)).toContain('good/package.json')
-    const unreadable = scan.diagnostics.filter(diagnostic => diagnostic.code === 'javascript-unreadable-manifest')
-    expect(unreadable).toEqual([expect.objectContaining({ file: 'broken/package.json' })])
+    const invalid = scan.diagnostics.filter(diagnostic => diagnostic.code === 'JAVASCRIPT_MANIFEST_INVALID')
+    expect(invalid).toEqual([expect.objectContaining({ file: 'broken/package.json' })])
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
