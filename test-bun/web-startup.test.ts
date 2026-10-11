@@ -141,7 +141,7 @@ for (const findsComponents of [true, false]) {
       }`)
       await writePluginConfig(root, { scanners: [
         { id: 'fixture', source: './plugin', include: ['**/*.fixture'] }, { id: 'companion', source: './companion', include: ['**/*.companion'] },
-      ], workSources: [] })
+      ], workSources: [], icons: [] })
       opening = startWebViewer(root, { port: 0, scan: true, workSource: emptyWorkSource(), onListening: listening.resolve })
       const url = await listening.promise
       await Promise.all([scanning.promise, companionScanning.promise])
@@ -296,7 +296,7 @@ test.concurrent('simultaneous scanner setup submissions share one initial scan a
       method: 'POST', redirect: 'manual', body: new URLSearchParams({ projectName: 'Example', directory: 'groma' }),
     })
     expect(initialized.status).toBe(303)
-    await writePluginConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], workSources: [] })
+    await writePluginConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], workSources: [], icons: [] })
     submissions = [0, 1].map(() => fetch(`${viewer!.url}/scanners`, {
       method: 'POST', redirect: 'manual', body: new FormData(),
     }))
@@ -335,7 +335,7 @@ test.concurrent('startup does not report scanning when every selected source is 
       async scan() { throw new Error('Excluded sources must not be scanned') },
     }`)
     expect(await Bun.spawn(['git', 'init', '--quiet', root]).exited).toBe(0)
-    await writePluginConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], exclude: ['*.fixture'], workSources: [] })
+    await writePluginConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], exclude: ['*.fixture'], workSources: [], icons: [] })
     const phases: string[] = []
     session = await createScannerSession(root, { scan: true, onProgress: update => phases.push(update.phase) })
     await session.ready

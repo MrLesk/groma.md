@@ -96,6 +96,8 @@ export interface ArchitectureElement {
   external: boolean
   group?: string
   technology?: string
+  icon?: string
+  colour?: string
   code: CodeReference[]
   status: ElementStatus
   /** The draft record this element belongs to; a stable element may carry it too. */
@@ -130,6 +132,9 @@ export interface ArchitectureModel {
   relationships: ArchitectureRelationship[]
 }
 
+/** How a viewer draws an element's icon: an installed pack's SVG as a data URI, or an emoji as text. */
+export type ResolvedIcon = { kind: 'image'; uri: string } | { kind: 'emoji'; text: string }
+
 export interface AnnotatedElement {
   representationId: string
   id: string
@@ -142,6 +147,10 @@ export interface AnnotatedElement {
   external: boolean
   group?: string
   technology?: string
+  icon?: string
+  colour?: string
+  /** `icon` as the icon loader resolved it; absent for an unknown name, and never stored in Markdown. */
+  resolvedIcon?: ResolvedIcon
   code: CodeReference[]
   /** Total lines across the code files; absent only in hand-built worlds. */
   codeLines?: number

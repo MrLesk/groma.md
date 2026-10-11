@@ -1,14 +1,15 @@
-import { scannerNotice, type ScannerSetting, type PluginSettings, type PluginSettingsAction, type WorkSourceSetting } from './settings-model.ts'
+import { scannerNotice, type IconPackSetting, type ScannerSetting, type PluginSettings, type PluginSettingsAction, type WorkSourceSetting } from './settings-model.ts'
 export * from './settings-model.ts'
 import type { ScannerDiscovery } from './discovery.ts'
 import { discoverScanners } from './discovery.ts'
 import { officialScannerCatalog } from './catalog.ts'
-import { officialWorkSourceIds } from './official-catalog.ts'
+import { officialIconPackIds, officialWorkSourceIds } from './official-catalog.ts'
 import { configuredScannerModules, addScanner } from './inventory.ts'
 import type { ScannerModuleLocation } from './inventory.ts'
 import type { ProjectReadiness } from './readiness.ts'
 import { parsePluginSource, type PluginInstallOptions } from './package.ts'
 import { readPublishedPlugins, selectPublishedPlugin } from './published.ts'
+import { iconPackInventory, type IconPackSelection } from '../../icon-packs.ts'
 import { addPlugin, removePlugin, restorePlugin, updatePlugin } from '../../plugin-management.ts'
 import { checkWorkSourceReadiness, type WorkSourceSelection } from '../../work-sources.ts'
 
@@ -96,12 +97,22 @@ function workSourceSetting(work: WorkSourceSelection): WorkSourceSetting {
   }
 }
 
+function iconPackSetting(selected: IconPackSelection): IconPackSetting {
+  const pack = selected.status === 'found' ? selected.pack : undefined
+  return {
+    kind: 'icons', id: selected.id, name: pack?.name ?? selected.id, source: selected.source, version: pack?.version,
+    official: officialIconPackIds.includes(selected.id),
+    status: selected.status === 'found' ? 'ready' : selected.status, message: selected.message,
+  }
+}
+
 export async function readPluginSettings(root: string, checks: readonly ProjectReadiness[] = [], options: PluginInstallOptions = {}): Promise<PluginSettings> {
   try {
     const [proposal, modules] = await Promise.all([discoverScanners(root, options), configuredScannerModules(root, options)])
     const state = scannerSettingsState(proposal, modules, checks)
     const work = await checkWorkSourceReadiness(root, options)
-    return work ? { ...state, plugins: [...state.plugins, workSourceSetting(work)] } : state
+    const icons = (await iconPackInventory(root, options)).map(iconPackSetting)
+    return { ...state, plugins: [...state.plugins, ...(work ? [workSourceSetting(work)] : []), ...icons] }
   } catch (error) {
     return { plugins: [], notice: { tone: 'error', message: error instanceof Error ? error.message : String(error) }, limits: [] }
   }

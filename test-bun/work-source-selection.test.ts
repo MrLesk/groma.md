@@ -32,7 +32,7 @@ test.concurrent('work-source selection controls reads and closes its watch when 
   const root = await project()
   let watch: { close(): void | Promise<void> } | undefined
   try {
-    await writePluginConfig(root, { scanners: [], workSources: [] })
+    await writePluginConfig(root, { scanners: [], workSources: [], icons: [] })
     const session = await workSourceSession(root)
     watch = session.watch(() => {})
     expect((await session.read()).items).toEqual([])
@@ -50,7 +50,7 @@ test.concurrent('work-source selection controls reads and closes its watch when 
 test.concurrent('a work-source version mismatch blocks loading before plugin code executes', async () => {
   const root = await project('>=99.0.0')
   try {
-    await writePluginConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }] })
+    await writePluginConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }], icons: [] })
     const selection = await checkWorkSourceReadiness(root)
     expect(selection?.status).toBe('blocked')
     expect(selection?.message).toContain('>=99.0.0')
@@ -66,22 +66,22 @@ test.concurrent('a plugins.json with a second work-source entry is refused when 
   const root = await project()
   const workSources = [{ id: 'tasks', source: './adapter' }, { id: 'other', source: './other' }]
   try {
-    await expect(writePluginConfig(root, { scanners: [], workSources })).rejects.toThrow('at most one work source')
+    await expect(writePluginConfig(root, { scanners: [], workSources, icons: [] })).rejects.toThrow('at most one work source')
     await handWritten(root, { scanners: [], workSources })
     await expect(readPluginConfig(root)).rejects.toThrow('at most one work source')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-test.concurrent('a plugin id shared by a scanner and a work source is refused when read and when written', async () => {
+test.concurrent('a plugin id shared by two sections is refused when read and when written', async () => {
   const root = await project()
-  const config = {
-    scanners: [{ id: 'tasks', source: './scanner', include: ['**/*.fixture'] }],
-    workSources: [{ id: 'tasks', source: './adapter' }],
-  }
+  const scanners = [{ id: 'tasks', source: './scanner', include: ['**/*.fixture'] }]
+  const shared = [{ id: 'tasks', source: './adapter' }]
   try {
-    await expect(writePluginConfig(root, config)).rejects.toThrow('more than once')
-    await handWritten(root, config)
-    await expect(readPluginConfig(root)).rejects.toThrow('more than once')
+    for (const config of [{ scanners, workSources: shared, icons: [] }, { scanners, workSources: [], icons: shared }]) {
+      await expect(writePluginConfig(root, config)).rejects.toThrow('more than once')
+      await handWritten(root, config)
+      await expect(readPluginConfig(root)).rejects.toThrow('more than once')
+    }
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
@@ -104,7 +104,7 @@ async function runWizard(root: string, overrides: Partial<InitCommandDependencie
 test.concurrent('groma init reports a failed Backlog initialization when the work source is already selected', async () => {
   const root = await project()
   try {
-    await writePluginConfig(root, { scanners: [], workSources: [{ id: 'backlog', source: '@groma/work-source-backlog@0.1.0' }] })
+    await writePluginConfig(root, { scanners: [], workSources: [{ id: 'backlog', source: '@groma/work-source-backlog@0.1.0' }], icons: [] })
     expect((await runWizard(root, { initializeBacklog: async () => false })).errors).toHaveLength(1)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
@@ -113,7 +113,7 @@ test.concurrent('groma init leaves Backlog alone when the project selects anothe
   const root = await project()
   let initialized = 0
   try {
-    await writePluginConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }] })
+    await writePluginConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }], icons: [] })
     await runWizard(root, { initializeBacklog: async () => { initialized++; return true } })
     expect(initialized).toBe(0)
   } finally { await rm(root, { recursive: true, force: true }) }

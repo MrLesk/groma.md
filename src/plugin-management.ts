@@ -32,6 +32,7 @@ function selections(config: PluginConfig, kind?: PluginKind): { kind: PluginKind
   return [
     ...config.scanners.map(entry => ({ kind: 'scanner' as const, entry })),
     ...config.workSources.map(entry => ({ kind: 'workSource' as const, entry })),
+    ...config.icons.map(entry => ({ kind: 'icons' as const, entry })),
   ].filter(selected => kind === undefined || selected.kind === kind)
 }
 
@@ -44,6 +45,8 @@ function selection(config: PluginConfig, id: string, kind?: PluginKind) {
 /** The config with a newly installed package selected in the section of its kind. */
 function withAdded(config: PluginConfig, source: string, resolved: ResolvedPluginPackage): PluginConfig {
   if (resolved.kind === 'workSource') return { ...config, workSources: [...config.workSources, { id: resolved.id, source }] }
+  // A pack joins after the configured ones, which keep answering the icon names they share with it.
+  if (resolved.kind === 'icons') return { ...config, icons: [...config.icons, { id: resolved.id, source }] }
   // A scanner entry starts with the include globs and default exclusions its package declares; people edit them afterwards.
   const scanner = { id: resolved.id, source, include: resolved.include, ...(resolved.exclude?.length ? { exclude: resolved.exclude } : {}) }
   return { ...config, scanners: [...config.scanners, scanner] }
@@ -71,6 +74,7 @@ export async function removePlugin(root: string, id: string, kind?: PluginKind):
     ...config,
     scanners: config.scanners.filter(entry => entry.id !== id),
     workSources: config.workSources.filter(entry => entry.id !== id),
+    icons: config.icons.filter(entry => entry.id !== id),
   })
   return id
 }
@@ -88,6 +92,7 @@ export async function updatePlugin(
     ...config,
     scanners: config.scanners.map(entry => entry.id === id ? { ...entry, source: installed.source } : entry),
     workSources: config.workSources.map(entry => entry.id === id ? { ...entry, source: installed.source } : entry),
+    icons: config.icons.map(entry => entry.id === id ? { ...entry, source: installed.source } : entry),
   })
   return { id, kind: selected.kind, source: installed.source, status: 'found' }
 }

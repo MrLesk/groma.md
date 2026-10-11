@@ -6,7 +6,7 @@ export interface PublishedPlugin {
   version: string
   os?: string[]
   cpu?: string[]
-  groma?: { workSource?: { id?: string; entry?: string; compatibility?: { groma?: string } }; scanner?: { id?: string; entry?: string; discovery?: { compatibility?: { groma?: string } } } }
+  groma?: { icons?: { id?: string; icons?: Record<string, string> }; workSource?: { id?: string; entry?: string; compatibility?: { groma?: string } }; scanner?: { id?: string; entry?: string; discovery?: { compatibility?: { groma?: string } } } }
 }
 
 export function isNpmPackageName(value: string): boolean {
@@ -19,12 +19,17 @@ function supports(values: string[] | undefined, current: string): boolean {
     && (values.includes(current) || values.includes('any') || values.every(value => value.startsWith('!')))
 }
 
-/** What a release declares for the wanted kind, or for the kind it is when any will do: its id, entry and required groma.md range. */
-function declaration(item: PublishedPlugin, kind?: PluginKind): { id?: string; entry?: string; requires?: string } | undefined {
-  const scanner = kind === 'workSource' ? undefined : item.groma?.scanner
-  if (scanner) return { id: scanner.id, entry: scanner.entry, requires: scanner.discovery?.compatibility?.groma }
-  const workSource = kind === 'scanner' ? undefined : item.groma?.workSource
-  return workSource && { id: workSource.id, entry: workSource.entry, requires: workSource.compatibility?.groma }
+/**
+ * What a release declares for the wanted kind, or for the kind it is when any will do: its id, whether it has what
+ * makes it usable (an entry to run, or icons to draw) and its required groma.md range.
+ */
+function declaration(item: PublishedPlugin, kind?: PluginKind): { id?: string; usable: boolean; requires?: string } | undefined {
+  const wanted = (candidate: PluginKind) => kind === undefined || kind === candidate
+  const { scanner, workSource, icons } = item.groma ?? {}
+  if (scanner && wanted('scanner')) return { id: scanner.id, usable: Boolean(scanner.entry), requires: scanner.discovery?.compatibility?.groma }
+  if (workSource && wanted('workSource')) return { id: workSource.id, usable: Boolean(workSource.entry), requires: workSource.compatibility?.groma }
+  if (icons && wanted('icons')) return { id: icons.id, usable: icons.icons !== undefined }
+  return undefined
 }
 
 /**
@@ -40,7 +45,7 @@ export function selectPublishedPlugin(
   const requirement = (item: PublishedPlugin) => declaration(item, kind)?.requires
   const releases = Object.values(versions).filter(item => {
     const declared = declaration(item, kind)
-    return item.name === name && declared?.id && declared.entry && Bun.semver.satisfies(item.version, '*')
+    return item.name === name && declared?.id && declared.usable && Bun.semver.satisfies(item.version, '*')
   }).sort((a, b) => Bun.semver.order(b.version, a.version))
   if (!releases.length) throw new Error(`${name}: no published stable release. Ask the plugin author to publish one, then retry.`)
   const platform = releases.filter(item => supports(item.os, host.os) && supports(item.cpu, host.cpu))

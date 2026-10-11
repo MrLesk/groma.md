@@ -220,14 +220,16 @@ export function detailsLines(
     dim(theme, ' · '),
     chunk(element.origin, theme[element.origin], TextAttributes.BOLD),
   ]
+  const appearance = [element.icon ? `Icon: ${element.icon}` : '', element.colour ? `Colour: ${element.colour}` : '']
+    .filter(Boolean).flatMap(value => wrap(value, width).map(row => [plain(theme, row)]))
   const body = tab === 'tasks'
     ? componentTaskLines(theme, element, world, width, actionCursor, workList)
     : tab === 'how'
     ? howLines(theme, element, world, width, actionCursor, structure)
     : whatLines(theme, element, world, byId, width, pickedId, actionCursor)
   return {
-    lines: [head, ...body.lines],
-    ...(body.cursor === undefined ? {} : { cursor: body.cursor + 1 }),
+    lines: [head, ...appearance, ...body.lines],
+    ...(body.cursor === undefined ? {} : { cursor: body.cursor + 1 + appearance.length }),
   }
 }
 

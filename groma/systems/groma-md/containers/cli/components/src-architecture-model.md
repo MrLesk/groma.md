@@ -22,6 +22,8 @@ groma:
     - scanner: typescript
       file: src/source-index.ts
       symbol: sourceIndex
+    - scanner: typescript
+      file: src/element-appearance.ts
   group: Architecture records
 description: Builds the in-memory C4 model from stored Markdown records
 ---

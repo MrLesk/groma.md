@@ -63,6 +63,17 @@ test.concurrent('source-only and own-content changes modify only their owner; fl
   expect(Object.values(comparison.components).some(item => item.status === 'added' || item.status === 'removed')).toBe(false)
 })
 
+test.concurrent('an icon or colour change alone modifies its component and is named as the reason', async () => {
+  const { before, oldSources } = await fixture()
+  for (const [field, value] of [['icon', 'database'], ['colour', 'blue']] as const) {
+    const next = structuredClone(before)
+    next.elements.find(item => item.id === 'payment')![field] = value
+    const compared = compareArchitecture(before, next, oldSources, oldSources)
+    expect(compared.components.payment!.status).toBe('modified')
+    expect(componentReasons(compared.components.payment).map(reason => reason.key)).toEqual([field])
+  }
+})
+
 test.concurrent('an id that changes kind keeps both elements, so both comparison directions place everything', () => {
   // `export` is a component in the older world and a container holding revision-control in the newer one.
   const unit = { x: 0, y: 0, width: 1, height: 1 }

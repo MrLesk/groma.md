@@ -71,7 +71,7 @@ function detectionDetails(scanner: ScannerSetting): string {
 }
 
 function detailLabel(plugin: PluginSetting): string {
-  if (plugin.kind === 'workSource') return 'Plugin details'
+  if (plugin.kind !== 'scanner') return 'Plugin details'
   if (plugin.status === 'blocked' || plugin.status === 'missing' || !plugin.matches.length) return 'Scanner details'
   const count = plugin.matches.length
   return `${count} matching ${count === 1 ? 'file' : 'files'}`
@@ -83,7 +83,7 @@ function settingRow(plugin: PluginSetting, upgrades: PluginSettings['upgrades'])
   const attention = plugin.status === 'blocked' || plugin.status === 'missing'
   const status = { blocked: 'Needs attention', missing: 'Needs attention', ready: 'Installed', unchecked: 'Installed', available: '' }[plugin.status]
   const badge = status ? `<span class="scanner-status${attention ? ' attention' : ''}">${status}</span>` : ''
-  const reason = plugin.kind === 'workSource' || plugin.match === 'matched' ? '' : `<p>${escaped(scannerMatchReason(plugin))}</p>`
+  const reason = plugin.kind !== 'scanner' || plugin.match === 'matched' ? '' : `<p>${escaped(scannerMatchReason(plugin))}</p>`
   const version = [plugin.version, upgrade?.version].filter(Boolean).join(' → ')
   const metadata = [version, plugin.official ? 'Official' : 'Third-party'].filter(Boolean).join(' · ')
   const updateError = upgrade?.error ? `<p>Could not check for updates. ${escaped(upgrade.error)}</p>` : ''

@@ -5,12 +5,14 @@ import type {
   C4Kind,
   CodeReference,
   Origin,
+  ResolvedIcon,
 } from '../../../types.ts'
 import type { Comparison, ComponentChange } from '../../../history/comparison.ts'
 import { changeBadge, comparisonReasons, comparisonOverview, comparisonTechnology, comparisonFiles } from '../comparison/details.ts'
 import type { ElementWorkGroup } from '../../../work/pins.ts'
 import type { Zone } from '../../../sheet/types.ts'
 import { findingsForOwner } from '../../../architecture-findings.ts'
+import { accentColour } from '../../../element-appearance.ts'
 import { removalBlocker } from '../../../removable.ts'
 import { flowsThrough } from '../../flows.ts'
 import type { FlowRef } from '../../flows.ts'
@@ -52,6 +54,9 @@ export interface Inspected {
   flows: FlowRowData[]
   children: InspectedChild[]
   technology: string
+  icon?: string
+  colour?: string
+  resolvedIcon?: ResolvedIcon
   files: CodeReference[]
   findings: ArchitectureFinding[]
   /** True when groma remove would succeed on it right now. */
@@ -158,6 +163,9 @@ export function inspectDetails(
     })),
     children,
     technology: element.technology ?? '',
+    icon: element.icon,
+    colour: element.colour,
+    resolvedIcon: element.resolvedIcon,
     files: element.code,
     findings: findingsForOwner(world.findings ?? [], element.id),
     removable: removalBlocker(world, element.id) === undefined,
@@ -270,6 +278,32 @@ function paintComparedRelationships(list: HTMLElement, pair: RelationshipPairDat
   }
 }
 
+export const elementTitleCss = `
+  #details h1 .element-name { color: var(--element-colour, inherit); }
+  #details h1 .element-icon { width: 24px; height: 24px; margin-right: 8px; vertical-align: middle; }
+`
+
+/**
+ * The element's name in its accent colour, after its pack icon. The name sits in its own span, so the colour
+ * leaves with it when another kind of selection writes the heading. An emoji icon is not repeated here: the
+ * meta line above already shows it as text.
+ */
+function paintElementTitle(title: HTMLElement, inspected: Inspected): void {
+  const name = document.createElement('span')
+  name.className = 'element-name'
+  name.textContent = inspected.title
+  const colour = accentColour(inspected.colour)
+  if (colour !== undefined) name.style.setProperty('--element-colour', colour)
+  if (inspected.resolvedIcon?.kind === 'image') {
+    const icon = document.createElement('img')
+    icon.className = 'element-icon'
+    icon.src = inspected.resolvedIcon.uri
+    icon.alt = inspected.icon ?? ''
+    name.prepend(icon)
+  }
+  title.replaceChildren(name)
+}
+
 export function paintDetails(host: HTMLElement, inspected: Inspected, options: DetailsOptions): void {
   const { onSelect, onToggleFlow, activeFlows, tab, onTab, code, onSource, workGroups, onTask, onEdit, selection } = options
   if (onEdit !== undefined && isEditing(host, inspected.id)) return
@@ -277,9 +311,8 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   const meta = host.querySelector('.meta')!
   const tabsHost = host.querySelector<HTMLElement>('.tabs')!
   const body = host.querySelector('.body')!
-  title.replaceChildren()
-  title.textContent = inspected.title
-  meta.textContent = `${inspected.kindLabel} · ${inspected.origin}`
+  meta.textContent = [inspected.kindLabel, inspected.origin, inspected.icon, inspected.colour].filter(Boolean).join(' · ')
+  paintElementTitle(title, inspected)
 
   const change = options.comparison?.components[inspected.id]
   if (change !== undefined) {
@@ -381,6 +414,8 @@ function elementFields(inspected: Inspected, options: PaneWrites): EditField[] {
     { name: 'description', label: 'Description', value: inspected.description },
     { name: 'overview', label: 'Overview', value: inspected.overview, multiline: true },
     { name: 'technology', label: 'Technology', value: inspected.technology },
+    { name: 'icon', label: 'Icon', value: inspected.icon ?? '' },
+    { name: 'colour', label: 'Colour', value: inspected.colour ?? '' },
   ]
   if (inspected.movable) fields.push({
     name: 'parent', label: 'Parent', value: inspected.parent ?? '', options: options.parents ?? [],

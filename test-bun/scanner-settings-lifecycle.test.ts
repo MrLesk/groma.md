@@ -14,7 +14,7 @@ async function project() {
   await mkdir(path.join(root, 'ui'))
   await writeFile(path.join(root, 'ui/package.json'), JSON.stringify({ dependencies: { react: '19.0.0' } }))
   await writeFile(path.join(root, 'ui/view.fixture'), 'first')
-  await writePluginConfig(root, { scanners: [], workSources: [] })
+  await writePluginConfig(root, { scanners: [], workSources: [], icons: [] })
   const source = path.join(root, 'plugin')
   await mkdir(source)
   await writeFile(path.join(source, 'package.json'), JSON.stringify({ name: 'fixture', version: '1.0.0',
@@ -107,7 +107,7 @@ test.concurrent('live scanning updates healthy evidence, reports every failure a
   await writePluginConfig(root, { scanners: [
     { id: 'fixture', source, include: ['**/*.fixture'] }, { id: 'broken', source: './broken', include: ['**/*.fixture'] },
     { id: 'tool', source: './tool', include: ['**/*.fixture'] },
-  ], workSources: [] })
+  ], workSources: [], icons: [] })
   let nextFold: (() => void) | undefined
   const session = await createScannerSession(root, { onFold() { nextFold?.() } })
   const blocked = () => session.state.plugins.filter(item => item.status === 'blocked').map(item => item.id).sort()

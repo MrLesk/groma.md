@@ -1,4 +1,5 @@
 import type { Command } from 'commander'
+import { iconPackInventory } from './icon-packs.ts'
 import { parseListWindow, printListPage, withListWindowOptions } from './list-window.ts'
 import { addPlugin, installPlugins, removePlugin, updatePlugin } from './plugin-management.ts'
 import { scannerInventory } from './scanner/modules/inventory.ts'
@@ -23,7 +24,7 @@ function pluginLine(plugin: { kind: string; id: string; status: string; source: 
 async function pluginInventory(root: string) {
   const scanners = (await scannerInventory(root)).map(scanner => ({ ...scanner, kind: 'scanner' }))
   const workSource = await checkWorkSourceReadiness(root)
-  return [...scanners, ...(workSource ? [workSource] : [])]
+  return [...scanners, ...(workSource ? [workSource] : []), ...await iconPackInventory(root)]
 }
 
 export function registerPluginCommands(program: Command): void {

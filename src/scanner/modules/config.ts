@@ -18,11 +18,18 @@ export interface ConfiguredWorkSource {
   source: string
 }
 
+export interface ConfiguredIconPack {
+  id: string
+  source: string
+}
+
 /** plugins.json as the application holds it: every section is present, empty when the project selects nothing of that kind. */
 export interface PluginConfig {
   scanners: ConfiguredScanner[]
   /** At most one in this revision. */
   workSources: ConfiguredWorkSource[]
+  /** In the order the packs answer an icon name that names no pack. */
+  icons: ConfiguredIconPack[]
   /** Git ignore patterns every scanner leaves out; Groma never writes them. */
   exclude?: string[]
   /** Whether files Git ignores stay out of every scan; true unless set to false. */
@@ -100,23 +107,28 @@ function configuredScanner(
   }
 }
 
-function configuredWorkSources(value: unknown, filename: string): ConfiguredWorkSource[] {
+/** The entries of a section that selects each plugin by its id and source alone. */
+function sectionEntries(value: unknown, filename: string, section: 'workSources' | 'icons'): { id: string; source: string }[] {
   if (value === undefined) return []
-  if (!Array.isArray(value)) throw new Error(`${filename} workSources must be an array`)
-  if (value.length > 1) throw new Error(`${filename} supports at most one work source; remove one before adding another`)
+  if (!Array.isArray(value)) throw new Error(`${filename} ${section} must be an array`)
   return value.map(entry => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)
       || Object.keys(entry).some(key => !['id', 'source'].includes(key))) {
-      throw new Error(`${filename} workSources entries must contain only id and source`)
+      throw new Error(`${filename} ${section} entries must contain only id and source`)
     }
     if (typeof entry.id !== 'string' || !pluginId.test(entry.id)) {
-      throw new Error(`${filename} workSources id must be lowercase kebab-case`)
+      throw new Error(`${filename} ${section} id must be lowercase kebab-case`)
     }
     if (typeof entry.source !== 'string' || !entry.source.trim()) {
-      throw new Error(`${filename} workSources source must be non-empty`)
+      throw new Error(`${filename} ${section} source must be non-empty`)
     }
     return { id: entry.id, source: entry.source }
   })
+}
+
+function configuredWorkSources(value: unknown, filename: string): ConfiguredWorkSource[] {
+  if (Array.isArray(value) && value.length > 1) throw new Error(`${filename} supports at most one work source; remove one before adding another`)
+  return sectionEntries(value, filename, 'workSources')
 }
 
 function configuredScanners(values: unknown[], sourceFilename: string): ConfiguredScanner[] {
@@ -151,8 +163,8 @@ function parsePluginConfig(
     throw new Error(`${sourceFilename} must be an object`)
   }
   const config = value as Record<string, unknown>
-  if (Object.keys(config).some(key => !['scanners', 'workSources', 'exclude', 'useGitignore'].includes(key)) || !Array.isArray(config.scanners)) {
-    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, an exclude array and useGitignore`)
+  if (Object.keys(config).some(key => !['scanners', 'workSources', 'icons', 'exclude', 'useGitignore'].includes(key)) || !Array.isArray(config.scanners)) {
+    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, an icons array, an exclude array and useGitignore`)
   }
   if (config.exclude !== undefined && !stringArray(config.exclude)) {
     throw new Error(`${sourceFilename} exclude must be an array of strings`)
@@ -161,11 +173,13 @@ function parsePluginConfig(
     throw new Error(`${sourceFilename} useGitignore must be true or false`)
   }
   const workSources = configuredWorkSources(config.workSources, sourceFilename)
+  const icons: ConfiguredIconPack[] = sectionEntries(config.icons, sourceFilename, 'icons')
   const scanners = configuredScanners(config.scanners, sourceFilename)
-  requireUniqueIds([...scanners, ...workSources], sourceFilename)
+  requireUniqueIds([...scanners, ...workSources, ...icons], sourceFilename)
   return {
     scanners,
     workSources,
+    icons,
     ...(config.exclude === undefined ? {} : { exclude: config.exclude as string[] }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
   }
@@ -179,7 +193,7 @@ export async function readPluginConfig(repositoryRoot: string): Promise<PluginCo
       filesystem.sourceFilename('plugins.json'),
     )
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { scanners: [], workSources: [] }
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { scanners: [], workSources: [], icons: [] }
     throw error
   }
 }
@@ -193,6 +207,7 @@ export async function writePluginConfig(
   const text = `${JSON.stringify({
     scanners: [...config.scanners].sort((left, right) => left.id.localeCompare(right.id)),
     workSources: config.workSources,
+    icons: config.icons,
     ...(config.exclude === undefined ? {} : { exclude: config.exclude }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
   }, null, 2)}\n`

@@ -1,6 +1,8 @@
-import { CONTAINER_FONT, PLANE, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
+import { CONTAINER_FONT, ICON_ADVANCE, PLANE, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
+import type { ResolvedIcon } from '../../../../types.ts'
 import type { ProjectionView, SurfaceLabel, SurfaceText } from '../projection/project.ts'
 import { planeMatrix, project } from '../projection/project.ts'
+import { iconNode } from './appearance.ts'
 import { node, round, type SvgNode } from './svg.ts'
 
 /** Fixed plane-space sizes keep titles readable without relaying out at every camera scale. */
@@ -24,6 +26,7 @@ export function surfaceLabelLayout(
   size: number,
   zoom: number,
   view: ProjectionView,
+  hasIcon = false,
 ) {
   const step = TITLE_STEPS[surfaceLabelStep(zoom)]!
   const length = (x: number, y: number) => {
@@ -33,14 +36,18 @@ export function surfaceLabelLayout(
   }
   const paddingX = Math.min(step.padding / length(1, 0), text.band.width / 20)
   const paddingY = Math.min(step.padding / length(0, 1), text.band.height / 20)
+  const contentWidth = text.width + (hasIcon ? size * ICON_ADVANCE : 0)
   const fontSize = Math.min(
     step.size * size / CONTAINER_FONT,
-    size * (text.band.width - 2 * paddingX) / text.width,
+    size * (text.band.width - 2 * paddingX) / contentWidth,
     (text.band.height - 3 * paddingY) / TITLE_LINE_HEIGHT,
   )
-  const width = text.width * fontSize / size
+  const width = contentWidth * fontSize / size
+  const iconWidth = hasIcon ? fontSize * ICON_ADVANCE : 0
   return {
     fontSize,
+    iconWidth,
+    iconX: (text.width - width) / 2,
     x: (text.width - width) / 2 - paddingX,
     width: width + 2 * paddingX,
     height: 3 * paddingY + fontSize * TITLE_LINE_HEIGHT,
@@ -49,20 +56,22 @@ export function surfaceLabelLayout(
   }
 }
 
-/** Building names stay inset on their own roofs, laid out in plane pixels. */
+/** Building names stay inset on their own roofs, laid out in plane pixels. An icon takes the first line and the name starts below it. */
 export function surfaceText(
   text: SurfaceText,
   size: number,
   className: string,
   view: ProjectionView,
+  icon?: ResolvedIcon,
 ): SvgNode {
   const padding = textPadding(size)
+  const firstLine = icon === undefined ? 0 : 1
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, className,
-    text.lines.map((line, index) => node('text', {
+    [...(icon ? [iconNode(icon, padding, padding, size)] : []), ...text.lines.map((line, index) => node('text', {
       x: padding,
-      y: padding + size * 0.9 + index * textLineHeight(size),
+      y: padding + size * 0.9 + (firstLine + index) * textLineHeight(size),
       'font-size': size,
-    }, 'text', line)))
+    }, 'text', line))])
 }
 
 /** The label and its short leader share the surface's identity and ground plane. */
@@ -72,13 +81,15 @@ export function surfaceLabel(
   view: ProjectionView,
   spacing = 0,
   zoom = 1,
+  icon?: ResolvedIcon,
 ): SvgNode {
-  const layout = surfaceLabelLayout(text, size, zoom, view)
+  const layout = surfaceLabelLayout(text, size, zoom, view, icon !== undefined)
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, 'label surface-label', [
+    ...(icon ? [iconNode(icon, layout.iconX, layout.baseline - layout.fontSize * 0.9, layout.fontSize)] : []),
     node('rect', { x: layout.x, width: layout.width, height: layout.height }, 'label-hit'),
     node('line', { x1: text.width / 2, x2: text.width / 2, y1: 0, y2: layout.leader }, 'label-leader'),
     node('text', {
-      x: text.width / 2,
+      x: (text.width + layout.iconWidth) / 2,
       y: layout.baseline,
       'text-anchor': 'middle',
       'font-size': layout.fontSize,

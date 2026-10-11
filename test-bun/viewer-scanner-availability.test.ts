@@ -41,7 +41,7 @@ for (const missing of [false, true]) {
     const root = await setup()
     try {
       const other = await plugin(root, 'other')
-      await writePluginConfig(root, { scanners: [other, ...(missing ? [{ id: 'typescript', source: path.join(root, 'missing'), include: ['**/*.ts'] }] : [])], workSources: [] })
+      await writePluginConfig(root, { scanners: [other, ...(missing ? [{ id: 'typescript', source: path.join(root, 'missing'), include: ['**/*.ts'] }] : [])], workSources: [], icons: [] })
       const records = await snapshot(root)
       const before = await loadAnnotatedArchitecture(root)
       expect(before.relationships.length).toBeGreaterThan(0)
@@ -56,7 +56,7 @@ for (const missing of [false, true]) {
 test.concurrent('empty scanning does not write saved data or start scan callbacks', async () => {
   const root = await setup()
   try {
-    await writePluginConfig(root, { scanners: [], workSources: [] })
+    await writePluginConfig(root, { scanners: [], workSources: [], icons: [] })
     const before = await snapshot(root)
     expect(await scanRepository(root)).toEqual({ created: 0, refreshed: 0, matched: 0 })
     const watcher = await watchScan(root, { onFold() { throw new Error('empty scanner selection ran') } })
@@ -70,7 +70,7 @@ test.concurrent('a live session reports failed tooling without preventing saved 
   let session: Awaited<ReturnType<typeof createScannerSession>> | undefined
   try {
     const scanner = await plugin(root, 'broken', true)
-    await writePluginConfig(root, { scanners: [scanner], workSources: [] })
+    await writePluginConfig(root, { scanners: [scanner], workSources: [], icons: [] })
     const before = await snapshot(root)
     session = await createScannerSession(root)
     await session.reconfigure()

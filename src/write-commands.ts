@@ -137,6 +137,8 @@ export function registerWriteCommands(program: Command): void {
     .option('--steps <markdown>', 'flow Steps table: From | To | Action, with Markdown endpoint links')
     .option('--description <text>', 'optional short summary (empty removes it), or how a relation works')
     .option('--technology <text>', 'technology of an element (empty removes it) or of a relation')
+    .option('--icon <name>', 'icon from an installed pack, or emoji (empty removes it)')
+    .option('--colour <name>', 'accent colour name or #RRGGBB (empty removes it)')
     .option('--draft <draft-id>', 'tag this element with the draft that touches it')
     .option('--group <name>', 'assign this component to a sibling group')
     .option('--ungroup', 'remove this component from its group')
@@ -163,6 +165,8 @@ export function registerWriteCommands(program: Command): void {
           combine: options.combine,
           detach: options.detach,
           newId: options.id,
+          icon: options.icon,
+          colour: options.colour,
         })
         printWriteResult(edited)
       } catch (error) {

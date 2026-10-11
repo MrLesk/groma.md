@@ -20,8 +20,11 @@ export interface ScannerSetting extends PluginSettingFields {
 export interface WorkSourceSetting extends PluginSettingFields {
   kind: 'workSource'
 }
+export interface IconPackSetting extends PluginSettingFields {
+  kind: 'icons'
+}
 /** One row of the plugin settings list; `kind` tells which fields the row has. */
-export type PluginSetting = ScannerSetting | WorkSourceSetting
+export type PluginSetting = ScannerSetting | WorkSourceSetting | IconPackSetting
 export interface PluginSettings {
   plugins: PluginSetting[]
   notice: { tone: 'neutral' | 'hint' | 'warning' | 'error'; message: string }
@@ -55,7 +58,7 @@ export function scannerNotice(scanners: readonly ScannerSetting[], limits: reado
 
 export function pluginSettingLabel(plugin: PluginSetting): string {
   if (plugin.status === 'blocked') return plugin.message
-  if (plugin.kind === 'workSource') return plugin.message
+  if (plugin.kind !== 'scanner') return plugin.message
   if (plugin.match === 'none' && plugin.status !== 'missing') return 'No matching project files'
   return { ready: '', unchecked: '', missing: 'Package missing', available: 'Not installed' }[plugin.status]
 }
@@ -70,6 +73,7 @@ export function pluginGroups(plugins: readonly PluginSetting[], query = ''): { t
     { title: 'Scanners · Installed', plugins: scanners.filter(scanner => scanner.source && scanner.status !== 'missing') },
     { title: 'Scanners · Missing on this computer', plugins: scanners.filter(scanner => scanner.source && scanner.status === 'missing') },
     { title: 'Scanners · Recommended', plugins: scanners.filter(scanner => !scanner.source) },
+    { title: 'Icon packs', plugins: matching.filter(plugin => plugin.kind === 'icons') },
     { title: 'Work sources', plugins: matching.filter(plugin => plugin.kind === 'workSource') },
   ].filter(group => group.plugins.length)
 }
