@@ -64,39 +64,29 @@ export interface WorkIsland {
   activate(active: readonly string[], selected: string | undefined): void
 }
 
-/** Code-authored marks are the only strings ever parsed as HTML; repo content becomes text nodes. */
-function parsed(html: string): DocumentFragment {
-  const template = document.createElement('template')
-  template.innerHTML = html
-  return template.content
-}
-
-function button(className: string, onClick: () => void, ...children: Node[]): HTMLButtonElement {
+/**
+ * `html` is markup written in this module. Text that comes from the repository, such as a task id
+ * or a status name, is appended as text instead, so it is never parsed as HTML.
+ */
+function button(className: string, html: string, onClick: () => void): HTMLButtonElement {
   const node = document.createElement('button')
   node.type = 'button'
   node.className = className
-  node.append(...children)
+  node.innerHTML = html
   node.addEventListener('click', onClick)
   return node
 }
 
-/** A task chip; the Backlog task id is repo content, so it must never reach innerHTML. */
-export function chip(pin: WorkPin, finishingAt: number | undefined, onToggle: (id: string) => void, tip: Tip): HTMLButtonElement {
+function chip(pin: WorkPin, finishingAt: number | undefined, onToggle: (id: string) => void, tip: Tip): HTMLButtonElement {
+  const node = button('chip', WORK_BADGE, () => onToggle(pin.taskId))
   const label = document.createElement('span')
   label.textContent = pin.taskId
-  const node = button('chip', () => onToggle(pin.taskId), parsed(WORK_BADGE), label)
+  node.append(label)
   node.dataset.task = pin.taskId
   node.style.setProperty('--pin', pin.colour)
   node.dataset.tip = `${pin.assignee ?? 'Unassigned'} · ${pin.title}`
   tip.attach(node)
   fillWorkBadge(node, pin, finishingAt)
-  return node
-}
-
-/** A status filter pill; the Backlog status name is repo content, so it must never reach innerHTML. */
-export function statusButton(status: string, pressed: boolean, onClick: () => void): HTMLButtonElement {
-  const node = button('toggle', onClick, parsed(EYE_MARK), document.createTextNode(status))
-  node.setAttribute('aria-pressed', String(pressed))
   return node
 }
 
@@ -132,6 +122,17 @@ export function createWorkIsland(
   let foldRevision = 0
   let foldAnimation: Animation | undefined
 
+  const toggle = (status: string): HTMLButtonElement => {
+    const pressed = statusFilters?.enabled.includes(status) ?? false
+    const node = button('toggle', EYE_MARK, () => {
+      statusFilters = toggleWorkStatus(statusFilters!, status)
+      onShow(statusFilters.enabled)
+      rebuild()
+    })
+    node.append(status)
+    node.setAttribute('aria-pressed', String(pressed))
+    return node
+  }
   /** The island's changing content for the folded pill or open row. */
   const parts = (): Node[] => {
     const divider = document.createElement('span')
@@ -139,7 +140,7 @@ export function createWorkIsland(
     if (!open) return [summary.element, divider]
     const label = document.createElement('span')
     label.className = 'label'
-    label.append(parsed(`${BACKLOG_MARK}<span>Backlog.md<br>Tasks</span>`))
+    label.innerHTML = `${BACKLOG_MARK}<span>Backlog.md<br>Tasks</span>`
     const strip = document.createElement('div')
     strip.className = 'strip'
     const order = new Map(work.statuses.map((status, index) => [status, index]))
@@ -152,15 +153,7 @@ export function createWorkIsland(
     }))
     return [
       label,
-      ...statusFilters!.available.map(status => statusButton(
-        status,
-        statusFilters!.enabled.includes(status),
-        () => {
-          statusFilters = toggleWorkStatus(statusFilters!, status)
-          onShow(statusFilters.enabled)
-          rebuild()
-        },
-      )),
+      ...statusFilters!.available.map(toggle),
       divider,
       strip,
     ]
@@ -193,7 +186,7 @@ export function createWorkIsland(
     mark()
     summary.update(pins, work, statusFilters?.enabled ?? [], !open)
   }
-  const fold = button('fold', () => {
+  const fold = button('fold', CHEVRON, () => {
     open = !open
     island.classList.toggle('open', open)
     fold.setAttribute('aria-expanded', String(open))
@@ -224,7 +217,7 @@ export function createWorkIsland(
         { duration: 160, easing: 'ease-out' },
       )
     }).catch(() => undefined)
-  }, parsed(CHEVRON))
+  })
   fold.setAttribute('aria-expanded', 'false')
   island.append(content, fold)
   host.append(island)
