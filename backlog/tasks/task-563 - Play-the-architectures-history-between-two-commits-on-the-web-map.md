@@ -1,11 +1,11 @@
 ---
 id: TASK-563
 title: Play the architecture's history between two commits on the web map
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-11 19:35'
+updated_date: '2026-10-11 19:38'
 labels:
   - senior
 dependencies: []
@@ -62,16 +62,16 @@ Build on revisions and snapshots (src/history/revisions.ts, src/history/snapshot
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 The revision control lets a person choose a start and an end commit among the readable revisions, and Play walks from start to end one revision at a time, with Stop and a speed choice. The URL carries the range so a link reopens it.
-- [ ] #2 Each step morphs the map from the previous revision's layout to the next with retained positions, the way the comparison keeps positions, and the step's short id, subject and date show while it plays.
+- [x] #2 Each step morphs the map from the previous revision's layout to the next with retained positions, the way the comparison keeps positions, and the step's short id, subject and date show while it plays.
 - [x] #3 Playback stays smooth: a revision is read once per session and cached, upcoming revisions load ahead, and a range of fifty commits plays without reloading the page or blocking the map.
 - [x] #4 When playback reaches the end, the map shows the comparison from the start to the end commit with its changes bar and stepper.
-- [ ] #5 A reduced-motion preference steps without animation. The static export and the terminal viewer are unchanged.
+- [x] #5 A reduced-motion preference steps without animation. The static export and the terminal viewer are unchanged.
 - [x] #6 Playback visits only compatible revisions, in commit order, from the chosen start commit to the chosen end commit.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
+- [x] #1 Acceptance criteria have objective verification evidence.
 - [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
@@ -136,6 +136,8 @@ Header. Search folds to its icon at every width while Play and the speed menu sh
 Verification, headless Chromium on a clone of this repository, range 48d6d15b to 4b19ce08 (13 frames), 1440 px, light theme. Before the change the zoom readout ran 100 %, 5726 %, 5726 %, 100 %, ..., 482 %, 239 %, 100 %, 482 % across frames. After it, at 1x and at 4x: the first frame fits (239 % to 100 %), the twelve frames after it show one zoom readout (100 %) and one camera transform (scale 0.0576, translate 932.2 239.4), and the final comparison fits again (239 %). With a wheel pan on the third frame and a Ctrl-wheel zoom on the sixth, every later frame and the final comparison keep the camera the gesture left (scale 0.1913, translate 940.2 -564.5, readout 332 %).
 Commit messages visible in the two fields on that range (84 and 72 characters long), Search folded: with the 8-character title 27 and 23 characters at 1440 px and 15 and 13 at 1280 px; with a 24-character title 17 and 14 at 1440 px and 5 and 3 at 1280 px. At 1000 px both short IDs read whole with the short title and are clipped away with the long one; at 1100 px 2 and 1 characters show with the short title. No overlap at 1000, 1100, 1280 and 1440 px in light and dark with either title, on this range and on the minimum fixture.
 Rerun on the final code: fifty commits (50 captions in order, 19.4 s, no request on replay), unreadable middle commit, injected failure with retry, the x after Stop, endpoint editing, speed menu. bun run typecheck passes; bunx biome lint shows the same 1 warning and 2 infos; 147 focused bun tests pass. No test was added: render.ts, control.ts and playback.ts have no DOM test harness in this repository.
+
+Orchestrator verification, 11 October 2026, on main with Bun 1.4.3 merged: bun run check exit 0 (16 Node tests; 783 Bun tests passed, 52 skipped for missing optional toolchains, 0 failed). Live viewer on a clone of this repository, range 48d6d15b to 4b19ce08, 1440 px: Play shows a caption with short id, subject and date for each commit, the map changes in place and the zoom readout held at one value across the frames in between, Stop and the range in the URL work, and playback ends on the full-range comparison with its changes bar. The two commit fields show their messages with Search folded to its icon. Criterion 2: positions are retained and the camera no longer refits per frame (the implementer measured one camera transform across twelve frames and that a pan and a zoom made during playback are kept). Criterion 5: the map's motion reads the reduced-motion preference in iso/view-motion/presentation.ts and the implementer's reduced-motion run applied each frame at once; the control is created only for live delivery and no terminal viewer file is changed. Known and accepted: with a long project title the commit fields have little or no room at 1280 px and below, because the project title never gives way; the host keeps the last four commits open and the browser requests each frame once per page session.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
