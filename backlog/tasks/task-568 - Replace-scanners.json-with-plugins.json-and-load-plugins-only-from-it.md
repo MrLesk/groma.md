@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-11 19:22'
+updated_date: '2026-10-11 19:23'
 labels: []
 dependencies: []
 references:
@@ -138,6 +138,7 @@ modified_files:
   - test-bun/source-coverage.test.ts
   - test-bun/web-startup.test.ts
   - src/welcome.ts
+  - groma/systems/groma-md/containers/cli/components/backlog-src-index.md
 type: feature
 ordinal: 645000
 ---

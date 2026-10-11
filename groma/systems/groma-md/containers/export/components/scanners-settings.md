@@ -15,4 +15,4 @@ groma:
 description: Browser panel for project plugin installation, updates and readiness
 ---
 
-Shows scanner state and error details. Lets the user install, update, remove, or retry a scanner.
+Lists the plugins of the project by kind inside Settings: the scanner groups with their detection evidence, then the selected work source. Shows state, offered updates and error details, and lets the user add, install, restore, update, remove or retry a plugin through the live data source.

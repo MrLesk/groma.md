@@ -12,4 +12,4 @@ groma:
 description: Shows plugins by kind and sends actions to the shared settings session
 ---
 
-Shows installed, missing, and recommended scanners. Sends user actions to the shared scanner settings session.
+Lists the plugins of the project by kind: installed, missing and recommended scanners, then the selected work source. Search, the details view and the add, update, remove, install and retry keys send their actions to the shared settings session, which changes plugins.json and reports each row again.

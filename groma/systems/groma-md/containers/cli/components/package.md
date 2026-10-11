@@ -20,7 +20,7 @@ groma:
 description: Selects, resolves, installs and restores project plugins by kind
 ---
 
-Reads explicit plugin selections from plugins.json and manages their package lifecycle. Resolves npm, Git and local sources for scanners and work sources; stores pinned sources and scanner defaults. Plugin commands and settings share these operations. Work-source loading checks readiness and host compatibility before execution.
+Reads explicit plugin selections from plugins.json and manages their package lifecycle. Resolves npm, Git and local sources for scanners and work sources; stores pinned sources and scanner defaults. Plugin commands, scanner commands and settings share one add, remove, update and restore operation addressed by plugin id. Resolving a package never runs plugin code; work-source loading checks host compatibility before it imports the adapter and asks its readiness.
 
 ## Relationships
 
