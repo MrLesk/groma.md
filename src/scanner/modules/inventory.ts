@@ -40,6 +40,10 @@ export interface ScannerResolutionOptions {
 }
 
 export interface ScannerInstallOptions extends ScannerResolutionOptions {
+  /**
+   * Replaces only the default registry, for release lookup and download alike. A scope's registry in the user's
+   * `.npmrc` still wins for that scope, so this does not isolate a run from the user's npm settings. Only tests set it.
+   */
   registry?: string
 }
 

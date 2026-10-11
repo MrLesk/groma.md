@@ -14,6 +14,8 @@ groma:
       file: src/scanner/modules/config.ts
     - scanner: typescript
       file: src/scanner/modules/published.ts
+    - scanner: typescript
+      file: src/scanner/modules/package-manager.ts
   group: Scanner management
 description: Installs scanner packages from npm, Git or a local folder
 ---
@@ -24,5 +26,5 @@ Resolves and installs scanner packages from npm, Git, or a local folder. Saves t
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [src/scanner/modules/published.ts](../../../../../../src/scanner/modules/published.ts) | [scanner-package-registry](../../../../../externals/scanner-package-registry.md) | Reads scanner releases | HTTP registry API |
 | [src/scanner/modules/package.ts](../../../../../../src/scanner/modules/package.ts) | [scanner-package-registry](../../../../../externals/scanner-package-registry.md) | Downloads scanner packages | Bun install and npm registry protocol |
+| [src/scanner/modules/published.ts](../../../../../../src/scanner/modules/published.ts) | [scanner-package-registry](../../../../../externals/scanner-package-registry.md) | Reads scanner releases | Bun package manager and npm registry protocol |

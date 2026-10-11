@@ -36,6 +36,15 @@ readiness. **Remove from project** and **Choose version** are in Details.
 **Choose version** accepts an exact version of the same package. Git updates
 require a tag or commit in the same repository.
 
+Release selection and download both use the package manager built into groma.md,
+so they follow the same npm settings. They read the default registry
+(`registry=`), a scope's registry (`@scope:registry=`) and registry tokens
+(`//host/:_authToken=`) from the `.npmrc` in your home directory, and the
+`npm_config_registry` environment variable. A proxy comes from the `HTTP_PROXY`
+and `HTTPS_PROXY` environment variables, including credentials in the proxy URL.
+The `proxy` and `https-proxy` keys of `.npmrc` are not read, and neither is a
+`.npmrc` inside the project.
+
 The CLI uses the same release selection:
 
 ```sh

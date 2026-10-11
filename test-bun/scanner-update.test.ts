@@ -54,7 +54,7 @@ test.concurrent('npm updates resolve omitted and bare sources, pin compatible re
     await expect(updateScanner(root, 'sample', '@example/different@1.1.0', options)).rejects.toThrow('same npm package')
     await expect(updateScanner(root, 'other', undefined, options)).rejects.toThrow('local plugins')
     unavailable = true
-    await expect(updateScanner(root, 'sample', undefined, options)).rejects.toThrow('HTTP 503')
+    await expect(updateScanner(root, 'sample', undefined, options)).rejects.toThrow('503')
     expect(await readScannerConfig(root)).toEqual(config)
   } finally {
     await server.stop(true)
