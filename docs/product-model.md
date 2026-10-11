@@ -361,7 +361,7 @@ the configured statuses and
 default status plus one `task list --json` summary containing every configured
 task, including terminal history. It reads `task view <id> --json` only for the
 task whose full details a developer opens. The last configured status is
-terminal. groma.md never reads or watches Backlog storage directly. Static export reads a current task snapshot. Web and terminal
+terminal. groma.md never reads or watches Backlog storage directly. Web and terminal
 share live updates from the Backlog work source: `task list --json --watch`
 provides complete replacement lists, and the plugin notifies its host after
 each complete JSON response. Closing the subscription stops the CLI process.
