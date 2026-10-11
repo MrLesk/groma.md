@@ -1,11 +1,11 @@
 ---
-id: TASK-557
+id: TASK-590
 title: Add six web colour themes
-status: Done
+status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-07 17:00'
-updated_date: '2026-10-07 17:26'
+updated_date: '2026-10-11 16:11'
 labels: []
 dependencies: []
 references:
@@ -47,8 +47,8 @@ Architecture maps need palettes that suit different projects, including a dark e
 
 <!-- SECTION:PLAN:BEGIN -->
 Extend the existing palette registry and derive page/setup CSS from it. Keep the current theme picker, URL and cover mechanisms. Extend existing URL and sharing tests because their hardcoded old choices miss unsupported new themes; verify actual switching in a browser and run the repository check.
-
 Rename the electric-blue/cyan palette to Electric throughout the public theme registry, documentation and PR. Rebuild the website and recheck theme links and covers.
+Test note for the maintainer pass. Rule and authority: acceptance criteria 1 and 2, every theme choice survives publication paths and shared URLs and gets a cover image. Wrong result caught: a new theme that the URL reader or the cover export does not know. Gap: the tests named only the original themes, and the first version of this change replaced those names with the implementation's own list, which cannot fail. Smallest change: name the themes literally and add one new theme to each loop.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -57,6 +57,8 @@ Rename the electric-blue/cyan palette to Electric throughout the public theme re
 Focused viewer checks: 14 pass, 0 fail with the repository runner options. Chrome browser checks passed for all 9 palettes: picker, saved choice, reload and setup screen. Full check: lint, typecheck and 32 Node tests pass; Bun suite 756 pass, 51 skip, 17 fail, all Java/Scala/COBOL scanner failures due to missing Java runtime. No scanner changes. Browser screenshots retained outside source.
 
 Renamed the electric-blue/cyan palette to Electric at the owner request; removed product references from public code, documentation, task description and PR. All 14 focused tests and browser checks for all 9 palettes pass after renaming. Website export rebuilt; 57 site tests pass.
+
+Maintainer pass, 11 October 2026: merged main (Bun 1.4.3, OpenTUI 0.6.0) and renumbered this record from TASK-557, which main already uses. A cold simplicity review led to these changes: the theme names are one list (webThemes) that the menu, URL values, page CSS and cover images all read; cssBlock no longer emits color-scheme, so the main viewer keeps its behaviour for Light, Dark and Blueprint and only the startup screen sets it, as before; the theme menu marks are typed without casts; the theme tests name their themes literally again and include one new theme (sand).
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

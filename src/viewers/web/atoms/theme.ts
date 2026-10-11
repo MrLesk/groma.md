@@ -2,6 +2,7 @@ import { GROMA_ACCENT, GROMA_ACCENT_ON_LIGHT } from '../../../brand.ts'
 
 /** Every colour the page and the map use, as CSS variable values; the map's level tints mix paper and ink in its stylesheet. */
 export interface Palette {
+  /** Not a CSS variable: the startup screen uses it to pick the browser's own light or dark form controls. */
   colourScheme: 'light' | 'dark'
   paper: string
   ink: string
@@ -30,7 +31,12 @@ export interface Palette {
   diffRemoved: string
 }
 
-export type WebTheme = 'light' | 'dark' | 'blueprint' | 'electric' | 'solar' | 'ocean' | 'forest' | 'plum' | 'sand'
+/**
+ * Every palette, in the order the theme menu lists them. This list is the one source for the menu, the
+ * `theme` URL values, the page CSS and the cover images: each name adds one cover PNG to every export.
+ */
+export const webThemes = ['light', 'dark', 'blueprint', 'electric', 'solar', 'ocean', 'forest', 'plum', 'sand'] as const
+export type WebTheme = typeof webThemes[number]
 export type WebThemeMode = 'auto' | WebTheme
 
 /** Shared typography for the interactive map and its published cover. */
@@ -44,7 +50,7 @@ export function mixColour(paper: string, ink: string, share: number): string {
   return `#${channels}`
 }
 
-export const themeModes: readonly WebThemeMode[] = ['auto', 'light', 'dark', 'blueprint', 'electric', 'solar', 'ocean', 'forest', 'plum', 'sand']
+export const themeModes: readonly WebThemeMode[] = ['auto', ...webThemes]
 
 export const palettes: Record<WebTheme, Palette> = {
   light: {
@@ -113,7 +119,6 @@ export const palettes: Record<WebTheme, Palette> = {
     diffModified: '#FFE066',
     diffRemoved: '#FF8FAB',
   },
-  // Electric blue and cyan on near-black paper.
   electric: {
     colourScheme: 'dark',
     paper: '#030813',
@@ -270,7 +275,6 @@ export const onColour = '#020B12'
 
 export function cssBlock(palette: Palette): string {
   return `
-  color-scheme: ${palette.colourScheme};
   --paper: ${palette.paper};
   --ink: ${palette.ink};
   --muted: ${palette.muted};
@@ -297,9 +301,10 @@ export function cssBlock(palette: Palette): string {
 `
 }
 
-/** The viewer and startup screen install the same palettes. */
+/**
+ * One `[data-theme]` rule per palette, for the viewer and the startup screen. The viewer keeps Light as its
+ * `:root` default and never sets `data-theme="light"`; the startup screen sets it for a saved Light choice.
+ */
 export function themeCss(): string {
-  return Object.entries(palettes)
-    .map(([theme, palette]) => `[data-theme="${theme}"] { ${cssBlock(palette)} }`)
-    .join('\n')
+  return webThemes.map(theme => `[data-theme="${theme}"] { ${cssBlock(palettes[theme])} }`).join('\n')
 }
