@@ -11,7 +11,7 @@ const examples = {
   typescript: 'operation-wiring', python: 'python-project', java: 'java-maven', go: 'go-module',
   javascript: 'javascript-source',
   rust: 'rust-semantic', csharp: 'csharp-operations', angular: 'angular-output', react: 'react-callback', vue: 'vue-output', php: 'php-source',
-  scala: 'scala-sbt-single', swift: 'swift-source', cobol: 'cobol-source', nasm: 'nasm-source',
+  scala: 'scala-sbt-single', kotlin: 'kotlin-source', swift: 'swift-source', cobol: 'cobol-source', nasm: 'nasm-source',
 }
 
 async function prepareFiles(root: string): Promise<void> {
@@ -102,7 +102,7 @@ for (const [id, fixture] of Object.entries(examples)) {
       expect(observation.files.length).toBeGreaterThan(0)
       expect(observation.operations!.length).toBeGreaterThan(0)
       expect(observation.invocations!.length).toBeGreaterThan(0)
-      if (!['python', 'php', 'swift', 'javascript', 'cobol', 'scala'].includes(id)) expect(observation.invocations!.some(call => !call.unresolved && call.targets.length > 0)).toBe(true)
+      if (!['python', 'php', 'swift', 'javascript', 'cobol', 'scala', 'kotlin'].includes(id)) expect(observation.invocations!.some(call => !call.unresolved && call.targets.length > 0)).toBe(true)
       expect(new Set(observation.files.map(file => file.file)).size).toBe(observation.files.length)
       expect(await snapshot(root)).toEqual(before)
     } finally { await rm(temporary, { recursive: true, force: true }) }
