@@ -78,7 +78,8 @@ export function pinsOf(
 ): WorkPin[] {
   const pins: WorkPin[] = []
   // Numeric collation compares each run of digits as a number, so TASK-416.2 comes before TASK-416.10.
-  for (const item of [...items].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))) {
+  // The locale is fixed so that every machine gives the pins, and so their colours, the same order.
+  for (const item of [...items].sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }))) {
     const elementId = touchedElements(item, world)[0]
     if (elementId === undefined) continue
     const assignees = item.assignees.length === 0 ? [null] : item.assignees
