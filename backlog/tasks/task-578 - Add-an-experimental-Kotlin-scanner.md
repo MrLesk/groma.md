@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-09 15:00'
-updated_date: '2026-10-11 08:56'
+updated_date: '2026-10-11 08:59'
 labels: []
 dependencies: []
 references:
@@ -67,17 +67,17 @@ Groma has official scanners for Java and Scala but none for Kotlin, so a Kotlin 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 The installed Kotlin scanner inventories the selected `.kt` files and reports their top-level declarations as symbols, without a project build, dependency installation, scan-time download, or a separately installed JDK, Kotlin compiler, Gradle or Maven.
-- [x] #2 Functions, methods, secondary constructors and extension functions are reported as operations with original UTF-16 positions; call expressions inside them are reported with call-site positions and stay unresolved because syntax alone does not prove a target.
-- [x] #3 The source outline lists top-level types, objects and functions with their members and Kotlin visibility (public by default, protected, internal, private) as the source-outline contract defines, and marks entries named by Code links.
+- [ ] #2 Functions, methods, secondary constructors and extension functions are reported as operations with original UTF-16 positions; call expressions inside them are reported with call-site positions and stay unresolved because syntax alone does not prove a target.
+- [ ] #3 The source outline lists top-level types, objects and functions with their members and Kotlin visibility (public by default, protected, internal, private) as the source-outline contract defines, and marks entries named by Code links.
 - [x] #4 A parse or read failure of a selected file rejects the whole observation and names that file; no partial observation is returned.
 - [x] #5 Discovery, the official catalog, scanner release assembly, source listing and scanner documentation agree on the supported Kotlin scope and use the existing scanner delivery flow.
-- [ ] #6 The isolated-package scanner test, the shared fresh-checkout and release tests, and `bun run check` pass.
+- [x] #6 The isolated-package scanner test, the shared fresh-checkout and release tests, and `bun run check` pass.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [ ] #1 Acceptance criteria have objective verification evidence.
-- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [ ] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -119,10 +119,10 @@ Third-party notices now carry the full texts: all 30 license files that the Kotl
 Review fixes after the PR #124 code review, one commit each: leading byte order mark accepted; outline names without backticks; 512 MB worker stack with a named failure beyond it; package folders named build kept under src/<set>/kotlin and src/<set>/java; variant test source sets excluded; no fixed limit on worker output; calls in function parameter defaults reported; only a val lambda is a function; SHA-256 of downloaded jars verified; worker runner, outline mapping and package assembly shared with the Scala scanner (plugins/scanners/jvm-worker.ts, folded into component scala-src-index) and notices and JDK tool lookup shared with the Java build (plugins/scanners/jvm-package.ts, excluded from the architecture scan like the other build scripts). The shared runner also removes the Scala adapter's 64 MB output limit. bun run check with a JDK on PATH: 771 pass, 6 Swift failures from the missing Swift toolchain.
 
 Maintainer review 2026-10-11: renamed the Kotlin task from TASK-576 to TASK-578 by manually changing its filename and frontmatter, as Alex requested. TASK-576 already belongs to the private-repository FAQ task in the main checkout; TASK-577 is also occupied. TASK-578 was unused across local and fetched Git history and all available worktree Backlog records. Scanner contract review and validation are in progress.
+
+Maintainer specification and quality review, 2026-10-11: two reproducible blockers remain against the shared scanner contract. (1) Outline.kt:57-61 treats missing visibility as public. In an isolated source file, both constructors of sealed class Message(val text: String) are reported public rather than protected; Derived overrides of locally declared protected/internal Base methods are also reported public. The source-outline contract requires the language default, not merely the written modifier (docs/scanners/creating-a-plugin.md:208-211); the Kotlin documentation confirms sealed-constructor and inherited-override rules. (2) Calls.kt:14-21 visits nested function, lambda and object-method bodies using the enclosing operation ID. In fun outer() { fun neverCalled() { hidden() }; val later = { delayed() }; now() }, the scanner claims outer invokes hidden, delayed and now, although the first two bodies are not executed by outer. The invocation contract requires the caller operation that makes the call (docs/scanners/creating-a-plugin.md:492-495). These probes were run against the built, isolated package in /tmp/groma-pr124-packages/kotlin. AC 2 and 3 remain open; no scanner implementation was changed during this review.
+
+Verified during this review: Kotlin, affected Scala and release assembly tests pass (5 tests, 137 assertions); Kotlin fresh-checkout test passes with empty HOME and no language tools on PATH (7 assertions). CI run 38126617775 was approved for commit 537e3299 and is running on Windows, Linux and macOS. The task filename/frontmatter correction is pushed and the PR description now references TASK-578. The PR already contains current main 7b9f3c09. The ordinary OKF Code links remain readable, source roots stay temporary evidence, and Kotlin introduces no C4 boundary or durable metadata. Parser execution uses only selected sources and the packaged runtime; no Gradle/Maven or project dependencies are loaded.
+
+Local full check completed successfully: bun run check, Bun 1.4.2, JDK 25.0.1, Node 16/16 and Bun 777 pass / 52 skip / 0 fail. Lint and TypeScript checks pass; skipped native-package suites retain their existing environment gates. This passes AC 6 locally but does not resolve the two semantic defects above. Only task metadata changed during the maintainer review; scanner source remains exactly as reviewed in d4d7faf9. CI remains in progress for 537e3299 with that same scanner source.
 <!-- SECTION:NOTES:END -->
-
-## Final Summary
-
-<!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Added the experimental Kotlin scanner `@groma/scanner-kotlin` (plugins/scanners/kotlin): a TypeScript entry and adapter run a bundled Kotlin worker on a bundled Java runtime; the worker parses selected `.kt` files with kotlin-compiler-embeddable 2.4.21 and reports symbols, operations with UTF-16 positions, unresolved call sites and source outlines, failing atomically with the file name on a parse or read error. Registered in the official catalog and scanner release assembly, documented in docs/scanners/kotlin/index.md and the shared scanner docs, and recorded as component `kotlin-src-index` in the CLI container. Verified by test-bun/kotlin-scanner.test.ts (15 assertions), the shared fresh-checkout test with no JDK on PATH, the release-assembly test, and bun run check on Bun 1.4.2 (771 pass; 6 failures are Swift tests that need a Swift toolchain missing on the development machine). Cold simplicity and full-context complexity reviews passed after their accepted fixes. Not pushed or published.
-<!-- SECTION:FINAL_SUMMARY:END -->
