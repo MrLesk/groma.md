@@ -1,5 +1,5 @@
 ---
-id: TASK-581
+id: TASK-591
 title: Harden audited surfaces and correct documentation drift
 status: In Progress
 assignee: []
@@ -75,7 +75,7 @@ This task tracks the remediation PR: 28 findings fixed in code/docs plus CI acti
 <!-- SECTION:PLAN:BEGIN -->
 Clean-up pass on the external audit pull request (#113), on top of today's main.
 1. Merge origin/main. Main already reports an absent referenced TypeScript config (TASK-558), so its projects.ts replaces the pull request's version.
-2. Renumber this record to TASK-581; main owns TASK-531.
+2. Renumber this record to TASK-591; main owns TASK-531.
 3. Restore main's code where a change guards a case nobody reproduced in a supported flow, or duplicates another owner: Backlog field coercion, SIGKILL escalation and stream resync; the Swift 256 MB output limit; dropping symlinks that leave the repository; the re-measured numbers in relationship-inference.md; relationship row escaping; the process-wide module mock, the help-wording test and the hand-made DOM tests.
 4. Web viewer: listen on the loopback interface only. Reject a stored code reference whose file is absolute or has a '..' segment in codeReferencesOf, the one owner of code reference validation, and delete the per-route checks and containment.ts.
 5. Check every kept change against main: smallest form, no second copy, no misleading name or comment.
