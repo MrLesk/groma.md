@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-11 16:26'
+updated_date: '2026-10-11 16:29'
 labels: []
 dependencies: []
 references:
@@ -115,6 +115,28 @@ modified_files:
   - test-bun/viewer-scanner-availability.test.ts
   - docs/viewers/tui/index.md
   - test-bun/scanner-recommendations.test.ts
+  - scripts/reproduce-scanner-boundaries.ts
+  - src/scanner/cli.ts
+  - src/scanner/modules/discovery.ts
+  - src/scanner/modules/readiness.ts
+  - src/scanner/modules/selection.ts
+  - src/scanner/modules/setup.ts
+  - src/scanner/registry.ts
+  - src/viewers/source/structure.ts
+  - src/viewers/tui/model.ts
+  - src/viewers/tui/panes/view.ts
+  - src/viewers/tui/terminal-viewer.ts
+  - src/viewers/web/data.ts
+  - src/viewers/web/page.ts
+  - src/viewers/web/settings/control.ts
+  - src/welcome/view.ts
+  - test-bun/compiled-scanner.test.ts
+  - test-bun/go-scanner.test.ts
+  - test-bun/lint-command.test.ts
+  - test-bun/python-scanner.test.ts
+  - test-bun/scanner-update.test.ts
+  - test-bun/source-coverage.test.ts
+  - test-bun/web-startup.test.ts
 type: feature
 ordinal: 645000
 ---

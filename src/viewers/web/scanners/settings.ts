@@ -2,9 +2,9 @@ import type { WebDataSource } from '../data.ts'
 import { escaped } from '../atoms/escape.ts'
 import { scannerName } from './name.ts'
 import { isNpmPackageName } from '../../../scanner/modules/published.ts'
-import { scannerGroups, scannerSettingAction, scannerUpgradeAction, scannerMatchReason, type PluginSetting, type ScannerSetting, type ScannerSettings, type ScannerSettingsAction } from '../../../scanner/modules/settings-model.ts'
+import { pluginGroups, pluginSettingAction, pluginUpgradeAction, scannerMatchReason, type PluginSetting, type ScannerSetting, type PluginSettings, type PluginSettingsAction } from '../../../scanner/modules/settings-model.ts'
 
-export const scannerSettingsCss = `
+export const pluginSettingsCss = `
   #scanner-settings { min-height: 0; display: flex; flex-direction: column; gap: 16px; }
   #scanner-settings .scanner-tools { display: flex; gap: 12px; }
   #scanner-settings .scanner-tools input { flex: 1; min-width: 0; }
@@ -52,10 +52,10 @@ export const scannerSettingsCss = `
   }
 `
 
-function rowActions(plugin: PluginSetting, upgrades: ScannerSettings['upgrades']) {
+function rowActions(plugin: PluginSetting, upgrades: PluginSettings['upgrades']) {
   const id = escaped(plugin.id)
   const button = (action: string, title: string) => `<button class="chrome-button" type="button" data-action="${action}" data-id="${id}">${title}</button>`
-  const action = scannerUpgradeAction(plugin, upgrades) ?? scannerSettingAction(plugin)
+  const action = pluginUpgradeAction(plugin, upgrades) ?? pluginSettingAction(plugin)
   const primary = action ? button(action.action, action.action === 'update' ? 'Update' : action.action === 'retry' ? 'Retry' : 'Install') : ''
   const npm = plugin.source && isNpmPackageName(plugin.source.slice(0, plugin.source.lastIndexOf('@')))
   const update = npm ? button('version', 'Choose version') : button('version', 'Update')
@@ -77,7 +77,7 @@ function detailLabel(plugin: PluginSetting): string {
   return `${count} matching ${count === 1 ? 'file' : 'files'}`
 }
 
-function settingRow(plugin: PluginSetting, upgrades: ScannerSettings['upgrades']): string {
+function settingRow(plugin: PluginSetting, upgrades: PluginSettings['upgrades']): string {
   const { primary, more } = rowActions(plugin, upgrades)
   const upgrade = plugin.source ? upgrades?.[plugin.source] : undefined
   const attention = plugin.status === 'blocked' || plugin.status === 'missing'
@@ -101,7 +101,7 @@ function filterEvidence(input: HTMLInputElement): void {
   body.querySelector<HTMLElement>('[data-no-matches]')!.hidden = items.some(item => !item.hidden)
 }
 
-function settingGroup(group: ReturnType<typeof scannerGroups>[number], showBulk: boolean, upgrades: ScannerSettings['upgrades']): string {
+function settingGroup(group: ReturnType<typeof pluginGroups>[number], showBulk: boolean, upgrades: PluginSettings['upgrades']): string {
   const missing = group.plugins.every(plugin => plugin.status === 'missing')
   const recommended = group.plugins.every(plugin => !plugin.source)
   const title = group.title
@@ -112,7 +112,7 @@ function settingGroup(group: ReturnType<typeof scannerGroups>[number], showBulk:
 }
 
 /** Plugin management uses the live data source inside Settings. */
-export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onState: (state: ScannerSettings) => void) {
+export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onState: (state: PluginSettings) => void) {
   host.innerHTML = '<p class="scanner-notice" hidden></p><div class="scanner-tools"><input type="search" aria-label="Search plugins" placeholder="Search plugins"><button class="chrome-button" type="button" data-add>Add plugin</button></div>'
     + '<form hidden><label>Plugin source<input name="source" placeholder="package name, package@version, Git URL, or local path" required></label><button class="chrome-button" type="submit">Add</button><button class="chrome-button" type="button" data-cancel>Cancel</button></form>'
     + '<details class="scanner-error" hidden><summary></summary><pre></pre></details><button class="chrome-button" type="button" data-retry hidden>Retry installation</button><div data-rows></div>'
@@ -124,22 +124,22 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
   const notice = host.querySelector<HTMLElement>('.scanner-notice')!
   const retry = host.querySelector<HTMLButtonElement>('[data-retry]')!
   let updateId: string | undefined
-  let state: ScannerSettings | undefined
-  let upgrades: ScannerSettings['upgrades']
-  let busy: ScannerSettingsAction | undefined
-  let failedAction: ScannerSettingsAction | undefined
+  let state: PluginSettings | undefined
+  let upgrades: PluginSettings['upgrades']
+  let busy: PluginSettingsAction | undefined
+  let failedAction: PluginSettingsAction | undefined
 
   function showError(title: string, message: string) {
     error.hidden = !message
     error.querySelector('summary')!.textContent = title
     error.querySelector('pre')!.textContent = message
   }
-  function paintRows(next: ScannerSettings): void {
+  function paintRows(next: PluginSettings): void {
     const expanded = new Set([...rows.querySelectorAll<HTMLDetailsElement>('details[open]')].map(item => item.closest<HTMLElement>('[data-scanner-id]')?.dataset.scannerId))
     const focused = document.activeElement?.closest<HTMLElement>('[data-scanner-id]')?.dataset.scannerId
     const focusedSelector = document.activeElement?.matches('[data-evidence-search]') ? '[data-evidence-search]' : 'button'
     const filters = new Map([...rows.querySelectorAll<HTMLInputElement>('[data-evidence-search]')].map(input => [input.closest<HTMLElement>('[data-scanner-id]')!.dataset.scannerId, input.value]))
-    const groups = scannerGroups(next.plugins, search.value)
+    const groups = pluginGroups(next.plugins, search.value)
     rows.innerHTML = groups.length ? groups.map(group => settingGroup(group, !search.value.trim(), upgrades)).join('') : '<p>No plugins match.</p>'
     for (const detail of rows.querySelectorAll('details')) detail.open = expanded.has(detail.closest<HTMLElement>('[data-scanner-id]')?.dataset.scannerId)
     for (const input of rows.querySelectorAll<HTMLInputElement>('[data-evidence-search]')) {
@@ -155,7 +155,7 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
     if (!button) return
     button.textContent = busy.action === 'remove' ? 'Removing…' : busy.action === 'update' ? 'Updating…' : 'Installing…'
   }
-  function paint(next: ScannerSettings): void {
+  function paint(next: PluginSettings): void {
     state = next
     onState(next)
     const tone = next.notice.tone
@@ -170,7 +170,7 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
   }
   async function read(checkUpdates = false) {
     try {
-      const next = await data.readScanners!(checkUpdates)
+      const next = await data.readPluginSettings!(checkUpdates)
       if (checkUpdates) upgrades = next.upgrades
       paint(checkUpdates ? state ?? next : next)
     }
@@ -179,11 +179,11 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
       if (!checkUpdates) onState({ plugins: [], notice: { tone: 'error', message: String(cause) }, limits: [] })
     }
   }
-  async function change(action: ScannerSettingsAction) {
+  async function change(action: PluginSettingsAction) {
     if (busy) return
     busy = action; failedAction = undefined; retry.hidden = true
     if (state) paint(state)
-    try { paint(await data.changeScanners!(action)) }
+    try { paint(await data.changePluginSettings!(action)) }
     catch (cause) {
       showError('Plugin action failed', cause instanceof Error ? cause.message : String(cause))
       failedAction = action; retry.hidden = false
@@ -218,7 +218,7 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
       case 'retry': void change({ action }); break
       case 'update': {
         const plugin = state?.plugins.find(item => item.id === id)
-        const update = plugin && scannerUpgradeAction(plugin, upgrades)
+        const update = plugin && pluginUpgradeAction(plugin, upgrades)
         if (update) void change(update)
         break
       }
@@ -231,7 +231,7 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
     form.hidden = true
     void change(updateId ? { action: 'update', id: updateId, source: source.value } : { action: 'add', source: source.value })
   })
-  data.onScanners = paint
+  data.onPluginSettings = paint
   void read()
   return { refresh: () => read(true), focus(id?: string) {
     if (!id) { search.focus(); return }

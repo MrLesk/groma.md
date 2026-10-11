@@ -13,7 +13,7 @@ import { readTaskDiff } from './viewers/source/diff.ts'
 import { readSource } from './viewers/source/read.ts'
 import { readCodeStructure } from './viewers/source/structure.ts'
 import { createScannerSession } from './scanner/session.ts'
-import { mountScannerSettings } from './viewers/tui/scanner-settings.ts'
+import { mountPluginSettings } from './viewers/tui/scanner-settings.ts'
 import { sheetScene } from './sheet/scene.ts'
 import { mountTerminalViewer } from './viewers/tui/terminal-viewer.ts'
 import type { TerminalViewer } from './viewers/tui/terminal-viewer.ts'
@@ -47,7 +47,7 @@ export async function startTerminalViewer(
   const publish = () => {
     const run = publishChain.then(async () => {
       if (closed || wantedRevision !== null || map.revision !== undefined) return
-      const next = { ...await loadTerminalModel(repositoryRoot), revisions, scanners: map.scanners }
+      const next = { ...await loadTerminalModel(repositoryRoot), revisions, pluginSettings: map.pluginSettings }
       if (closed || wantedRevision !== null || map.revision !== undefined) return
       map = next
       viewer.update({ ...map, work })
@@ -78,7 +78,7 @@ export async function startTerminalViewer(
           revision,
         }
     if (closed || wantedRevision !== wanted) return undefined
-    map = { ...next, scanners: map.scanners }
+    map = { ...next, pluginSettings: map.pluginSettings }
     return { ...map, work: revision === undefined ? work : EMPTY_WORK_SNAPSHOT }
   }
   const renderer = options.renderer ?? await createCliRenderer({
@@ -94,7 +94,7 @@ export async function startTerminalViewer(
     map = { ...await loadTerminalModel(repositoryRoot), revisions }
     viewer = mountTerminalViewer(renderer, { ...map, work }, {
       onRefresh: publish,
-      openScanners: () => mountScannerSettings(renderer, scannerSession, repositoryRoot),
+      openPluginSettings: () => mountPluginSettings(renderer, scannerSession, repositoryRoot),
       readTask: id => workSource.readItem(id),
       readStructure: elementId => readCodeStructure(repositoryRoot, map, map.revision?.id ?? null, elementId),
       readSource: (elementId, file) => readSource(repositoryRoot, map, map.revision?.id ?? null, elementId, file),
@@ -108,9 +108,9 @@ export async function startTerminalViewer(
     const scannerSession = await createScannerSession(repositoryRoot, {
       onPluginsChanged: () => workSource.reconfigure(),
       scan: options.scan, onFold: publish,
-      onSettings: scanners => { map = { ...map, scanners }; viewer.update({ ...map, work: map.revision === undefined ? work : EMPTY_WORK_SNAPSHOT }) },
+      onSettings: pluginSettings => { map = { ...map, pluginSettings }; viewer.update({ ...map, work: map.revision === undefined ? work : EMPTY_WORK_SNAPSHOT }) },
     })
-    map = { ...map, scanners: scannerSession.state }
+    map = { ...map, pluginSettings: scannerSession.state }
     viewer.update({ ...map, work })
     const architectureWatch = await watchArchitecture(repositoryRoot, { onChange: async () => { await workSource.reconfigure(); await scannerSession.reconfigure(); await publish() } })
     const workWatch = workSource.watch(() => {

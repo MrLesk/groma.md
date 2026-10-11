@@ -57,7 +57,7 @@ A work-source package declares its id, relative entry and host compatibility:
 
 Its default export implements the work-source contract: `id`, `readiness()`, and
 `create(repositoryRoot)`. The created source owns task reads and its closeable
-watch. Package loading and installation reuse the scanner package resolver.
+watch. Package loading and installation use the same package resolver as scanners.
 
 Plugin selection is operational configuration, not an OKF concept or C4 element.
 Ordinary Markdown and OKF readers retain the same architecture records and links;

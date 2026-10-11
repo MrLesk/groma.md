@@ -32,8 +32,8 @@ export function registerScannerCommands(program: Command): void {
     .description('Manage scanner modules for this project')
 
   scanner.command('settings').description('Open project scanner settings').action(() => runScannerCommand(async () => {
-    if (process.stdin.isTTY && process.stdout.isTTY) await (await import('../viewers/tui/scanner-settings.ts')).startScannerSettings(process.cwd())
-    else console.log(JSON.stringify(await (await import('./modules/settings.ts')).readScannerSettings(process.cwd()), null, 2))
+    if (process.stdin.isTTY && process.stdout.isTTY) await (await import('../viewers/tui/scanner-settings.ts')).startPluginSettings(process.cwd())
+    else console.log(JSON.stringify(await (await import('./modules/settings.ts')).readPluginSettings(process.cwd()), null, 2))
   }))
 
   scanner

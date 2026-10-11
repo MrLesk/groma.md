@@ -124,17 +124,17 @@ test.concurrent('staged Backlog release installs its contract and supports npm s
     const moduleRoot = path.resolve(import.meta.dir, '../src')
     const script = `
       import { addPlugin } from ${JSON.stringify(path.join(moduleRoot, 'plugin-management.ts'))}
-      import { changeScannerSettings } from ${JSON.stringify(path.join(moduleRoot, 'scanner/modules/settings.ts'))}
-      import { readScannerConfig } from ${JSON.stringify(path.join(moduleRoot, 'scanner/modules/config.ts'))}
+      import { changePluginSettings } from ${JSON.stringify(path.join(moduleRoot, 'scanner/modules/settings.ts'))}
+      import { readPluginConfig } from ${JSON.stringify(path.join(moduleRoot, 'scanner/modules/config.ts'))}
       import { configuredWorkSource } from ${JSON.stringify(path.join(moduleRoot, 'work-sources.ts'))}
       import { rm } from 'node:fs/promises'
       const root = ${JSON.stringify(root)}
       const options = { registry: ${JSON.stringify(server.url.href)}, cacheRoot: root + '/cache' }
       const installed = await addPlugin(root, '@groma/work-source-backlog', options)
       await rm(options.cacheRoot, { recursive: true, force: true })
-      await changeScannerSettings(root, { action: 'restore', id: 'backlog' }, options)
+      await changePluginSettings(root, { action: 'restore', id: 'backlog' }, options)
       const restored = await configuredWorkSource(root, options)
-      console.log(JSON.stringify({ installed, config: await readScannerConfig(root), id: restored?.plugin?.id }))
+      console.log(JSON.stringify({ installed, config: await readPluginConfig(root), id: restored?.plugin?.id }))
     `
     const child = Bun.spawn([process.execPath, '--eval', script], { stdout: 'pipe', stderr: 'pipe',
       env: { ...process.env, BUN_INSTALL_CACHE_DIR: path.join(root, 'bun-cache') } })

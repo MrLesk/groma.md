@@ -1,9 +1,9 @@
 import { pathToFileURL } from 'node:url'
 import { EMPTY_WORK_SOURCE, type WorkSource, type WorkSourcePlugin } from '@groma/work-source'
 import groma from '../package.json' with { type: 'json' }
-import { readScannerConfig } from './scanner/modules/config.ts'
-import { defaultScannerCacheRoot, parseScannerSource, resolveScannerPackage, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
-import type { ScannerResolutionOptions } from './scanner/modules/inventory.ts'
+import { readPluginConfig } from './scanner/modules/config.ts'
+import { defaultPluginCacheRoot, parsePluginSource, resolvePluginPackage, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
+import type { PluginResolutionOptions } from './scanner/modules/inventory.ts'
 
 export interface WorkSourceSelection {
   id: string
@@ -18,13 +18,13 @@ export interface WorkSourceSelection {
 }
 
 /** Read only the selected package; an absent selection never imports or probes a work source. */
-export async function configuredWorkSource(root: string, options: ScannerResolutionOptions = {}): Promise<WorkSourceSelection | undefined> {
-  const selected = (await readScannerConfig(root)).workSources?.[0]
+export async function configuredWorkSource(root: string, options: PluginResolutionOptions = {}): Promise<WorkSourceSelection | undefined> {
+  const selected = (await readPluginConfig(root)).workSources?.[0]
   if (!selected) return undefined
   const base = { ...selected, kind: 'workSource' as const }
   try {
-    const source = parseScannerSource(root, selected.source)
-    const resolved = await resolveScannerPackage(source, options.cacheRoot ?? defaultScannerCacheRoot(), 'workSource')
+    const source = parsePluginSource(root, selected.source)
+    const resolved = await resolvePluginPackage(source, options.cacheRoot ?? defaultPluginCacheRoot(), 'workSource')
     if (!resolved) return { ...base, status: 'missing', message: `Restore ${selected.source} with groma plugin install, or restore its local path.` }
     if (resolved.id !== selected.id) throw new Error(`Configured work source ${selected.id} resolves to ${resolved.id}`)
     const details = { ...base, name: resolved.name, version: resolved.version }

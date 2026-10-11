@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { createScannerSession } from '../src/scanner/session.ts'
-import { readScannerConfig, writeScannerConfig } from '../src/scanner/modules/config.ts'
+import { readPluginConfig, writePluginConfig } from '../src/scanner/modules/config.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 
 async function project() {
@@ -14,7 +14,7 @@ async function project() {
   await mkdir(path.join(root, 'ui'))
   await writeFile(path.join(root, 'ui/package.json'), JSON.stringify({ dependencies: { react: '19.0.0' } }))
   await writeFile(path.join(root, 'ui/view.fixture'), 'first')
-  await writeScannerConfig(root, { scanners: [] })
+  await writePluginConfig(root, { scanners: [] })
   const source = path.join(root, 'plugin')
   await mkdir(source)
   await writeFile(path.join(source, 'package.json'), JSON.stringify({ name: 'fixture', version: '1.0.0',
@@ -52,21 +52,21 @@ test.concurrent('settings changes reconfigure live scanning and keep saved evide
     const scanned = await loadAnnotatedArchitecture(root)
     expect(scanned.elements.flatMap(element => element.code).some(code => code.symbol === 'second')).toBe(true)
     nextFold = undefined
-    const config = await readScannerConfig(root)
-    await writeScannerConfig(root, { ...config, scanners: [...config.scanners, { id: 'absent', source: path.join(root, 'absent'), include: ['**/*.fixture'] }] })
+    const config = await readPluginConfig(root)
+    await writePluginConfig(root, { ...config, scanners: [...config.scanners, { id: 'absent', source: path.join(root, 'absent'), include: ['**/*.fixture'] }] })
     await session.reconfigure()
     const beforeCheck = folds
     await session.change({ action: 'retry' })
     expect(folds).toBe(beforeCheck + 1)
     expect(session.state.plugins.find(item => item.id === 'fixture')?.status).toBe('ready')
-    await writeScannerConfig(root, { ...config, exclude: ['ui/'] })
+    await writePluginConfig(root, { ...config, exclude: ['ui/'] })
     await session.reconfigure()
     expect(session.state.plugins[0]).toMatchObject({ match: 'none' })
     await session.change({ action: 'remove', id: 'fixture' })
     expect((await loadAnnotatedArchitecture(root)).elements).toEqual(scanned.elements)
     await expect(session.change({ action: 'add', source: path.join(root, 'missing-plugin') })).rejects.toThrow('package not found')
     expect(session.state.notice.tone).toBe('error')
-    expect((await readScannerConfig(root)).scanners).toEqual([])
+    expect((await readPluginConfig(root)).scanners).toEqual([])
     expect(await readFile(path.join(root, 'ui/view.fixture'), 'utf8')).toBe('second')
   } finally { await session.close(); await rm(root, { recursive: true, force: true }) }
 })
@@ -104,7 +104,7 @@ test.concurrent('live scanning updates healthy evidence, reports every failure a
     `)
   }
   await writeFile(path.join(root, 'tool.fail'), '')
-  await writeScannerConfig(root, { scanners: [
+  await writePluginConfig(root, { scanners: [
     { id: 'fixture', source, include: ['**/*.fixture'] }, { id: 'broken', source: './broken', include: ['**/*.fixture'] },
     { id: 'tool', source: './tool', include: ['**/*.fixture'] },
   ] })

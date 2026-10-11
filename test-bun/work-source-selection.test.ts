@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { runInitCommand, type InitCommandUi } from '../src/init-command.ts'
 import { addPlugin, removePlugin } from '../src/plugin-management.ts'
-import { readScannerConfig, writeScannerConfig } from '../src/scanner/modules/config.ts'
+import { readPluginConfig, writePluginConfig } from '../src/scanner/modules/config.ts'
 import { configuredWorkSource, workSourceSession } from '../src/work-sources.ts'
 
 async function project(range = '*') {
@@ -32,7 +32,7 @@ test.concurrent('work-source selection controls reads and closes its watch when 
   const root = await project()
   let watch: { close(): Promise<void> } | undefined
   try {
-    await writeScannerConfig(root, { scanners: [] })
+    await writePluginConfig(root, { scanners: [] })
     const session = await workSourceSession(root)
     watch = session.watch(() => {})
     expect((await session.read()).items).toEqual([])
@@ -50,7 +50,7 @@ test.concurrent('work-source selection controls reads and closes its watch when 
 test.concurrent('a work-source version mismatch blocks loading before plugin code executes', async () => {
   const root = await project('>=99.0.0')
   try {
-    await writeScannerConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }] })
+    await writePluginConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }] })
     const selection = await configuredWorkSource(root)
     expect(selection?.status).toBe('blocked')
     expect(selection?.message).toContain('>=99.0.0')
@@ -60,21 +60,21 @@ test.concurrent('a work-source version mismatch blocks loading before plugin cod
 test.concurrent('a second work-source entry is rejected before either adapter loads', async () => {
   const root = await project()
   try {
-    await writeScannerConfig(root, { scanners: [], workSources: [
+    await writePluginConfig(root, { scanners: [], workSources: [
       { id: 'tasks', source: './adapter' }, { id: 'other', source: './other' },
     ] })
-    await expect(readScannerConfig(root)).rejects.toThrow('at most one work source')
+    await expect(readPluginConfig(root)).rejects.toThrow('at most one work source')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
 test.concurrent('a plugin id shared by a scanner and a work source is rejected', async () => {
   const root = await project()
   try {
-    await writeScannerConfig(root, {
+    await writePluginConfig(root, {
       scanners: [{ id: 'tasks', source: './scanner', include: ['**/*.fixture'] }],
       workSources: [{ id: 'tasks', source: './adapter' }],
     })
-    await expect(readScannerConfig(root)).rejects.toThrow('more than once')
+    await expect(readPluginConfig(root)).rejects.toThrow('more than once')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
@@ -97,7 +97,7 @@ async function runWizard(root: string, initializeBacklog: () => Promise<boolean>
 test.concurrent('groma init reports a failed Backlog initialization when the work source is already selected', async () => {
   const root = await project()
   try {
-    await writeScannerConfig(root, { scanners: [], workSources: [{ id: 'backlog', source: '@groma/work-source-backlog@0.1.0' }] })
+    await writePluginConfig(root, { scanners: [], workSources: [{ id: 'backlog', source: '@groma/work-source-backlog@0.1.0' }] })
     expect(await runWizard(root, async () => false)).toHaveLength(1)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
@@ -106,7 +106,7 @@ test.concurrent('groma init leaves Backlog alone when the project selects anothe
   const root = await project()
   let initialized = 0
   try {
-    await writeScannerConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }] })
+    await writePluginConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }] })
     await runWizard(root, async () => { initialized++; return true })
     expect(initialized).toBe(0)
   } finally { await rm(root, { recursive: true, force: true }) }

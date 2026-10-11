@@ -1,6 +1,6 @@
 import groma from '../../../package.json'
 
-export interface PublishedScanner {
+export interface PublishedPlugin {
   name: string
   version: string
   os?: string[]
@@ -19,14 +19,14 @@ function supports(values: string[] | undefined, current: string): boolean {
 }
 
 /** Language versions never select releases; the scanner validates its projects. */
-export function selectPublishedScanner(
+export function selectPublishedPlugin(
   name: string,
-  versions: Record<string, PublishedScanner>,
+  versions: Record<string, PublishedPlugin>,
   host = { groma: groma.version, os: process.platform as string, cpu: process.arch as string },
   kind: 'scanner' | 'workSource' | 'any' = 'scanner',
-): PublishedScanner {
-  const metadata = (item: PublishedScanner) => kind === 'any' ? item.groma?.scanner ?? item.groma?.workSource : item.groma?.[kind]
-  const requirement = (item: PublishedScanner) => item.groma?.workSource?.compatibility?.groma ?? item.groma?.scanner?.discovery?.compatibility?.groma
+): PublishedPlugin {
+  const metadata = (item: PublishedPlugin) => kind === 'any' ? item.groma?.scanner ?? item.groma?.workSource : item.groma?.[kind]
+  const requirement = (item: PublishedPlugin) => item.groma?.workSource?.compatibility?.groma ?? item.groma?.scanner?.discovery?.compatibility?.groma
   const releases = Object.values(versions).filter(item => item.name === name
     && metadata(item)?.id && metadata(item)?.entry && Bun.semver.satisfies(item.version, '*'))
     .sort((a, b) => Bun.semver.order(b.version, a.version))
@@ -44,17 +44,17 @@ export function selectPublishedScanner(
   return selected
 }
 
-export async function readPublishedScanners(name: string, registry = process.env.npm_config_registry ?? 'https://registry.npmjs.org'): Promise<Record<string, PublishedScanner>> {
+export async function readPublishedPlugins(name: string, registry = process.env.npm_config_registry ?? 'https://registry.npmjs.org'): Promise<Record<string, PublishedPlugin>> {
   let response: Response
   try { response = await fetch(`${registry.replace(/\/$/, '')}/${encodeURIComponent(name)}`, { headers: { accept: 'application/json' } }) }
   catch { throw new Error(`${name}: could not reach the package registry. Check your connection and retry.`) }
   if (response.status === 404) throw new Error(`${name}: package is not published in this registry. Check its name or ask the plugin author to publish it.`)
   if (!response.ok) throw new Error(`${name}: package registry returned HTTP ${response.status}. Check registry access and retry.`)
-  const metadata = await response.json() as { versions?: Record<string, PublishedScanner> }
+  const metadata = await response.json() as { versions?: Record<string, PublishedPlugin> }
   return metadata.versions ?? {}
 }
 
-export async function publishedScannerSource(name: string, registry?: string, kind: 'scanner' | 'workSource' | 'any' = 'scanner'): Promise<string> {
-  const release = selectPublishedScanner(name, await readPublishedScanners(name, registry), undefined, kind)
+export async function publishedPluginSource(name: string, registry?: string, kind: 'scanner' | 'workSource' | 'any' = 'scanner'): Promise<string> {
+  const release = selectPublishedPlugin(name, await readPublishedPlugins(name, registry), undefined, kind)
   return `${release.name}@${release.version}`
 }

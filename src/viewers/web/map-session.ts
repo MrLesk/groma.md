@@ -7,7 +7,7 @@ import { EditConflict } from '../../authoring-conflict.ts'
 import { GromaBusyError } from '../../groma-filesystem.ts'
 import type { StructuralResult } from '../../curate.ts'
 import { createScannerSession } from '../../scanner/session.ts'
-import { parseScannerSettingsAction, withScannerUpgrades } from '../../scanner/modules/settings.ts'
+import { parsePluginSettingsAction, withPluginUpgrades } from '../../scanner/modules/settings.ts'
 import { pinsOf } from '../../work/pins.ts'
 import { workSourceSession } from '../../work-sources.ts'
 import { ownedFiles } from '../../history/comparison.ts'
@@ -394,7 +394,7 @@ export async function createWebMapSession(
   const routes = new Map<string, Route>([
     ['/scanner-settings', async (_request, url) => {
       const settings = await scannerSession.refresh()
-      return Response.json(url.searchParams.has('updates') ? await withScannerUpgrades(settings) : settings)
+      return Response.json(url.searchParams.has('updates') ? await withPluginUpgrades(settings) : settings)
     }],
     ['/render.js', rendererResponse],
     ['/revisions.json', async () => Response.json(await readRevisions())],
@@ -414,7 +414,7 @@ export async function createWebMapSession(
   /** The shared writes at the path of their verb; each posts the input the CLI builds from its flags. */
   const writeRoutes = new Map<string, (request: Request) => Promise<Response>>([
     ['/scanner-settings', async request => {
-      try { await scannerSession.change(parseScannerSettingsAction(await request.json())); return Response.json(scannerSession.state) }
+      try { await scannerSession.change(parsePluginSettingsAction(await request.json())); return Response.json(scannerSession.state) }
       catch (error) { return new Response(error instanceof Error ? error.message : String(error), { status: 400 }) }
     }],
     ['/draft', request => writeResponse(request, writes.draft)],

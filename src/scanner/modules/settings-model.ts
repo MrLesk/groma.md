@@ -22,25 +22,25 @@ export interface WorkSourceSetting extends PluginSettingFields {
 }
 /** One row of the plugin settings list; `kind` tells which fields the row has. */
 export type PluginSetting = ScannerSetting | WorkSourceSetting
-export interface ScannerSettings {
+export interface PluginSettings {
   plugins: PluginSetting[]
   notice: { tone: 'neutral' | 'hint' | 'warning' | 'error'; message: string }
   limits: string[]
   upgrades?: Record<string, { version?: string; error?: string }>
 }
-export type ScannerSettingsAction =
+export type PluginSettingsAction =
   | { action: 'add'; source: string }
   | { action: 'install' | 'restore' | 'remove'; id: string }
   | { action: 'update'; id: string; source?: string }
   | { action: 'retry' | 'install-recommended' | 'install-missing' }
 
 /** An offered update belongs to the exact source that was checked. */
-export function scannerUpgradeAction(plugin: PluginSetting, upgrades: ScannerSettings['upgrades']): ScannerSettingsAction | undefined {
+export function pluginUpgradeAction(plugin: PluginSetting, upgrades: PluginSettings['upgrades']): PluginSettingsAction | undefined {
   const version = plugin.source ? upgrades?.[plugin.source]?.version : undefined
   return version ? { action: 'update', id: plugin.id, source: `${plugin.name}@${version}` } : undefined
 }
 
-export function scannerNotice(scanners: readonly ScannerSetting[], limits: readonly string[]): ScannerSettings['notice'] {
+export function scannerNotice(scanners: readonly ScannerSetting[], limits: readonly string[]): PluginSettings['notice'] {
   if (scanners.some(scanner => scanner.status === 'blocked')) return { tone: 'error', message: 'A scanner needs attention. Saved architecture is available.' }
   const matched = scanners.filter(scanner => scanner.match === 'matched')
   const useful = matched.filter(scanner => scanner.status === 'ready' || scanner.status === 'unchecked')
@@ -53,7 +53,7 @@ export function scannerNotice(scanners: readonly ScannerSetting[], limits: reado
   return { tone: 'neutral', message: matched.length ? '' : 'No source project detected. Showing saved architecture.' }
 }
 
-export function scannerSettingLabel(plugin: PluginSetting): string {
+export function pluginSettingLabel(plugin: PluginSetting): string {
   if (plugin.status === 'blocked') return plugin.message
   if (plugin.kind === 'workSource') return plugin.message
   if (plugin.match === 'none' && plugin.status !== 'missing') return 'No matching project files'
@@ -61,7 +61,7 @@ export function scannerSettingLabel(plugin: PluginSetting): string {
 }
 
 /** Project selection and local package availability are different responsibilities. */
-export function scannerGroups(plugins: readonly PluginSetting[], query = ''): { title: string; plugins: PluginSetting[] }[] {
+export function pluginGroups(plugins: readonly PluginSetting[], query = ''): { title: string; plugins: PluginSetting[] }[] {
   const search = query.trim().toLocaleLowerCase()
   const matching = plugins.filter(plugin => [plugin.id, plugin.name, plugin.source ?? '', ...(plugin.kind === 'scanner' ? plugin.technologies : [])]
     .some(value => value.toLocaleLowerCase().includes(search)))
@@ -74,7 +74,7 @@ export function scannerGroups(plugins: readonly PluginSetting[], query = ''): { 
   ].filter(group => group.plugins.length)
 }
 
-export function scannerSettingAction(plugin: PluginSetting): ScannerSettingsAction | undefined {
+export function pluginSettingAction(plugin: PluginSetting): PluginSettingsAction | undefined {
   if (plugin.source && plugin.status === 'blocked') return { action: 'retry' }
   if (plugin.source) return plugin.status === 'missing' ? { action: 'restore', id: plugin.id } : undefined
   return plugin.installSource ? { action: 'install', id: plugin.id } : undefined

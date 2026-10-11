@@ -18,7 +18,7 @@ export interface ConfiguredWorkSource {
   source: string
 }
 
-export interface ScannerConfig {
+export interface PluginConfig {
   workSources?: ConfiguredWorkSource[]
   scanners: ConfiguredScanner[]
   /** Git ignore patterns every scanner leaves out; Groma never writes them. */
@@ -27,7 +27,7 @@ export interface ScannerConfig {
   useGitignore?: boolean
 }
 
-const scannerId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const pluginId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /** A JSON value holding a list of strings, such as patterns. */
 export function stringArray(value: unknown): value is string[] {
@@ -35,7 +35,7 @@ export function stringArray(value: unknown): value is string[] {
 }
 
 /** A scanner's exclusions in the order they apply: the global list, then the scanner's own. */
-export function exclusionPatterns(config: ScannerConfig, scanner: string): string[] {
+export function exclusionPatterns(config: PluginConfig, scanner: string): string[] {
   return [...config.exclude ?? [], ...config.scanners.find(entry => entry.id === scanner)?.exclude ?? []]
 }
 
@@ -85,7 +85,7 @@ function configuredScanner(
     || typeof candidate.settings !== 'object' || Array.isArray(candidate.settings))) {
     throw new Error(`${sourceFilename} scanners[${index}].settings must be an object`)
   }
-  if (typeof candidate.id !== 'string' || !scannerId.test(candidate.id)) {
+  if (typeof candidate.id !== 'string' || !pluginId.test(candidate.id)) {
     throw new Error(`${sourceFilename} scanners[${index}].id must be lowercase kebab-case`)
   }
   if (typeof candidate.source !== 'string' || candidate.source.trim() === '') {
@@ -107,7 +107,7 @@ function configuredWorkSources(value: unknown, filename: string): ConfiguredWork
       || Object.keys(entry).some(key => !['id', 'source'].includes(key))) {
       throw new Error(`${filename} workSources entries must contain only id and source`)
     }
-    if (typeof entry.id !== 'string' || !scannerId.test(entry.id)) {
+    if (typeof entry.id !== 'string' || !pluginId.test(entry.id)) {
       throw new Error(`${filename} workSources id must be lowercase kebab-case`)
     }
     if (typeof entry.source !== 'string' || !entry.source.trim()) {
@@ -140,10 +140,10 @@ function requireUniqueIds(plugins: readonly { id: string }[], sourceFilename: st
   }
 }
 
-function parseScannerConfig(
+function parsePluginConfig(
   source: string,
   sourceFilename: string,
-): ScannerConfig {
+): PluginConfig {
   const value: unknown = JSON.parse(source)
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${sourceFilename} must be an object`)
@@ -169,10 +169,10 @@ function parseScannerConfig(
   }
 }
 
-export async function readScannerConfig(repositoryRoot: string): Promise<ScannerConfig> {
+export async function readPluginConfig(repositoryRoot: string): Promise<PluginConfig> {
   const filesystem = GromaFileSystem.open(repositoryRoot)
   try {
-    return parseScannerConfig(
+    return parsePluginConfig(
       await filesystem.read('plugins.json'),
       filesystem.sourceFilename('plugins.json'),
     )
@@ -182,9 +182,9 @@ export async function readScannerConfig(repositoryRoot: string): Promise<Scanner
   }
 }
 
-export async function writeScannerConfig(
+export async function writePluginConfig(
   repositoryRoot: string,
-  config: ScannerConfig,
+  config: PluginConfig,
 ): Promise<void> {
   const ordered = [...config.scanners].sort((left, right) => left.id.localeCompare(right.id))
   await GromaFileSystem.open(repositoryRoot).write(

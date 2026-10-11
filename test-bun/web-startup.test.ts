@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT, type WorkSource } from '@groma/work-source'
-import { writeScannerConfig } from '../src/scanner/modules/config.ts'
+import { writePluginConfig } from '../src/scanner/modules/config.ts'
 import { startWebViewer } from '../src/viewers/web/server.ts'
 import { loadProjectProfile } from '../src/project-profile.ts'
 import { createScannerSession } from '../src/scanner/session.ts'
@@ -139,7 +139,7 @@ for (const findsComponents of [true, false]) {
           return undefined
         }
       }`)
-      await writeScannerConfig(root, { scanners: [
+      await writePluginConfig(root, { scanners: [
         { id: 'fixture', source: './plugin', include: ['**/*.fixture'] }, { id: 'companion', source: './companion', include: ['**/*.companion'] },
       ] })
       opening = startWebViewer(root, { port: 0, scan: true, workSource: emptyWorkSource(), onListening: listening.resolve })
@@ -296,7 +296,7 @@ test.concurrent('simultaneous scanner setup submissions share one initial scan a
       method: 'POST', redirect: 'manual', body: new URLSearchParams({ projectName: 'Example', directory: 'groma' }),
     })
     expect(initialized.status).toBe(303)
-    await writeScannerConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }] })
+    await writePluginConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }] })
     submissions = [0, 1].map(() => fetch(`${viewer!.url}/scanners`, {
       method: 'POST', redirect: 'manual', body: new FormData(),
     }))
@@ -335,7 +335,7 @@ test.concurrent('startup does not report scanning when every selected source is 
       async scan() { throw new Error('Excluded sources must not be scanned') },
     }`)
     expect(await Bun.spawn(['git', 'init', '--quiet', root]).exited).toBe(0)
-    await writeScannerConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], exclude: ['*.fixture'] })
+    await writePluginConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], exclude: ['*.fixture'] })
     const phases: string[] = []
     session = await createScannerSession(root, { scan: true, onProgress: update => phases.push(update.phase) })
     await session.ready

@@ -1,8 +1,8 @@
 import { repositoryListing } from '../../repository-listing.ts'
-import { configuredScannerModules, type FoundScannerModule, type ScannerResolutionOptions } from './inventory.ts'
+import { configuredScannerModules, type FoundScannerModule, type PluginResolutionOptions } from './inventory.ts'
 import { allExcluded, configuredPlugin } from '../registry.ts'
 import { discoverScanners } from './discovery.ts'
-import { readScannerConfig, type ScannerConfig } from './config.ts'
+import { readPluginConfig, type PluginConfig } from './config.ts'
 import { selectedFiles } from './selection.ts'
 
 export interface ProjectReadiness {
@@ -13,7 +13,7 @@ export interface ProjectReadiness {
 }
 
 async function sourceReadiness(
-  root: string, module: FoundScannerModule, config: ScannerConfig, listing: readonly string[],
+  root: string, module: FoundScannerModule, config: PluginConfig, listing: readonly string[],
 ): Promise<Pick<ProjectReadiness, 'project' | 'message'>> {
   const scanner = await configuredPlugin(module, config)
   if (scanner.plugin.checkReadiness === undefined) return { project: 'unchecked',
@@ -28,10 +28,10 @@ async function sourceReadiness(
 /** This explicit check executes enabled plugins; the package inventory stays read-only. */
 export async function checkScannerReadiness(
   root: string,
-  options: ScannerResolutionOptions = {},
+  options: PluginResolutionOptions = {},
 ): Promise<ProjectReadiness[]> {
   const results: ProjectReadiness[] = []
-  const config = await readScannerConfig(root)
+  const config = await readPluginConfig(root)
   const modules = await configuredScannerModules(root, options)
   const listing = modules.length ? await repositoryListing(root, config.useGitignore ?? true) : []
   const proposal = modules.some(module => module.status === 'found' && module.discovery?.compatibility)

@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test'
-import type { ScannerSetting, ScannerSettings } from '../src/scanner/modules/settings-model.ts'
+import type { ScannerSetting, PluginSettings } from '../src/scanner/modules/settings-model.ts'
 import { scannerWarning } from '../src/viewers/web/settings/model.ts'
 
-function settings(tone: ScannerSettings['notice']['tone'], statuses: ScannerSetting['status'][]): ScannerSettings {
+function settings(tone: PluginSettings['notice']['tone'], statuses: ScannerSetting['status'][]): PluginSettings {
   return { notice: { tone, message: '' }, limits: [], plugins: statuses.map((status, index) => ({
     kind: 'scanner', id: String(index), name: '', official: true, technologies: [], matches: [], match: 'matched', status, message: '',
   })) }

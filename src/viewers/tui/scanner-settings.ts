@@ -1,14 +1,14 @@
 import { createCliRenderer, FrameBufferRenderable, RGBA, type CliRenderer, type KeyEvent, type PasteEvent } from '@opentui/core'
 import { watchArchitecture } from '../../architecture-watch.ts'
 import { createScannerSession, type ScannerSession } from '../../scanner/session.ts'
-import { scannerGroups, scannerSettingAction, scannerMatchReason, scannerSettingLabel, type PluginSetting, type ScannerSettingsAction } from '../../scanner/modules/settings-model.ts'
+import { pluginGroups, pluginSettingAction, scannerMatchReason, pluginSettingLabel, type PluginSetting, type PluginSettingsAction } from '../../scanner/modules/settings-model.ts'
 import { loadWelcomeModel, welcomeSheet } from '../../welcome/model.ts'
 import { paintShell } from '../../welcome/view.ts'
 import { wrap } from './panes/text.ts'
 import { text } from './atoms/text.ts'
 
 /** A keyboard-only settings page, shared by the launcher and the live terminal map. */
-export async function mountScannerSettings(renderer: CliRenderer, session: ScannerSession, root: string): Promise<void> {
+export async function mountPluginSettings(renderer: CliRenderer, session: ScannerSession, root: string): Promise<void> {
   const model = await loadWelcomeModel(root)
   const sheet = welcomeSheet(model)
   const green = RGBA.fromHex('#1D9E75'), amber = RGBA.fromHex('#D8A652'), blue = RGBA.fromHex('#7AAFC5')
@@ -19,7 +19,7 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
   let visible: PluginSetting[] = []
   let input: { action: 'add' | 'update'; value: string; id?: string } | undefined
   let message = ''
-  let failedAction: ScannerSettingsAction | undefined
+  let failedAction: PluginSettingsAction | undefined
   const done = Promise.withResolvers<void>()
   const frame = new FrameBufferRenderable(renderer, {
     id: 'scanner-settings', width: renderer.width, height: renderer.height, position: 'absolute', left: 0, top: 0, zIndex: 100,
@@ -42,17 +42,17 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
     rows.slice(detailScroll, detailScroll + height).forEach((value, index) => { line(value, y + index) })
   }
   function paintRow(plugin: PluginSetting, y: number) {
-    const action = scannerSettingAction(plugin)
+    const action = pluginSettingAction(plugin)
     const label = action ? (action.action === 'retry' ? '[Retry]' : '[Install]') : ''
     const nameWidth = 30, descriptionWidth = Math.max(18, frame.width - nameWidth - 26)
     const name = `${plugin.id}${plugin.version ? ` ${plugin.version}` : ''}`
     // Only a scanner recommendation has no saved source; its row says where the project matched.
-    const description = plugin.kind === 'scanner' && !plugin.source ? scannerMatchReason(plugin) : scannerSettingLabel(plugin)
+    const description = plugin.kind === 'scanner' && !plugin.source ? scannerMatchReason(plugin) : pluginSettingLabel(plugin)
     line(`${plugin.id === selectedId ? '> ' : '  '}${name.slice(0, nameWidth).padEnd(nameWidth)} ${description.slice(0, descriptionWidth).padEnd(descriptionWidth)} ${label}`,
       y, plugin.id === selectedId ? green : foreground)
   }
   function paintList(y: number, height: number) {
-    const groups = scannerGroups(session.state.plugins, query)
+    const groups = pluginGroups(session.state.plugins, query)
     visible = groups.flatMap(group => group.plugins)
     if (!visible.some(plugin => plugin.id === selectedId)) selectedId = visible[0]?.id
     const rows = groups.flatMap(group => [
@@ -93,7 +93,7 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
     paintFooter()
     frame.requestRender()
   }
-  async function change(action: ScannerSettingsAction) {
+  async function change(action: PluginSettingsAction) {
     busy = true; message = ''; failedAction = undefined; paint()
     try { await session.change(action) }
     catch (error) { message = error instanceof Error ? error.message : String(error); failedAction = action }
@@ -114,7 +114,7 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
     if (key.name === 'escape') input = undefined
     else if (key.name === 'backspace') input.value = input.value.slice(0, -1)
     else if (key.name === 'return' && input.value.trim()) {
-      const action: ScannerSettingsAction = input.action === 'add' ? { action: 'add', source: input.value } : { action: 'update', id: input.id!, source: input.value }
+      const action: PluginSettingsAction = input.action === 'add' ? { action: 'add', source: input.value } : { action: 'update', id: input.id!, source: input.value }
       input = undefined; void change(action)
     } else if (!key.ctrl && !key.meta && key.sequence && !key.sequence.includes('\x1b')) input.value += key.sequence
     paint()
@@ -131,7 +131,7 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
     if (key.name === 'u' && plugin.source) input = { action: 'update', id: plugin.id, value: plugin.source }
     if (key.name === 'x' && plugin.source) void change({ action: 'remove', id: plugin.id })
     if (key.name === 'return') {
-      const action = scannerSettingAction(plugin)
+      const action = pluginSettingAction(plugin)
       if (action) void change(action)
     }
   }
@@ -185,10 +185,10 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
   await done.promise
 }
 
-export async function startScannerSettings(root: string): Promise<void> {
+export async function startPluginSettings(root: string): Promise<void> {
   const session = await createScannerSession(root, { scan: false })
   const renderer = await createCliRenderer({ clearOnShutdown: true, consoleMode: 'disabled', exitOnCtrlC: true, screenMode: 'alternate-screen', useMouse: false })
   const architecture = await watchArchitecture(root, { onChange: () => session.reconfigure() })
-  try { await mountScannerSettings(renderer, session, root) }
+  try { await mountPluginSettings(renderer, session, root) }
   finally { await architecture.close(); await session.close(); renderer.destroy(); await renderer.closed }
 }
