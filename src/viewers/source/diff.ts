@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import { isRepositoryRelativePath } from '../../code-reference.ts'
 import {
   currentGitRevision,
   findGitCommitBySubject,
@@ -22,7 +23,12 @@ export interface TaskDiffPayload {
   files: TaskFileDiff[]
 }
 
+/**
+ * A task's modified file as the working tree holds it. A task record is repository content, so a
+ * name that is not a repository-relative path is never opened; it reads as absent, like a missing file.
+ */
 async function workingText(repositoryRoot: string, filename: string): Promise<string | undefined> {
+  if (!isRepositoryRelativePath(filename)) return undefined
   try {
     return await readFile(path.join(repositoryRoot, filename), 'utf8')
   } catch {

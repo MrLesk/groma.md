@@ -5,12 +5,13 @@ import type { C4Kind, CodeReference } from './types.ts'
 type InvalidReference = (message: string) => never
 
 /**
- * Whether a stored `file` could name something outside the repository. Every reader joins `file` to
- * the repository root, so an absolute path or a `..` segment would open a file the repository does not hold.
+ * Whether `file` is spelled as a path from the repository root: not absolute and without a `..` segment.
+ * A reader joins such a path to the root, so any other spelling could open a file the repository does not hold.
+ * The rule is the spelling, not where the path ends: `src/../a.ts` is refused as well.
  */
-function leavesRepository(file: string): boolean {
+export function isRepositoryRelativePath(file: string): boolean {
   // Windows rules also count a leading `/` as absolute, so one call covers both path styles.
-  return path.win32.isAbsolute(file) || file.split(/[\\/]/).includes('..')
+  return !path.win32.isAbsolute(file) && !file.split(/[\\/]/).includes('..')
 }
 
 function requiredString(
@@ -46,7 +47,7 @@ function referenceOf(
   }
   const scanner = requiredString(record, 'scanner', index, invalid)
   const file = requiredString(record, 'file', index, invalid)
-  if (leavesRepository(file)) invalid(`code[${index}] file must be inside the repository`)
+  if (!isRepositoryRelativePath(file)) invalid(`code[${index}] file must be a repository-relative path without a ".." segment`)
   return {
     scanner,
     file,

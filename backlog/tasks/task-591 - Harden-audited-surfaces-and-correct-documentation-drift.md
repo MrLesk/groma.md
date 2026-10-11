@@ -4,7 +4,7 @@ title: Harden audited surfaces and correct documentation drift
 status: In Progress
 assignee: []
 created_date: '2026-09-27 01:23'
-updated_date: '2026-10-11 19:13'
+updated_date: '2026-10-11 19:31'
 labels: []
 dependencies: []
 modified_files:
@@ -36,6 +36,8 @@ modified_files:
   - test-bun/scanner-discovery.test.ts
   - test-bun/work-pins.test.ts
   - docs/scanners/javascript/index.md
+  - src/viewers/source/diff.ts
+  - test-bun/file-diff.test.ts
 priority: high
 type: task
 ordinal: 611000
@@ -93,6 +95,8 @@ Tests (rule and authority; wrong result caught; coverage gap):
 - test-bun/work-pins.test.ts, 'pins follow task ids with each dotted number compared as a number' (the pull request's test, reduced to dotted ids). Rule: pins and their colours follow Backlog task order, where a subtask number is a whole number (audit finding D-work-05, kept by the owner). Wrong result: TASK-416.10 comes before TASK-416.2, which main does by reading '416.10' as the decimal 416.1. Gap: every other pin test uses whole-number ids.
 - test-bun/javascript-manifest.test.ts, 'one malformed manifest is skipped with a diagnostic while a sibling still declares its entry' (the pull request's test, unchanged). Rule: a manifest that is not JSON supplies no entry and does not stop the scan (audit finding D-sc-04, kept by the owner). Wrong result: the scan throws a SyntaxError, which main does. Gap: no other test scans beside a broken manifest.
 - test-bun/groma-filesystem.test.ts (the pull request's two tests of main's atomic writer, unchanged and outside this pass's lists). They state that a successful write leaves no temporary file and that a failed replacement keeps the previous content; main's filesystem-access test covers only the successful replacement.
+
+- test-bun/file-diff.test.ts, 'an open task reads its modified files from the working tree, and never one named outside the repository' (review decision D1). Rule: a task's modified file is opened from the working tree only when it is a repository-relative path without a '..' segment, the rule isRepositoryRelativePath owns; anything else reads as absent, like a missing file. Wrong result: an open task whose modified files hold '../outside.txt' gets a row with status 'added' and that file's content, which main returns through /task-diff.json and the terminal viewer. Gap: no test called readTaskDiff.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
