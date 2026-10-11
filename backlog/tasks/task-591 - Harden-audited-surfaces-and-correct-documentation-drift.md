@@ -4,7 +4,7 @@ title: Harden audited surfaces and correct documentation drift
 status: In Progress
 assignee: []
 created_date: '2026-09-27 01:23'
-updated_date: '2026-10-11 19:08'
+updated_date: '2026-10-11 19:09'
 labels: []
 dependencies: []
 modified_files:
@@ -46,6 +46,7 @@ modified_files:
   - test/architecture-model-errors.test.ts
   - test-bun/scanner-discovery.test.ts
   - test-bun/work-pins.test.ts
+  - docs/scanners/javascript/index.md
 priority: high
 type: task
 ordinal: 611000
