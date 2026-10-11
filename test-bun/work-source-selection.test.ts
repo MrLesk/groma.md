@@ -2,22 +2,22 @@ import { expect, test } from 'bun:test'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { runInitCommand, type InitCommandUi } from '../src/init-command.ts'
+import { runInitCommand, type InitCommandDependencies, type InitCommandUi } from '../src/init-command.ts'
 import { addPlugin, removePlugin } from '../src/plugin-management.ts'
 import { readPluginConfig, writePluginConfig } from '../src/scanner/modules/config.ts'
 import { checkWorkSourceReadiness, workSourceSession } from '../src/work-sources.ts'
 
-async function project(range = '*') {
+async function project(range = '*', id = 'tasks') {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-work-selection-'))
   await cp(path.resolve(import.meta.dir, '../test/fixtures/flows'), root, { recursive: true })
   await mkdir(path.join(root, 'adapter'))
   await writeFile(path.join(root, 'adapter/package.json'), JSON.stringify({
     name: 'work-source-fixture', version: '1.0.0', type: 'module',
-    groma: { workSource: { id: 'tasks', entry: './index.js', compatibility: { groma: range } } },
+    groma: { workSource: { id, entry: './index.js', compatibility: { groma: range } } },
   }))
   await writeFile(path.join(root, 'adapter/index.js'), range === '*' ? `
     import { appendFileSync } from 'node:fs'
-    export default { id: 'tasks', readiness: () => ({ status: 'found' }), create(root) {
+    export default { id: '${id}', readiness: () => ({ status: 'found' }), create(root) {
       return {
         read: async () => { appendFileSync(root + '/calls', 'read\\n'); return { statuses: [], defaultStatus: '', items: [{ id: 'WORK-1' }] } },
         readItem: async id => ({ id }),
@@ -85,27 +85,27 @@ test.concurrent('a plugin id shared by a scanner and a work source is refused wh
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-/** Runs the interactive wizard on a project where the `backlog` CLI exists and Backlog.md is not initialized yet. */
-async function runWizard(root: string, initializeBacklog: () => Promise<boolean>): Promise<string[]> {
+/** Runs the interactive wizard with every prompt answered. The `backlog` CLI exists and Backlog.md is not initialized unless overridden. */
+async function runWizard(root: string, overrides: Partial<InitCommandDependencies>, useBacklog = false) {
   const errors: string[] = []
   const ui: InitCommandUi = {
     cancel() {}, intro() {}, note() {}, outro() {}, error: message => { errors.push(message) },
-    confirmInit: async () => true, confirmOpenWeb: async () => false, confirmScan: async () => false, confirmUseBacklog: async () => false,
-    directory: async () => 'groma', install: async () => false, installer: async () => undefined,
+    confirmInit: async () => true, confirmOpenWeb: async () => false, confirmScan: async () => false, confirmUseBacklog: async () => useBacklog,
+    directory: async () => 'groma', install: async (_message, operation) => operation(), installer: async () => 'bun',
     projectName: async current => current, selectScanners: async () => [],
   }
-  await runInitCommand({ repositoryRoot: root, interactive: true, opensViewer: true }, { openWeb: async () => {} }, {
-    ui, gitInitialized: async () => true, setupScanners: async () => true,
-    backlogAvailable: () => true, backlogInitialized: async () => false, initializeBacklog,
+  const outcome = await runInitCommand({ repositoryRoot: root, interactive: true, opensViewer: true }, { openWeb: async () => {} }, {
+    ui, gitInitialized: async () => true, setupScanners: async () => true, executablePath: async () => '',
+    backlogAvailable: () => true, backlogInitialized: async () => false, ...overrides,
   })
-  return errors
+  return { errors, outcome }
 }
 
 test.concurrent('groma init reports a failed Backlog initialization when the work source is already selected', async () => {
   const root = await project()
   try {
     await writePluginConfig(root, { scanners: [], workSources: [{ id: 'backlog', source: '@groma/work-source-backlog@0.1.0' }] })
-    expect(await runWizard(root, async () => false)).toHaveLength(1)
+    expect((await runWizard(root, { initializeBacklog: async () => false })).errors).toHaveLength(1)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
@@ -114,7 +114,37 @@ test.concurrent('groma init leaves Backlog alone when the project selects anothe
   let initialized = 0
   try {
     await writePluginConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }] })
-    await runWizard(root, async () => { initialized++; return true })
+    await runWizard(root, { initializeBacklog: async () => { initialized++; return true } })
     expect(initialized).toBe(0)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('choosing Backlog during groma init records the work source, then installs its CLI and initializes it', async () => {
+  const root = await project('*', 'backlog')
+  const steps: string[] = []
+  try {
+    const { errors } = await runWizard(root, {
+      selectBacklog: async () => { await addPlugin(root, './adapter'); steps.push('select'); return true },
+      backlogAvailable: () => steps.includes('install'),
+      install: async () => { steps.push('install'); return true },
+      initializeBacklog: async () => { steps.push('initialize'); return true },
+    }, true)
+    expect((await readPluginConfig(root)).workSources).toEqual([{ id: 'backlog', source: './adapter' }])
+    expect(steps).toEqual(['select', 'install', 'initialize'])
+    expect(errors).toEqual([])
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('groma init continues and installs nothing when the Backlog work source cannot be selected', async () => {
+  const root = await project()
+  let installs = 0
+  try {
+    const { errors, outcome } = await runWizard(root, {
+      selectBacklog: async () => false, backlogAvailable: () => false,
+      install: async () => { installs++; return true },
+    }, true)
+    expect(outcome).toBe('completed')
+    expect(errors).toHaveLength(1)
+    expect(installs).toBe(0)
   } finally { await rm(root, { recursive: true, force: true }) }
 })

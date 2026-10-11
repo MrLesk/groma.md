@@ -14,8 +14,9 @@ Backlog.md projects stay unchanged. Running it again edits the current project
 name, keeps the chosen root, and refreshes groma.md's managed agent instructions.
 
 Interactive setup asks whether the project uses Backlog.md for tasks. A yes
-installs the Backlog.md CLI when it is missing, adds the work source to
-`plugins.json` and initializes Backlog.md. When the
+adds the work source to `plugins.json`, installs the Backlog.md CLI when it is
+missing and initializes Backlog.md. A step that fails is reported and setup
+continues. When the
 architecture has no observed components, it can run the first scan and open
 either viewer. The terminal setup from `groma view` and the browser setup page
 from `groma web` use the same repository initialization. The resulting
