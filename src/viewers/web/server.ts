@@ -21,11 +21,11 @@ const loopbackHosts = new Set(['localhost', '127.0.0.1', '[::1]'])
  * user visits can make their browser call a local address, and the map shows private source and
  * writes to the repository.
  *
- * - The Host must name this machine. A site that points its own name at 127.0.0.1 (DNS rebinding)
- *   would otherwise read the map as a page of its own.
- * - A request that changes something and says which page sent it must come from this viewer; a
- *   form on another site would otherwise reach the write routes. A client that is not a browser
- *   sends neither header and passes.
+ * - The Host header must name this machine. A site that points its own name at 127.0.0.1 (DNS
+ *   rebinding) would otherwise read the map as a page of its own.
+ * - A request that changes something and names its page in an Origin or Referer header must come
+ *   from this viewer; a form on another site would otherwise reach the write routes. A client that
+ *   is not a browser sends neither header and passes.
  */
 function fromAnotherSite(request: Request): boolean {
   const viewer = URL.parse(`http://${request.headers.get('host') ?? ''}`)
