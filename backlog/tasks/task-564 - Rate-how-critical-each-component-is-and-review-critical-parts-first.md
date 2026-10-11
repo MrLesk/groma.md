@@ -1,11 +1,11 @@
 ---
 id: TASK-564
 title: Rate how critical each component is and review critical parts first
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-11 19:57'
+updated_date: '2026-10-11 20:00'
 labels:
   - senior
 dependencies: []
@@ -168,6 +168,8 @@ Verification of the round. bun run typecheck passes. bunx biome lint reports 1 w
 Restack 2026-10-11. remediate/118 (plugins.json, then icons and colours) is merged into this branch; 25 files conflicted and each keeps both sides: the level sits beside icon and colour in the model and its validation, the emitter, the edit guards (one helper, hasElementOnlyField, for the three fields only an element takes), the combine guard, ownContent and the comparison reasons, the sheet item, the building label, both details panes, the write commands and the documents. The two conflicted architecture records took the lower branch's text; the scan then created a stand-alone component for src/criticality.ts, which was folded into Architecture model with groma edit, and both overviews were written again through the CLI. groma lint now reads tasks once through workSourceSession, so the selected work source supplies them, no selection means no tasks, and a source that cannot be read ends the command with its message and exit 1; lint prints task findings, duplicates and unknown icons, and its description, comment and empty message name all three. The critical mark is !! (high stays !), both ASCII, so terminal cards keep their borders in line; an icon keeps its own row above the title lines.
 
 Verification of the restack. bun install after the merge changed nothing further. bun run typecheck passes. bunx biome lint reports 1 warning and 2 infos, the unchanged baseline. Focused Bun tests with --parallel=2 --max-concurrency 1: 354 pass, 1 skip, 0 fail across 58 files, including work-source-selection, icon-packs, criticality, the comparison and curation tests and every test that mentions icons, colours, plugins.json or work sources. Four related Node test files: 16 pass. The new lint test failed with the failing source swallowed and with the selection ignored. groma lint on a scratch project that selects a fixture work source and the architecture icon pack printed the in-progress and the done task, not the to-do one, then one unknown icon; --count printed 3; a source whose read throws printed its message with exit 1; without a selected source and with all icons resolved it printed the empty message with exit 0. Headless Chromium on a groma export of that project showed the pack icon on its own row above !! Orders on one line and above ! Stock reservation over and availability, with the labels Orders · critical and Stock reservation and availability · high. tui-test at 150x36 showed the critical card with one padding cell on each side and its three right border cells in one column, the high mark kept on the rewrapped card, and Criticality, Icon and Colour lines in the details pane. groma scan created 0 after the fold; git status for groma/ shows only the Architecture model and Lint command records. Not run: the full bun run check.
+
+Orchestrator verification, 11 October 2026, as the top of the stack plugins.json, icons and colours, criticality, with main merged: bun run check exit 0 (16 Node tests; 808 Bun tests passed, 52 skipped for missing optional toolchains, 0 failed). The implementer's terminal and headless checks cover the mark with and without an icon, the details panes, and groma lint with a selected work source. Kept as the acceptance criteria ask, for the owner to know: the comparison's Changes list is a flat list ranked by level and size (the All view keeps the tree), and groma lint keeps reporting an in-progress or done task that touches a critical component for as long as the task is on the board, with exit code 1. The critical mark is '!!' (two plain characters) because the single wide glyph pushed terminal card borders out of line.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
