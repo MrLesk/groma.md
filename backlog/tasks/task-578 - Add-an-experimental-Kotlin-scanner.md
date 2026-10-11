@@ -1,16 +1,17 @@
 ---
 id: TASK-578
 title: Add an experimental Kotlin scanner
-status: In Progress
+status: Done
 assignee:
-  - '@claude'
+  - '@codex'
 created_date: '2026-10-09 15:00'
-updated_date: '2026-10-11 08:59'
+updated_date: '2026-10-11 09:25'
 labels: []
 dependencies: []
 references:
   - modules-discovery
   - kotlin-src-index
+  - plugins/scanners/kotlin/worker/md/groma/scanner/Visibility.kt
 documentation:
   - docs/scanners/creating-a-plugin.md
   - docs/scanners/evidence.md
@@ -54,6 +55,11 @@ modified_files:
   - groma/scanners.json
   - groma/systems/groma-md/containers/cli/components/scala-src-index.md
   - backlog/tasks/task-578 - Add-an-experimental-Kotlin-scanner.md
+  - test/fixtures/kotlin-source/scopes/Calls.kt
+  - test/fixtures/kotlin-source/scopes/Visibility.kt
+  - plugins/scanners/kotlin/worker/md/groma/scanner/Visibility.kt
+  - test/fixtures/kotlin-source/scopes/Base.kt
+  - docs/scanners/kotlin/validation.md
 type: feature
 ordinal: 653000
 ---
@@ -67,8 +73,8 @@ Groma has official scanners for Java and Scala but none for Kotlin, so a Kotlin 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 The installed Kotlin scanner inventories the selected `.kt` files and reports their top-level declarations as symbols, without a project build, dependency installation, scan-time download, or a separately installed JDK, Kotlin compiler, Gradle or Maven.
-- [ ] #2 Functions, methods, secondary constructors and extension functions are reported as operations with original UTF-16 positions; call expressions inside them are reported with call-site positions and stay unresolved because syntax alone does not prove a target.
-- [ ] #3 The source outline lists top-level types, objects and functions with their members and Kotlin visibility (public by default, protected, internal, private) as the source-outline contract defines, and marks entries named by Code links.
+- [x] #2 Functions, methods, secondary constructors and extension functions are reported as operations with original UTF-16 positions; call expressions inside them are reported with call-site positions and stay unresolved because syntax alone does not prove a target.
+- [x] #3 The source outline lists top-level types, objects and functions with their members and Kotlin visibility (public by default, protected, internal, private) as the source-outline contract defines, and marks entries named by Code links.
 - [x] #4 A parse or read failure of a selected file rejects the whole observation and names that file; no partial observation is returned.
 - [x] #5 Discovery, the official catalog, scanner release assembly, source listing and scanner documentation agree on the supported Kotlin scope and use the existing scanner delivery flow.
 - [x] #6 The isolated-package scanner test, the shared fresh-checkout and release tests, and `bun run check` pass.
@@ -76,8 +82,8 @@ Groma has official scanners for Java and Scala but none for Kotlin, so a Kotlin 
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -85,22 +91,14 @@ Groma has official scanners for Java and Scala but none for Kotlin, so a Kotlin 
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Package `plugins/scanners/kotlin` mirrors the Scala scanner: `src/index.ts` filters the host-selected `.kt` paths, `src/adapter.ts` runs the bundled worker with the bundled Java runtime in `scan` or `outline` mode (paths on stdin, JSON on stdout) and marks outline entries. Manifest: include `**/*.kt`; default exclude `build/`, `.gradle/`, `src/test/`, `src/*Test/`; one `file` discovery rule for technology `kotlin`.
-2. Worker in Kotlin under `plugins/scanners/kotlin/worker/`, parsing with kotlin-compiler-embeddable 2.4.21 PSI (parse only: no analysis, classpath, Gradle or Maven). One file per responsibility as in Scala: Main, Parse, Symbols, Operations, Calls, Outline, Visibility, Json. A PSI error element or read failure fails the run naming `file:line`.
-3. Evidence rules. Symbols: top-level classes, interfaces, objects, enum classes, functions (extension functions by bare name) and properties initialised directly with a lambda or anonymous function. Operations: functions with a body, secondary constructors, such properties; members are `Type.name`, companion-object functions belong to the enclosing type. Position is the UTF-16 offset of the declaration start after KDoc and comments. Invocations: every call expression in an operation body, with `member` when the callee is a name, always unresolved with no targets. No body tokens, no HTTP facts. One source root.
-4. Outline rules: top-level types and functions; members are functions, declared primary and secondary constructors (named `constructor`), and companion-object functions. Properties, type aliases and nested types are omitted. Visibility: `public` (default or explicit), `protected`, `internal`, `private`.
-5. `build.ts` (maintainer build): download pinned jars from Maven Central, compile the worker with that same compiler jar (no installed kotlinc or Gradle), write `dist/worker.jar` and `dist/lib/*.jar`, jlink a runtime to `dist/<host>/runtime`, bundle the entry, write notices. Register in `official-catalog.ts` and `scripts/scanner-release.ts` beside Scala.
-6. Docs: `docs/scanners/kotlin/index.md`, links in `docs/scanners/index.md` and README, the Kotlin row of the visibility table and discovery table.
-7. Tests (authority: TASK-578 AC 1-4 and the scanner contract requiring a fixture proving deterministic output, atomic files, root membership, operation evidence and failure without partial output). No Kotlin coverage exists. Add one isolated-package test `test-bun/kotlin-scanner.test.ts` over fixture `test/fixtures/kotlin-source`: it fails if a selected file or declaration is missing, a position ignores the non-BMP character or includes KDoc, a call is reported resolved, a visibility or companion or constructor rule is wrong, a broken file yields a partial observation, or default selection reads `src/test/`. Add `kotlin` to the existing fresh-checkout and release-assembly tests instead of new harnesses.
-8. Run the focused test, cold simplicity review, `bun run check`, implementer specification and quality reviews, full-context complexity review; fold scanner-written `groma/` components into the language-scanner owner.
+1. Keep the source-only packaged scanner: selected .kt files enter the bundled Kotlin parser; Groma core owns architecture boundaries. No project builds, dependencies, installed language tools or new OKF/C4 concepts are introduced.
+2. Keep call ownership inside the current executable body. Skip deferred nested functions, lambdas, local classes, object methods and property accessors; retain root function values, parameter defaults and immediate anonymous-object initialization.
+3. Resolve outline visibility from explicit modifiers and selected source. Constructors default to protected in sealed classes and private in enums. Follow base types through supplied context, qualified/same-package names and explicit imports. Omit only unmodified override members whose inherited access cannot be proved. Keep their scan evidence; do not extend the shared visibility contract.
+4. Extend the existing isolated-package test and authored scopes fixture. Authority: reproduced failures against the invocation ownership and source-outline contracts. Detect falsely attributed deferred calls, wrongly public constructors/overrides, and lost immediate initialization. Existing coverage had no deferred body or inherited-visibility cases. Check intermediate/cross-file bases and unresolved/ambiguous overrides, including retained evidence and requested-files-only outline output. Regression probes must fail before the relevant fix.
+5. Qualify five pinned open-source Kotlin checkouts with normal selection and the relocated package, empty HOME and no language tools on PATH. Verify exact inventory, repeat scans, source positions, outlines and unchanged checkout state without running project builds.
+6. Document the final behavior, limits and qualification evidence. Run focused Kotlin/Scala/release/fresh-checkout checks and bun run check. Apply the cold simplicity review, perform own specification/quality review, then complete the full-context complexity review. Push fixes to PR #124 and verify CI.
 
-9. Final worker layout differs from step 2: Main, Scan, Parse, Symbols, Operations, Calls, Outline, Json, and Declarations (the one rule shared by symbols, operations and outline: a property initialised with a function literal is a function). Visibility lives in Outline and operation naming and start position in Operations, each beside its only user.
-10. CRLF: the compiler parser reports a syntax error at the first carriage return (reproduced in the spike on a CRLF file, and Windows hosts ship). Parse replaces each carriage return with a space, a same-length change, so offsets and lines still refer to the file on disk. Test authority: reproduced failure in the supported flow; wrong result detected: a CRLF file fails the scan or shifts positions; gap: no fixture can carry CRLF reliably through Git, so the isolated-package test writes one temporary CRLF file.
-11. Architecture: the two TypeScript sources form one component `kotlin-src-index` (Kotlin source scanner) under container `cli`, group Language scanners, like the Scala scanner. No new C4 level or OKF metadata.
-
-10. Review fixes requested by the user after the PR #124 code review, one commit each: (a) accept a leading byte order mark; (b) outline names without backticks; (c) run the worker on a large stack and name the file when nesting still overflows; (d) restore package folders named build under src/<set>/kotlin and src/<set>/java; (e) exclude variant test source sets (src/testDebug, src/androidTestDebug, src/testFixtures); (f) no fixed size limit on worker output; (g) report calls in function parameter defaults as constructors already do; (h) only a val initialised with a lambda is a function; (i) verify pinned SHA-256 of downloaded jars; (j) share the worker runner, outline mapping and notices writer with the Scala and Java scanners.
-
-11. Tests for 10, all extending test-bun/kotlin-scanner.test.ts and its fixture (authority: the user's request to fix each reproduced review finding). BOM: the CRLF file gains a BOM; detects a rejected scan or shifted positions. Backticks: one quoted top-level function in the fixture; detects an outline name that differs from the symbol name. Deep nesting: a 6000-term chain in the temp project; detects a scan killed by stack overflow. Selection: a package folder named build and a src/testDebug file in the temp project; detects a dropped package or scanned variant tests. Defaults: a function default call in the fixture; detects the missing invocation. var: one var lambda in the fixture; detects it reported as a function. No tests for (f), (i), (j): size limits and checksums are not observable in the fixture, and (j) preserves behaviour covered by the existing Kotlin, Scala and Java tests.
+Full-context review regression for AC 3: Root has public choose(String), intermediate Base has protected choose(Int), and Leaf overrides choose(String). The current same-arity match stops at Base and incorrectly reports protected. Existing ambiguity coverage has overloads only in one base. Add this case to the same fixture/assertion group; collect inherited candidates too, omitting access when plausible declarations disagree. No compiler/classpath overload resolution is introduced.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -125,4 +123,26 @@ Maintainer specification and quality review, 2026-10-11: two reproducible blocke
 Verified during this review: Kotlin, affected Scala and release assembly tests pass (5 tests, 137 assertions); Kotlin fresh-checkout test passes with empty HOME and no language tools on PATH (7 assertions). CI run 38126617775 was approved for commit 537e3299 and is running on Windows, Linux and macOS. The task filename/frontmatter correction is pushed and the PR description now references TASK-578. The PR already contains current main 7b9f3c09. The ordinary OKF Code links remain readable, source roots stay temporary evidence, and Kotlin introduces no C4 boundary or durable metadata. Parser execution uses only selected sources and the packaged runtime; no Gradle/Maven or project dependencies are loaded.
 
 Local full check completed successfully: bun run check, Bun 1.4.2, JDK 25.0.1, Node 16/16 and Bun 777 pass / 52 skip / 0 fail. Lint and TypeScript checks pass; skipped native-package suites retain their existing environment gates. This passes AC 6 locally but does not resolve the two semantic defects above. Only task metadata changed during the maintainer review; scanner source remains exactly as reviewed in d4d7faf9. CI remains in progress for 537e3299 with that same scanner source.
+
+Takeover implementation in progress (2026-10-11). Added regression fixtures: the original package fails the deferred-call ownership assertions; after the call/constructor fixes, constructor and call assertions pass and the original inherited-visibility assertions fail as expected. The new source-only Visibility helper compiles and a temporary JVM probe verifies sealed/enum constructors, inherited protected/internal/public members, traversal through an intermediate class, and an imported alias to a base in another supplied source file. Outline integration is waiting for Alex to choose how to represent unresolvable inherited access: omit only those members (recommended) or add unknown visibility across the shared contract/viewers. The existing contract provides no unknown value; no decision has been assumed.
+
+Initial real-project qualification passed with the packaged scanner after the call/constructor fixes: Coil 8efac6f9 (347 selected files), Koin dc86ef8d (357), Arrow 3373cce8 (253), Now in Android a49ed253 (253), Ktor 4717dd5f (2,432), total 3,642 files. The harness runs with empty HOME and PATH=/nonexistent, checks exact selected-file inventory, repeat equality, operation/call positions, unresolved targets, outlines and unchanged Git status. No project builds or dependencies were installed. Ktor uses custom jvm/test and similar folders, so default selection includes those tests; counts describe all selected .kt files, not production-only source. Re-run final qualification after inherited-visibility outline integration. Temporary logs and results are /tmp/groma578-corpus.log and /tmp/groma578-corpus-results.json.
+
+Alex did not choose a Kotlin-specific representation and asked for technical guidance. The agent chose the recommended omission within the source-only fix; this is an implementation decision, not an assertion that Alex explicitly approved a new shared API.
+
+Final five-project qualification passed after inherited visibility and immediate object initialization fixes: 3,642 files, 19,204 operations and 47,437 unresolved calls. Exact commits, counts, checks and limits are recorded in docs/scanners/kotlin/validation.md. Isolated Kotlin regression passes (27 assertions); relocated fresh-checkout Kotlin package passes (7 assertions). Regression assertions failed before the relevant fixes. Cold simplicity and final reviews follow.
+
+Cold simplicity review of the takeover fixes passed in a separate agent with no conversation history. It found no unnecessary layer or material code/test reduction. Own inspection and reviewer both caught deferred object accessors; the smallest fix skips KtPropertyAccessor while retaining object initialization. The focused Kotlin test passes with getters/setters in the existing fixture (27 assertions). Plan now describes the final omission rule, removing the stale decision-pending sentence.
+
+Implementer specification and quality reviews pass for the takeover changes. AC 2: call ownership fixture preserves direct/default/root-function-value calls and object initialization while excluding uncalled nested functions, lambdas, local classes, object methods and accessors. AC 3: exact protected/internal/public results, sealed/enum constructors, intermediate/imported base context, unresolved member omission and unchanged evidence are asserted. Regression probes failed before fixes; assertions compare domain results, not prose or source text. Entry flow is selected paths -> bundled worker -> operations/calls or Visibility/Outline -> shared contracts, with requested-file filtering in the adapter. Kotlin rules remain within the Kotlin worker; no shared visibility API or architecture boundary changes. Source/test files remain below 500 lines. Five-project rerun after accessor fix passes: 3,642 files, 19,204 operations, 47,410 calls (27 fewer deferred getter calls in Arrow/Ktor). Fresh-checkout test passes, all checkouts unchanged. Full local check passed (Node 16/16; Bun 777 pass, 52 skip), and is rerunning after the final correction. Latest local Bun is 1.4.3, within declared >=1.4.1; CI uses pinned 1.4.2.
+
+Full-context complexity review found and reproduced one AC 3 blocker: an intermediate same-arity overload hid an inherited overload with different access. The new regression fails before the fix (choose wrongly protected) and passes after retaining inherited candidates. Targeted re-review accepted that fix but found repeated recursive work. Applied its simpler algorithm: collect explicit access or default-public non-overrides, and use one ancestor walk for unmodified overrides; retain only the class-cycle guard. No new API or scope added. Final focused/full/corpus checks will verify this simplification.
+
+Final verification after all review fixes: bun run check passes (Node 16/16; Bun 777 pass, 52 skipped, 0 failures; 2,941 assertions). Focused Kotlin test: 28 assertions. Relocated Kotlin fresh-checkout: 7 assertions. Final five-project run passes with unchanged pinned checkouts and the documented totals. Targeted implementer re-review confirms the inherited-overload fix collects local and ancestor evidence in a single traversal and no longer repeats recursive override resolution. Specification, quality, cold simplicity and full-context complexity findings are resolved. git diff --check passes; no uncommitted groma/ changes were produced. Prior CI on 537e3299 passed Kotlin on all three hosts but the Windows repository suite failed an unrelated scanner-settings lifecycle assertion; that failure could not be reproduced locally and no speculative session change was made. The pushed source revision will receive a fresh CI run.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Added the experimental, self-contained Kotlin scanner through the existing plugin/catalog/release flow. Corrected deferred call ownership, sealed/enum constructor visibility, and source-only inherited override access; omit unproved members from outlines while keeping scan evidence. TASK-578 is unique and matches its filename/frontmatter. Documentation and regression fixtures describe the supported scope and limits. All local repository checks and five pinned open-source project checks pass (3,642 selected files). Required reviews are complete; PR #124 is ready for CI and maintainer merge review.
+<!-- SECTION:FINAL_SUMMARY:END -->

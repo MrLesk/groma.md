@@ -39,7 +39,7 @@ object Operations {
         }
     }
 
-    /** A companion object holds its enclosing type's static functions, so it adds no owner of its own. */
+    /** Companion functions use the enclosing type as their owner, matching the shared outline convention. */
     private fun typeOwner(type: KtClassOrObject, owner: String?): String? =
         if (type is KtObjectDeclaration && type.isCompanion()) owner
         else type.name?.let { qualified(owner, it) }

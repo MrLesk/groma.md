@@ -1,7 +1,7 @@
 import { access } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { CodeFile, SourceReference } from '@groma/scanner'
+import type { CodeFile, ScannerSettings, SourceReference } from '@groma/scanner'
 import { bundledJava, runJvmWorker, workerOutline } from '../../jvm-worker.ts'
 
 const dist = fileURLToPath(new URL('../dist/', import.meta.url))
@@ -25,8 +25,12 @@ export function scanWithWorker(root: string, files: readonly string[]): Promise<
   return runWorker('scan', root, files)
 }
 
-/** Outlines only the requested sources with the same bundled parser used by scans. */
-export async function readKotlinOutline(root: string, references: readonly SourceReference[]): Promise<CodeFile[]> {
+/** Groma supplies source context for inherited access; only requested files become Code outlines. */
+export async function readKotlinOutline(
+  root: string, references: readonly SourceReference[], _settings: ScannerSettings = {}, sourceFiles: readonly string[] = [],
+): Promise<CodeFile[]> {
   if (references.length === 0) return []
-  return workerOutline(await runWorker('outline', root, references.map(reference => reference.file)), references)
+  const requested = new Set(references.map(reference => reference.file))
+  const files = [...new Set([...requested, ...sourceFiles.filter(file => file.endsWith('.kt'))])]
+  return workerOutline(await runWorker('outline', root, files), references).filter(file => requested.has(file.file))
 }

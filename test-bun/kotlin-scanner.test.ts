@@ -63,6 +63,33 @@ async function verifyOutline(scanner: ScannerPlugin): Promise<void> {
   ])
 }
 
+async function verifyOperationScopes(scanner: ScannerPlugin): Promise<void> {
+  const observation = (await scanner.scan(fixture, {}, ['scopes/Calls.kt']))!
+  const calls = Object.fromEntries(observation.operations!.map(operation => [operation.name,
+    observation.invocations!.filter(call => call.source === operation.id).map(call => call.member).sort(),
+  ]))
+  expect(calls).toEqual({
+    outer: ['defaultValue', 'now', 'prepareObject', 'schedule'], namedLambda: ['directLambda'], namedFunction: ['directFunction'],
+  })
+}
+
+async function verifyVisibility(scanner: ScannerPlugin): Promise<void> {
+  const files = await scanner.readCodeStructure!(fixture, [{ file: 'scopes/Visibility.kt', symbols: [] }], {}, ['scopes/Visibility.kt', 'scopes/Base.kt'])
+  expect(files.map(file => file.file)).toEqual(['scopes/Visibility.kt'])
+  const members = Object.fromEntries(files[0]!.declarations.filter(declaration => declaration.kind === 'type')
+    .map(declaration => [declaration.name, declaration.members.map(member => [member.name, member.visibility])]))
+  expect(members.Message).toEqual([['constructor', 'protected'], ['constructor', 'protected']])
+  expect(members.State).toEqual([['constructor', 'private']])
+  expect(members.Derived).toEqual([['hidden', 'protected'], ['local', 'internal'], ['visible', 'public']])
+  expect(members.CrossFile).toEqual([['remote', 'protected']])
+  expect(members.Unknown).toEqual([['visible', 'public'], ['local', 'public']])
+  expect(members.Ambiguous).toEqual([])
+  expect(members.InheritedOverload).toEqual([])
+  const observation = (await scanner.scan(fixture, {}, ['scopes/Visibility.kt']))!
+  expect(observation.operations!.some(operation => operation.name === 'Unknown.unseen')).toBeTrue()
+  expect(observation.files[0]!.symbols!.some(item => item.name === 'Unknown')).toBeTrue()
+}
+
 test.concurrent('packaged Kotlin scanner reads selected source, bounded calls and outlines without a build model', async () => {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-kotlin-'))
   try {
@@ -75,6 +102,8 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
     expect(await scanner.scan!(fixture, {}, [orders])).toEqual(first)
     await expect(scanner.scan!(fixture, {}, [orders, broken])).rejects.toThrow('Broken.kt')
     await verifyOutline(scanner)
+    await verifyOperationScopes(scanner)
+    await verifyVisibility(scanner)
 
     const project = path.join(temporary, 'project')
     await cp(fixture, project, { recursive: true })
@@ -98,7 +127,7 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
     expect(await init.exited, await new Response(init.stderr).text()).toBe(0)
     const manifest = JSON.parse(await readFile(path.join(artifact, 'package.json'), 'utf8'))
     const selected = await scannerFiles(project, manifest.groma.scanner, false)
-    expect(selected).toEqual(['Ship.kt', orders, tool])
+    expect(selected).toEqual(['Ship.kt', 'scopes/Base.kt', 'scopes/Calls.kt', 'scopes/Visibility.kt', orders, tool])
     expect(await scanner.listSourceFiles!(project, {}, [...selected, 'build.gradle.kts'])).toEqual(selected)
     const observation = (await scanner.scan!(project, {}, selected))!
     expect(observation.operations!.find(operation => operation.name === 'ship')!.position).toBe(windows.indexOf('fun ship'))

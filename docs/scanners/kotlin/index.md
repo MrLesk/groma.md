@@ -46,16 +46,20 @@ worker parses each file without analyzing it and reports:
   function-valued properties, with original source positions. A member is named
   by its type, such as `Orders.place`. A secondary
   constructor is `Orders.constructor`. Functions of a companion object belong to
-  the enclosing type, as `Orders.create`, because that is how Kotlin declares
-  static functions. Unlike the outline, operations also cover the functions of
+  the enclosing type, as `Orders.create`, matching the shared outline convention. Unlike the outline, operations also cover the functions of
   nested types, as `Orders.Nested.run`, and function-valued properties declared
   in a type. A position is the declaration's start after its KDoc and comments.
-- **Invocations**: every call expression inside an operation, parameter
-  defaults included, at the start of its receiver when it has one. Calls remain unresolved because syntax alone
+- **Invocations**: call expressions belonging to the operation, parameter
+  defaults included, at the start of its receiver when it has one. Bodies of
+  nested functions, lambdas and local-class methods are not attributed to the
+  enclosing operation. A named function value keeps its own direct calls;
+  anonymous-object initialization still runs at the enclosing expression.
+  Calls remain unresolved because syntax alone
   cannot prove their targets: `Orders()` may construct a type or call a function.
   A secondary constructor's `this(...)` or `super(...)` delegation is not a
   call, though calls in its arguments are. Operators, infix calls such as
-  `1 to 2`, property accessors, and initializer blocks are not reported.
+  `1 to 2`, and property accessors are not reported. Initializer blocks do not
+  become separate operations.
 
 The scanner supplies no body fingerprints for duplicate-code findings and no
 HTTP facts. A parse or read failure rejects the whole observation and names the
@@ -71,9 +75,20 @@ then each secondary constructor. Companion-object functions are members of the
 enclosing type. Other nested types, properties, and type aliases are omitted.
 Code links use bare symbol names; a type link does not mark its members.
 
-Visibility is read from the written modifier: `private`, `protected`,
-`internal`, or `public` when there is none. An `override` without a modifier
-therefore reads as `public` even when it inherits `protected`.
+Explicit visibility is preserved. Without a modifier, constructors are
+`protected` in sealed classes and `private` in enums; other declarations default
+to `public`, except overrides that inherit their access.
+
+`Visibility.kt` finds inherited access in the requested files and the selected
+source context supplied by Groma. It follows enclosing types, same-package
+names, explicit imports (including aliases) and qualified type names. It does
+not resolve wildcard imports or type aliases. Overloads are compared by name,
+parameter count and presence of an extension receiver; all plausible declarations
+must agree on access. If a base is missing, duplicated across source sets, or
+ambiguous, that override member is omitted from the outline. Explicitly visible
+members and the containing type remain. File inventory, symbols and operations
+are unchanged. This keeps unknown access from being reported as public without
+requiring project dependencies. See Kotlin's [visibility rules](https://kotlinlang.org/docs/visibility-modifiers.html).
 
 Source listing filters the supplied candidates by `.kt` without parsing
 files or starting the worker.
@@ -124,3 +139,5 @@ The Kotlin test builds an isolated package and checks selection, declarations,
 calls, positions, parse failure, and outlines. The shared fresh-checkout test
 also runs the relocated package with an empty home and no language tools on
 `PATH`, checks repeatability, and checks that the checkout stays unchanged.
+
+Real-project qualification is recorded in [Kotlin scanner validation](validation.md).

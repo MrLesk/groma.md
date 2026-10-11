@@ -35,15 +35,16 @@ object Scan {
         )
     }
 
-    fun outlineRoot(parser: Parser, relatives: List<String>): List<Map<String, Any?>> = relatives.map { relative ->
-        withinStack(relative) {
-            val source = parser.read(relative)
-            mapOf("file" to relative, "declarations" to Outline.fromSource(source).map { declaration ->
+    fun outlineRoot(parser: Parser, relatives: List<String>): List<Map<String, Any?>> {
+        val sources = relatives.map { relative -> withinStack(relative) { parser.read(relative) } }
+        val visibility = Visibility(sources)
+        return sources.map { source -> withinStack(source.relative) {
+            mapOf("file" to source.relative, "declarations" to Outline(source, visibility).declarations().map { declaration ->
                 mapOf("kind" to declaration.kind, "name" to declaration.name, "line" to declaration.line,
                     "visibility" to declaration.visibility,
                     "members" to declaration.members.map { mapOf("name" to it.name, "line" to it.line, "visibility" to it.visibility) })
             })
-        }
+        } }
     }
 
     /**
