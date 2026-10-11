@@ -39,7 +39,10 @@ setup, discovery, readiness, and existing scanner selections. Web and terminal
 settings group selections by kind. Package availability and readiness are
 separate: a missing package needs restoration; an incompatible Groma version
 blocks loading; a found Backlog adapter needs the `backlog` CLI on PATH.
-Its readiness reports `bun i -g backlog.md` when that CLI is missing. Without a
+Its readiness reports `bun i -g backlog.md` when that CLI is missing. Reporting
+readiness imports the selected adapter and calls its `readiness()`, so the
+welcome screen, plugin settings and `groma plugin list` execute work-source
+code, while `groma scanner list` still executes no plugin. Without a
 Backlog selection, neither the welcome screen nor either viewer invokes it.
 Choosing Backlog during interactive `groma init` installs the adapter and records
 its selection before initializing Backlog.
