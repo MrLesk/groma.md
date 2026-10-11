@@ -4,7 +4,7 @@ title: Harden audited surfaces and correct documentation drift
 status: In Progress
 assignee: []
 created_date: '2026-09-27 01:23'
-updated_date: '2026-10-11 16:37'
+updated_date: '2026-10-11 16:38'
 labels: []
 dependencies: []
 modified_files:
@@ -42,6 +42,8 @@ modified_files:
   - test-bun/cli-actions.test.ts
   - test-bun/web-hardening.test.ts
   - docs/viewers/web/index.md
+  - src/code-reference.ts
+  - test/architecture-model-errors.test.ts
 priority: high
 type: task
 ordinal: 611000
@@ -93,4 +95,7 @@ Tests (rule and authority; wrong result caught; coverage gap):
 - test-bun/cli-actions.test.ts, 'a failed export prints its message and exits 1 without a stack trace' (kept from the pull request; now runs in its own temporary repository instead of this checkout). Rule: a command that fails prints the message and exits 1, as groma scan and groma view already do (audit finding D2-3, kept by the owner). Wrong result: groma export prints a source frame and stack lines, which main does for an unknown revision. Gap: no test runs groma export to a failure.
 
 - test-bun/web-hardening.test.ts, 'the viewer accepts no connection on a network address'. Rule: the viewer listens on the loopback address only (owner decision, lane step 4a, from the external review). Wrong result: a client on the network that sends 'Host: localhost' gets the map; main answers 200 on the machine's network address. Gap: every other server test connects through loopback, and the Host check cannot stop a client that is not a browser.
+
+- test/architecture-model-errors.test.ts, 'reports a code reference that climbs out of the repository' and 'reports a code reference with an absolute file'. Rule: a stored code reference's file is repository-relative (docs/component-markdown.md, Code references), so the model rejects an absolute path or a '..' segment (owner decision, lane step 4b). Wrong result: buildArchitectureModel accepts the component and every reader joins that file to the repository root. Gap: no model test gives a component a code reference.
+- test-bun/web-hardening.test.ts, 'a commit whose code reference climbs out of the repository cannot be compared' (replaces the source-route and export tests). Rule: the same, observed at the route the external review named. Wrong result: /world.json?from=<commit> answers 200 with the content of a file beside the repository, which it does without the model rule. Gap: no test compares against a commit whose stored reference is invalid.
 <!-- SECTION:PLAN:END -->

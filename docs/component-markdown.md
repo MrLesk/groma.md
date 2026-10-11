@@ -221,7 +221,7 @@ the existing `groma.id` identity.
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `scanner` | yes | Scanner that found the reference. |
-| `file` | yes | Exact repository-relative source file. |
+| `file` | yes | Exact repository-relative source file. An absolute path or a `..` segment is invalid. |
 | `symbol` | no | Relevant symbol or entry point; omitted when the complete file is useful. |
 
 Multiple scanners may contribute references to one element. Code references

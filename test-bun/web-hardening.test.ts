@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test'
-import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { connect } from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT, type WorkSource } from '@groma/work-source'
-import { exportWebViewer } from '../src/viewers/web/export.ts'
 import { startWebViewer } from '../src/viewers/web/server.ts'
 
 function emptyWorkSource(): WorkSource {
@@ -44,24 +44,6 @@ function rawStatus(port: number, host: string, address = '127.0.0.1'): Promise<n
   socket.on('error', reject)
   return promise
 }
-
-const componentMarked = (escaping: string) => `---
-type: C4 Component
-title: Orders
-status: stable
-groma:
-  id: orders
-  parent: api
-  code:
-    - scanner: typescript
-      file: src/orders.ts
-      symbol: placeOrder
-    - scanner: typescript
-      file: ../${escaping}
----
-
-Records an order and its lines.
-`
 
 test.concurrent('the viewer serves the operator loopback and refuses a rebound foreign Host', async () => {
   const { root, viewer } = await preparedViewer('empty-project', async repository => {
@@ -115,42 +97,30 @@ test.concurrent('state-changing requests from a foreign origin are refused; same
   }
 })
 
-test.concurrent('a stored reference outside the repository is refused and an owned file is served', async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-hardening-source-'))
-  const escaping = `${path.basename(root)}-outside.txt`
+test.concurrent('a commit whose code reference climbs out of the repository cannot be compared', async () => {
+  const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-hardening-compare-'))
+  const root = path.join(temporary, 'project')
+  const git = (...args: string[]) => execFileSync('git', ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', ...args], { cwd: root, encoding: 'utf8' }).trim()
   let viewer: Awaited<ReturnType<typeof startWebViewer>> | undefined
   try {
     await cp(path.resolve(import.meta.dir, '../test/fixtures/source-view'), root, { recursive: true })
-    await writeFile(path.join(root, 'groma/systems/shop/containers/api/components/orders.md'), componentMarked(escaping))
-    await writeFile(path.join(path.dirname(root), escaping), 'secret outside content')
-    const git = Bun.spawn(['git', 'init', '--quiet', root], { stdout: 'ignore', stderr: 'pipe' })
-    expect(await git.exited).toBe(0)
+    await writeFile(path.join(temporary, 'outside.txt'), 'outside content')
+    const orders = path.join(root, 'groma/systems/shop/containers/api/components/orders.md')
+    const stored = await readFile(orders, 'utf8')
+    git('init', '--quiet')
+    git('config', 'core.autocrlf', 'false')
+    // Only the commit names the file beside the repository; the working tree keeps the fixture's reference.
+    await writeFile(orders, stored.replace('file: src/orders.ts', 'file: ../outside.txt'))
+    git('add', '.')
+    git('commit', '--quiet', '-m', 'Reference a file outside the repository')
+    const commit = git('rev-parse', 'HEAD')
+    await writeFile(orders, stored)
     viewer = await startWebViewer(root, { port: 0, workSource: emptyWorkSource(), scan: false })
-    const escaped = await fetch(`${viewer.url}/source.json?element=orders&file=../${escaping}`)
-    expect(escaped.status).toBe(404)
-    expect((await fetch(`${viewer.url}/code.json?element=orders`)).status).toBe(404)
-    const served = await fetch(`${viewer.url}/source.json?element=orders&file=src/orders.ts`)
-    expect(served.status).toBe(200)
-    expect(((await served.json()) as { source: string }).source).toContain('placeOrder')
+    const compared = await fetch(`${viewer.url}/world.json?from=${commit}`)
+    expect(compared.status).toBe(422)
+    expect(await compared.text()).not.toContain('outside content')
   } finally {
     await viewer?.close()
-    await rm(root, { recursive: true, force: true })
-    await rm(path.join(path.dirname(root), escaping), { force: true })
-  }
-})
-
-test.concurrent('the export refuses a stored reference that escapes the repository', async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-hardening-export-'))
-  const escaping = `${path.basename(root)}-outside.txt`
-  try {
-    await cp(path.resolve(import.meta.dir, '../test/fixtures/source-view'), root, { recursive: true })
-    await writeFile(path.join(root, 'groma/systems/shop/containers/api/components/orders.md'), componentMarked(escaping))
-    await writeFile(path.join(path.dirname(root), escaping), 'secret outside content')
-    const git = Bun.spawn(['git', 'init', '--quiet', root], { stdout: 'ignore', stderr: 'pipe' })
-    expect(await git.exited).toBe(0)
-    await expect(exportWebViewer(root, path.join(root, 'site'))).rejects.toThrow(/escapes the repository/)
-  } finally {
-    await rm(root, { recursive: true, force: true })
-    await rm(path.join(path.dirname(root), escaping), { force: true })
+    await rm(temporary, { recursive: true, force: true })
   }
 })
