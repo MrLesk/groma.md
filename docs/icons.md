@@ -14,18 +14,18 @@ groma edit storage --icon "" --colour ""
 
 Colours accept the names documented in [the Markdown contract](component-markdown.md)
 or six-digit hexadecimal RGB. They keep the same accent in light, dark and
-blueprint themes. The map legend counts elements with each authored colour.
-Changing the theme does not change the stored colour.
+blueprint themes. The legend below the hierarchy lists each colour in use with
+the number of elements that have it; a name and its hexadecimal value are the
+same colour.
 
 Icon names resolve through installed packs in configured order. Use `pack:name`
 to select a particular pack. An unknown name draws no icon and `groma lint`
-reports the element and name. Emoji are resolved to Twemoji SVG artwork when
-loading the map and embedded into the map and cover; resolving an emoji needs
-access to jsDelivr. If the artwork cannot be read, the map still opens without
-that icon. Exported maps and covers contain the resolved SVG and need no emoji
-font or network access. Twemoji artwork is by Twitter and other contributors,
-licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), from
-[Twemoji](https://github.com/jdecked/twemoji), version 16.0.1.
+reports the element and name. The map, the web details pane, exported pages
+and covers embed a pack icon as its SVG, so showing it needs neither the
+installed pack nor network access. An emoji needs no pack: the map draws it as
+text in the reader's own emoji font. Covers show pack icons only, because the
+cover renderer has no emoji font. The details panes list the icon's name, or
+the emoji, beside the colour.
 
 ## Make a pack
 

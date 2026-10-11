@@ -33,4 +33,4 @@ groma:
 description: Paints the browser map as SVG buildings, routes and labels
 ---
 
-Draws the map surfaces, buildings, labels, and connections as SVG. Applies selection and task emphasis. Draws resolved SVG icons and fixed authored accent colours through the same painting functions used by the browser and cover exporter.
+Draws the map surfaces, buildings, labels, and connections as SVG. Applies selection and task emphasis. Draws each resolved icon, a pack's SVG image or an emoji as text, and fixed authored accent colours through the same painting functions used by the browser and cover exporter.

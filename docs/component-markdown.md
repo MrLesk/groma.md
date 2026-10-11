@@ -453,4 +453,9 @@ The live [groma.md system](../groma/systems/groma/system.md) and
 set the optional `groma.icon` and `groma.colour` fields. Empty values remove
 them. Scans preserve both fields. These are Groma presentation semantics on
 the existing C4 element, not C4 types or OKF requirements.
-See [icon packs and colours](icons.md) for installation and publishing.
+
+A colour name and its `#RRGGBB` value are the same colour. `groma edit
+--combine` refuses to absorb a record that has an icon or a colour, as it does
+for a group or technology. A revision comparison reports a changed icon or
+colour as a modification of its component.
+See [icon packs and colours](icons.md) for drawing, installation and publishing.

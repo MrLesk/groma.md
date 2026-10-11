@@ -23,7 +23,10 @@ function titleWithin(title: string, width: number): string {
   return `${letters.join('')}…`
 }
 
-/** The real map sits on one continuous field; a glass footer carries the project's sharing identity. */
+/**
+ * The real map sits on one continuous field; a glass footer carries the project's sharing identity. The cover
+ * renderer has only the bundled fonts, which hold no emoji, so an emoji icon is hidden rather than drawn as an empty box.
+ */
 export function renderCover(payload: CoverPayload, theme: WebTheme): string {
   const palette = palettes[theme]
   const scene = presentScene(payload.sheet, payload.project ?? undefined, NESTED_POSE)
@@ -41,7 +44,7 @@ export function renderCover(payload: CoverPayload, theme: WebTheme): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
     id="map" width="${COVER_SIZE.width}" height="${COVER_SIZE.height}" viewBox="0 0 1200 630"
     font-family="${escaped(webFontFamily)}" color="${palette.ink}">
-    <style>${mapDrawingCss(palette, camera.k)} #map .project-edit { display: none; }</style>
+    <style>${mapDrawingCss(palette, camera.k)} #map .project-edit, #map .emoji-icon { display: none; }</style>
     <defs>
       ${definitions}
       ${markup([gridPattern({ ...camera, k: 0.5 }, scene.view)])}

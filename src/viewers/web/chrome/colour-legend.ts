@@ -1,25 +1,37 @@
-import { accentColour } from '../../../element-appearance.ts'
+import { accentColour, accentColours } from '../../../element-appearance.ts'
 import type { AnnotatedElement } from '../../../types.ts'
 
-/** Authored colour counts are separate from the live metric scale. */
-export function paintColourLegend(host: HTMLElement, elements: readonly AnnotatedElement[]): void {
-  let legend = host.querySelector<HTMLElement>('#colour-legend')
-  if (!legend) {
-    legend = document.createElement('aside')
-    legend.id = 'colour-legend'
-    legend.setAttribute('aria-label', 'Architecture colours')
-    legend.style.cssText = 'display:flex;gap:8px 12px;flex-wrap:wrap;margin-top:12px;font-size:12px'
-    host.append(legend)
-  }
+export const colourLegendCss = `
+  #colour-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; }
+  #colour-legend:empty { display: none; }
+  #colour-legend i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--element-colour); }
+`
+
+/**
+ * The accent colours in use, each once however its elements spell it: a name and its hex are one colour.
+ * `colour` is the lower-case hex; `label` is the colour's name, or the hex again when it has none.
+ */
+export function colourCounts(
+  elements: readonly Pick<AnnotatedElement, 'colour'>[],
+): { colour: string; label: string; count: number }[] {
   const counts = new Map<string, number>()
-  for (const element of elements) if (element.colour) counts.set(element.colour, (counts.get(element.colour) ?? 0) + 1)
-  legend.replaceChildren()
-  legend.style.display = counts.size ? 'flex' : 'none'
-  for (const [colour, count] of [...counts].sort(([a], [b]) => a.localeCompare(b))) {
+  for (const element of elements) {
+    const colour = accentColour(element.colour)
+    if (colour !== undefined) counts.set(colour, (counts.get(colour) ?? 0) + 1)
+  }
+  const nameOf = (colour: string) => Object.keys(accentColours).find(name => accentColours[name] === colour)
+  return [...counts]
+    .map(([colour, count]) => ({ colour, label: nameOf(colour) ?? colour, count }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+}
+
+/** Fills the page's colour legend; with no accent colour in use it stays empty, and the stylesheet hides it. */
+export function paintColourLegend(host: HTMLElement, elements: readonly AnnotatedElement[]): void {
+  host.replaceChildren(...colourCounts(elements).map(({ colour, label, count }) => {
     const row = document.createElement('span')
     const swatch = document.createElement('i')
-    swatch.style.cssText = `display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:${accentColour(colour)}`
-    row.append(swatch, `${colour} ${count}`)
-    legend.append(row)
-  }
+    swatch.style.setProperty('--element-colour', colour)
+    row.append(swatch, `${label} ${count}`)
+    return row
+  }))
 }

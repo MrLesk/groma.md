@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-09 13:18'
+updated_date: '2026-10-11 16:26'
 labels:
   - senior
 dependencies: []
@@ -102,6 +102,15 @@ modified_files:
   - test-bun/scanner-update.test.ts
   - test-bun/tui-source.test.ts
   - test-bun/iso-map.test.ts
+  - src/viewers/web/sharing/cover.ts
+  - test-bun/web-stats.test.ts
+  - src/viewers/web/page.ts
+  - src/curate.ts
+  - test-bun/system-curation.test.ts
+  - src/history/comparison.ts
+  - src/viewers/web/comparison/details.ts
+  - test-bun/revision-comparison.test.ts
+  - docs/agent-instructions/structure.md
 type: feature
 ordinal: 1
 ---
@@ -143,6 +152,10 @@ TASK-568 replaces scanners.json with one plugin file, `<groma-root>/plugins.json
 4. Render full terminal appearance values as wrapped rows and adjust the action cursor by those rows. Put web element title colour inside its content span so relationship/flow headings start clean.
 5. Test authority and gap: AC4 and reproduced overlap require icon/title bounds inside the reserved band; existing iso-map checks omitted icons, so extend their 2D/iso fit checks. docs/icons.md configured-order rule and the reproduced update defect require the first pack to remain first; existing scanner update coverage omitted icons, so add one local replacement/catalog test. AC4 and reproduced terminal truncation require full values at width 28; existing TUI source tests omitted appearance, so add one visible-width and action-cursor test. The new tests must fail against the original modules.
 6. Rebase the local icon work onto verified TASK-568 commit 7a4455b2cda479f55713f69e481b450c24a9a224, preserve its release/update/configuration fixes, run focused and full checks, browser themes/labels/headings/covers, npm-update reproduction and tui-test. Perform one cold simplicity review, own specification/quality reviews and one full-context complexity review. Commit only this task's fixes. No publication, tags or remote push.
+
+7. Review remediation (findings A to F of the PR 118 review). A: delete the emoji download; the icon loader resolves an icon to a pack image or to the emoji itself, the map draws an emoji as SVG text, the details panes and the terminal show it as plain text, and covers hide it because their renderer has no emoji font. B: the colour legend is painted when the world changes, takes its CSS from its module through page.ts, and counts by the resolved colour; the gray alias goes. C: a combine refuses a source with an authored icon or colour. D: a comparison treats icon and colour as own content and names them as reasons. E: error message, stylesheet idiom, import grouping, and the icon pack kept apart from the scanner builders in the release script. F: docs/icons.md and the Element appearance section follow the code.
+
+8. Tests for the remediation. (a) Rule: an icon resolves through the installed packs or is an emoji, and an unknown name draws nothing (AC3, finding A decision). Wrong result caught: an emoji left unresolved so the map draws nothing, or an unknown name drawn as text. Gap: no test resolves an emoji or an unknown name; add one loader test. (b) Rule: the legend lists each accent colour in use once with its count (AC5, finding B). Wrong result caught: grey and #78838c shown as two rows. Gap: the legend count has no coverage; add one test of the pure count beside the header counts. (c) Rule: a combine never drops authored fields of an absorbed record (the guard in src/curate.ts, finding C from the GitHub review). Wrong result caught: the source document with an icon or colour is deleted. Gap: no combine test covers authored metadata; add one refusal test. (d) Rule: a change to a component's own content marks it modified and is named as a reason (comparison contract, finding D from the GitHub review). Wrong result caught: an icon or colour change reported as unchanged with no reason. Gap: existing comparison tests change title, parent and prose only; add one test. Tests (b), (c) and (d) must fail before their fix.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -162,6 +175,15 @@ Regression proof: temporary copies of the original modules fail the new icon-ban
 Two local scans created zero records and left groma/ clean; missing optional C#/Go/Java/Rust worker binaries retained saved evidence. Actual npm publication is excluded by this fix request and remains unverified.
 
 Final exact-content check passed: Node 16/16; Bun 782 passed, 51 skipped, 0 failed (833 tests). Full-context complexity review passed with no material findings or additional abstraction/deletion needed. Final diff check passed. The icon package built all twelve declared SVG assets. All reported PR #118 fixes are verified; no authority-backed code blocker remains. TASK-561 remains In Progress with AC6 and DoD1 unchecked only because actual public icon-pack publication is excluded and has not been verified. No npm publication, tag or remote push was performed.
+
+Review remediation, findings A to F of the PR 118 review.
+A. Removed the Twemoji download (emojiSvg) from src/icon-packs.ts; loading the architecture no longer touches the network. The loader now sets resolvedIcon on each element: a pack's SVG as a data URI, or the emoji itself; an unknown name stays unresolved. The map draws an emoji as SVG text centred in the icon's square (iconNode in iso/painting/appearance.ts); the web details meta line and the terminal already show it as text. Measured the cover renderer: resvg with only the bundled DejaVu fonts draws an empty box for an emoji, so covers hide emoji icons (one rule in sharing/cover.ts) and docs/icons.md says covers show pack icons only.
+B. The colour legend is a static element of the page, painted from paintWorld, styled by colourLegendCss through page.ts. It counts by the resolved colour (colourCounts); accentColour returns lower-case hex and the gray alias is gone.
+C. requireCombinableSources refuses a source with an authored icon or colour; the agent guide lists both.
+D. ownContent includes icon and colour; the reasons list names them and the What tab shows the changed values, so the reason link leads to something.
+E. iconPackInventory reports error.message; the details title uses a stylesheet (elementTitleCss) and a custom property instead of inline styles, and paintElementTitle is named for what it paints; imports follow each file's grouping; the release script builds the icon pack apart from scannerBuilders under a named iconPackDirectory. The icon pack manifest gained the repository field every other published package gets at staging: the release publishes with npm provenance, which checks it. Publication itself was not run.
+F. docs/icons.md and the Element appearance section follow the code; architecture records icon-packs and map updated through groma edit.
+Checks: bun run typecheck passed. bunx biome lint: 1 warning and 2 infos, the same three as before the change, none in a changed file. bun scripts/lint-web-scrollbars.ts passed. Focused bun tests passed: 113 tests in 19 files (web-stats, revision-comparison, system-curation, scanner-update, iso-map, inspect-details, web-page-inset, tui-source, detach, rename, editing, web-export, web-sharing, web-shell, chrome, plain-view, sheet-scene, lint-command, scanner-release). The legend, combine and comparison tests failed before their fixes. groma lint on a scratch project reported only the unknown icon name. Headless Chromium on an exported scratch project showed the legend rows, the details title with its pack icon and colour, and emoji drawn as text beside container, system and building titles in the light theme. The full bun run check was not run in this lane.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

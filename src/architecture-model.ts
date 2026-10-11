@@ -1,7 +1,7 @@
-import { isAccentColour } from './element-appearance.ts'
 import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
+import { isAccentColour } from './element-appearance.ts'
 import { isReservedId, kebabCase } from './naming.ts'
 import { DRAFT_TYPE, c4Kind, requireGromaMapping } from './okf-profile.ts'
 import { storedConnections } from './relationship-markdown.ts'

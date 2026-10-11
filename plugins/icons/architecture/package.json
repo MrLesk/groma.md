@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "Generic architecture SVG icons for Groma.md",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MrLesk/groma.md.git"
+  },
   "type": "module",
   "files": [
     "icons",

@@ -1,4 +1,3 @@
-import { paintColourLegend } from './chrome/colour-legend.ts'
 import { comparisonDefaultTab } from './comparison/details.ts'
 import { createComparisonControl } from './comparison/control.ts'
 import { createProjectSettings } from './settings/control.ts'
@@ -12,6 +11,7 @@ import { createEmptyState } from './chrome/empty.ts'
 import { createMapDebugPanel } from './chrome/map-debug.ts'
 import { bindMapView } from './chrome/map-view.ts'
 import { bindC4Filter } from './chrome/c4-filter.ts'
+import { paintColourLegend } from './chrome/colour-legend.ts'
 import { animateControl, animateContent } from './chrome/motion.ts'
 import { measureFrame, type MapFrame } from './chrome/frame.ts'
 import { bindChromeActions, createWebShell, pageHosts } from './chrome/shell.ts'
@@ -168,7 +168,6 @@ function paintMapState(): void {
 }
 
 function paintViewState(commitUrl = true): void {
-  paintColourLegend(document.getElementById('legend')!, world.elements)
   if (commitUrl) syncUrl()
   const task = selection.kind === 'task' ? workItem(selection.id) : undefined
   changes.update(world, revisionControl.comparison, revisionControl.selected, primarySelection(selection))
@@ -462,6 +461,7 @@ function paintWorld(): void {
   authoring.refresh()
   pins.paint(currentPins.filter(pin => map.anchorOf(pin.elementId) !== undefined))
   island.paint(currentPins, work)
+  paintColourLegend(document.getElementById('colour-legend')!, world.elements)
   camera.paint()
   paintViewState()
   source.restore()

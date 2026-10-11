@@ -1,4 +1,3 @@
-import { accentColour } from '../../../element-appearance.ts'
 import type {
   AnnotatedElement,
   ArchitectureFinding,
@@ -6,12 +5,14 @@ import type {
   C4Kind,
   CodeReference,
   Origin,
+  ResolvedIcon,
 } from '../../../types.ts'
 import type { Comparison, ComponentChange } from '../../../history/comparison.ts'
 import { changeBadge, comparisonReasons, comparisonOverview, comparisonTechnology, comparisonFiles } from '../comparison/details.ts'
 import type { ElementWorkGroup } from '../../../work/pins.ts'
 import type { Zone } from '../../../sheet/types.ts'
 import { findingsForOwner } from '../../../architecture-findings.ts'
+import { accentColour } from '../../../element-appearance.ts'
 import { removalBlocker } from '../../../removable.ts'
 import { flowsThrough } from '../../flows.ts'
 import type { FlowRef } from '../../flows.ts'
@@ -55,7 +56,7 @@ export interface Inspected {
   technology: string
   icon?: string
   colour?: string
-  iconSvg?: string
+  resolvedIcon?: ResolvedIcon
   files: CodeReference[]
   findings: ArchitectureFinding[]
   /** True when groma remove would succeed on it right now. */
@@ -164,7 +165,7 @@ export function inspectDetails(
     technology: element.technology ?? '',
     icon: element.icon,
     colour: element.colour,
-    iconSvg: element.iconSvg,
+    resolvedIcon: element.resolvedIcon,
     files: element.code,
     findings: findingsForOwner(world.findings ?? [], element.id),
     removable: removalBlocker(world, element.id) === undefined,
@@ -277,22 +278,30 @@ function paintComparedRelationships(list: HTMLElement, pair: RelationshipPairDat
   }
 }
 
-function paintElementAppearance(title: HTMLElement, meta: Element, inspected: Inspected): void {
+export const elementTitleCss = `
+  #details h1 .element-name { color: var(--element-colour, inherit); }
+  #details h1 .element-icon { width: 24px; height: 24px; margin-right: 8px; vertical-align: middle; }
+`
+
+/**
+ * The element's name in its accent colour, after its pack icon. The name sits in its own span, so the colour
+ * leaves with it when another kind of selection writes the heading. An emoji icon is not repeated here: the
+ * meta line above already shows it as text.
+ */
+function paintElementTitle(title: HTMLElement, inspected: Inspected): void {
   const name = document.createElement('span')
+  name.className = 'element-name'
   name.textContent = inspected.title
-  name.style.color = accentColour(inspected.colour) ?? ''
-  title.replaceChildren(name)
-  if (inspected.iconSvg) {
+  const colour = accentColour(inspected.colour)
+  if (colour !== undefined) name.style.setProperty('--element-colour', colour)
+  if (inspected.resolvedIcon?.kind === 'image') {
     const icon = document.createElement('img')
-    icon.src = inspected.iconSvg; icon.alt = inspected.icon ?? ''; icon.width = 24; icon.height = 24
-    icon.style.cssText = 'vertical-align:middle;margin-right:8px'
+    icon.className = 'element-icon'
+    icon.src = inspected.resolvedIcon.uri
+    icon.alt = inspected.icon ?? ''
     name.prepend(icon)
   }
-  if (inspected.icon || inspected.colour) {
-    const appearance = document.createElement('span')
-    appearance.textContent = ` · ${[inspected.icon, inspected.colour].filter(Boolean).join(' · ')}`
-    meta.append(appearance)
-  }
+  title.replaceChildren(name)
 }
 
 export function paintDetails(host: HTMLElement, inspected: Inspected, options: DetailsOptions): void {
@@ -302,9 +311,9 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   const meta = host.querySelector('.meta')!
   const tabsHost = host.querySelector<HTMLElement>('.tabs')!
   const body = host.querySelector('.body')!
-  meta.textContent = `${inspected.kindLabel} · ${inspected.origin}`
+  meta.textContent = [inspected.kindLabel, inspected.origin, inspected.icon, inspected.colour].filter(Boolean).join(' · ')
+  paintElementTitle(title, inspected)
 
-  paintElementAppearance(title, meta, inspected)
   const change = options.comparison?.components[inspected.id]
   if (change !== undefined) {
     meta.append(changeBadge(change.status))

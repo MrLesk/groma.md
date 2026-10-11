@@ -1,5 +1,5 @@
-import { iconPackInventory, restoreIconPacks, saveIconPack } from './icon-packs.ts'
 import groma from '../package.json'
+import { iconPackInventory, restoreIconPacks, saveIconPack } from './icon-packs.ts'
 import { readScannerConfig, writeScannerConfig } from './scanner/modules/config.ts'
 import { configureScanner, installScanners, removeScanner, scannerInventory, updateScanner, type ScannerInstallOptions } from './scanner/modules/inventory.ts'
 import { defaultScannerCacheRoot, installScannerPackage, parseScannerSource, preparePluginUpdate, resolveScannerPackage, type ResolvedScannerPackage } from './scanner/modules/package.ts'

@@ -344,7 +344,7 @@ for (const mode of ['iso', '2d'] as const) {
       for (const zoom of [camera.k / 2, camera.k, camera.k * 2, 4]) {
         const fitted = surfaces.map(({ rect, text, size }) => {
           const layout = surfaceLabelLayout(text, size, zoom, scene.view, true)
-          const painted = surfaceLabel(text, size, scene.view, 0, zoom, 'data:image/svg+xml;base64,PHN2Zy8+')
+          const painted = surfaceLabel(text, size, scene.view, 0, zoom, { kind: 'image', uri: 'data:image/svg+xml;base64,PHN2Zy8+' })
           assert.ok(Array.isArray(painted.children))
           const icon = painted.children.find(child => child.tag === 'image')!
           const iconX = Number(icon.attributes.x)

@@ -4,6 +4,7 @@ import { defaultScannerCacheRoot, installScannerPackage, parseScannerSource, res
 import type { ScannerInstallOptions } from './scanner/modules/inventory.ts'
 import type { AnnotatedElement } from './types.ts'
 
+/** One grapheme that is a pictograph, a flag or a keycap; any other icon value is a name for a pack to resolve. */
 export function isEmoji(value: string): boolean {
   const segments = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(value)]
   return segments.length === 1 && /\p{Extended_Pictographic}|\p{Regional_Indicator}|[0-9#*]\ufe0f?\u20e3/u.test(value)
@@ -17,7 +18,7 @@ export async function iconPackInventory(root: string, options: ScannerInstallOpt
       if (pack && pack.id !== selected.id) throw new Error(`Pack id is ${pack.id}, expected ${selected.id}`)
       return { ...selected, kind: 'icons' as const, status: pack ? 'found' : 'missing', message: '', pack }
     } catch (error) {
-      return { ...selected, kind: 'icons' as const, status: 'blocked', message: String(error), pack: undefined }
+      return { ...selected, kind: 'icons' as const, status: 'blocked', message: error instanceof Error ? error.message : String(error), pack: undefined }
     }
   }))
 }
@@ -39,28 +40,19 @@ export async function loadIconCatalog(root: string): Promise<Map<string, string>
   return catalog
 }
 
-async function emojiSvg(emoji: string): Promise<string | undefined> {
-  const characters = emoji.includes('\u200d') ? [...emoji] : [...emoji].filter(char => char !== '\ufe0f')
-  const code = characters.map(char => char.codePointAt(0)!.toString(16)).join('-')
-  try {
-    const response = await fetch(`https://cdn.jsdelivr.net/gh/jdecked/twemoji@v16.0.1/assets/svg/${code}.svg`)
-    if (!response.ok) return undefined
-    const svg = await response.text()
-    return svg.includes('<svg') ? `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}` : undefined
-  } catch { return undefined }
-}
-
-/** Resolve each unique icon once and embed its SVG so exports need no fonts or network. */
+/**
+ * Says how each element's icon is drawn. A pack icon travels as its embedded SVG, so an export needs no
+ * installed pack. An emoji stays the text it is, and an unknown name is left unresolved for lint to report.
+ */
 export async function attachElementIcons(root: string, elements: AnnotatedElement[]): Promise<void> {
   if (!elements.some(element => element.icon)) return
   const catalog = await loadIconCatalog(root)
-  await Promise.all([...new Set(elements.flatMap(element => element.icon ? [element.icon] : []))].map(async name => {
-    if (!catalog.has(name) && isEmoji(name)) {
-      const uri = await emojiSvg(name)
-      if (uri) catalog.set(name, uri)
-    }
-  }))
-  for (const element of elements) if (element.icon) element.iconSvg = catalog.get(element.icon)
+  for (const element of elements) {
+    if (element.icon === undefined) continue
+    const uri = catalog.get(element.icon)
+    if (uri !== undefined) element.resolvedIcon = { kind: 'image', uri }
+    else if (isEmoji(element.icon)) element.resolvedIcon = { kind: 'emoji', text: element.icon }
+  }
 }
 
 export async function unknownIcons(root: string, elements: readonly { id: string; icon?: string }[]): Promise<string[]> {

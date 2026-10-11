@@ -4,11 +4,12 @@ import { randomUUID } from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
 import packageJson from '../package.json'
-import { loadIconCatalog, saveIconPack } from '../src/icon-packs.ts'
+import { attachElementIcons, loadIconCatalog, saveIconPack } from '../src/icon-packs.ts'
 import { addPlugin } from '../src/plugin-management.ts'
 import { configuredScannerModules, updateScanner } from '../src/scanner/modules/inventory.ts'
 import { readScannerConfig, writeScannerConfig } from '../src/scanner/modules/config.ts'
 import { changeScannerSettings, parseScannerSettingsAction } from '../src/scanner/modules/settings.ts'
+import { box } from './helpers.ts'
 
 test.concurrent('npm updates resolve omitted and bare sources, pin compatible releases and preserve project settings', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-update-'))
@@ -85,5 +86,22 @@ test.concurrent('replacing an icon pack preserves its configured resolution prio
     const after = await loadIconCatalog(root)
     expect(after.get('database')).toBe(after.get('primary:database'))
     expect(after.get('database')).not.toBe(before.get('database'))
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('an icon resolves to its pack image or to the emoji itself, and an unknown name to nothing', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-icon-resolve-'))
+  try {
+    await cp(path.resolve(import.meta.dir, '../test/fixtures/empty-project'), root, { recursive: true })
+    const pack = path.join(root, 'pack')
+    await mkdir(pack)
+    await writeFile(path.join(pack, 'package.json'), JSON.stringify({ name: 'icons-pack', version: '1.0.0',
+      groma: { icons: { id: 'pack', icons: { database: './database.svg' } } } }))
+    await writeFile(path.join(pack, 'database.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>')
+    await addPlugin(root, './pack')
+    const elements = ['pack:database', '📦', 'missing']
+      .map(icon => ({ ...box(icon, 'component', { x: 0, y: 0, width: 1, height: 1 }), icon }))
+    await attachElementIcons(root, elements)
+    expect(elements.map(element => element.resolvedIcon?.kind)).toEqual(['image', 'emoji', undefined])
   } finally { await rm(root, { recursive: true, force: true }) }
 })

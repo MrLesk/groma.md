@@ -1,7 +1,8 @@
 import { CONTAINER_FONT, PLANE, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
+import type { ResolvedIcon } from '../../../../types.ts'
 import type { ProjectionView, SurfaceLabel, SurfaceText } from '../projection/project.ts'
 import { planeMatrix, project } from '../projection/project.ts'
-import { iconImage } from './appearance.ts'
+import { iconNode } from './appearance.ts'
 import { node, round, type SvgNode } from './svg.ts'
 
 /** Fixed plane-space sizes keep titles readable without relaying out at every camera scale. */
@@ -61,11 +62,11 @@ export function surfaceText(
   size: number,
   className: string,
   view: ProjectionView,
-  iconSvg?: string,
+  icon?: ResolvedIcon,
 ): SvgNode {
   const padding = textPadding(size)
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, className,
-    [...(iconSvg ? [iconImage(iconSvg, padding, padding, size)] : []), ...text.lines.map((line, index) => node('text', {
+    [...(icon ? [iconNode(icon, padding, padding, size)] : []), ...text.lines.map((line, index) => node('text', {
       x: padding,
       y: padding + size * 0.9 + index * textLineHeight(size),
       'font-size': size,
@@ -79,11 +80,11 @@ export function surfaceLabel(
   view: ProjectionView,
   spacing = 0,
   zoom = 1,
-  iconSvg?: string,
+  icon?: ResolvedIcon,
 ): SvgNode {
-  const layout = surfaceLabelLayout(text, size, zoom, view, iconSvg !== undefined)
+  const layout = surfaceLabelLayout(text, size, zoom, view, icon !== undefined)
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, 'label surface-label', [
-    ...(iconSvg ? [iconImage(iconSvg, layout.iconX, layout.baseline - layout.fontSize * 0.9, layout.fontSize)] : []),
+    ...(icon ? [iconNode(icon, layout.iconX, layout.baseline - layout.fontSize * 0.9, layout.fontSize)] : []),
     node('rect', { x: layout.x, width: layout.width, height: layout.height }, 'label-hit'),
     node('line', { x1: text.width / 2, x2: text.width / 2, y1: 0, y2: layout.leader }, 'label-leader'),
     node('text', {

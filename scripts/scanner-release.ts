@@ -5,6 +5,11 @@ import { assembleCSharpPackages } from './package-csharp-scanner.ts'
 
 const repository = { type: 'git', url: 'https://github.com/MrLesk/groma.md.git' }
 const scannerIds = ['nasm', 'cobol', 'java', 'scala', 'kotlin', 'go', 'rust', 'csharp', 'angular', 'vue', 'react', 'typescript', 'python', 'php', 'swift', 'javascript']
+/**
+ * Where the official icon pack is staged. It is an icon pack, not a scanner: no loop over scannerIds reaches it,
+ * and its own package.json already holds the release metadata that staging adds to scanner manifests.
+ */
+const iconPackDirectory = 'icons-architecture'
 
 async function manifest(directory: string) {
   return JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'))
@@ -45,8 +50,7 @@ async function stage(output: string) {
   await mkdir(output, { recursive: true })
   await stageSourcePackage('packages/scanner', path.join(output, 'contract'))
   await stageWorkSourcePackages(output)
-  const builders = {
-    'icons-architecture': (await import('../plugins/icons/architecture/build.ts')).buildPackage,
+  const scannerBuilders = {
     php: (await import('../plugins/scanners/php/build.ts')).buildPackage,
     python: (await import('../plugins/scanners/python/build.ts')).buildPackage,
     typescript: (await import('../plugins/scanners/typescript/build.ts')).buildPackage,
@@ -63,9 +67,11 @@ async function stage(output: string) {
     javascript: (await import('../plugins/scanners/javascript/build.ts')).buildPackage,
     swift: (await import('../plugins/scanners/swift/build.ts')).buildPackage,
   }
+  const buildIconPack = (await import('../plugins/icons/architecture/build.ts')).buildPackage
   await completeTogether([
-    ...Object.entries(builders).map(([id, build]) => build(path.join(output, id))),
+    ...Object.entries(scannerBuilders).map(([id, build]) => build(path.join(output, id))),
     run([process.execPath, 'scripts/package-csharp-scanner.ts', path.join(output, 'csharp')]),
+    buildIconPack(path.join(output, iconPackDirectory)),
   ])
   for (const id of scannerIds) {
     const directory = path.join(output, id)
@@ -160,13 +166,13 @@ async function publish(input: string) {
   if (workSource.private || !workSource.groma.workSource.compatibility.groma) {
     throw new Error('backlog: confirm public name, version and compatibility before publishing')
   }
-  const icons = await manifest(path.join(input, 'icons-architecture'))
-  if (icons.private || !icons.groma?.icons?.icons) throw new Error('Icon pack requires public package metadata')
+  const iconPack = await manifest(path.join(input, iconPackDirectory))
+  if (iconPack.private || !iconPack.groma?.icons?.icons) throw new Error('Icon pack requires public package metadata')
   await completeTogether(['contract', 'work-source-contract'].map(id => publishPackage(path.join(input, id))))
   await publishPackage(path.join(input, 'work-source-backlog'))
   await completeTogether([
     ...scannerIds.map(id => id === 'csharp' ? publishCSharp(input) : publishPackage(path.join(input, id))),
-    publishPackage(path.join(input, 'icons-architecture')),
+    publishPackage(path.join(input, iconPackDirectory)),
   ])
 }
 
