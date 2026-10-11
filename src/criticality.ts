@@ -16,9 +16,12 @@ function criticalityRank(level: Criticality | undefined): number {
   return criticalityLevels.indexOf(level ?? 'normal')
 }
 
-/** Shape, not color, distinguishes review priority in every theme. */
+/**
+ * Shape, not color, distinguishes review priority in every theme. Both marks are plain ASCII: a terminal counts
+ * one cell for each character, so a card that holds a mark keeps its borders in line.
+ */
 export function criticalityMark(level: Criticality | undefined): string {
-  return level === 'critical' ? '‼' : level === 'high' ? '!' : ''
+  return level === 'critical' ? '!!' : level === 'high' ? '!' : ''
 }
 
 /** How many of the changed components are critical and high. Empty when none is, so a review shows no line of zeros. */

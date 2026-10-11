@@ -79,7 +79,8 @@ export interface Building extends SheetItem {
   floors: BuildingFloor[]
   /**
    * The title as laid on the roof, one or two lines. On a high or critical building the first line starts with
-   * the criticality mark, joined to the title by a no-break space.
+   * the criticality mark, joined to the title by a no-break space. An icon is not one of these lines: it has its
+   * own row above them.
    */
   lines: string[]
 }

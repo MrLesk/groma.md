@@ -189,7 +189,7 @@ choose or write a level from code structure, language, or file size.
 Use `groma edit <id> --criticality <level>` or the details form. An empty value
 removes the explicit level and restores inheritance. `groma view <id> --plain`
 prints the effective level. The details panes show it unless it is `normal`.
-High buildings and hierarchy rows carry `!`; critical ones carry `‼` in every
+High buildings and hierarchy rows carry `!`; critical ones carry `!!` in every
 theme.
 
 Revision comparisons and task reviews list critical components first, then
