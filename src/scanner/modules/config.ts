@@ -18,9 +18,15 @@ export interface ConfiguredWorkSource {
   source: string
 }
 
+export interface ConfiguredIconPack {
+  id: string
+  source: string
+}
+
 export interface PluginConfig {
-  icons?: ConfiguredWorkSource[]
   workSources?: ConfiguredWorkSource[]
+  /** Icon packs in the order they answer an icon name that names no pack. */
+  icons?: ConfiguredIconPack[]
   scanners: ConfiguredScanner[]
   /** Git ignore patterns every scanner leaves out; Groma never writes them. */
   exclude?: string[]
@@ -99,23 +105,28 @@ function configuredScanner(
   }
 }
 
-function configuredWorkSources(value: unknown, filename: string): ConfiguredWorkSource[] {
+/** The entries of a section that selects each plugin by its id and source alone. */
+function selections(value: unknown, filename: string, section: 'workSources' | 'icons'): { id: string; source: string }[] {
   if (value === undefined) return []
-  if (!Array.isArray(value)) throw new Error(`${filename} workSources must be an array`)
-  if (value.length > 1) throw new Error(`${filename} supports at most one work source`)
+  if (!Array.isArray(value)) throw new Error(`${filename} ${section} must be an array`)
   return value.map(entry => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)
       || Object.keys(entry).some(key => !['id', 'source'].includes(key))) {
-      throw new Error(`${filename} workSources entries must contain only id and source`)
+      throw new Error(`${filename} ${section} entries must contain only id and source`)
     }
     if (typeof entry.id !== 'string' || !pluginId.test(entry.id)) {
-      throw new Error(`${filename} workSources id must be lowercase kebab-case`)
+      throw new Error(`${filename} ${section} id must be lowercase kebab-case`)
     }
     if (typeof entry.source !== 'string' || !entry.source.trim()) {
-      throw new Error(`${filename} workSources source must be non-empty`)
+      throw new Error(`${filename} ${section} source must be non-empty`)
     }
     return { id: entry.id, source: entry.source }
   })
+}
+
+function configuredWorkSources(value: unknown, filename: string): ConfiguredWorkSource[] {
+  if (Array.isArray(value) && value.length > 1) throw new Error(`${filename} supports at most one work source`)
+  return selections(value, filename, 'workSources')
 }
 
 function configuredScanners(values: unknown[], sourceFilename: string): ConfiguredScanner[] {
@@ -159,10 +170,10 @@ function parsePluginConfig(
   if (config.useGitignore !== undefined && typeof config.useGitignore !== 'boolean') {
     throw new Error(`${sourceFilename} useGitignore must be true or false`)
   }
-  const icons = configuredIcons(config.icons, sourceFilename)
   const workSources = configuredWorkSources(config.workSources, sourceFilename)
+  const icons: ConfiguredIconPack[] = selections(config.icons, sourceFilename, 'icons')
   const scanners = configuredScanners(config.scanners, sourceFilename)
-  requireUniqueIds([...scanners, ...workSources], sourceFilename)
+  requireUniqueIds([...scanners, ...workSources, ...icons], sourceFilename)
   return {
     ...(workSources.length ? { workSources } : {}),
     ...(icons.length ? { icons } : {}),
@@ -194,21 +205,4 @@ export async function writePluginConfig(
     'plugins.json',
     `${JSON.stringify({ ...config, scanners: ordered, workSources: config.workSources ?? [] }, null, 2)}\n`,
   )
-}
-
-function configuredIcons(value: unknown, filename: string): ConfiguredWorkSource[] {
-  if (value === undefined) return []
-  if (!Array.isArray(value)) throw new Error(`${filename} icons must be an array`)
-  const ids = new Set<string>()
-  return value.map(entry => {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)
-      || Object.keys(entry).some(key => !['id', 'source'].includes(key))
-      || typeof entry.id !== 'string' || !pluginId.test(entry.id)
-      || typeof entry.source !== 'string' || !entry.source.trim()) {
-      throw new Error(`${filename} icons entries require a lowercase kebab-case id and a source`)
-    }
-    if (ids.has(entry.id)) throw new Error(`Duplicate icon pack id: ${entry.id}`)
-    ids.add(entry.id)
-    return { id: entry.id, source: entry.source }
-  })
 }

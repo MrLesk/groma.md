@@ -5,7 +5,7 @@ export interface PublishedPlugin {
   version: string
   os?: string[]
   cpu?: string[]
-  groma?: { icons?: { id?: string; icons?: Record<string, string>; entry?: string }; workSource?: { id?: string; entry?: string; compatibility?: { groma?: string } }; scanner?: { id?: string; entry?: string; discovery?: { compatibility?: { groma?: string } } } }
+  groma?: { icons?: { id?: string; icons?: Record<string, string> }; workSource?: { id?: string; entry?: string; compatibility?: { groma?: string } }; scanner?: { id?: string; entry?: string; discovery?: { compatibility?: { groma?: string } } } }
 }
 
 export function isNpmPackageName(value: string): boolean {
@@ -27,8 +27,14 @@ export function selectPublishedPlugin(
 ): PublishedPlugin {
   const metadata = (item: PublishedPlugin) => kind === 'any' ? item.groma?.scanner ?? item.groma?.workSource ?? item.groma?.icons : item.groma?.[kind]
   const requirement = (item: PublishedPlugin) => item.groma?.workSource?.compatibility?.groma ?? item.groma?.scanner?.discovery?.compatibility?.groma
+  /** A scanner or a work source is usable with an entry to run; an icon pack with icons to draw. */
+  const usable = (item: PublishedPlugin): boolean => {
+    const declared = metadata(item)
+    if (!declared?.id) return false
+    return 'entry' in declared ? Boolean(declared.entry) : 'icons' in declared && Boolean(declared.icons)
+  }
   const releases = Object.values(versions).filter(item => item.name === name
-    && metadata(item)?.id && (metadata(item)?.entry || ('icons' in (metadata(item) ?? {}))) && Bun.semver.satisfies(item.version, '*'))
+    && usable(item) && Bun.semver.satisfies(item.version, '*'))
     .sort((a, b) => Bun.semver.order(b.version, a.version))
   if (!releases.length) throw new Error(`${name}: no published stable release. Ask the plugin author to publish one, then retry.`)
   const platform = releases.filter(item => supports(item.os, host.os) && supports(item.cpu, host.cpu))

@@ -2,10 +2,10 @@
 
 `<groma-root>/plugins.json` explicitly selects project plugins. A missing file
 selects none. No plugin is loaded just because its package or CLI is installed.
-The file has one section per kind: `scanners` and `workSources`. This revision
-supports at most one work source. Plugin ids are lowercase kebab-case, and one id
-names one plugin across both sections. `exclude` and `useGitignore` apply to
-scanners at the top level.
+The file has one section per kind: `scanners`, `workSources` and `icons`. This
+revision supports at most one work source. Plugin ids are lowercase kebab-case,
+and one id names one plugin across all sections. `exclude` and `useGitignore`
+apply to scanners at the top level.
 
 ```json
 {
@@ -21,7 +21,8 @@ scanners at the top level.
 ```
 
 Scanner entries require `id`, `source`, and `include`, and may contain `settings`
-and `exclude`. Work-source entries contain only `id` and `source`. Sources use
+and `exclude`. Work-source and [icon-pack](../icons.md) entries contain only
+`id` and `source`. Sources use
 an exact npm `package@version`, a local `./path`, or a
 `git+https://repository#tag-or-commit`; adding a bare npm name selects a compatible
 stable release and stores its exact version. Git tags are pinned to a commit.
@@ -34,7 +35,7 @@ groma plugin update backlog
 groma plugin remove backlog
 ```
 
-These commands manage both kinds; scanner commands remain available for scanner
+These commands manage every kind; scanner commands remain available for scanner
 setup, discovery, readiness, and existing scanner selections. Web and terminal
 settings group selections by kind. Package availability and readiness are
 separate: a missing package needs restoration; an incompatible Groma version

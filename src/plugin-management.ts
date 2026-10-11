@@ -1,4 +1,4 @@
-import { iconPackInventory, restoreIconPacks, saveIconPack } from './icon-packs.ts'
+import { addIconPack, iconPackInventory, replaceIconPackSource, restoreIconPacks } from './icon-packs.ts'
 import { readPluginConfig, writePluginConfig } from './scanner/modules/config.ts'
 import { configureScanner, installScanners, removeScanner, scannerInventory, updateScanner, type PluginInstallOptions } from './scanner/modules/inventory.ts'
 import { defaultPluginCacheRoot, installPluginPackage, parsePluginSource, preparePluginUpdate, resolvePluginPackage, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
@@ -31,7 +31,7 @@ export async function addPlugin(root: string, input: string, options: PluginInst
   const resolved = installed.package
   if (resolved.kind === 'scanner') return configureScanner(root, { source: installed.source, package: resolved })
   if (resolved.kind === 'icons') {
-    await saveIconPack(root, resolved.id, installed.source)
+    await addIconPack(root, resolved.id, installed.source)
     return { id: resolved.id, source: installed.source, status: 'found' as const }
   }
   requireCompatibleHost(resolved)
@@ -75,7 +75,7 @@ export async function updatePlugin(root: string, id: string, input?: string, opt
   const icon = config.icons?.find(pack => pack.id === id)
   if (icon) {
     const installed = await preparePluginUpdate(root, icon, input, options, 'icons')
-    await saveIconPack(root, id, installed.source, true)
+    await replaceIconPackSource(root, id, installed.source)
     return { id, source: installed.source, status: 'found' as const }
   }
   const selected = config.workSources?.find(work => work.id === id)

@@ -30,7 +30,6 @@ export type PluginSource = NpmPluginSource | LocalPluginSource | GitPluginSource
 
 /** What every resolved plugin package has, whatever its kind. */
 interface ResolvedPackageFields {
-  entry: string
   id: string
   name: string
   version: string
@@ -38,6 +37,8 @@ interface ResolvedPackageFields {
 
 export interface ResolvedScannerPackage extends ResolvedPackageFields {
   kind: 'scanner'
+  /** The module groma.md imports to run the scanner. */
+  entry: string
   discovery?: ScannerDiscoveryMetadata
   /** Git ignore patterns naming the files the scanner reads, written into its configuration when it is added. */
   include: string[]
@@ -47,10 +48,13 @@ export interface ResolvedScannerPackage extends ResolvedPackageFields {
 
 export interface ResolvedWorkSourcePackage extends ResolvedPackageFields {
   kind: 'workSource'
+  /** The module groma.md imports to run the adapter. */
+  entry: string
   /** The groma.md versions the adapter's manifest says it works with. */
   compatibility?: { groma?: string }
 }
 
+/** An icon pack holds images and no code, so it has no entry to import. */
 export interface ResolvedIconPackage extends ResolvedPackageFields {
   kind: 'icons'
   /** Each icon name the pack declares, with the absolute path of its SVG file. */
@@ -131,24 +135,42 @@ function object(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-async function pluginEntry(packageRoot: string, value: unknown): Promise<string | undefined> {
+/**
+ * The absolute path of a file a manifest names inside its package, or undefined while that file is not on this
+ * computer. `label` says in an error which manifest value is wrong.
+ */
+async function packageFile(packageRoot: string, value: unknown, label: string): Promise<string | undefined> {
   if (typeof value !== 'string' || !value.startsWith('./')) {
-    throw new Error('plugin package.json entry must be a relative ./path')
+    throw new Error(`${label} must be a relative ./path`)
   }
-  const entry = path.resolve(packageRoot, value)
-  const relativeEntry = path.relative(packageRoot, entry)
-  if (relativeEntry.startsWith('..') || path.isAbsolute(relativeEntry)) {
-    throw new Error('plugin package.json entry must stay inside its package')
+  const file = path.resolve(packageRoot, value)
+  const relativeFile = path.relative(packageRoot, file)
+  if (relativeFile.startsWith('..') || path.isAbsolute(relativeFile)) {
+    throw new Error(`${label} must stay inside its package`)
   }
   try {
-    if (!(await stat(entry)).isFile()) {
-      throw new Error(`plugin package entry must be a file: ${value}`)
+    if (!(await stat(file)).isFile()) {
+      throw new Error(`${label} must be a file: ${value}`)
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
     throw error
   }
-  return entry
+  return file
+}
+
+/** Each icon a pack declares, with the absolute path of its SVG file. */
+async function iconFiles(packageRoot: string, declared: unknown): Promise<Record<string, string>> {
+  const files = object(declared, 'plugin package.json groma.icons.icons')
+  if (Object.keys(files).length === 0) throw new Error('plugin package.json groma.icons.icons must declare at least one icon')
+  const icons: Record<string, string> = {}
+  for (const [name, value] of Object.entries(files)) {
+    if (!pluginId.test(name)) throw new Error(`icon name must be lowercase kebab-case: ${name}`)
+    const file = await packageFile(packageRoot, value, `icon ${name}`)
+    if (!file?.endsWith('.svg')) throw new Error(`icon ${name} must name an existing SVG file`)
+    icons[name] = file
+  }
+  return icons
 }
 
 /** A scanner manifest's include globs, which it must declare, and its optional default exclusions. */
@@ -182,28 +204,22 @@ async function manifestText(packageRoot: string): Promise<string | undefined> {
   }
 }
 
+/** The fields a manifest may declare under `groma.<kind>`. */
+const declaredFields: Record<PluginKind, readonly string[]> = {
+  scanner: ['id', 'entry', 'discovery', 'include', 'exclude'],
+  workSource: ['id', 'entry', 'compatibility'],
+  icons: ['id', 'icons'],
+}
+
+/** The kind a manifest declares, for a caller that accepts any. */
 function declaredKind(groma: Record<string, unknown>): PluginKind {
   if (groma.scanner !== undefined) return 'scanner'
   if (groma.icons !== undefined) return 'icons'
   return 'workSource'
 }
 
-/** Reads a package of the given kind, or of the kind its manifest declares when the caller accepts any. */
-async function pluginPackage(packageRoot: string, kind?: PluginKind): Promise<ResolvedPluginPackage | undefined> {
-  const source = await manifestText(packageRoot)
-  if (source === undefined) return undefined
-  const manifest = object(JSON.parse(source), 'plugin package.json')
-  const groma = object(manifest.groma, 'plugin package.json groma')
-  kind ??= declaredKind(groma)
-  if (kind === 'icons') return iconPackage(packageRoot, manifest, object(groma.icons, 'plugin package.json groma.icons'))
-  const declared = object(groma[kind], `plugin package.json groma.${kind}`)
-  const allowed = kind === 'scanner' ? ['id', 'entry', 'discovery', 'include', 'exclude'] : ['id', 'entry', 'compatibility']
-  if (Object.keys(declared).some(field => !allowed.includes(field))) {
-    throw new Error(`plugin package.json groma.${kind} contains unsupported fields`)
-  }
-  const details = kind === 'scanner'
-    ? { kind, ...scannerLists(declared) }
-    : { kind, compatibility: workSourceCompatibility(declared.compatibility) }
+/** The id, name and version every kind declares the same way. */
+function packageIdentity(manifest: Record<string, unknown>, declared: Record<string, unknown>, kind: PluginKind): ResolvedPackageFields {
   if (typeof declared.id !== 'string' || !pluginId.test(declared.id)) {
     throw new Error(`plugin package.json groma.${kind}.id must be lowercase kebab-case`)
   }
@@ -213,9 +229,30 @@ async function pluginPackage(packageRoot: string, kind?: PluginKind): Promise<Re
   if (typeof manifest.version !== 'string' || manifest.version.trim() === '') {
     throw new Error('plugin package.json version must be non-empty')
   }
-  const entry = await pluginEntry(packageRoot, declared.entry)
+  return { id: declared.id, name: manifest.name, version: manifest.version }
+}
+
+/** Reads a package of the given kind, or of the kind its manifest declares when the caller accepts any. */
+async function pluginPackage(packageRoot: string, kind?: PluginKind): Promise<ResolvedPluginPackage | undefined> {
+  const source = await manifestText(packageRoot)
+  if (source === undefined) return undefined
+  const manifest = object(JSON.parse(source), 'plugin package.json')
+  const groma = object(manifest.groma, 'plugin package.json groma')
+  kind ??= declaredKind(groma)
+  const declared = object(groma[kind], `plugin package.json groma.${kind}`)
+  if (Object.keys(declared).some(field => !declaredFields[kind].includes(field))) {
+    throw new Error(`plugin package.json groma.${kind} contains unsupported fields`)
+  }
+  if (kind === 'icons') {
+    return { ...packageIdentity(manifest, declared, kind), kind, icons: await iconFiles(packageRoot, declared.icons) }
+  }
+  const details = kind === 'scanner'
+    ? { kind, ...scannerLists(declared) }
+    : { kind, compatibility: workSourceCompatibility(declared.compatibility) }
+  const identity = packageIdentity(manifest, declared, kind)
+  const entry = await packageFile(packageRoot, declared.entry, 'plugin package.json entry')
   if (entry === undefined) return undefined
-  const shared = { entry, id: declared.id, name: manifest.name, version: manifest.version }
+  const shared = { entry, ...identity }
   if (details.kind === 'workSource') return { ...shared, ...details }
   return { ...shared, ...details, ...(declared.discovery === undefined ? {} : { discovery: parseScannerDiscovery(declared.discovery) }) }
 }
@@ -313,9 +350,9 @@ async function installGitPackage(
     const destination = installDirectory(cacheRoot, pinned.source)
     await rename(temporary, destination)
     const moved = (file: string) => path.join(destination, path.relative(temporary, file))
-    return { source: pinned.source, package: { ...resolved, entry: moved(resolved.entry),
-      ...(resolved.kind === 'icons' ? { icons: Object.fromEntries(Object.entries(resolved.icons).map(([name, file]) => [name, moved(file)])) } : {}),
-    } }
+    return { source: pinned.source, package: resolved.kind === 'icons'
+      ? { ...resolved, icons: Object.fromEntries(Object.entries(resolved.icons).map(([name, file]) => [name, moved(file)])) }
+      : { ...resolved, entry: moved(resolved.entry) } }
   } finally {
     await rm(temporary, { recursive: true, force: true })
   }
@@ -367,25 +404,4 @@ export async function preparePluginUpdate<K extends PluginKind>(
   const installed = await installPluginPackage(replacement, options.cacheRoot ?? defaultPluginCacheRoot(), options.registry, kind)
   if (installed.package.id !== selected.id) throw new Error(`Plugin id changed: ${installed.package.id}`)
   return installed
-}
-
-/** Icon assets use the same package location and install flow as executable plugins. */
-async function iconPackage(
-  root: string,
-  manifest: Record<string, unknown>,
-  metadata: Record<string, unknown>,
-): Promise<ResolvedIconPackage> {
-  if (typeof metadata.id !== 'string' || !pluginId.test(metadata.id)) throw new Error('groma.icons.id must be lowercase kebab-case')
-  if (typeof manifest.name !== 'string' || typeof manifest.version !== 'string') throw new Error('Icon package requires name and version')
-  const files = object(metadata.icons, 'groma.icons.icons')
-  if (Object.keys(files).length === 0) throw new Error('Icon pack must declare at least one SVG')
-  const icons: Record<string, string> = {}
-  for (const [name, file] of Object.entries(files)) {
-    if (!pluginId.test(name)) throw new Error(`Invalid icon name: ${name}`)
-    const resolved = await pluginEntry(root, file)
-    if (!resolved?.endsWith('.svg')) throw new Error(`Icon ${name} must name an existing SVG file`)
-    icons[name] = resolved
-  }
-  return { id: metadata.id, name: manifest.name, version: manifest.version, kind: 'icons',
-    entry: path.join(root, 'package.json'), icons }
 }

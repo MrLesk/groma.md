@@ -18,6 +18,7 @@ import javascript from '../../../plugins/scanners/javascript/package.json'
 import scala from '../../../plugins/scanners/scala/package.json'
 import kotlin from '../../../plugins/scanners/kotlin/package.json'
 import backlog from '../../../plugins/work-sources/backlog/package.json'
+import architectureIcons from '../../../plugins/icons/architecture/package.json'
 
 export interface OfficialScanner {
   id: string
@@ -47,3 +48,6 @@ export const officialScannerCatalog: readonly OfficialScanner[] = [
 
 /** The official work sources, decided like the scanners above: by the id their embedded manifest declares. */
 export const officialWorkSourceIds: readonly string[] = [backlog].map(manifest => manifest.groma.workSource.id)
+
+/** The official icon packs, decided the same way. */
+export const officialIconPackIds: readonly string[] = [architectureIcons].map(manifest => manifest.groma.icons.id)

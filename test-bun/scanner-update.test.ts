@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
 import packageJson from '../package.json'
-import { attachElementIcons, loadIconCatalog, saveIconPack } from '../src/icon-packs.ts'
+import { attachElementIcons, loadIconCatalog, replaceIconPackSource } from '../src/icon-packs.ts'
 import { addPlugin } from '../src/plugin-management.ts'
 import { configuredScannerModules, updateScanner } from '../src/scanner/modules/inventory.ts'
 import { readPluginConfig, writePluginConfig } from '../src/scanner/modules/config.ts'
@@ -81,7 +81,7 @@ test.concurrent('replacing an icon pack preserves its configured resolution prio
     await addPlugin(root, './secondary')
     const before = await loadIconCatalog(root)
     expect(before.get('database')).toBe(before.get('primary:database'))
-    await saveIconPack(root, 'primary', './replacement', true)
+    await replaceIconPackSource(root, 'primary', './replacement')
     expect((await readPluginConfig(root)).icons?.map(pack => pack.id)).toEqual(['primary', 'secondary'])
     const after = await loadIconCatalog(root)
     expect(after.get('database')).toBe(after.get('primary:database'))
@@ -103,5 +103,19 @@ test.concurrent('an icon resolves to its pack image or to the emoji itself, and 
       .map(icon => ({ ...box(icon, 'component', { x: 0, y: 0, width: 1, height: 1 }), icon }))
     await attachElementIcons(root, elements)
     expect(elements.map(element => element.resolvedIcon?.kind)).toEqual(['image', 'emoji', undefined])
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('an icon pack id that a scanner or another pack already uses is rejected', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-icon-ids-'))
+  try {
+    await cp(path.resolve(import.meta.dir, '../test/fixtures/empty-project'), root, { recursive: true })
+    await writePluginConfig(root, {
+      scanners: [{ id: 'shared', source: './scanner', include: ['**/*.fixture'] }],
+      icons: [{ id: 'shared', source: './pack' }],
+    })
+    await expect(readPluginConfig(root)).rejects.toThrow('more than once')
+    await writePluginConfig(root, { scanners: [], icons: [{ id: 'pack', source: './one' }, { id: 'pack', source: './two' }] })
+    await expect(readPluginConfig(root)).rejects.toThrow('more than once')
   } finally { await rm(root, { recursive: true, force: true }) }
 })

@@ -3,7 +3,7 @@ export * from './settings-model.ts'
 import type { ScannerDiscovery } from './discovery.ts'
 import { discoverScanners } from './discovery.ts'
 import { officialScannerCatalog } from './catalog.ts'
-import { officialWorkSourceIds } from './official-catalog.ts'
+import { officialIconPackIds, officialWorkSourceIds } from './official-catalog.ts'
 import { configuredScannerModules, addScanner, restoreScanner } from './inventory.ts'
 import type { PluginInstallOptions } from './inventory.ts'
 import type { ScannerModuleLocation } from './inventory.ts'
@@ -102,7 +102,7 @@ function workSourceSetting(work: WorkSourceSelection): WorkSourceSetting {
 function iconPackSetting(pack: IconPackSelection): IconPackSetting {
   return {
     kind: 'icons', id: pack.id, name: pack.pack?.name ?? pack.id, source: pack.source, version: pack.pack?.version,
-    official: pack.pack?.name === '@groma/icons-architecture',
+    official: officialIconPackIds.includes(pack.id),
     status: pack.status === 'found' ? 'ready' : pack.status, message: pack.message,
   }
 }

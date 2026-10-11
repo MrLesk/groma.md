@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { readPluginConfig, writePluginConfig } from './scanner/modules/config.ts'
-import { defaultPluginCacheRoot, installPluginPackage, parsePluginSource, resolvePluginPackage, type ResolvedIconPackage } from './scanner/modules/package.ts'
 import type { PluginInstallOptions, PluginResolutionOptions } from './scanner/modules/inventory.ts'
+import { defaultPluginCacheRoot, installPluginPackage, parsePluginSource, resolvePluginPackage, type ResolvedIconPackage } from './scanner/modules/package.ts'
 import type { AnnotatedElement } from './types.ts'
 
 /** A pack selected in plugins.json and what this computer has for it. */
@@ -21,6 +21,7 @@ export function isEmoji(value: string): boolean {
   return segments.length === 1 && /\p{Extended_Pictographic}|\p{Regional_Indicator}|[0-9#*]\ufe0f?\u20e3/u.test(value)
 }
 
+/** Every configured pack in its configured order; a pack that cannot be read is blocked with the reason instead of failing the caller. */
 export async function iconPackInventory(root: string, options: PluginResolutionOptions = {}): Promise<IconPackSelection[]> {
   const config = await readPluginConfig(root)
   return Promise.all((config.icons ?? []).map(async (selected): Promise<IconPackSelection> => {
@@ -86,13 +87,17 @@ export async function restoreIconPacks(root: string, options: PluginInstallOptio
   return count
 }
 
-export async function saveIconPack(root: string, id: string, source: string, replacing = false): Promise<void> {
+/** Selects a pack after the ones already configured, which keep answering the names they share with it. */
+export async function addIconPack(root: string, id: string, source: string): Promise<void> {
   const config = await readPluginConfig(root)
-  if (!replacing && (config.icons ?? []).some(pack => pack.id === id)) throw new Error(`Icon pack already configured: ${id}`)
-  if (config.scanners.some(pack => pack.id === id) || config.workSources?.some(pack => pack.id === id)) throw new Error(`Plugin id already configured: ${id}`)
-  const icons = [...config.icons ?? []]
-  const index = icons.findIndex(pack => pack.id === id)
-  if (index < 0) icons.push({ id, source })
-  else icons[index] = { id, source }
-  await writePluginConfig(root, { ...config, icons })
+  if ([...config.scanners, ...config.workSources ?? [], ...config.icons ?? []].some(plugin => plugin.id === id)) {
+    throw new Error(`Plugin id already configured: ${id}`)
+  }
+  await writePluginConfig(root, { ...config, icons: [...config.icons ?? [], { id, source }] })
+}
+
+/** Points a configured pack at another source; the pack keeps its place in the order. */
+export async function replaceIconPackSource(root: string, id: string, source: string): Promise<void> {
+  const config = await readPluginConfig(root)
+  await writePluginConfig(root, { ...config, icons: config.icons?.map(pack => pack.id === id ? { id, source } : pack) })
 }

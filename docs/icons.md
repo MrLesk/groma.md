@@ -47,14 +47,16 @@ A pack is a normal npm package with SVG files and this package.json metadata:
 
 The pack id and icon names use lowercase kebab-case. Each value names an SVG
 file inside the package. Use self-contained SVG with a viewBox, explicit
-colours, and vector shapes; external files and fonts are not bundled. Groma
-reads these assets as images and does not execute a pack entry point.
+colours, and vector shapes; external files and fonts are not bundled. A pack
+declares no entry: Groma reads its files as images and runs no code from it.
 
 Install a development pack with `groma plugin add ./path/to/pack`. npm packages
 and pinned Git sources use the same resolution as scanner plugins:
 `groma plugin add my-architecture-icons@1.0.0` or
 `groma plugin add git+https://example.com/icons.git#v1.0.0`.
-Selections live in the `icons` array of `<groma-root>/plugins.json`:
+Selections live in the `icons` array of `<groma-root>/plugins.json`, in the
+order they answer an icon name that names no pack. A pack id cannot repeat the
+id of another pack, a scanner or a work source:
 
 ```json
 { "scanners": [], "workSources": [], "icons": [
