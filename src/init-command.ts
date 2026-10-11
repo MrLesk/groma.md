@@ -236,7 +236,7 @@ export async function initializeRepository(
   const groma = await initializeGroma(repositoryRoot, input, prompts)
   // Only a project that selects the Backlog.md adapter gets `backlog init`; another work source is left alone.
   const config = await readPluginConfig(repositoryRoot)
-  const usesBacklog = config.workSources?.some(work => work.id === backlogAdapter.groma.workSource.id)
+  const usesBacklog = config.workSources.some(work => work.id === backlogAdapter.groma.workSource.id)
   const backlog = usesBacklog ? await initializeAvailableBacklog(
     repositoryRoot,
     groma.projectName,
@@ -267,7 +267,7 @@ async function offerBacklog(
     return
   }
   // plugins.json holds one work source at most, so a project that already selects one is not offered Backlog.md.
-  if ((await readPluginConfig(repositoryRoot)).workSources?.length) return
+  if ((await readPluginConfig(repositoryRoot)).workSources.length) return
   const wanted = await dependencies.ui.confirmUseBacklog()
   if (wanted === undefined) cancelled()
   if (!wanted) return

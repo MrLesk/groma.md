@@ -114,7 +114,7 @@ export async function changePluginSettings(root: string, action: PluginSettingsA
     case 'remove': await removePlugin(root, action.id); return
     case 'restore': {
       const config = await readPluginConfig(root)
-      if (config.workSources?.some(work => work.id === action.id)) await restoreWorkSource(root, options)
+      if (config.workSources.some(work => work.id === action.id)) await restoreWorkSource(root, options)
       else await restoreScanner(root, action.id, options)
       return
     }

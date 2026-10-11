@@ -46,14 +46,14 @@ test.concurrent('fully excluded Vue sources skip readiness and scanning until th
     await cp(path.resolve(import.meta.dir, '../test/fixtures/vue-output'), path.join(root, 'fixtures/vue'), { recursive: true })
     await buildPackage(artifact)
     const scanners = [{ id: 'vue', source: artifact, include: vue.groma.scanner.include }]
-    await writePluginConfig(root, { scanners, exclude: ['/fixtures/'] })
+    await writePluginConfig(root, { scanners, exclude: ['/fixtures/'], workSources: [] })
     const readiness = await checkScannerReadiness(root)
     expect(readiness.map(item => item.project)).toEqual(['ready'])
     const excluded = await (await loadScannerRegistry(root)).collectObservations(root)
     expect(excluded.failures).toEqual([])
     expect(excluded.observations).toEqual([])
 
-    await writePluginConfig(root, { scanners })
+    await writePluginConfig(root, { scanners, workSources: [] })
     const included = await (await loadScannerRegistry(root)).collectObservations(root)
     expect(included.failures).toEqual([])
     expect(included.observations.map(observation => observation.scanner.id)).toEqual(['vue'])
@@ -74,17 +74,17 @@ test.concurrent('global and scanner exclusions keep readiness and scan hooks off
     }`)
     // The scanner's only candidate is excluded, so Groma calls neither hook.
     const scanners = [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'], settings: { input: 'hidden/source.fixture' } }]
-    await writePluginConfig(root, { scanners, exclude: ['/hidden/'] })
+    await writePluginConfig(root, { scanners, exclude: ['/hidden/'], workSources: [] })
     expect((await checkScannerReadiness(root)).map(item => item.project)).toEqual(['ready'])
     expect((await (await loadScannerRegistry(root)).collectObservations(root)).failures).toEqual([])
 
-    await writePluginConfig(root, { scanners })
+    await writePluginConfig(root, { scanners, workSources: [] })
     expect((await checkScannerReadiness(root)).map(item => item.project)).toEqual(['blocked'])
     expect((await (await loadScannerRegistry(root)).collectObservations(root)).failures.map(failure => failure.scanner))
       .toEqual(['fixture'])
 
     // The scanner's own list keeps its hooks off the input as well.
-    await writePluginConfig(root, { scanners: [{ ...scanners[0]!, exclude: ['/hidden/'] }] })
+    await writePluginConfig(root, { scanners: [{ ...scanners[0]!, exclude: ['/hidden/'] }], workSources: [] })
     expect((await checkScannerReadiness(root)).map(item => item.project)).toEqual(['ready'])
     expect((await (await loadScannerRegistry(root)).collectObservations(root)).failures).toEqual([])
   } finally { await rm(root, { recursive: true, force: true }) }
@@ -205,7 +205,7 @@ test.concurrent('the lists of a scanner, written from its install defaults, foll
     const config = await readPluginConfig(root)
     expect(config.scanners.find(scanner => scanner.id === 'second')).toMatchObject({ include: ['**/*.ts', '**/*.html'], exclude: ['/src/other.ts'] })
     await writePluginConfig(root, { exclude: ['/scripts/'], scanners: config.scanners.map(scanner =>
-      scanner.id === 'first' ? { ...scanner, exclude: ['!/scripts/'] } : scanner) })
+      scanner.id === 'first' ? { ...scanner, exclude: ['!/scripts/'] } : scanner), workSources: [] })
     const registry = await loadScannerRegistry(root)
     const files = Object.fromEntries((await registry.collectObservations(root)).observations
       .map(scan => [scan.scanner.id, scan.files.map(file => file.file).sort()]))

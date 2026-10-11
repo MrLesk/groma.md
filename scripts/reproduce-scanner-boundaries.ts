@@ -51,7 +51,7 @@ async function project(output: string, name: string, packages: string): Promise<
     scanners.push({ id, source: path.join(packages, id), ...manifest.groma.scanner.exclude && { exclude: manifest.groma.scanner.exclude },
       include: manifest.groma.scanner.include })
   }
-  await writePluginConfig(root, { scanners })
+  await writePluginConfig(root, { scanners, workSources: [] })
   return root
 }
 

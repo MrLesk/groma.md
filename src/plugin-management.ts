@@ -30,21 +30,19 @@ export async function addPlugin(root: string, input: string, options: PluginInst
   if (resolved.kind === 'scanner') return configureScanner(root, { source: installed.source, package: resolved })
   requireCompatibleHost(resolved)
   const config = await readPluginConfig(root)
-  if (config.workSources?.length) throw new Error('This project supports at most one work source; remove the current selection first')
-  if (config.scanners.some(plugin => plugin.id === resolved.id)) throw new Error(`Plugin id already configured: ${resolved.id}`)
-  await writePluginConfig(root, { ...config, workSources: [{ id: resolved.id, source: installed.source }] })
+  await writePluginConfig(root, { ...config, workSources: [...config.workSources, { id: resolved.id, source: installed.source }] })
   return { id: resolved.id, source: installed.source, status: 'found' as const }
 }
 
 export async function removePlugin(root: string, id: string): Promise<string> {
   const config = await readPluginConfig(root)
-  if (!config.workSources?.some(work => work.id === id)) return removeScanner(root, id)
+  if (!config.workSources.some(work => work.id === id)) return removeScanner(root, id)
   await writePluginConfig(root, { ...config, workSources: [] })
   return id
 }
 
 export async function restoreWorkSource(root: string, options: PluginInstallOptions = {}): Promise<number> {
-  const selected = (await readPluginConfig(root)).workSources?.[0]
+  const selected = (await readPluginConfig(root)).workSources[0]
   if (!selected) return 0
   const source = parsePluginSource(root, selected.source)
   const resolved = source.kind === 'local' ? await resolvePluginPackage(source, options, 'workSource')
@@ -61,7 +59,7 @@ export async function installPlugins(root: string, options: PluginInstallOptions
 
 export async function updatePlugin(root: string, id: string, input?: string, options: PluginInstallOptions = {}) {
   const config = await readPluginConfig(root)
-  const selected = config.workSources?.find(work => work.id === id)
+  const selected = config.workSources.find(work => work.id === id)
   if (!selected) return updateScanner(root, id, input, options)
   const installed = await preparePluginUpdate(root, selected, input, options, 'workSource')
   requireCompatibleHost(installed.package)

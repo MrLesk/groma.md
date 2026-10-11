@@ -32,7 +32,7 @@ test.concurrent('work-source selection controls reads and closes its watch when 
   const root = await project()
   let watch: { close(): Promise<void> } | undefined
   try {
-    await writePluginConfig(root, { scanners: [] })
+    await writePluginConfig(root, { scanners: [], workSources: [] })
     const session = await workSourceSession(root)
     watch = session.watch(() => {})
     expect((await session.read()).items).toEqual([])
@@ -57,23 +57,30 @@ test.concurrent('a work-source version mismatch blocks loading before plugin cod
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-test.concurrent('a second work-source entry is rejected before either adapter loads', async () => {
+/** plugins.json as a person could write it by hand; the writer refuses what the parser refuses. */
+async function handWritten(root: string, config: unknown): Promise<void> {
+  await writeFile(path.join(root, 'groma/plugins.json'), JSON.stringify(config))
+}
+
+test.concurrent('a plugins.json with a second work-source entry is refused when read and when written', async () => {
   const root = await project()
+  const workSources = [{ id: 'tasks', source: './adapter' }, { id: 'other', source: './other' }]
   try {
-    await writePluginConfig(root, { scanners: [], workSources: [
-      { id: 'tasks', source: './adapter' }, { id: 'other', source: './other' },
-    ] })
+    await expect(writePluginConfig(root, { scanners: [], workSources })).rejects.toThrow('at most one work source')
+    await handWritten(root, { scanners: [], workSources })
     await expect(readPluginConfig(root)).rejects.toThrow('at most one work source')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-test.concurrent('a plugin id shared by a scanner and a work source is rejected', async () => {
+test.concurrent('a plugin id shared by a scanner and a work source is refused when read and when written', async () => {
   const root = await project()
+  const config = {
+    scanners: [{ id: 'tasks', source: './scanner', include: ['**/*.fixture'] }],
+    workSources: [{ id: 'tasks', source: './adapter' }],
+  }
   try {
-    await writePluginConfig(root, {
-      scanners: [{ id: 'tasks', source: './scanner', include: ['**/*.fixture'] }],
-      workSources: [{ id: 'tasks', source: './adapter' }],
-    })
+    await expect(writePluginConfig(root, config)).rejects.toThrow('more than once')
+    await handWritten(root, config)
     await expect(readPluginConfig(root)).rejects.toThrow('more than once')
   } finally { await rm(root, { recursive: true, force: true }) }
 })

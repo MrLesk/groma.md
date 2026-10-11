@@ -105,9 +105,6 @@ export async function configureScanner(
   const config = await readPluginConfig(repositoryRoot)
   const configured = config.scanners
   const resolved = installed.package
-  if ([...configured, ...config.workSources ?? []].some(plugin => plugin.id === resolved.id)) {
-    throw new Error(`plugin id is already configured: ${resolved.id}`)
-  }
   const scanner = { id: resolved.id, source: installed.source, include: resolved.include,
     ...(resolved.exclude?.length ? { exclude: resolved.exclude } : {}) }
   await writePluginConfig(repositoryRoot, { ...config, scanners: [...configured, scanner] })

@@ -35,7 +35,7 @@ test.concurrent('npm updates resolve omitted and bare sources, pin compatible re
       versions[version] = { ...manifest, dist: { tarball: `${server.url.origin}/${version}.tgz` } }
     }
     const options = { registry: server.url.href, cacheRoot: path.join(root, 'cache') }
-    const config = { exclude: ['generated/**'], scanners: [
+    const config = { workSources: [], exclude: ['generated/**'], scanners: [
       { id: 'other', source: './other', include: ['**/*.other'] },
       // An update keeps the entry's own lists rather than the package's current defaults.
       { id: 'sample', source: `${name}@1.0.0`, settings: { mode: 'strict' }, include: ['src/**/*.sample'], exclude: ['**/*.gen.ts'] },

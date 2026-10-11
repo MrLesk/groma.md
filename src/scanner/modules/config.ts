@@ -18,9 +18,11 @@ export interface ConfiguredWorkSource {
   source: string
 }
 
+/** plugins.json as the application holds it: every section is present, empty when the project selects nothing of that kind. */
 export interface PluginConfig {
-  workSources?: ConfiguredWorkSource[]
   scanners: ConfiguredScanner[]
+  /** At most one in this revision. */
+  workSources: ConfiguredWorkSource[]
   /** Git ignore patterns every scanner leaves out; Groma never writes them. */
   exclude?: string[]
   /** Whether files Git ignores stay out of every scan; true unless set to false. */
@@ -101,7 +103,7 @@ function configuredScanner(
 function configuredWorkSources(value: unknown, filename: string): ConfiguredWorkSource[] {
   if (value === undefined) return []
   if (!Array.isArray(value)) throw new Error(`${filename} workSources must be an array`)
-  if (value.length > 1) throw new Error(`${filename} supports at most one work source`)
+  if (value.length > 1) throw new Error(`${filename} supports at most one work source; remove one before adding another`)
   return value.map(entry => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)
       || Object.keys(entry).some(key => !['id', 'source'].includes(key))) {
@@ -162,8 +164,8 @@ function parsePluginConfig(
   const scanners = configuredScanners(config.scanners, sourceFilename)
   requireUniqueIds([...scanners, ...workSources], sourceFilename)
   return {
-    ...(workSources.length ? { workSources } : {}),
     scanners,
+    workSources,
     ...(config.exclude === undefined ? {} : { exclude: config.exclude as string[] }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
   }
@@ -177,18 +179,23 @@ export async function readPluginConfig(repositoryRoot: string): Promise<PluginCo
       filesystem.sourceFilename('plugins.json'),
     )
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { scanners: [] }
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { scanners: [], workSources: [] }
     throw error
   }
 }
 
+/** Saves plugins.json in one key order, and only when the parser accepts it: every rule of the file has that one owner. */
 export async function writePluginConfig(
   repositoryRoot: string,
   config: PluginConfig,
 ): Promise<void> {
-  const ordered = [...config.scanners].sort((left, right) => left.id.localeCompare(right.id))
-  await GromaFileSystem.open(repositoryRoot).write(
-    'plugins.json',
-    `${JSON.stringify({ ...config, scanners: ordered, workSources: config.workSources ?? [] }, null, 2)}\n`,
-  )
+  const filesystem = GromaFileSystem.open(repositoryRoot)
+  const text = `${JSON.stringify({
+    scanners: [...config.scanners].sort((left, right) => left.id.localeCompare(right.id)),
+    workSources: config.workSources,
+    ...(config.exclude === undefined ? {} : { exclude: config.exclude }),
+    ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
+  }, null, 2)}\n`
+  parsePluginConfig(text, filesystem.sourceFilename('plugins.json'))
+  await filesystem.write('plugins.json', text)
 }

@@ -18,7 +18,7 @@ export interface WorkSourceSelection {
 
 /** Read only the selected package; an absent selection never imports or probes a work source. */
 export async function configuredWorkSource(root: string, options: PluginResolutionOptions = {}): Promise<WorkSourceSelection | undefined> {
-  const selected = (await readPluginConfig(root)).workSources?.[0]
+  const selected = (await readPluginConfig(root)).workSources[0]
   if (!selected) return undefined
   const base = { ...selected, kind: 'workSource' as const }
   try {
