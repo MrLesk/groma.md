@@ -17,7 +17,10 @@ Each nested `tsconfig.json` among the scanner's files, and each configuration it
 references as build context, supplies compiler options for its included files. Configurations with no matching inputs contribute
 no files. A configuration that extends a config the checkout lacks, such as an
 uninstalled package base or a generated file, keeps its own settings and the scan
-reports a warning; other configuration errors still stop the scan. The nearest containing configuration owns a file,
+reports a warning. A referenced configuration the checkout lacks, such as one a
+framework generates before its first build, is skipped with a warning; its files
+use the other configurations or the default compiler options. Other configuration
+errors still stop the scan. The nearest containing configuration owns a file,
 before a configuration elsewhere that also includes it; a referenced configuration wins a tie with its entry
 configuration. Source files outside configured sets still receive source analysis with the default compiler
 options. Physical source files and operations remain single entries. Compiler contexts

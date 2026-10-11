@@ -12,6 +12,7 @@ import { createSourceControl } from '../src/viewers/web/source/control.ts'
 
 const mixedFixture = path.resolve(import.meta.dir, '../test/fixtures/mixed-scanner-outline')
 const typescriptFixture = path.resolve(import.meta.dir, '../test/fixtures/typescript-outline')
+const solutionFixture = path.resolve(import.meta.dir, '../test/fixtures/typescript-outline-solution')
 
 async function mixedComponent() {
   const world = await loadAnnotatedArchitecture(mixedFixture)
@@ -132,4 +133,10 @@ test.concurrent('the TypeScript outline applies the shared declaration and visib
     ['function', 'trim', 'public', []],
     ['type', 'listed', 'private', [['area', 'public']]],
   ])
+})
+
+test.concurrent('the TypeScript outline reads a file outside every project of a solution tsconfig', async () => {
+  // The native SDK's default-project search for such a file never answered, so the export waited forever.
+  const [file] = await readReferenceOutline(solutionFixture, [{ file: 'outside.ts', symbols: [] }])
+  expect(file?.declarations.map(declaration => [declaration.kind, declaration.name])).toEqual([['function', 'outside']])
 })

@@ -7,6 +7,11 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
+    inputs:
+      pull-request:
+        description: Reviewed PR number to include (0 compares same-repository PRs only)
+        type: number
+        default: 0
 
 permissions:
   contents: read
@@ -20,7 +25,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Each deploy replaces the whole site, so every run rebuilds the comparison of each open pull request.
+  # Each deploy replaces the site. Fork comparisons require a reviewed PR number for this run.
   pulls:
     runs-on: ubuntu-latest
     permissions:
@@ -32,9 +37,12 @@ jobs:
         id: open
         env:
           GH_TOKEN: ${{ github.token }}
+          REVIEWED_PR: ${{ inputs.pull-request || 0 }}
         run: |
           pulls=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open" \
-            --jq '[.[] | {number, head: .head.sha, base: .base.sha}]' | jq -cs 'add // []')
+            | jq --arg repo "$GITHUB_REPOSITORY" --argjson reviewed "$REVIEWED_PR" \
+              '[.[] | select(.head.repo.full_name == $repo or .number == $reviewed) |
+                {number, head: .head.sha, base: .base.sha}]' | jq -cs 'add // []')
           echo "pulls=$pulls" >> "$GITHUB_OUTPUT"
 
   compare:
@@ -52,7 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ matrix.pull.head }}
+          ref: ${{ matrix.pull.base }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -61,11 +69,15 @@ jobs:
         env:
           BASE: ${{ matrix.pull.base }}
           HEAD: ${{ matrix.pull.head }}
-        run: echo "from=$(git merge-base "$BASE" "$HEAD")" >> "$GITHUB_OUTPUT"
+        # Keep the trusted base checked out; export reads the PR commit from Git.
+        run: |
+          git fetch --no-tags origin "$HEAD"
+          echo "from=$(git merge-base "$BASE" "$HEAD")" >> "$GITHUB_OUTPUT"
 
-      - uses: MrLesk/groma.md-action@v1
+      - uses: MrLesk/groma.md-action@b5eb98ce51df144ba276182a5b80a7a2ce6d11a3
         id: map
         with:
+          groma-version: '0.6.6'
           output: groma-comparison
           theme: ${{ env.GROMA_THEME }}
           from: ${{ steps.commits.outputs.from }}
@@ -97,7 +109,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.4.2'
+          bun-version: '1.4.3'
 
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         id: pages

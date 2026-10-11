@@ -118,6 +118,7 @@ The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](ht
 | [Go](docs/scanners/go/index.md) | ✅ Available |
 | [Java (Maven, Gradle)](docs/scanners/java/index.md) | ✅ Available |
 | [Scala 3](docs/scanners/scala/index.md) | 🧪 Experimental |
+| [Kotlin](docs/scanners/kotlin/index.md) | 🧪 Experimental |
 | [Python](docs/scanners/python/index.md) | ✅ Available |
 | [Rust](docs/scanners/rust/index.md) | ✅ Available |
 | [PHP](docs/scanners/php/index.md) | ✅ Available |
@@ -146,7 +147,7 @@ No. Once a document exists, scans refresh only its code references: the symbols 
 
 > ### Can I see architecture changes in pull requests?
 
-Yes. The architecture is Markdown in the same repository, so its changes are part of the pull request. On public repositories, the groma.md GitHub Action comments on every pull request with the number of changed components and relationships and a link to a before and after map. [Add it to your repository.](https://github.com/MrLesk/groma.md-action/pull/4)
+Yes. The architecture is Markdown in the same repository, so its changes are part of the pull request. On public repositories, the groma.md GitHub Action adds change counts and a before and after map automatically for PRs from the same repository. For external fork PRs, a maintainer reviews the PR and starts the comparison with **Run workflow**. [Add it to your repository.](https://github.com/MrLesk/groma.md-action#add-pr-comparisons)
 
 > ### What happens if I stop using groma.md?
 
@@ -154,7 +155,7 @@ Nothing breaks. The architecture stays in your repository as ordinary Markdown i
 
 > ### Which languages does it support?
 
-TypeScript, JavaScript, Angular, React, Vue, C#/.NET, Go, Java, Scala 3, Python, Rust, PHP, Swift, COBOL, and NASM assembly, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
+TypeScript, JavaScript, Angular, React, Vue, C#/.NET, Go, Java, Scala 3, Kotlin, Python, Rust, PHP, Swift, COBOL, and NASM assembly, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
 
 ## Experimental
 

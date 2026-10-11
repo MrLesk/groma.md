@@ -208,7 +208,7 @@ async function runInteractiveWelcome(screen: WelcomeScreen = 'launcher'): Promis
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error))
         process.exitCode = 1
-      } finally { session.close() }
+      } finally { await session.close() }
       reopen = session.selection === 'scanners'
     }
   } finally {
