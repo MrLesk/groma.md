@@ -80,9 +80,9 @@ function stroke(level: Level, palette: Palette | undefined, zoom: number): strin
 }
 
 function surfaceColours(kind: string, depth: number, palette?: Palette): string {
-  return `#map .${kind} .ground:not(.accented), #map .${kind} .top:not(.accented) { fill: ${paintTint(tintAt(depth), palette)}; }
-    #map .${kind} .right:not(.accented) { fill: ${paintTint(tintAt(depth + SIDE.right), palette)}; }
-    #map .${kind} .left:not(.accented) { fill: ${paintTint(tintAt(depth + SIDE.left), palette)}; }`
+  return `#map .${kind} .ground, #map .${kind} .top { fill: ${paintTint(tintAt(depth), palette)}; }
+    #map .${kind} .right { fill: ${paintTint(tintAt(depth + SIDE.right), palette)}; }
+    #map .${kind} .left { fill: ${paintTint(tintAt(depth + SIDE.left), palette)}; }`
 }
 
 /** The camera attributes that stop facade and surface patterns below readable size at zoom `k`; the map and its covers set the same ones. */
@@ -90,7 +90,11 @@ export function patternAttributes(k: number): Record<string, boolean> {
   return { 'data-facades-hidden': !facadeDetailsVisible(k), 'data-surface-patterns-hidden': !surfacePatternsVisible(k) }
 }
 
-/** Supplying a palette resolves theme values and compensates strokes for a fixed SVG camera. Covers render these rules with resvg, which ignores :is(), so selectors stay plain. */
+/**
+ * Supplying a palette resolves theme values and compensates strokes for a fixed SVG camera. Covers render these rules
+ * with resvg, which drops a selector that uses :is() or :not() together with every selector listed after it, so
+ * selectors stay plain.
+ */
 export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   const paper = palette?.paper ?? 'var(--paper)'
   const ink = palette?.ink ?? 'var(--ink)'
@@ -112,11 +116,10 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .compass .ring, #map .compass .star, #map .compass .north,
   #map .project-plate .plate, #map .project-plate .edit-frame,
   #map .project-plate .pencil path, #map .project-plate .pencil polygon,
-  #map .ground:not(.accented), #map .face:not(.accented), #map .route-base, #map .route .line {
+  #map .ground, #map .face, #map .route-base, #map .route .line {
     stroke: ${line}; stroke-linejoin: round;
     ${width}
   }
-  #map .ground.accented, #map .face.accented { stroke-linejoin: round; ${width} }
   #map .frame, #map .calibration-tick,
   #map .compass .ring, #map .compass .star,
   #map .project-plate .edit-frame, #map .project-plate .pencil path { fill: none; }
@@ -150,7 +153,10 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   ${surfaceColours('system', depthOf('island') - 0.5, palette)}
   ${surfaceColours('slab', depthOf('slab'), palette)}
   ${surfaceColours('building', depthOf('building'), palette)}
-  #map .actor .face:not(.accented) { fill: ${paper}; }
+  #map .actor .face { fill: ${paper}; }
+  /* An accented element's group carries its colour and tint (appearance.ts). These rules must stay after the rest colours above and before the draft rule below. */
+  #map .accented > .ground, #map .accented .face { stroke: currentColor; fill: inherit; }
+  #map .accented > .label .text { fill: currentColor; }
   #map .zone .ground { fill: url(#hatch-ground); }
   #map .pattern { stroke: none; pointer-events: none; }
   #map .island.actors .pattern { fill: url(#dots); }
@@ -176,8 +182,7 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .ghost .pattern { display: none; }
   #map .ghost.draft .face, #map .ghost.draft .ground,
   #map .route-base.ghost.draft, #map .route.ghost.draft:not(.touched):not(.lit) .line { stroke-dasharray: ${4 / zoom} ${3 / zoom}; }
-  #map .text { pointer-events: none; }
-  #map .text:not(.accented) { fill: ${ink}; }
+  #map .text { fill: ${ink}; pointer-events: none; }
   #map .island > .label .text, #map .slab > .label .text, #map .zone > .label .text { font-weight: 600; }
   #map .route-base, #map .route .line { fill: none; stroke-linecap: round; opacity: 0.9; }
   #map .route-base { pointer-events: none; }

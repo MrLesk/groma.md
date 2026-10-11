@@ -3,21 +3,19 @@ import type { SheetItem } from '../../../../sheet/types.ts'
 import type { ResolvedIcon } from '../../../../types.ts'
 import { node, type SvgNode } from './svg.ts'
 
-/** Presentation attributes supply rest colours; state CSS still owns interaction and lifecycle. */
-export function paintAppearance(nodes: readonly SvgNode[], item: Pick<SheetItem, 'colour'>): SvgNode[] {
+/**
+ * Gives an element's group its authored accent. The group only carries the two values, `color` for the accent and
+ * `fill` for its tint; the `.accented` rules in style.ts hand them to the element's own faces, ground and title.
+ * Those rules follow the rest colours and precede the draft, selection and comparison rules, so every state still
+ * wins, in the browser and in covers alike.
+ */
+export function withAccent(group: SvgNode, item: Pick<SheetItem, 'colour'>): SvgNode {
   const colour = accentColour(item.colour)
-  if (!colour) return [...nodes]
-  return nodes.map(child => {
-    // Nested architecture elements and zones keep their own presentation.
-    if (child.attributes['data-id'] || child.attributes.class === 'zone') return child
-    const classes = child.attributes.class?.split(' ') ?? []
-    const appearance: Record<string, string> | undefined = classes.includes('text') ? { fill: colour }
-      : classes.includes('face') || classes.includes('ground') ? { stroke: colour, fill: accentTint(colour) } : undefined
-    return { ...child,
-      attributes: appearance ? { ...child.attributes, ...appearance, class: `${child.attributes.class} accented` } : child.attributes,
-      children: typeof child.children === 'string' ? child.children : paintAppearance(child.children, item),
-    }
-  })
+  if (colour === undefined) return group
+  return {
+    ...group,
+    attributes: { ...group.attributes, color: colour, fill: accentTint(colour), class: `${group.attributes.class} accented` },
+  }
 }
 
 /**

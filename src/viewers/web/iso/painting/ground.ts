@@ -2,7 +2,7 @@ import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, ISLAND_SPACING, textWidth } fr
 import type { Compass, PlateText, ProjectPlate, RichPlateText, Segment } from '../projection/blueprint.ts'
 import type { ProjectedScene, ProjectedZone, ProjectionView } from '../projection/project.ts'
 import { planeMatrix } from '../projection/project.ts'
-import { paintAppearance } from './appearance.ts'
+import { withAccent } from './appearance.ts'
 import { node, pointsAttribute, round, type SvgNode } from './svg.ts'
 import { surfaceLabel } from './text.ts'
 
@@ -100,11 +100,11 @@ export function islandsSvg(scene: ProjectedScene, zoom = 1): SvgNode[] {
     ...scene.islands.map(({ island, polygon, text }) => {
       const attributes: Record<string, string> = island.element === null
         ? {} : { 'data-id': island.element.representationId, 'aria-label': island.name }
-      return node('g', attributes, `island ${island.kind}`, paintAppearance([
+      return withAccent(node('g', attributes, `island ${island.kind}`, [
         node('polygon', { points: pointsAttribute(polygon) }, 'ground'),
         ...(island.kind === 'system' ? [] : [node('polygon', { points: pointsAttribute(polygon) }, 'pattern')]),
         surfaceLabel(text, ISLAND_FONT, scene.view, ISLAND_SPACING, zoom, island.element?.resolvedIcon),
-      ], island.element ?? {}))
+      ]), island.element ?? {})
     }),
     ...scene.zones.filter(zone => scene.islands.some(item => item.island.key === zone.zone.parent))
       .map(zone => zoneGroup(zone, scene.view, zoom)),
@@ -116,12 +116,12 @@ export function slabsSvg(scene: ProjectedScene, zoom = 1): SvgNode[] {
   return scene.slabs.map(({ slab, faces, text }) => {
     const ghost = slab.origin === 'observed' ? '' : ` ghost ${slab.origin}`
     const top = faces.find(face => face.side === 'top')!
-    return node('g', { 'aria-label': slab.title, 'data-id': slab.representationId }, `slab${ghost}`, paintAppearance([
+    return withAccent(node('g', { 'aria-label': slab.title, 'data-id': slab.representationId }, `slab${ghost}`, [
       ...faces.map(face => node('polygon', { points: pointsAttribute(face.points) }, `face ${face.side}`)),
       node('polygon', { points: pointsAttribute(top.points) }, 'pattern'),
       surfaceLabel(text, CONTAINER_FONT, scene.view, 0, zoom, slab.resolvedIcon),
       ...scene.zones.filter(zone => zone.zone.parent === slab.representationId)
         .map(zone => zoneGroup(zone, scene.view, zoom)),
-    ], slab))
+    ]), slab)
   })
 }
