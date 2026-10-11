@@ -3,7 +3,7 @@ import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
 import type { Plane, ProjectionView } from '../projection/project.ts'
-import { FACADE_MARK, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
+import { ACCENT_TINT, FACADE_MARK, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
 import type { Level } from './scale.ts'
 import { mark, node, type SvgNode } from './svg.ts'
 
@@ -85,6 +85,21 @@ function surfaceColours(kind: string, depth: number, palette?: Palette): string 
     #map .${kind} .left { fill: ${paintTint(tintAt(depth + SIDE.left), palette)}; }`
 }
 
+/**
+ * The colours of an accented element. Its group carries the accent as `color` (appearance.ts): the element's own faces
+ * and ground are stroked in it and filled with it mixed into the theme's paper, and its title is written in it. The
+ * browser mixes with the live theme. A cover needs explicit colours, so it gets one fill rule for each accent in its
+ * scene. These rules have the specificity of the rest colours and of the draft rule, and must stay between the two.
+ */
+function accentRules(palette: Palette | undefined, accents: readonly string[]): string {
+  const fills = palette === undefined
+    ? `#map .accented > .ground, #map .accented .face { fill: color-mix(in srgb, currentColor ${(ACCENT_TINT * 100).toFixed(1)}%, var(--paper)); }`
+    : accents.map(accent => `#map [color="${accent}"] > .ground, #map [color="${accent}"] .face { fill: ${mixColour(palette.paper, accent, ACCENT_TINT)}; }`).join('\n  ')
+  return `#map .accented > .ground, #map .accented .face { stroke: currentColor; }
+  #map .accented > .label .text { fill: currentColor; }
+  ${fills}`
+}
+
 /** The camera attributes that stop facade and surface patterns below readable size at zoom `k`; the map and its covers set the same ones. */
 export function patternAttributes(k: number): Record<string, boolean> {
   return { 'data-facades-hidden': !facadeDetailsVisible(k), 'data-surface-patterns-hidden': !surfacePatternsVisible(k) }
@@ -93,9 +108,9 @@ export function patternAttributes(k: number): Record<string, boolean> {
 /**
  * Supplying a palette resolves theme values and compensates strokes for a fixed SVG camera. Covers render these rules
  * with resvg, which drops a selector that uses :is() or :not() together with every selector listed after it, so
- * selectors stay plain.
+ * selectors stay plain. It reads neither var() nor color-mix(), so a cover also names the accents of its scene.
  */
-export function mapDrawingCss(palette?: Palette, zoom = 1): string {
+export function mapDrawingCss(palette?: Palette, zoom = 1, accents: readonly string[] = []): string {
   const paper = palette?.paper ?? 'var(--paper)'
   const ink = palette?.ink ?? 'var(--ink)'
   const muted = palette?.muted ?? 'var(--muted)'
@@ -154,9 +169,7 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   ${surfaceColours('slab', depthOf('slab'), palette)}
   ${surfaceColours('building', depthOf('building'), palette)}
   #map .actor .face { fill: ${paper}; }
-  /* An accented element's group carries its colour and tint (appearance.ts). These rules must stay after the rest colours above and before the draft rule below. */
-  #map .accented > .ground, #map .accented .face { stroke: currentColor; fill: inherit; }
-  #map .accented > .label .text { fill: currentColor; }
+  ${accentRules(palette, accents)}
   #map .zone .ground { fill: url(#hatch-ground); }
   #map .pattern { stroke: none; pointer-events: none; }
   #map .island.actors .pattern { fill: url(#dots); }

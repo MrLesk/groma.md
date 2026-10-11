@@ -13,8 +13,10 @@ groma edit storage --icon "" --colour ""
 ```
 
 Colours accept the names documented in [the Markdown contract](component-markdown.md)
-or six-digit hexadecimal RGB. They keep the same accent in light, dark and
-blueprint themes. The legend below the hierarchy lists each colour in use with
+or six-digit hexadecimal RGB. An accent keeps its colour in light, dark and
+blueprint themes: it draws the element's outline and title, and the element's
+surfaces are the theme's paper mixed with it, so titles on them stay readable
+in every theme. The legend below the hierarchy lists each colour in use with
 the number of elements that have it; a name and its hexadecimal value are the
 same colour.
 

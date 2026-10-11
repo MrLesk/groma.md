@@ -34,6 +34,9 @@ export function tintAt(depth: number): number {
   return ISLAND_TINT * TINT_RATIO ** depth
 }
 
+/** Share of an element's authored accent mixed into the paper of its own surfaces, the same in every theme. */
+export const ACCENT_TINT = 0.22
+
 /** Hover, selection and lit routes climb the stroke ladder by this many levels. */
 export function emphasis(steps: number): number {
   return STROKE_RATIO ** steps

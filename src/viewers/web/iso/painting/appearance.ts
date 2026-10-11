@@ -1,21 +1,28 @@
-import { accentColour, accentTint } from '../../../../element-appearance.ts'
+import { accentColour } from '../../../../element-appearance.ts'
 import type { SheetItem } from '../../../../sheet/types.ts'
 import type { ResolvedIcon } from '../../../../types.ts'
+import type { ProjectedScene } from '../projection/project.ts'
 import { node, type SvgNode } from './svg.ts'
 
 /**
- * Gives an element's group its authored accent. The group only carries the two values, `color` for the accent and
- * `fill` for its tint; the `.accented` rules in style.ts hand them to the element's own faces, ground and title.
- * Those rules follow the rest colours and precede the draft, selection and comparison rules, so every state still
- * wins, in the browser and in covers alike.
+ * Gives an element's group its authored accent. The group only carries the colour, as `color`; the accent rules in
+ * style.ts paint the element's own faces, ground and title from it. Those rules follow the rest colours and precede
+ * the draft, selection and comparison rules, so every state still wins, in the browser and in covers alike.
  */
 export function withAccent(group: SvgNode, item: Pick<SheetItem, 'colour'>): SvgNode {
   const colour = accentColour(item.colour)
   if (colour === undefined) return group
-  return {
-    ...group,
-    attributes: { ...group.attributes, color: colour, fill: accentTint(colour), class: `${group.attributes.class} accented` },
-  }
+  return { ...group, attributes: { ...group.attributes, color: colour, class: `${group.attributes.class} accented` } }
+}
+
+/** The distinct accents among a scene's elements; a cover's stylesheet needs a rule for each. */
+export function sceneAccents(scene: ProjectedScene): string[] {
+  const items = [
+    ...scene.islands.map(item => item.island.element),
+    ...scene.slabs.map(item => item.slab),
+    ...scene.buildings.map(item => item.building),
+  ]
+  return [...new Set(items.flatMap(item => accentColour(item?.colour) ?? []))]
 }
 
 /**

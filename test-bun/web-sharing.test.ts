@@ -5,10 +5,12 @@ import path from 'node:path'
 import { test } from 'bun:test'
 import { EMPTY_WORK_SNAPSHOT, type WorkSource } from '@groma/work-source'
 import { Resvg } from '@resvg/resvg-wasm'
-import { accentColour, accentTint } from '../src/element-appearance.ts'
+import { accentColour } from '../src/element-appearance.ts'
 import { loadProjectProfile, saveProjectProfile } from '../src/project-profile.ts'
+import { mixColour, palettes } from '../src/viewers/web/atoms/theme.ts'
 import { exportWebViewer } from '../src/viewers/web/export.ts'
 import { startWebViewer } from '../src/viewers/web/server.ts'
+import { ACCENT_TINT } from '../src/viewers/web/iso/painting/scale.ts'
 import { COVER_SIZE } from '../src/viewers/web/sharing/cover.ts'
 import { generateCovers } from '../src/viewers/web/sharing/images.ts'
 import { sharingMetadata } from '../src/viewers/web/sharing/metadata.ts'
@@ -115,7 +117,7 @@ function pixelsOf(cover: Uint8Array, colour: string): number {
   }
 }
 
-test.concurrent('a cover paints every surface in its rest colour and an authored accent in its tint', async () => {
+test.concurrent('a cover paints every surface in its rest colour and an accented one in its accent mixed into the theme paper', async () => {
   const unit = { x: 0, y: 0, width: 1, height: 1 }
   const world = worldOf([
     box('shop', 'system', unit),
@@ -123,7 +125,9 @@ test.concurrent('a cover paints every surface in its rest colour and an authored
     box('web', 'container', unit, { parent: 'observed:shop' }),
   ])
   const covers = await generateCovers({ sheet: world.sheet, project: null })
-  // The cover renderer drops a style rule it cannot read, and a surface left without its fill is drawn black.
-  assert.equal(pixelsOf(covers.light, '#000000'), 0)
-  assert.ok(pixelsOf(covers.light, accentTint(accentColour('blue')!)) > 0)
+  for (const theme of ['light', 'dark'] as const) {
+    // The cover renderer drops a style rule it cannot read, and a surface left without its fill is drawn black.
+    assert.equal(pixelsOf(covers[theme], '#000000'), 0)
+    assert.ok(pixelsOf(covers[theme], mixColour(palettes[theme].paper, accentColour('blue')!, ACCENT_TINT)) > 0)
+  }
 })
