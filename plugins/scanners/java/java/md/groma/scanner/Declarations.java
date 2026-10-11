@@ -7,7 +7,6 @@ import com.sun.source.util.Trees;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,7 +28,6 @@ final class Declarations extends TreePathScanner<Void, Void> {
     final List<Object> operations = new ArrayList<>();
     private final Map<String, String> entries = new LinkedHashMap<>();
     private final Map<String, List<Object>> symbols = new LinkedHashMap<>();
-    private final Set<String> declared = new HashSet<>();
 
     Declarations(Path root, Trees trees, Set<Tree> authored) {
         this.root = root;
@@ -51,8 +49,9 @@ final class Declarations extends TreePathScanner<Void, Void> {
         var element = trees.getElement(getCurrentPath());
         var name = tree.getSimpleName().toString();
         if (name.isEmpty()) name = "<anonymous>";
-        var id = element == null || element.toString().isEmpty() ? identity(tree) : element.toString();
-        symbols.get(file(getCurrentPath().getCompilationUnit())).add(Json.object(
+        var unit = getCurrentPath().getCompilationUnit();
+        var id = element == null || element.toString().isEmpty() ? identity(unit, tree) : element.toString();
+        symbols.get(file(unit)).add(Json.object(
             "id", id, "name", name, "kind", tree.getKind().name().toLowerCase(Locale.ROOT)));
         return super.visitClass(tree, unused);
     }
@@ -101,8 +100,8 @@ final class Declarations extends TreePathScanner<Void, Void> {
 
     /** Only an operation with tokens is compared as possible duplicate logic. */
     private void operation(Tree tree, String name, List<Object> tokens) {
-        String id = identity(tree);
         var unit = getCurrentPath().getCompilationUnit();
+        String id = identity(unit, tree);
         operationAt.put(tree, id);
         var fact = Json.object("id", id, "file", file(unit), "name", name);
         if (tokens != null) {
@@ -114,13 +113,19 @@ final class Declarations extends TreePathScanner<Void, Void> {
         operations.add(fact);
     }
 
-    /** A declarative client method has no body, so only its request declares it as an operation. */
-    String declareOperation(TreePath path) {
-        var unit = path.getCompilationUnit();
-        var id = file(unit) + "@" + trees.getSourcePositions().getStartPosition(unit, path.getLeaf());
-        if (!declared.add(id)) return id;
-        var element = trees.getElement(path);
-        var name = element == null ? path.getLeaf().toString() : element.getEnclosingElement() + "#" + element;
+    /**
+     * The operation a declarative client method's request belongs to. A method with a body already is an operation
+     * and is never declared a second time. One without a body has only its request to declare it, once. The reader
+     * decides, for its framework, whether a method with a body sends a request before it asks for the operation.
+     */
+    String declareOperation(TreePath method) {
+        var existing = operationAt.get(method.getLeaf());
+        if (existing != null) return existing;
+        var unit = method.getCompilationUnit();
+        var id = identity(unit, method.getLeaf());
+        operationAt.put(method.getLeaf(), id);
+        var element = trees.getElement(method);
+        var name = element == null ? method.getLeaf().toString() : element.getEnclosingElement() + "#" + element;
         operations.add(Json.object("id", id, "file", file(unit), "name", name));
         return id;
     }
@@ -130,8 +135,7 @@ final class Declarations extends TreePathScanner<Void, Void> {
      * `int a = 1, b = 2;`, at the declaration itself, so a variable also carries its name. Its initializer's start
      * cannot stand in for the name: a lambda initializer is itself an operation that starts there.
      */
-    private String identity(Tree tree) {
-        var unit = getCurrentPath().getCompilationUnit();
+    private String identity(CompilationUnitTree unit, Tree tree) {
         var id = file(unit) + "@" + trees.getSourcePositions().getStartPosition(unit, tree);
         return tree instanceof VariableTree variable ? id + "#" + variable.getName() : id;
     }

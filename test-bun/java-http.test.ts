@@ -175,6 +175,47 @@ class Services {
   } finally { await rm(root, { recursive: true, force: true }) }
 }, 60000)
 
+test.concurrent('a Java client method with a body is one operation and reports a request only where its client is known to send one', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-java-client-bodies-'))
+  try {
+    await mkdir(path.join(root, 'src/main/java'), { recursive: true })
+    await writeFile(path.join(root, 'src/main/java/Clients.java'), `
+@FeignClient
+interface Feign {
+  @GetMapping("/a") String sent();
+  @GetMapping("/b") default String defaulted() { return ""; }
+  @GetMapping("/c") static String helper() { return ""; }
+}
+@HttpExchange
+interface Exchange {
+  @GetExchange("/a") String sent();
+  @GetExchange("/b") default String defaulted() { return ""; }
+  @GetExchange("/c") static String helper() { return ""; }
+}
+@RegisterRestClient
+interface MicroProfile {
+  @GET String sent();
+  @GET @Path("/b") default String defaulted() { return ""; }
+  @GET @Path("/c") static String helper() { return ""; }
+}
+interface Retrofit {
+  @retrofit2.http.GET("/a") String sent();
+  @retrofit2.http.GET("/b") default String defaulted() { return ""; }
+  @retrofit2.http.GET("/c") static String helper() { return ""; }
+}`)
+    const worker = path.join(root, 'worker.jar')
+    await buildWorker(worker)
+    const scan = parseScanObservation(await run(javaCommand(), ['-jar', worker, root, '21', 'UTF-8'], root,
+      'src/main/java/Clients.java\n'))
+    const operations = new Map(scan.operations!.map(operation => [operation.id, operation.name]))
+    // Only Spring is known to send the request of an annotated default method. MicroProfile is not established,
+    // so it reports none, and no client receives a static call.
+    expect(scan.httpRequests!.map(request => operations.get(request.operation)).sort()).toEqual([
+      'Exchange#defaulted()', 'Exchange#sent()', 'Feign#sent()', 'MicroProfile#sent()', 'Retrofit#sent()',
+    ])
+  } finally { await rm(root, { recursive: true, force: true }) }
+}, 60000)
+
 test.concurrent('OkHttp reports only sent requests from source-proven builders', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-java-okhttp-'))
   try {

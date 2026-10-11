@@ -171,8 +171,7 @@ Requests:
 
 - declarative clients: a `@FeignClient` interface, with its `path` and `url`
   attributes, and a Spring HTTP interface with `@HttpExchange`, `@GetExchange`,
-  `@PostExchange`, `@PutExchange`, `@DeleteExchange` or `@PatchExchange`. Such
-  a method has no body, so its request declares the operation itself.
+  `@PostExchange`, `@PutExchange`, `@DeleteExchange` or `@PatchExchange`.
 - MicroProfile `@RegisterRestClient` interfaces with JAX-RS `@Path` and HTTP
   method annotations. The remote base remains configured.
 - Retrofit interface methods with an imported `retrofit2.http` `@GET`, `@POST`,
@@ -193,6 +192,15 @@ Requests:
   the request is a visible `Request.Builder` URL and method, either inline or
   in a variable that is not reassigned. Constructing a call without sending it
   supplies no request fact. A builder with no stated method sends GET.
+
+A declarative client method has no body as a rule, so its request declares the
+operation itself. A `default` or `static` method that carries a request
+annotation is an operation already and reports no request in a Feign,
+MicroProfile or Retrofit interface: Feign and Retrofit run it as ordinary code,
+no client receives a static call, and MicroProfile implementations disagree
+about a `default` method. A Spring HTTP interface sends the request of an
+annotated `default` method, so that request is reported on the method's own
+operation, while a `static` method reports none.
 
 An imperative client is recognized by the declared type name of its receiver in
 the same file, so a field, a local variable and `new RestTemplate()` all count,

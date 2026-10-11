@@ -38,7 +38,8 @@ final class RetrofitRequests extends TreePathScanner<Void, Void> {
         if (tree.getKind() == Tree.Kind.INTERFACE) {
             var type = getCurrentPath();
             for (var member : tree.getMembers()) {
-                if (!(member instanceof MethodTree method)) continue;
+                // Retrofit runs a default method as ordinary code, and no client proxy receives a static call.
+                if (!(member instanceof MethodTree method) || method.getBody() != null) continue;
                 var path = new TreePath(type, method);
                 for (var annotation : method.getModifiers().getAnnotations()) add(path, annotation);
             }
