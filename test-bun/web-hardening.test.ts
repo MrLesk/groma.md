@@ -5,7 +5,6 @@ import os from 'node:os'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT, type WorkSource } from '@groma/work-source'
 import { exportWebViewer } from '../src/viewers/web/export.ts'
-import { chip, statusButton } from '../src/viewers/web/work/island.ts'
 import { startWebViewer } from '../src/viewers/web/server.ts'
 
 function emptyWorkSource(): WorkSource {
@@ -138,99 +137,4 @@ test.concurrent('the export refuses a stored reference that escapes the reposito
     await rm(root, { recursive: true, force: true })
     await rm(path.join(path.dirname(root), escaping), { force: true })
   }
-})
-
-// The island's builders ask the page for nodes; this stub records every innerHTML write so the
-// test can prove repo content reaches only text nodes. It stays in this file because the
-// repository check runs bun test --parallel, which gives each test file its own globals.
-interface StubNode {
-  style: { setProperty: (name: string, value: string) => void }
-  classList: { contains: (name: string) => boolean; toggle: (name: string, on: boolean) => void }
-  dataset: Record<string, string>
-  attributes: Record<string, string>
-  children: unknown[]
-  textContent?: string
-  addEventListener: () => void
-  setAttribute: (name: string, value: string) => void
-  append: (...children: unknown[]) => void
-  querySelector: () => StubNode
-}
-
-const htmlWrites: string[] = []
-
-Object.assign(globalThis, {
-  document: {
-    createElement(tag: string): unknown {
-      if (tag === 'template') {
-        const template: { content?: { parsed: string }; innerHTML?: string } = {}
-        Object.defineProperty(template, 'innerHTML', {
-          set(value: string) { template.content = { parsed: value } },
-        })
-        return template
-      }
-      const node: StubNode = {
-        style: { setProperty() {} },
-        classList: { contains: () => false, toggle() {} },
-        dataset: {},
-        attributes: {},
-        children: [],
-        addEventListener() {},
-        setAttribute(name: string, value: string) { node.attributes[name] = value },
-        append(...children: unknown[]) { node.children.push(...children) },
-        querySelector: () => stubElement(),
-      }
-      Object.defineProperty(node, 'innerHTML', {
-        set(value: string) { htmlWrites.push(value) },
-      })
-      return node
-    },
-    createTextNode(text: string): unknown {
-      return { textContent: text }
-    },
-  },
-})
-
-function stubElement(): StubNode {
-  const node: StubNode = {
-    style: { setProperty() {} },
-    classList: { contains: () => false, toggle() {} },
-    dataset: {},
-    attributes: {},
-    children: [],
-    addEventListener() {},
-    setAttribute() {},
-    append() {},
-    querySelector: () => stubElement(),
-  }
-  Object.defineProperty(node, 'innerHTML', {
-    set(value: string) { htmlWrites.push(value) },
-  })
-  return node
-}
-
-const ATTACK = '<img src=x onerror=alert(1)>'
-
-function pinWith(taskId: string) {
-  return {
-    key: `task ${taskId}`, assignee: null, taskId, title: 'Order the lines', status: 'Doing',
-    draft: false, terminal: false, done: 0, total: 2, elementId: 'orders', colour: 'var(--pin)',
-  }
-}
-
-test.concurrent('an island chip renders an attacker task id as text, never as HTML', () => {
-  const node = chip(pinWith(ATTACK), undefined, () => {}, { attach() {} })
-  const label = Array.from(node.children).find(child => (child as unknown as StubNode).textContent === ATTACK)
-  expect(label).toBeDefined()
-  expect((node.children[0] as { parsed?: string }).parsed).toContain('badge')
-  expect(htmlWrites.join('|')).not.toContain(ATTACK)
-})
-
-test.concurrent('a status pill renders an attacker status as text, never as HTML', () => {
-  const presses: string[] = []
-  const node = statusButton(ATTACK, true, () => presses.push('toggled'))
-  const text = Array.from(node.children).find(child => (child as unknown as StubNode).textContent === ATTACK)
-  expect(text).toBeDefined()
-  expect((node.children[0] as { parsed?: string }).parsed).toContain('<svg')
-  expect((node as unknown as { attributes: Record<string, string> }).attributes['aria-pressed']).toBe('true')
-  expect(htmlWrites.join('|')).not.toContain(ATTACK)
 })

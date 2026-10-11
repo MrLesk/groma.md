@@ -4,7 +4,7 @@ title: Harden audited surfaces and correct documentation drift
 status: In Progress
 assignee: []
 created_date: '2026-09-27 01:23'
-updated_date: '2026-10-11 16:12'
+updated_date: '2026-10-11 16:15'
 labels: []
 dependencies: []
 modified_files:
@@ -40,6 +40,7 @@ modified_files:
   - test-bun/backlog-cli.test.ts
   - test-bun/scanner-source-listing.test.ts
   - test-bun/cli-actions.test.ts
+  - test-bun/web-hardening.test.ts
 priority: high
 type: task
 ordinal: 611000
