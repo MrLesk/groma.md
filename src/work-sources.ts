@@ -2,8 +2,7 @@ import { pathToFileURL } from 'node:url'
 import { EMPTY_WORK_SOURCE, type WorkSource, type WorkSourcePlugin } from '@groma/work-source'
 import groma from '../package.json' with { type: 'json' }
 import { readPluginConfig } from './scanner/modules/config.ts'
-import { defaultPluginCacheRoot, parsePluginSource, resolvePluginPackage, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
-import type { PluginResolutionOptions } from './scanner/modules/inventory.ts'
+import { parsePluginSource, resolvePluginPackage, type PluginResolutionOptions, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
 
 export interface WorkSourceSelection {
   id: string
@@ -24,7 +23,7 @@ export async function configuredWorkSource(root: string, options: PluginResoluti
   const base = { ...selected, kind: 'workSource' as const }
   try {
     const source = parsePluginSource(root, selected.source)
-    const resolved = await resolvePluginPackage(source, options.cacheRoot ?? defaultPluginCacheRoot(), 'workSource')
+    const resolved = await resolvePluginPackage(source, options, 'workSource')
     if (!resolved) return { ...base, status: 'missing', message: `Restore ${selected.source} with groma plugin install, or restore its local path.` }
     if (resolved.id !== selected.id) throw new Error(`Configured work source ${selected.id} resolves to ${resolved.id}`)
     const details = { ...base, name: resolved.name, version: resolved.version }

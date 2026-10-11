@@ -1,7 +1,8 @@
 import type { ScannerRecommendation } from './catalog.ts'
 import { readPluginConfig } from './config.ts'
 import { discoverScanners, formatDiscovery, type ScannerDiscovery } from './discovery.ts'
-import { addScanner, type PluginInstallOptions } from './inventory.ts'
+import { addScanner } from './inventory.ts'
+import type { PluginInstallOptions } from './package.ts'
 import { checkScannerReadiness, formatReadiness } from './readiness.ts'
 
 export interface ScannerSetupUi {

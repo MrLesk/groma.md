@@ -5,10 +5,9 @@ import { discoverScanners } from './discovery.ts'
 import { officialScannerCatalog } from './catalog.ts'
 import { officialWorkSourceIds } from './official-catalog.ts'
 import { configuredScannerModules, addScanner, restoreScanner } from './inventory.ts'
-import type { PluginInstallOptions } from './inventory.ts'
 import type { ScannerModuleLocation } from './inventory.ts'
 import type { ProjectReadiness } from './readiness.ts'
-import { parsePluginSource } from './package.ts'
+import { parsePluginSource, type PluginInstallOptions } from './package.ts'
 import { readPublishedPlugins, selectPublishedPlugin } from './published.ts'
 import { readPluginConfig } from './config.ts'
 import { addPlugin, removePlugin, restoreWorkSource, updatePlugin } from '../../plugin-management.ts'
@@ -22,7 +21,7 @@ export async function withPluginUpgrades(settings: PluginSettings, registry?: st
     const source = parsePluginSource('.', plugin.source)
     if (source.kind !== 'npm') return
     try {
-      const release = selectPublishedPlugin(source.name, await readPublishedPlugins(source.name, registry), undefined, plugin.kind)
+      const release = selectPublishedPlugin(source.name, await readPublishedPlugins(source.name, registry), plugin.kind)
       if (Bun.semver.order(release.version, plugin.version) > 0) upgrades[plugin.source] = { version: release.version }
     } catch (error) {
       upgrades[plugin.source] = { error: error instanceof Error ? error.message : String(error) }

@@ -1,5 +1,6 @@
 import { repositoryListing } from '../../repository-listing.ts'
-import { configuredScannerModules, type FoundScannerModule, type PluginResolutionOptions } from './inventory.ts'
+import { configuredScannerModules, type FoundScannerModule } from './inventory.ts'
+import type { PluginResolutionOptions } from './package.ts'
 import { allExcluded, configuredPlugin } from '../registry.ts'
 import { discoverScanners } from './discovery.ts'
 import { readPluginConfig, type PluginConfig } from './config.ts'

@@ -61,11 +61,21 @@ export type PluginKind = keyof ResolvedPackages
 
 export type ResolvedPluginPackage = ResolvedPackages[PluginKind]
 
+export interface PluginResolutionOptions {
+  /** Where npm and Git packages are kept instead of the shared ~/.groma/cache/plugins folder. */
+  cacheRoot?: string
+}
+
+export interface PluginInstallOptions extends PluginResolutionOptions {
+  /** The npm registry to read releases from and install with instead of the configured one. */
+  registry?: string
+}
+
 const exactVersion = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
 const pluginId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
-export function defaultPluginCacheRoot(): string {
-  return path.join(homedir(), '.groma', 'cache', 'plugins')
+function cacheRoot(options: PluginResolutionOptions): string {
+  return options.cacheRoot ?? path.join(homedir(), '.groma', 'cache', 'plugins')
 }
 
 function npmSource(source: string): NpmPluginSource | undefined {
@@ -175,17 +185,28 @@ async function manifestText(packageRoot: string): Promise<string | undefined> {
   }
 }
 
-/** Reads a package of the given kind, or of the kind its manifest declares when the caller accepts any. */
+/** The kind a manifest declares, for a caller that accepts any kind. */
+function declaredKind(groma: Record<string, unknown>): PluginKind {
+  if (groma.scanner !== undefined) return 'scanner'
+  if (groma.workSource !== undefined) return 'workSource'
+  throw new Error('plugin package.json groma must contain a scanner or a workSource section')
+}
+
+/**
+ * Reads a package of the given kind, or of the kind its manifest declares when the caller accepts any.
+ * A package that does not declare the requested kind is refused here, which is what makes the kind-specific
+ * return types of `resolvePluginPackage` and `installPluginPackage` true.
+ */
 async function pluginPackage(packageRoot: string, kind?: PluginKind): Promise<ResolvedPluginPackage | undefined> {
   const source = await manifestText(packageRoot)
   if (source === undefined) return undefined
   const manifest = object(JSON.parse(source), 'plugin package.json')
   const groma = object(manifest.groma, 'plugin package.json groma')
-  kind ??= groma.scanner !== undefined ? 'scanner' : 'workSource'
+  kind ??= declaredKind(groma)
   const declared = object(groma[kind], `plugin package.json groma.${kind}`)
   const allowed = kind === 'scanner' ? ['id', 'entry', 'discovery', 'include', 'exclude'] : ['id', 'entry', 'compatibility']
   if (Object.keys(declared).some(field => !allowed.includes(field))) {
-    throw new Error(`plugin package.json groma.${kind} contains unsupported fields`)
+    throw new Error(`plugin package.json groma.${kind} may contain only ${allowed.join(', ')}`)
   }
   const details = kind === 'scanner'
     ? { kind, ...scannerLists(declared) }
@@ -206,22 +227,12 @@ async function pluginPackage(packageRoot: string, kind?: PluginKind): Promise<Re
   return { ...shared, ...details, ...(declared.discovery === undefined ? {} : { discovery: parseScannerDiscovery(declared.discovery) }) }
 }
 
-export function resolvePluginPackage<K extends PluginKind>(
-  source: PluginSource, cacheRoot: string, kind: K,
-): Promise<ResolvedPackages[K] | undefined>
-export function resolvePluginPackage(
-  source: PluginSource, cacheRoot?: string, kind?: PluginKind,
-): Promise<ResolvedPluginPackage | undefined>
-export async function resolvePluginPackage(
-  source: PluginSource,
-  cacheRoot = defaultPluginCacheRoot(),
-  kind?: PluginKind,
-): Promise<ResolvedPluginPackage | undefined> {
+async function installedPackage(source: PluginSource, cache: string, kind?: PluginKind): Promise<ResolvedPluginPackage | undefined> {
   const packageRoot = source.kind === 'local'
     ? source.packageRoot
     : source.kind === 'git'
-      ? installDirectory(cacheRoot, source.source)
-      : npmPackageRoot(cacheRoot, source)
+      ? installDirectory(cache, source.source)
+      : npmPackageRoot(cache, source)
   const resolved = await pluginPackage(packageRoot, kind)
   if (resolved !== undefined && source.kind === 'npm') {
     if (resolved.name !== source.name || resolved.version !== source.version) {
@@ -231,20 +242,33 @@ export async function resolvePluginPackage(
   return resolved
 }
 
+/**
+ * The package a source resolves to on this computer, or undefined when it is not installed. Nothing is downloaded
+ * and no plugin code runs. The compiler does not check the kind-specific return type against the body; see `pluginPackage`.
+ */
+export function resolvePluginPackage<K extends PluginKind>(
+  source: PluginSource, options: PluginResolutionOptions, kind: K,
+): Promise<ResolvedPackages[K] | undefined>
+export function resolvePluginPackage(
+  source: PluginSource, options: PluginResolutionOptions, kind: PluginKind,
+): Promise<ResolvedPluginPackage | undefined> {
+  return installedPackage(source, cacheRoot(options), kind)
+}
+
 async function installNpmPackage(
   source: NpmPluginSource,
-  cacheRoot = defaultPluginCacheRoot(),
+  cache: string,
   registry?: string,
   kind?: PluginKind,
 ): Promise<ResolvedPluginPackage> {
-  const directory = installDirectory(cacheRoot, source.source)
+  const directory = installDirectory(cache, source.source)
   await mkdir(directory, { recursive: true })
   await writeFile(path.join(directory, 'package.json'), `${JSON.stringify({
     private: true,
     dependencies: { [source.name]: source.version },
   }, null, 2)}\n`)
   await installDependencies(directory, source.source, registry)
-  const resolved = await resolvePluginPackage(source, cacheRoot, kind)
+  const resolved = await installedPackage(source, cache, kind)
   if (resolved === undefined) throw new Error(`installed plugin is missing: ${source.source}`)
   return resolved
 }
@@ -277,12 +301,12 @@ async function git(directory: string, ...args: string[]): Promise<string> {
 
 async function installGitPackage(
   source: GitPluginSource,
-  cacheRoot: string,
+  cache: string,
   registry?: string,
   kind?: PluginKind,
 ): Promise<{ source: string; package: ResolvedPluginPackage }> {
-  await mkdir(cacheRoot, { recursive: true })
-  const temporary = await mkdtemp(path.join(cacheRoot, 'checkout-'))
+  await mkdir(cache, { recursive: true })
+  const temporary = await mkdtemp(path.join(cache, 'checkout-'))
   try {
     await git(temporary, 'init', '--quiet')
     const revision = /^[0-9a-f]{40}$/i.test(source.revision)
@@ -291,12 +315,12 @@ async function installGitPackage(
     const commit = await git(temporary, 'rev-parse', 'FETCH_HEAD^{commit}')
     await git(temporary, 'checkout', '--quiet', '--detach', commit)
     const pinned = { ...source, revision: commit, source: `git+${source.repository}#${commit}` }
-    const existing = await resolvePluginPackage(pinned, cacheRoot, kind)
+    const existing = await installedPackage(pinned, cache, kind)
     if (existing !== undefined) return { source: pinned.source, package: existing }
     const resolved = await pluginPackage(temporary, kind)
     if (resolved === undefined) throw new Error('Git repository must contain a runnable plugin package at its root')
     await installDependencies(temporary, pinned.source, registry)
-    const destination = installDirectory(cacheRoot, pinned.source)
+    const destination = installDirectory(cache, pinned.source)
     await rename(temporary, destination)
     return { source: pinned.source, package: { ...resolved, entry: path.join(destination, path.relative(temporary, resolved.entry)) } }
   } finally {
@@ -304,23 +328,27 @@ async function installGitPackage(
   }
 }
 
-/** Installation is explicit; registry loading only resolves already installed packages. */
+/**
+ * Installation is explicit; registry loading only resolves already installed packages. A caller that names a kind
+ * gets that kind's package; without one the manifest decides. The compiler does not check the kind-specific
+ * return type against the body; see `pluginPackage`.
+ */
 export function installPluginPackage<K extends PluginKind>(
-  source: PluginSource, cacheRoot: string, registry: string | undefined, kind: K,
+  source: PluginSource, options: PluginInstallOptions, kind: K,
 ): Promise<{ source: string; package: ResolvedPackages[K] }>
 export function installPluginPackage(
-  source: PluginSource, cacheRoot?: string, registry?: string, kind?: PluginKind,
+  source: PluginSource, options: PluginInstallOptions, kind?: PluginKind,
 ): Promise<{ source: string; package: ResolvedPluginPackage }>
 export async function installPluginPackage(
   source: PluginSource,
-  cacheRoot = defaultPluginCacheRoot(),
-  registry?: string,
+  options: PluginInstallOptions,
   kind?: PluginKind,
 ): Promise<{ source: string; package: ResolvedPluginPackage }> {
-  if (source.kind === 'git') return installGitPackage(source, cacheRoot, registry, kind)
+  const cache = cacheRoot(options)
+  if (source.kind === 'git') return installGitPackage(source, cache, options.registry, kind)
   const resolved = source.kind === 'npm'
-    ? await installNpmPackage(source, cacheRoot, registry, kind)
-    : await resolvePluginPackage(source, cacheRoot, kind)
+    ? await installNpmPackage(source, cache, options.registry, kind)
+    : await installedPackage(source, cache, kind)
   if (resolved === undefined) throw new Error(`plugin package not found: ${source.source}`)
   return { source: source.source, package: resolved }
 }
@@ -336,7 +364,7 @@ export async function preparePluginUpdate<K extends PluginKind>(
   root: string,
   selected: { id: string; source: string },
   input: string | undefined,
-  options: { cacheRoot?: string; registry?: string },
+  options: PluginInstallOptions,
   kind: K,
 ): Promise<{ source: string; package: ResolvedPackages[K] }> {
   const current = parsePluginSource(root, selected.source)
@@ -347,7 +375,7 @@ export async function preparePluginUpdate<K extends PluginKind>(
   if (!samePackage(current, replacement)) {
     throw new Error('Plugin update must keep the same npm package or Git repository; local plugins run from their configured path')
   }
-  const installed = await installPluginPackage(replacement, options.cacheRoot ?? defaultPluginCacheRoot(), options.registry, kind)
+  const installed = await installPluginPackage(replacement, options, kind)
   if (installed.package.id !== selected.id) throw new Error(`Plugin id changed: ${installed.package.id}`)
   return installed
 }

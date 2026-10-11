@@ -1,6 +1,6 @@
 import { readPluginConfig, writePluginConfig } from './scanner/modules/config.ts'
-import { configureScanner, installScanners, removeScanner, scannerInventory, updateScanner, type PluginInstallOptions } from './scanner/modules/inventory.ts'
-import { defaultPluginCacheRoot, installPluginPackage, parsePluginSource, preparePluginUpdate, resolvePluginPackage, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
+import { configureScanner, installScanners, removeScanner, scannerInventory, updateScanner } from './scanner/modules/inventory.ts'
+import { installPluginPackage, parsePluginSource, preparePluginUpdate, resolvePluginPackage, type PluginInstallOptions, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
 import { isNpmPackageName, publishedPluginSource } from './scanner/modules/published.ts'
 import { configuredWorkSource, hostIncompatibility } from './work-sources.ts'
 
@@ -13,7 +13,7 @@ function requireCompatibleHost(resolved: ResolvedWorkSourcePackage): void {
 async function selectedSource(root: string, input: string, options: PluginInstallOptions) {
   const value = input.trim()
   return parsePluginSource(root, isNpmPackageName(value)
-    ? await publishedPluginSource(value, options.registry, 'any') : value)
+    ? await publishedPluginSource(value, options.registry) : value)
 }
 
 export async function pluginInventory(root: string, options: PluginInstallOptions = {}) {
@@ -25,7 +25,7 @@ export async function pluginInventory(root: string, options: PluginInstallOption
 /** Package metadata determines the kind; every selection still lives in one project file. */
 export async function addPlugin(root: string, input: string, options: PluginInstallOptions = {}) {
   const source = await selectedSource(root, input, options)
-  const installed = await installPluginPackage(source, options.cacheRoot ?? defaultPluginCacheRoot(), options.registry)
+  const installed = await installPluginPackage(source, options)
   const resolved = installed.package
   if (resolved.kind === 'scanner') return configureScanner(root, { source: installed.source, package: resolved })
   requireCompatibleHost(resolved)
@@ -47,9 +47,8 @@ export async function restoreWorkSource(root: string, options: PluginInstallOpti
   const selected = (await readPluginConfig(root)).workSources?.[0]
   if (!selected) return 0
   const source = parsePluginSource(root, selected.source)
-  const cache = options.cacheRoot ?? defaultPluginCacheRoot()
-  const resolved = source.kind === 'local' ? await resolvePluginPackage(source, cache, 'workSource')
-    : (await installPluginPackage(source, cache, options.registry, 'workSource')).package
+  const resolved = source.kind === 'local' ? await resolvePluginPackage(source, options, 'workSource')
+    : (await installPluginPackage(source, options, 'workSource')).package
   if (!resolved) throw new Error(`Restore the local work source directory: ${selected.source}`)
   requireCompatibleHost(resolved)
   if (resolved.id !== selected.id) throw new Error(`Configured work source ${selected.id} resolves to ${resolved.id}`)
