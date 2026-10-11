@@ -41,7 +41,7 @@ for (const directory of gromaDirectories) {
       const source = '---\ntype: Note\n---\n\nExplains an operating decision.\n'
       await writeDocument(root, filesystem.sourceFilename('decisions.md'), source)
       await writeDocument(root, filesystem.sourceFilename('guides/operations.md'), source)
-      await filesystem.write('scanners.json', '{}\n')
+      await filesystem.write('plugins.json', '{}\n')
       const actor = await writes.add(root, { thing: 'actor', name: 'Operator', overview: 'Runs the service.' })
       expect(await indexLinks(filesystem)).toEqual(['actors/', 'decisions.md', 'guides/', 'project.md'])
       const index = await filesystem.read('index.md')

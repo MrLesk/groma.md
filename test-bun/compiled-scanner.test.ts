@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
-import { writeScannerConfig } from '../src/scanner/modules/config.ts'
+import { writePluginConfig } from '../src/scanner/modules/config.ts'
 
 const repository = path.resolve(import.meta.dir, '..')
 
@@ -41,7 +41,7 @@ test.concurrent('the standalone CLI resolves an installed dependency of a local 
       "import evidence from 'scan-evidence'; export default { id: 'local', async scan() { return evidence } }")
     await writeFile(path.join(root, 'package.json'), '{ "name": "sample" }')
     await writeFile(path.join(root, 'probe.local'), 'source for the local scanner')
-    await writeScannerConfig(root, { scanners: [{ id: 'local', source: './plugin', include: ['*.local'] }] })
+    await writePluginConfig(root, { scanners: [{ id: 'local', source: './plugin', include: ['*.local'] }], workSources: [] })
     await run([process.execPath, 'scripts/build.ts'], repository, {
       ...process.env, GROMA_BUILD_OUTFILE: binary,
     })

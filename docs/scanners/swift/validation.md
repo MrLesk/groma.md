@@ -206,7 +206,7 @@ development-checkout measurements above. groma.md 0.3.3 accepts the package by
 name; automatic Swift recommendations require the updated official catalog.
 
 A second clone with another empty home and cache received only the shared
-`.groma/scanners.json` selection. `groma scanner install` restored the exact
+`.groma/plugins.json` selection. `groma scanner install` restored the exact
 npm version and `groma scanner check` passed. Two scans again covered all
 3,182 Swift files, produced identical Markdown within that checkout, and
 preserved tracked source bytes. Full CLI scan times were 32.854/41.249 seconds

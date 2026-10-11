@@ -60,7 +60,7 @@ Three steps. Scan your code, then review and curate the map yourself or with you
 npm i -g groma.md backlog.md
 ```
 
-Backlog.md provides the tasks shown on the map; groma.md works without it. macOS requires Apple Silicon.
+Backlog.md provides the tasks shown on the map once the project selects it: answer yes in `groma init`, or run `groma plugin add @groma/work-source-backlog`. groma.md works without it. macOS requires Apple Silicon.
 
 ### 2. Scan
 

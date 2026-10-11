@@ -1,6 +1,5 @@
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 import type { WorkSource } from '@groma/work-source'
-import { backlogPlugin } from '@groma/work-source-backlog'
 
 import { watchArchitecture } from '../../architecture-watch.ts'
 import { writes } from '../../authoring.ts'
@@ -8,8 +7,9 @@ import { EditConflict } from '../../authoring-conflict.ts'
 import { GromaBusyError } from '../../groma-filesystem.ts'
 import type { StructuralResult } from '../../curate.ts'
 import { createScannerSession } from '../../scanner/session.ts'
-import { parseScannerSettingsAction, withScannerUpgrades } from '../../scanner/modules/settings.ts'
+import { parsePluginSettingsAction, withPluginUpgrades } from '../../scanner/modules/settings.ts'
 import { pinsOf } from '../../work/pins.ts'
+import { workSourceSession } from '../../work-sources.ts'
 import { ownedFiles } from '../../history/comparison.ts'
 import { readComparison } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
@@ -75,7 +75,7 @@ export async function createWebMapSession(
 ): Promise<{ fetch: (request: Request) => Promise<Response>; close: () => Promise<void> }> {
   options.onProgress?.({ phase: 'preparing-viewer' })
   const renderer = await bundleRenderer()
-  const workSource = options.workSource ?? backlogPlugin.create(repositoryRoot)
+  const workSource = await workSourceSession(repositoryRoot, options.workSource)
   let revisions: WebRevision[] = []
   let revisionRead: Promise<WebRevision[]> | undefined
   let map: WebMapPayload
@@ -267,11 +267,12 @@ export async function createWebMapSession(
 
   let initialScan = true
   const scannerSession = await createScannerSession(repositoryRoot, {
+    onPluginsChanged: () => workSource.reconfigure(),
     scan: options.scan,
     watchesFile: file => sourceFiles.has(file),
     onProgress: options.onProgress,
     onFold: () => initialScan ? undefined : publishWorld(),
-    onSettings: settings => broadcast(encoder.encode(`event: scanners\ndata: ${JSON.stringify(settings)}\n\n`)),
+    onSettings: settings => broadcast(encoder.encode(`event: plugin-settings\ndata: ${JSON.stringify(settings)}\n\n`)),
   })
   await scannerSession.ready
   // Initial folds are included in this map; later folds queue behind its load.
@@ -289,7 +290,7 @@ export async function createWebMapSession(
   }
   options.onProgress?.({ phase: 'opening-map' })
   const architectureWatch = await watchArchitecture(repositoryRoot, {
-    onChange: async () => { await scannerSession.reconfigure(); await publishWorld() },
+    onChange: async () => { await workSource.reconfigure(); await scannerSession.reconfigure(); await publishWorld() },
   })
   const workWatch = workSource.watch(() => {
     void publishWork()
@@ -391,9 +392,9 @@ export async function createWebMapSession(
   }
 
   const routes = new Map<string, Route>([
-    ['/scanner-settings', async (_request, url) => {
+    ['/plugin-settings', async (_request, url) => {
       const settings = await scannerSession.refresh()
-      return Response.json(url.searchParams.has('updates') ? await withScannerUpgrades(settings) : settings)
+      return Response.json(url.searchParams.has('updates') ? await withPluginUpgrades(settings) : settings)
     }],
     ['/render.js', rendererResponse],
     ['/revisions.json', async () => Response.json(await readRevisions())],
@@ -412,8 +413,8 @@ export async function createWebMapSession(
 
   /** The shared writes at the path of their verb; each posts the input the CLI builds from its flags. */
   const writeRoutes = new Map<string, (request: Request) => Promise<Response>>([
-    ['/scanner-settings', async request => {
-      try { await scannerSession.change(parseScannerSettingsAction(await request.json())); return Response.json(scannerSession.state) }
+    ['/plugin-settings', async request => {
+      try { await scannerSession.change(parsePluginSettingsAction(await request.json())); return Response.json(scannerSession.state) }
       catch (error) { return new Response(error instanceof Error ? error.message : String(error), { status: 400 }) }
     }],
     ['/draft', request => writeResponse(request, writes.draft)],

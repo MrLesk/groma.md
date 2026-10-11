@@ -1,4 +1,4 @@
-import type { ScannerSettings, ScannerSettingsAction } from '../../scanner/modules/settings-model.ts'
+import type { PluginSettings, PluginSettingsAction } from '../../scanner/modules/settings-model.ts'
 import type { AcceptInput, AddInput, DraftInput, EditArchitectureInput, RemoveInput } from '../../authoring.ts'
 import type { WorkItemDetails } from '../../types.ts'
 import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'
@@ -8,9 +8,9 @@ import type { CodeFile } from '../source/structure.ts'
 import type { TaskDiffPayload } from '../source/diff.ts'
 
 export interface WebDataSource {
-  readScanners?(checkUpdates?: boolean): Promise<ScannerSettings>
-  changeScanners?(action: ScannerSettingsAction): Promise<ScannerSettings>
-  onScanners?: (state: ScannerSettings) => void
+  readPluginSettings?(checkUpdates?: boolean): Promise<PluginSettings>
+  changePluginSettings?(action: PluginSettingsAction): Promise<PluginSettings>
+  onPluginSettings?: (state: PluginSettings) => void
   readWorld(revision?: string, from?: string): Promise<WebPayload>
   readRevisions(): Promise<WebRevision[]>
   readCode(element: string, revision?: string, from?: string): Promise<readonly CodeFile[]>
@@ -59,11 +59,11 @@ function selected(path: string, values: Record<string, string | undefined>): str
 
 function liveDataSource(): WebDataSource {
   return {
-    readScanners: checkUpdates => responseJson(checkUpdates ? '/scanner-settings?updates' : '/scanner-settings'),
-    async changeScanners(action) {
-      const response = await fetch('/scanner-settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(action) })
+    readPluginSettings: checkUpdates => responseJson(checkUpdates ? '/plugin-settings?updates' : '/plugin-settings'),
+    async changePluginSettings(action) {
+      const response = await fetch('/plugin-settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(action) })
       if (!response.ok) throw new Error(await response.text())
-      return response.json() as Promise<ScannerSettings>
+      return response.json() as Promise<PluginSettings>
     },
     readRevisions() {
       return responseJson('/revisions.json')
@@ -90,7 +90,7 @@ function liveDataSource(): WebDataSource {
     accept: input => send('/accept', input),
     subscribe(handlers) {
       const events = new EventSource('/events')
-      events.addEventListener('scanners', event => this.onScanners?.(JSON.parse(event.data) as ScannerSettings))
+      events.addEventListener('plugin-settings', event => this.onPluginSettings?.(JSON.parse(event.data) as PluginSettings))
       events.addEventListener('world', event => {
         handlers.world(JSON.parse(event.data) as WebPayload)
       })

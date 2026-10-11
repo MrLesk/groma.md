@@ -1,7 +1,7 @@
 import type { CodeFile, SourceReference } from '@groma/scanner'
 import { configuredScannerModules, type FoundScannerModule } from '../../scanner/modules/inventory.ts'
 import { importScanner } from '../../scanner/registry.ts'
-import { readScannerConfig } from '../../scanner/modules/config.ts'
+import { readPluginConfig } from '../../scanner/modules/config.ts'
 import { configuredSelection, selectedFiles } from '../../scanner/modules/selection.ts'
 import { withGitRevision } from '../../history/revisions.ts'
 import type { ArchitectureGraph, CodeReference } from '../../types.ts'
@@ -58,7 +58,7 @@ export async function readSnapshotCodeStructure(
     .filter((module): module is FoundScannerModule => module.status === 'found')
   const requests = outlineRequests(element.code, new Set(modules.map(module => module.id)))
   const order = requests.map(request => request.reference.file)
-  const config = await readScannerConfig(repositoryRoot)
+  const config = await readPluginConfig(repositoryRoot)
   // Historical snapshots have no Git checkout. Their stored Code references name the source context.
   const contextFiles = [...new Set(world.elements.flatMap(element => element.code.map(link => link.file)))]
   const files = await Promise.all(modules.map(async module => {

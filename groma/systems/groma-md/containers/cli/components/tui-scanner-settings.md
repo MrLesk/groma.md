@@ -1,6 +1,6 @@
 ---
 type: C4 Component
-title: Terminal scanner settings
+title: Terminal plugin settings
 status: stable
 groma:
   id: tui-scanner-settings
@@ -9,7 +9,7 @@ groma:
     - scanner: typescript
       file: src/viewers/tui/scanner-settings.ts
   group: Terminal map
-description: Shows scanner status and sends settings actions from the terminal
+description: Shows plugins by kind and sends actions to the shared settings session
 ---
 
-Shows installed, missing, and recommended scanners. Sends user actions to the shared scanner settings session.
+Lists the plugins of the project by kind: installed, missing and recommended scanners, then the selected work source. Search, the details view and the add, update, remove, install and retry keys send their actions to the shared settings session, which changes plugins.json and reports each row again.

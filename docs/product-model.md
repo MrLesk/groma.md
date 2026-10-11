@@ -355,7 +355,9 @@ as drafts are accepted.
 
 ## Work
 
-The embedded Backlog work-source plugin reads through the global `backlog` CLI:
+Work comes only from the work source that `plugins.json` selects; a project
+without one shows no tasks, even when the `backlog` CLI is installed. The
+Backlog work-source plugin reads through the global `backlog` CLI:
 the configured statuses and
 default status plus one `task list --json` summary containing every configured
 task, including terminal history. It reads `task view <id> --json` only for the

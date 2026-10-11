@@ -5,7 +5,7 @@ import path from 'node:path'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import { loadScannerRegistry } from '../src/scanner/registry.ts'
 import { createScannerSession } from '../src/scanner/session.ts'
-import { writeScannerConfig } from '../src/scanner/modules/config.ts'
+import { writePluginConfig } from '../src/scanner/modules/config.ts'
 import { checkScannerReadiness } from '../src/scanner/modules/readiness.ts'
 
 async function plugin(root: string, id: string, groma: string, blocked: boolean) {
@@ -34,7 +34,7 @@ test.concurrent('a Groma mismatch blocks plugin code while another selection can
       await writeFile(path.join(root, 'package.json'), JSON.stringify({ dependencies: { react: '19.0.0' } }))
       const blocked = await plugin(root, 'blocked', '>=99.0.0', true)
       const eligible = await plugin(root, 'eligible', '*', false)
-      await writeScannerConfig(root, { scanners: [blocked, eligible] })
+      await writePluginConfig(root, { scanners: [blocked, eligible], workSources: [] })
       const before = await loadAnnotatedArchitecture(root)
       const registry = await loadScannerRegistry(root)
       expect(registry.scannerIds).toEqual(['eligible'])
@@ -47,7 +47,7 @@ test.concurrent('a Groma mismatch blocks plugin code while another selection can
       await session.reconfigure()
       await session.change({ action: 'retry' })
       expect((await readFile(path.join(root, 'calls.txt'), 'utf8'))).toHaveLength(4)
-      expect(session.state.scanners.find(item => item.id === 'blocked')?.status).toBe('blocked')
+      expect(session.state.plugins.find(item => item.id === 'blocked')?.status).toBe('blocked')
       await session.change({ action: 'remove', id: 'eligible' })
       expect((await loadScannerRegistry(root)).scannerIds).toEqual([])
       expect((await loadAnnotatedArchitecture(root)).elements).toEqual(before.elements)

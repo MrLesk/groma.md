@@ -8,6 +8,7 @@ groma:
   code:
     - scanner: typescript
       file: plugins/work-sources/backlog/src/index.ts
+      symbol: createBacklogPlugin
   group: Project work
 description: Reads and watches Backlog.md tasks through its CLI
 ---
