@@ -262,7 +262,7 @@ test.concurrent('the live Vue session refreshes after external script, template,
   const session = await createScannerSession(root, { onFold() { complete?.() } })
   try {
     await session.change({ action: 'add', source: artifact })
-    expect(session.state.scanners.find(scanner => scanner.id === 'vue')?.status).toBe('ready')
+    expect(session.state.plugins.find(scanner => scanner.id === 'vue')?.status).toBe('ready')
     const id = owner(await loadAnnotatedArchitecture(root), 'External.vue').id
     for (const file of ['logic.ts', 'markup.html', 'panel.css']) {
       const changed = Promise.withResolvers<void>()

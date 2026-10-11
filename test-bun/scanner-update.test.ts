@@ -7,8 +7,8 @@ import packageJson from '../package.json'
 import { attachElementIcons, loadIconCatalog, saveIconPack } from '../src/icon-packs.ts'
 import { addPlugin } from '../src/plugin-management.ts'
 import { configuredScannerModules, updateScanner } from '../src/scanner/modules/inventory.ts'
-import { readScannerConfig, writeScannerConfig } from '../src/scanner/modules/config.ts'
-import { changeScannerSettings, parseScannerSettingsAction } from '../src/scanner/modules/settings.ts'
+import { readPluginConfig, writePluginConfig } from '../src/scanner/modules/config.ts'
+import { changePluginSettings, parsePluginSettingsAction } from '../src/scanner/modules/settings.ts'
 import { box } from './helpers.ts'
 
 test.concurrent('npm updates resolve omitted and bare sources, pin compatible releases and preserve project settings', async () => {
@@ -44,21 +44,21 @@ test.concurrent('npm updates resolve omitted and bare sources, pin compatible re
       { id: 'sample', source: `${name}@1.0.0`, settings: { mode: 'strict' }, include: ['src/**/*.sample'], exclude: ['**/*.gen.ts'] },
     ] }
     for (const source of [undefined, name]) {
-      await writeScannerConfig(root, config)
-      await changeScannerSettings(root, parseScannerSettingsAction({ action: 'update', id: 'sample', source }), options)
-      expect(await readScannerConfig(root)).toEqual({ ...config, scanners: [config.scanners[0], {
+      await writePluginConfig(root, config)
+      await changePluginSettings(root, parsePluginSettingsAction({ action: 'update', id: 'sample', source }), options)
+      expect(await readPluginConfig(root)).toEqual({ ...config, scanners: [config.scanners[0], {
         ...config.scanners[1], source: `${name}@1.1.0`,
       }] })
       expect((await configuredScannerModules(root, options)).find(item => item.id === 'sample')).toMatchObject({ status: 'found', version: '1.1.0' })
     }
     // Exact selection remains deliberate, even when a newer compatible release exists.
     await updateScanner(root, 'sample', `${name}@1.0.0`, options)
-    expect(await readScannerConfig(root)).toEqual(config)
+    expect(await readPluginConfig(root)).toEqual(config)
     await expect(updateScanner(root, 'sample', '@example/different@1.1.0', options)).rejects.toThrow('same npm package')
     await expect(updateScanner(root, 'other', undefined, options)).rejects.toThrow('local plugins')
     unavailable = true
     await expect(updateScanner(root, 'sample', undefined, options)).rejects.toThrow('HTTP 503')
-    expect(await readScannerConfig(root)).toEqual(config)
+    expect(await readPluginConfig(root)).toEqual(config)
   } finally {
     await server.stop(true)
     await rm(root, { recursive: true, force: true })
@@ -82,7 +82,7 @@ test.concurrent('replacing an icon pack preserves its configured resolution prio
     const before = await loadIconCatalog(root)
     expect(before.get('database')).toBe(before.get('primary:database'))
     await saveIconPack(root, 'primary', './replacement', true)
-    expect((await readScannerConfig(root)).icons?.map(pack => pack.id)).toEqual(['primary', 'secondary'])
+    expect((await readPluginConfig(root)).icons?.map(pack => pack.id)).toEqual(['primary', 'secondary'])
     const after = await loadIconCatalog(root)
     expect(after.get('database')).toBe(after.get('primary:database'))
     expect(after.get('database')).not.toBe(before.get('database'))

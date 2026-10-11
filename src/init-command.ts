@@ -1,8 +1,7 @@
-import { addPlugin } from './plugin-management.ts'
-import { readScannerConfig } from './scanner/modules/config.ts'
 import { realpath, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 
+import backlogAdapter from '../plugins/work-sources/backlog/package.json' with { type: 'json' }
 import { loadArchitecture } from './architecture-reader.ts'
 import { createClackInitUi } from './init-command-ui.ts'
 import {
@@ -15,6 +14,8 @@ import {
 import { formatScanSummary, scanRepository } from './scanner.ts'
 import { NOT_INITIALIZED, type GromaDirectory } from './groma-filesystem.ts'
 import { c4Kind } from './okf-profile.ts'
+import { addPlugin } from './plugin-management.ts'
+import { readPluginConfig } from './scanner/modules/config.ts'
 import { setupScanners, type ScannerSetupUi } from './scanner/modules/setup.ts'
 
 export type PackageInstaller = 'brew' | 'bun' | 'npm'
@@ -30,10 +31,10 @@ export interface InitCommandInput {
 
 export interface InitCommandUi extends ScannerSetupUi {
   cancel(message: string): void
-  confirmBacklogInstall(): Promise<boolean | undefined>
   confirmInit(): Promise<boolean | undefined>
   confirmOpenWeb(): Promise<boolean | undefined>
   confirmScan(): Promise<boolean | undefined>
+  confirmUseBacklog(): Promise<boolean | undefined>
   directory(): Promise<GromaDirectory | undefined>
   error(message: string): void
   install(message: string, operation: () => Promise<boolean>): Promise<boolean>
@@ -233,8 +234,10 @@ export async function initializeRepository(
   const dependencies = { ...defaultDependencies, ...overrides }
   await ensureGit(repositoryRoot, dependencies)
   const groma = await initializeGroma(repositoryRoot, input, prompts)
-  const selected = (await readScannerConfig(repositoryRoot)).workSources?.length
-  const backlog = selected ? await initializeAvailableBacklog(
+  // Only a project that selects the Backlog.md adapter gets `backlog init`; another work source is left alone.
+  const config = await readPluginConfig(repositoryRoot)
+  const usesBacklog = config.workSources?.some(work => work.id === backlogAdapter.groma.workSource.id)
+  const backlog = usesBacklog ? await initializeAvailableBacklog(
     repositoryRoot,
     groma.projectName,
     dependencies,
@@ -257,14 +260,15 @@ async function offerBacklog(
   dependencies: InitCommandDependencies,
 ): Promise<void> {
   if (status === 'initialized' || status === 'unchanged') return
-  if ((await readScannerConfig(repositoryRoot)).workSources?.length) return
   if (status === 'failed') {
     dependencies.ui.error(
       'Could not initialize Backlog.md. Groma setup will continue.',
     )
     return
   }
-  const wanted = await dependencies.ui.confirmBacklogInstall()
+  // plugins.json holds one work source at most, so a project that already selects one is not offered Backlog.md.
+  if ((await readPluginConfig(repositoryRoot)).workSources?.length) return
+  const wanted = await dependencies.ui.confirmUseBacklog()
   if (wanted === undefined) cancelled()
   if (!wanted) return
   if (!dependencies.backlogAvailable()) {
@@ -280,7 +284,7 @@ async function offerBacklog(
       return
     }
   }
-  await addPlugin(repositoryRoot, '@groma/work-source-backlog')
+  await addPlugin(repositoryRoot, backlogAdapter.name)
   if (await dependencies.backlogInitialized(repositoryRoot)) return
   if (!await dependencies.initializeBacklog(repositoryRoot, projectName)) {
     dependencies.ui.error(

@@ -609,7 +609,7 @@ groma scanner add git+https://github.com/example/python-scanner.git#v1.0.0
 
 `add` validates the installed package before writing `plugins.json` in the
 selected `groma/` or `.groma/` directory.
-Npm and Git packages live in groma.md's shared `~/.groma/cache/scanners` cache. Local
+Npm and Git packages live in groma.md's shared `~/.groma/cache/plugins` cache. Local
 packages run directly from the configured path.
 
 ```sh

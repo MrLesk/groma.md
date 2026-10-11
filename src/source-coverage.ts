@@ -1,5 +1,5 @@
 import { repositoryListing } from './repository-listing.ts'
-import { exclusion, exclusionPatterns, readScannerConfig } from './scanner/modules/config.ts'
+import { exclusion, exclusionPatterns, readPluginConfig } from './scanner/modules/config.ts'
 import { loadScannerRegistry } from './scanner/registry.ts'
 
 /**
@@ -18,7 +18,7 @@ function excludingPattern(patterns: readonly string[], file: string): string | u
  * with its error, beside the other scanners' answer.
  */
 export async function missingOwnerReason(repositoryRoot: string, file: string): Promise<string> {
-  const config = await readScannerConfig(repositoryRoot)
+  const config = await readPluginConfig(repositoryRoot)
   if (!(await repositoryListing(repositoryRoot, config.useGitignore ?? true)).includes(file)) {
     return `unknown target: ${file}; not a repository file`
   }

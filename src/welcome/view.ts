@@ -311,7 +311,7 @@ export function paintLauncher(
 ): void {
   const shell = paintShell(buffer, model, sheet)
   const rows = launcherRows(selectedIndex)
-  const notice = model.scanners?.notice
+  const notice = model.pluginSettings?.notice
   if (notice?.message) {
     text(buffer, `[s] Scanners · ${notice.message}`, shell.x + 2, shell.contentY, shell.width - 4,
       RGBA.fromHex(notice.tone === 'hint' ? '#7AAFC5' : '#D8A652'), terminalBackground)

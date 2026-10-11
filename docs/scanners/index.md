@@ -79,9 +79,10 @@ Optional modules are enabled only through `plugins.json` in the selected
 Network installation happens only after explicit selection in setup,
 `scanner add`, `scanner update`, or `scanner install`.
 
-Bare `groma` shows scanner readiness beside the embedded Backlog work-source
-readiness in one fixed bottom row. The complete scanner inventory and scanner
-management syntax remain under Advanced commands.
+Bare `groma` shows the scanner notice above its commands and, in one fixed
+bottom row, the readiness of the work source that `plugins.json` selects. That
+row names no plugin when none is selected. The complete scanner inventory and
+scanner management syntax remain under Advanced commands.
 
 ## Fresh checkouts
 

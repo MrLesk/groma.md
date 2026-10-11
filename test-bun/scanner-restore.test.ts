@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { installScanners } from '../src/scanner/modules/inventory.ts'
-import { writeScannerConfig } from '../src/scanner/modules/config.ts'
+import { writePluginConfig } from '../src/scanner/modules/config.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 
 for (const present of [false, true]) {
@@ -18,7 +18,7 @@ for (const present of [false, true]) {
           groma: { scanner: { id: 'local', entry: './index.js', include: ['**/*.local'] } } }))
         await writeFile(path.join(root, source, 'index.js'), 'throw new Error("Restore must not execute the scanner")')
       }
-      await writeScannerConfig(root, { scanners: [{ id: 'local', source, include: ['**/*.local'] }] })
+      await writePluginConfig(root, { scanners: [{ id: 'local', source, include: ['**/*.local'] }] })
       const selection = await readFile(path.join(root, 'groma/plugins.json'), 'utf8')
       const architecture = await loadAnnotatedArchitecture(root)
       if (present) expect(await installScanners(root)).toBe(0)

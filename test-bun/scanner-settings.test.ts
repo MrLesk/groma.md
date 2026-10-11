@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test'
 import { scannerNotice, scannerSettingsState } from '../src/scanner/modules/settings.ts'
-import { scannerGroups, scannerSettingAction, type ScannerSetting } from '../src/scanner/modules/settings-model.ts'
+import { pluginGroups, pluginSettingAction, type ScannerSetting } from '../src/scanner/modules/settings-model.ts'
 import type { ScannerDiscovery } from '../src/scanner/modules/discovery.ts'
 
 function setting(id: string, status: ScannerSetting['status'], match: ScannerSetting['match'] = 'matched'): ScannerSetting {
-  return { id, name: id, official: false, technologies: [id], matches: [], status, match, message: '' }
+  return { kind: 'scanner', id, name: id, official: false, technologies: [id], matches: [], status, match, message: '' }
 }
 
 test.concurrent('support notices distinguish empty, partial, ready, unknown and failed projects', () => {
@@ -26,15 +26,15 @@ test.concurrent('an installed equivalent plugin suppresses duplicate official re
   }
   const custom = { id: 'custom', name: 'custom', version: '1.0.0', source: '/plugins/custom', entry: '/plugins/custom/index.ts', include: ['**/*.custom'], status: 'found' as const }
   const known = scannerSettingsState(proposal, [{ ...custom, discovery: { technologies: ['react'], rules: [] } }])
-  expect(known.scanners.map(item => item.id)).toEqual(['custom'])
-  expect(known.scanners[0]?.matches).toEqual(['ui/package.json'])
+  expect(known.plugins.map(item => item.id)).toEqual(['custom'])
+  expect(known.plugins[0]?.matches).toEqual(['ui/package.json'])
   const unknown = scannerSettingsState(proposal, [custom])
-  expect(unknown.scanners.map(item => item.id)).toEqual(['custom', 'react'])
-  expect(unknown.scanners[0]?.match).toBe('unknown')
+  expect(unknown.plugins.map(item => item.id)).toEqual(['custom', 'react'])
+  expect(unknown.plugins[0]?.match).toBe('unknown')
   const blocked = scannerSettingsState(proposal, [{ ...custom, discovery: { technologies: ['react'], rules: [] } }], [
     { id: 'custom', package: 'found', project: 'blocked', message: 'Tool unavailable' },
   ])
-  expect(blocked.scanners.map(item => item.id)).toEqual(['custom', 'react'])
+  expect(blocked.plugins.map(item => item.id)).toEqual(['custom', 'react'])
   expect(blocked.notice.tone).toBe('error')
 })
 
@@ -43,16 +43,16 @@ test.concurrent('scanner groups follow local availability while preserving proje
   const missing = { ...setting('second', 'missing'), source: 'second@1.0.0' }
   const recommended = { ...setting('third', 'available'), installSource: 'third@1.0.0' }
   const scanners = [recommended, missing, installed]
-  const ids = (items: ScannerSetting[]) => scannerGroups(items).map(group => group.scanners.map(item => item.id))
+  const ids = (items: ScannerSetting[]) => pluginGroups(items).map(group => group.plugins.map(item => item.id))
   expect(ids(scanners)).toEqual([['first'], ['second'], ['third']])
   expect(ids([recommended, { ...missing, status: 'ready' }, installed])).toEqual([['second', 'first'], ['third']])
   expect(ids([recommended, missing])).toEqual([['second'], ['third']])
   expect(scanners.map(item => item.id)).toEqual(['third', 'second', 'first'])
-  expect(scannerSettingAction(missing)).toEqual({ action: 'restore', id: 'second' })
-  expect(scannerSettingAction(recommended)).toEqual({ action: 'install', id: 'third' })
-  expect(scannerSettingAction(installed)).toEqual({ action: 'retry' })
-  expect(scannerSettingAction({ ...installed, status: 'unchecked' })).toBeUndefined()
-  expect(scannerSettingAction({ ...installed, status: 'ready' })).toBeUndefined()
+  expect(pluginSettingAction(missing)).toEqual({ action: 'restore', id: 'second' })
+  expect(pluginSettingAction(recommended)).toEqual({ action: 'install', id: 'third' })
+  expect(pluginSettingAction(installed)).toEqual({ action: 'retry' })
+  expect(pluginSettingAction({ ...installed, status: 'unchecked' })).toBeUndefined()
+  expect(pluginSettingAction({ ...installed, status: 'ready' })).toBeUndefined()
   expect(scannerNotice([{ ...installed, status: 'unchecked' }], []).tone).toBe('neutral')
 })
 
@@ -61,12 +61,12 @@ test.concurrent('search filters every scanner group by identity or technology wi
   const missing = { ...setting('two', 'missing'), source: '@team/code-scanner@1.0.0', technologies: ['other'] }
   const suggested = { ...setting('three', 'available'), technologies: ['shared'] }
   const scanners = [suggested, missing, selected]
-  expect(scannerGroups(scanners, 'SHARED').map(group => group.scanners)).toEqual([[selected], [suggested]])
-  expect(scannerGroups(scanners, 'worker').flatMap(group => group.scanners)).toEqual([selected])
-  expect(scannerGroups(scanners, 'two').flatMap(group => group.scanners)).toEqual([missing])
-  expect(scannerGroups(scanners, 'code-scanner').map(group => group.scanners)).toEqual([[missing]])
-  expect(scannerGroups(scanners, 'absent')).toEqual([])
-  expect(scannerGroups(scanners, ' ').flatMap(group => group.scanners)).toEqual([selected, missing, suggested])
+  expect(pluginGroups(scanners, 'SHARED').map(group => group.plugins)).toEqual([[selected], [suggested]])
+  expect(pluginGroups(scanners, 'worker').flatMap(group => group.plugins)).toEqual([selected])
+  expect(pluginGroups(scanners, 'two').flatMap(group => group.plugins)).toEqual([missing])
+  expect(pluginGroups(scanners, 'code-scanner').map(group => group.plugins)).toEqual([[missing]])
+  expect(pluginGroups(scanners, 'absent')).toEqual([])
+  expect(pluginGroups(scanners, ' ').flatMap(group => group.plugins)).toEqual([selected, missing, suggested])
 })
 
 test.concurrent('an incompatible recommendation does not make a missing project selection appear installed', () => {
@@ -74,8 +74,8 @@ test.concurrent('an incompatible recommendation does not make a missing project 
     { id: 'react', package: '@groma/scanner-react', status: 'incompatible', evidence: [], reason: 'Unsupported technology version' },
   ] }
   const state = scannerSettingsState(proposal, [{ id: 'react', source: '@groma/scanner-react@1.0.0', status: 'missing' }])
-  expect(state.scanners[0]?.status).toBe('missing')
+  expect(state.plugins[0]?.status).toBe('missing')
   const removed = scannerSettingsState(proposal, [{ id: 'react', source: '@groma/scanner-react@1.0.0', status: 'missing' }], [{ id: 'react', package: 'found', project: 'ready', message: '' }])
-  expect(removed.scanners[0]?.status).toBe('missing')
-  expect(scannerSettingAction(state.scanners[0]!)).toEqual({ action: 'restore', id: 'react' })
+  expect(removed.plugins[0]?.status).toBe('missing')
+  expect(pluginSettingAction(state.plugins[0]!)).toEqual({ action: 'restore', id: 'react' })
 })

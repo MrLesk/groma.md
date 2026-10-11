@@ -182,7 +182,7 @@ test.concurrent('the live scanner session refreshes a component when its externa
   const session = await createScannerSession(root, { onFold() { complete?.() } })
   try {
     await session.change({ action: 'add', source: artifact })
-    expect(session.state.scanners.find(scanner => scanner.id === 'angular')?.status).toBe('ready')
+    expect(session.state.plugins.find(scanner => scanner.id === 'angular')?.status).toBe('ready')
     const before = await storedArchitecture(root)
     const changed = Promise.withResolvers<void>()
     complete = () => changed.resolve()

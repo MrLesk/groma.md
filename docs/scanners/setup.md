@@ -3,8 +3,9 @@
 `<groma-root>/plugins.json` explicitly selects project plugins. A missing file
 selects none. No plugin is loaded just because its package or CLI is installed.
 The file has one section per kind: `scanners` and `workSources`. This revision
-supports at most one work source, whose id is `backlog`. Plugin ids are lowercase
-kebab-case. `exclude` and `useGitignore` apply to scanners at the top level.
+supports at most one work source. Plugin ids are lowercase kebab-case, and one id
+names one plugin across both sections. `exclude` and `useGitignore` apply to
+scanners at the top level.
 
 ```json
 {
@@ -38,7 +39,10 @@ setup, discovery, readiness, and existing scanner selections. Web and terminal
 settings group selections by kind. Package availability and readiness are
 separate: a missing package needs restoration; an incompatible Groma version
 blocks loading; a found Backlog adapter needs the `backlog` CLI on PATH.
-Its readiness reports `bun i -g backlog.md` when that CLI is missing. Without a
+Its readiness reports `bun i -g backlog.md` when that CLI is missing. Reporting
+readiness imports the selected adapter and calls its `readiness()`, so the
+welcome screen, plugin settings and `groma plugin list` execute work-source
+code, while `groma scanner list` still executes no plugin. Without a
 Backlog selection, neither the welcome screen nor either viewer invokes it.
 Choosing Backlog during interactive `groma init` installs the adapter and records
 its selection before initializing Backlog.
@@ -53,7 +57,7 @@ A work-source package declares its id, relative entry and host compatibility:
 
 Its default export implements the work-source contract: `id`, `readiness()`, and
 `create(repositoryRoot)`. The created source owns task reads and its closeable
-watch. Package loading and installation reuse the scanner package resolver.
+watch. Package loading and installation use the same package resolver as scanners.
 
 Plugin selection is operational configuration, not an OKF concept or C4 element.
 Ordinary Markdown and OKF readers retain the same architecture records and links;
@@ -75,11 +79,11 @@ The web offers bulk installation when a group has multiple installable scanners.
 recommendation has one **Install** button; multiple recommendations also offer
 **Install all**. Settings is always available in live web.
 A warning appears only when scanning needs attention and opens the affected
-plugin in Settings. Potential duplicates belong to the separate Project review.
+scanner in Settings. Potential duplicates belong to the separate Project review.
 
 **Install** selects a published stable release for this groma.md version and
 computer, saves its exact version, and scans. **Install recommended scanners**
-performs that flow for all current recommendations. **Install missing scanners**
+performs that flow for all current recommendations. **Install missing plugins**
 restores the exact selections shared by the team and scans. Both actions keep
 successful installations if another package fails; Retry attempts the remaining
 work. Existing selections are never silently upgraded.
@@ -111,7 +115,7 @@ Full error output is available inline through Details; the web shows **Needs
 attention** on the row and keeps the full diagnostic in **Error details**. groma.md does
 not install project dependencies or development tools on the user's behalf.
 
-In the terminal, `i` installs recommended scanners, `m` installs missing scanners,
+In the terminal, `i` installs recommended scanners, `m` installs missing plugins,
 and `r` retries a failed installation. `/` edits search, Enter keeps the filter, and Escape clears it
 while editing. `d` toggles details; Page Up/Down scrolls the open details or moves
 through the list. Web details expand inside the selected row.

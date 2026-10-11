@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/pr
 import os from 'node:os'
 import path from 'node:path'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
-import { writeScannerConfig } from '../src/scanner/modules/config.ts'
+import { writePluginConfig } from '../src/scanner/modules/config.ts'
 import { scanRepository, watchScan } from '../src/scanner.ts'
 import { createScannerSession } from '../src/scanner/session.ts'
 
@@ -41,7 +41,7 @@ for (const missing of [false, true]) {
     const root = await setup()
     try {
       const other = await plugin(root, 'other')
-      await writeScannerConfig(root, { scanners: [other, ...(missing ? [{ id: 'typescript', source: path.join(root, 'missing'), include: ['**/*.ts'] }] : [])] })
+      await writePluginConfig(root, { scanners: [other, ...(missing ? [{ id: 'typescript', source: path.join(root, 'missing'), include: ['**/*.ts'] }] : [])] })
       const records = await snapshot(root)
       const before = await loadAnnotatedArchitecture(root)
       expect(before.relationships.length).toBeGreaterThan(0)
@@ -56,7 +56,7 @@ for (const missing of [false, true]) {
 test.concurrent('empty scanning does not write saved data or start scan callbacks', async () => {
   const root = await setup()
   try {
-    await writeScannerConfig(root, { scanners: [] })
+    await writePluginConfig(root, { scanners: [] })
     const before = await snapshot(root)
     expect(await scanRepository(root)).toEqual({ created: 0, refreshed: 0, matched: 0 })
     const watcher = await watchScan(root, { onFold() { throw new Error('empty scanner selection ran') } })
@@ -70,16 +70,16 @@ test.concurrent('a live session reports failed tooling without preventing saved 
   let session: Awaited<ReturnType<typeof createScannerSession>> | undefined
   try {
     const scanner = await plugin(root, 'broken', true)
-    await writeScannerConfig(root, { scanners: [scanner] })
+    await writePluginConfig(root, { scanners: [scanner] })
     const before = await snapshot(root)
     session = await createScannerSession(root)
     await session.reconfigure()
     expect(session.state.notice.tone).toBe('error')
-    expect(session.state.scanners[0]?.status).toBe('blocked')
+    expect(session.state.plugins[0]?.status).toBe('blocked')
     expect(await snapshot(root)).toEqual(before)
     expect((await loadAnnotatedArchitecture(root)).relationships.length).toBeGreaterThan(0)
     await session.change({ action: 'remove', id: scanner.id })
-    expect(session.state.scanners.some(item => item.id === scanner.id)).toBe(false)
+    expect(session.state.plugins.some(item => item.id === scanner.id)).toBe(false)
     expect(await snapshot(root)).toEqual(before)
   } finally { await session?.close(); await rm(root, { recursive: true, force: true }) }
 })

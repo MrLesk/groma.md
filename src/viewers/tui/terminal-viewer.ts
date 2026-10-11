@@ -40,7 +40,7 @@ const MORPH_FRAMES = 10
 const PULSE_MS = 90
 
 interface ViewerOptions {
-  openScanners?: () => Promise<void>
+  openPluginSettings?: () => Promise<void>
   level?: TerminalLevel
   currentId?: string
   onRefresh?: () => void | Promise<void>
@@ -82,7 +82,7 @@ export function mountTerminalViewer(
     ...(options.currentId === undefined ? {} : { currentId: options.currentId }),
   }
   let closed = false
-  let scannerSettingsOpen = false
+  let pluginSettingsOpen = false
   const theme = viewerTheme()
   // Each depth keeps its own camera, so returning to it finds the map where it was.
   const cameras = new Map<string, TerminalCamera>()
@@ -359,16 +359,16 @@ export function mountTerminalViewer(
   }
 
   function openScannerSettings(key: KeyEvent): boolean {
-    if (key.name === 's' && key.shift && !key.ctrl && state.search === undefined && options.openScanners) {
-      scannerSettingsOpen = true
-      void options.openScanners().finally(() => { scannerSettingsOpen = false; repaint() })
+    if (key.name === 's' && key.shift && !key.ctrl && state.search === undefined && options.openPluginSettings) {
+      pluginSettingsOpen = true
+      void options.openPluginSettings().finally(() => { pluginSettingsOpen = false; repaint() })
       return true
     }
     return false
   }
 
   function globalKey(key: KeyEvent): boolean {
-    if (key.eventType === 'release' || scannerSettingsOpen) return true
+    if (key.eventType === 'release' || pluginSettingsOpen) return true
     if (openScannerSettings(key)) return true
     // Groma owns pane navigation; focused toolkit scrollbars must not scroll again.
     key.preventDefault()

@@ -1,8 +1,19 @@
 import { readFile } from 'node:fs/promises'
-import { readScannerConfig, writeScannerConfig } from './scanner/modules/config.ts'
-import { defaultScannerCacheRoot, installScannerPackage, parseScannerSource, resolveScannerPackage } from './scanner/modules/package.ts'
-import type { ScannerInstallOptions } from './scanner/modules/inventory.ts'
+import { readPluginConfig, writePluginConfig } from './scanner/modules/config.ts'
+import { defaultPluginCacheRoot, installPluginPackage, parsePluginSource, resolvePluginPackage, type ResolvedIconPackage } from './scanner/modules/package.ts'
+import type { PluginInstallOptions, PluginResolutionOptions } from './scanner/modules/inventory.ts'
 import type { AnnotatedElement } from './types.ts'
+
+/** A pack selected in plugins.json and what this computer has for it. */
+export interface IconPackSelection {
+  id: string
+  source: string
+  kind: 'icons'
+  status: 'found' | 'missing' | 'blocked'
+  message: string
+  /** The installed package; absent while the pack is missing or blocked. */
+  pack?: ResolvedIconPackage
+}
 
 /** One grapheme that is a pictograph, a flag or a keycap; any other icon value is a name for a pack to resolve. */
 export function isEmoji(value: string): boolean {
@@ -10,15 +21,17 @@ export function isEmoji(value: string): boolean {
   return segments.length === 1 && /\p{Extended_Pictographic}|\p{Regional_Indicator}|[0-9#*]\ufe0f?\u20e3/u.test(value)
 }
 
-export async function iconPackInventory(root: string, options: ScannerInstallOptions = {}) {
-  const config = await readScannerConfig(root)
-  return Promise.all((config.icons ?? []).map(async selected => {
+export async function iconPackInventory(root: string, options: PluginResolutionOptions = {}): Promise<IconPackSelection[]> {
+  const config = await readPluginConfig(root)
+  return Promise.all((config.icons ?? []).map(async (selected): Promise<IconPackSelection> => {
+    const base = { ...selected, kind: 'icons' as const }
     try {
-      const pack = await resolveScannerPackage(parseScannerSource(root, selected.source), options.cacheRoot, 'icons')
-      if (pack && pack.id !== selected.id) throw new Error(`Pack id is ${pack.id}, expected ${selected.id}`)
-      return { ...selected, kind: 'icons' as const, status: pack ? 'found' : 'missing', message: '', pack }
+      const pack = await resolvePluginPackage(parsePluginSource(root, selected.source), options.cacheRoot ?? defaultPluginCacheRoot(), 'icons')
+      if (!pack) return { ...base, status: 'missing', message: '' }
+      if (pack.id !== selected.id) throw new Error(`Pack id is ${pack.id}, expected ${selected.id}`)
+      return { ...base, status: 'found', message: '', pack }
     } catch (error) {
-      return { ...selected, kind: 'icons' as const, status: 'blocked', message: error instanceof Error ? error.message : String(error), pack: undefined }
+      return { ...base, status: 'blocked', message: error instanceof Error ? error.message : String(error) }
     }
   }))
 }
@@ -61,12 +74,12 @@ export async function unknownIcons(root: string, elements: readonly { id: string
     .map(element => `${element.id}: unknown icon "${element.icon}"`)
 }
 
-export async function restoreIconPacks(root: string, options: ScannerInstallOptions = {}, id?: string): Promise<number> {
-  const config = await readScannerConfig(root)
+export async function restoreIconPacks(root: string, options: PluginInstallOptions = {}, id?: string): Promise<number> {
+  const config = await readPluginConfig(root)
   let count = 0
   for (const selected of (config.icons ?? []).filter(pack => id === undefined || pack.id === id)) {
-    const source = parseScannerSource(root, selected.source)
-    const installed = await installScannerPackage(source, options.cacheRoot ?? defaultScannerCacheRoot(), options.registry, 'icons')
+    const source = parsePluginSource(root, selected.source)
+    const installed = await installPluginPackage(source, options.cacheRoot ?? defaultPluginCacheRoot(), options.registry, 'icons')
     if (installed.package.id !== selected.id) throw new Error(`Pack id is ${installed.package.id}, expected ${selected.id}`)
     if (source.kind !== 'local') count++
   }
@@ -74,12 +87,12 @@ export async function restoreIconPacks(root: string, options: ScannerInstallOpti
 }
 
 export async function saveIconPack(root: string, id: string, source: string, replacing = false): Promise<void> {
-  const config = await readScannerConfig(root)
+  const config = await readPluginConfig(root)
   if (!replacing && (config.icons ?? []).some(pack => pack.id === id)) throw new Error(`Icon pack already configured: ${id}`)
   if (config.scanners.some(pack => pack.id === id) || config.workSources?.some(pack => pack.id === id)) throw new Error(`Plugin id already configured: ${id}`)
   const icons = [...config.icons ?? []]
   const index = icons.findIndex(pack => pack.id === id)
   if (index < 0) icons.push({ id, source })
   else icons[index] = { id, source }
-  await writeScannerConfig(root, { ...config, icons })
+  await writePluginConfig(root, { ...config, icons })
 }

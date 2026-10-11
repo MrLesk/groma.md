@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-09 13:12'
+updated_date: '2026-10-11 16:37'
 labels: []
 dependencies: []
 references:
@@ -97,6 +97,46 @@ modified_files:
   - .github/workflows/release.yml
   - docs/scanners/publishing.md
   - test-bun/scanner-release.test.ts
+  - docs/product-model.md
+  - docs/viewers/index.md
+  - docs/viewers/creating-a-plugin.md
+  - docs/index.md
+  - README.md
+  - CONTRIBUTING.md
+  - src/scanner/modules/official-catalog.ts
+  - src/viewers/web/settings/model.ts
+  - test-bun/csharp-source-units.test.ts
+  - test-bun/php-scanner.test.ts
+  - test-bun/project-review.test.ts
+  - test-bun/scanner-compatibility.test.ts
+  - test-bun/scanner-settings-lifecycle.test.ts
+  - test-bun/scanner-settings.test.ts
+  - test-bun/scanner-upgrades.test.ts
+  - test-bun/viewer-scanner-availability.test.ts
+  - docs/viewers/tui/index.md
+  - test-bun/scanner-recommendations.test.ts
+  - scripts/reproduce-scanner-boundaries.ts
+  - src/scanner/cli.ts
+  - src/scanner/modules/discovery.ts
+  - src/scanner/modules/readiness.ts
+  - src/scanner/modules/selection.ts
+  - src/scanner/modules/setup.ts
+  - src/scanner/registry.ts
+  - src/viewers/source/structure.ts
+  - src/viewers/tui/model.ts
+  - src/viewers/tui/panes/view.ts
+  - src/viewers/tui/terminal-viewer.ts
+  - src/viewers/web/data.ts
+  - src/viewers/web/page.ts
+  - src/viewers/web/settings/control.ts
+  - src/welcome/view.ts
+  - test-bun/compiled-scanner.test.ts
+  - test-bun/go-scanner.test.ts
+  - test-bun/lint-command.test.ts
+  - test-bun/python-scanner.test.ts
+  - test-bun/scanner-update.test.ts
+  - test-bun/source-coverage.test.ts
+  - test-bun/web-startup.test.ts
 type: feature
 ordinal: 645000
 ---
@@ -150,6 +190,12 @@ Update everything that names scanners.json: docs/scanners/ (setup, discovery, in
 1. Replace the configuration filename with plugins.json and validate explicit scanner and work-source selections, preserving scanner fields. 2. Share scanner source resolution, package installation and release compatibility with work sources; load only configured work sources. 3. Add plugin management commands, connect init and both viewers, and group settings by plugin kind. 4. Convert repository configuration, fixtures, documentation and CI references. 5. Inspect supported flows and diffs without installs, builds or tests as requested; scan and curate task-owned architecture changes. Existing tests cover scanner configuration and package lifecycle; adapt filename expectations. Add focused coverage only for explicit work-source loading, selection cardinality and compatibility, whose absence currently permits implicit Backlog execution.
 
 Review fixes (9 October 2026): 1. Extend scripts/scanner-release.ts staging and publication to include the Backlog work-source adapter and @groma/work-source contract, with an exact declared contract dependency. Keep init npm-only; public install remains a next-release gate. 2. Put shared update source preparation in src/scanner/modules/package.ts, while callers keep kind validation and scanner settings. Route settings restore by plugins.json; extract scanner-list duplicate validation and web detail labels to keep changed functions at complexity 15 or lower. Retain loadWorkSource for TASK-564 integration. 3. Test authority: TASK-568 AC3/AC5 and the reproduced unpublished adapter failure require the next staged release to yield installable work-source packages. Wrong outcome: adapter or contract missing from staging, invalid dependency metadata, or a packed adapter cannot be added/restored from a registry. Existing scanner-release tests cover scanner assembly only; extend that file with the smallest stage/pack/local-registry add-and-restore test for these packages. Existing scanner-update, scanner-settings, configuration and work-source tests cover the behavior-preserving refactors; do not add duplicate tests. 4. Run focused checks and bun run check, one cold simplicity review, implementer specification/quality review and one full-context complexity review; record release-only gaps and curate any caused architecture changes before the local commit.
+
+Maintainability pass (11 October 2026), review findings A to H: 1. A: correct docs that still describe an embedded Backlog work source, the old cache folder and implicit Backlog setup, so they state the opt-in behaviour. 2. B: in offerBacklog report a failed Backlog initialization before the already-selected return; rename the UI method to match its question. 3. C: reject a plugin id repeated across the scanners and workSources sections in one place while parsing plugins.json. 4. D: remove every place where generic plugin code names the Backlog adapter (config, plugin management, readiness wording, official flag, setup doc); official work sources are decided like official scanners, by the embedded manifest id. 5. F: one sentence in docs/scanners/setup.md that reporting work-source readiness imports the adapter. 6. G: restore each file's import grouping, indentation and JSON import attributes. 7. H: the architecture workflow restores only released scanner packages and leaves the work source on its repository path. 8. E last: first give the work-source settings row and resolved package their own shape so neither carries scanner placeholder values, then one mechanical rename commit (plugin config, package, source, settings) with no behaviour change. Tests for this pass. (a) Rule: a failed Backlog initialization during groma init is reported (finding B, reproduced: a rerun with Backlog selected returns before the error). Wrong result caught: init finishes without the error line. Gap: no test drives runInitCommand; add one test in test-bun/work-source-selection.test.ts with injected dependencies. (b) Rule: plugin ids are unique across sections because remove and update address a plugin by id alone (finding C). Wrong result caught: a hand-written plugins.json with one id in both sections loads and remove or update acts on the work source instead of the scanner. Gap: only duplicate scanner ids were rejected and nothing tested it; add one parse test in the same file. (c) Rule: core accepts any work-source id (finding D; acceptance criterion 2 only refuses a second entry). Wrong result caught: an adapter whose id is not backlog is refused. Gap: the fixture adapter used the id backlog; change the fixture id instead of adding a test.
+
+(d) Rule: groma init runs backlog init only for a project that selects the Backlog.md adapter (acceptance criterion 2: no plugin's tool runs without its entry). Once core accepts any work-source id, a selection no longer implies Backlog. Wrong result caught: init creates a Backlog project in a repository that selected another work source. Gap: no test covers it; add one test beside the init regression test, sharing its wizard helper.
+
+(e) Rule: the scanner warning opens the affected scanner (docs/scanners/setup.md: a warning appears only when scanning needs attention and opens the affected plugin). Its tone comes from scanner rows alone. Wrong result caught: with a blocked work source in the list, a warning about missing scanners opens the work-source row. Gap: test-bun/project-review.test.ts builds scanner rows only; add one case with a work-source row there.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -172,6 +218,28 @@ Review-fix focused validation: 15 tests passed across scanner-release, work-sour
 Implementer specification review: the confirmed AC3/AC5 release defect is corrected in the existing release owner: stage includes both real work-source packages, assembly copies them with the first host artifact, and publish uploads both contracts before Backlog before the main CLI build. The staged package regression proves npm selection and missing-cache restore using the real source manifests. Public-registry Backlog installation and a fresh interactive init remain release-time checks because this task must not publish. Existing AC1/AC2/AC4/AC6 implementation is preserved; original browser/terminal interactive verification and the external groma.md-action inspection are not newly claimed. Implementer quality review: traced workflow-to-package-to-config flow and update/restore entry points as a new junior developer. Each operation remains with its existing owner, caller validation and scanner settings survive, loadWorkSource is retained, and config/web helper branches preserve the supported result. New test fails if either staged package, runnable entry or exact dependency is missing, and observes configured identity/restore rather than prose. All changed source/test files remain under 500 lines; changed-file lint reports no complexity warnings. No new source file or architecture concept was added; git status --short groma/ is empty. Full repository check is still running.
 
 Final full-context complexity review passed with no blocking defects or material simplifications. Full bun run check passed: Biome checked 604 files (one existing warning in unchanged test-bun/execution-evidence.test.ts and two existing informational notices), TypeScript passed, 16 Node tests passed, and 780 Bun tests passed with 51 toolchain-dependent skips and zero failures. git diff --check passed. Existing architecture owners already cover the changed source; no new source file was added and git status --short groma/ is empty. AC3 and AC5 are now unchecked to preserve the outstanding real public-registry delivery gate accurately: the real staged packages pass local-registry install/restore, but @groma/work-source and @groma/work-source-backlog still need first publication, their trusted publisher configuration, and fresh public npm init validation in the next actual release. This work intentionally performs no npm publication, release tag or remote push. Original browser/terminal interactive coverage and external groma.md-action inspection are not newly claimed.
+
+Maintainability pass (11 October 2026), review findings A to H, committed locally and not pushed.
+
+A. Docs: docs/product-model.md, docs/viewers/index.md, docs/viewers/creating-a-plugin.md, docs/scanners/index.md, docs/index.md, README.md and CONTRIBUTING.md no longer describe an embedded Backlog work source or implicit Backlog setup; they say the work source is the one plugins.json selects. docs/scanners/creating-a-plugin.md names the ~/.groma/cache/plugins folder, docs/agent-instructions/structure.md calls plugins.json plugin configuration, docs/viewers/tui/index.md names the Plugins screen.
+
+B. src/init-command.ts offerBacklog reports a failed Backlog initialization before the already-selected return. The prompt method is confirmUseBacklog, matching its question.
+
+C. src/scanner/modules/config.ts requireUniqueIds rejects a plugin id used by more than one entry across scanners and workSources, called once from the parser.
+
+D. Generic plugin code no longer names the Backlog adapter. plugins.json accepts any work-source id. Host compatibility has one owner, hostIncompatibility in src/work-sources.ts, which plugin management reuses through requireCompatibleHost. Readiness wording is built from the adapter's own readiness answer. Official work sources come from the embedded manifest in src/scanner/modules/official-catalog.ts, like official scanners. Because a selection no longer implies Backlog, initializeRepository runs backlog init only when the selected id is the Backlog adapter's manifest id, and init adds the adapter by the manifest's package name.
+
+E. Three commits. Part 1: a settings row is a ScannerSetting or a WorkSourceSetting (PluginSetting); the work-source row carries no scanner placeholder values; the settings list is the plugins field; scannerWarning reads scanner rows only; the terminal label counts missing plugins. Part 2: a resolved package is a ResolvedScannerPackage or a ResolvedWorkSourcePackage, so a work source has no placeholder include list; a caller that asks a resolver for one kind gets that kind's type; messages of the shared package, release and settings code say plugin. Part 3: mechanical rename with no behaviour change (PluginConfig, readPluginConfig, writePluginConfig, PluginSource, parsePluginSource, defaultPluginCacheRoot, resolvePluginPackage, installPluginPackage, PublishedPlugin and its functions, PluginInstallOptions, PluginResolutionOptions, PluginSettings, PluginSettingsAction, pluginGroups, pluginSettingAction, pluginUpgradeAction, pluginSettingLabel, readPluginSettings, changePluginSettings, parsePluginSettingsAction, withPluginUpgrades, the settings screen entry points and the model field pluginSettings). Scanner-only names stay: ScannerSetting, ResolvedScannerPackage, scannerNotice, scannerMatchReason, scannerSettingsState, scannerWarning, the inventory functions.
+
+F. docs/scanners/setup.md states that reporting work-source readiness imports the selected adapter, while groma scanner list executes no plugin.
+
+G. Import grouping restored in src/init-command.ts, src/scanner/modules/settings.ts, src/view-host.ts, src/viewers/web/map-session.ts and src/welcome/model.ts; the onPluginsChanged line is indented with its siblings; src/work-sources.ts imports package.json with the JSON attribute.
+
+H. .github/workflows/architecture.yml rewrites only scanner sources and runs groma scanner install; the work source keeps its repository path.
+
+Observable changes outside the mechanical rename, for the reviewer: the settings snapshot (groma scanner settings without a terminal, and the web settings payload) lists rows under plugins, each with kind; the terminal label reads Install missing plugins; the web error titles read Could not load plugins and Plugin action failed; package and release messages say plugin; a scanner warning no longer opens a work-source row.
+
+Verification run in this worktree: bun run typecheck passes. bunx biome lint reports 1 warning and 2 infos, the same as before the pass, all in unchanged files. Focused Bun tests pass: 59 across the plugin, settings, selection, release and scanner module files; 62 across web startup, shell, export, chrome, terminal lifecycle, plain view and scan files; 51 passed with 12 toolchain skips across the go, python, php, angular, vue and csharp scanner files; compiled-scanner passes. Each new or changed regression test was seen failing without its fix. bun src/cli.ts scan ran and left groma/ unchanged. The terminal Plugins screen was read through tui-test, and the web Plugins rows through a private headless Chromium, both showing the Work sources group with the Backlog row. The full bun run check was not run in this lane.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

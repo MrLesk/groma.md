@@ -1,9 +1,9 @@
 import { pathToFileURL } from 'node:url'
 import { EMPTY_WORK_SOURCE, type WorkSource, type WorkSourcePlugin } from '@groma/work-source'
-import groma from '../package.json'
-import { readScannerConfig } from './scanner/modules/config.ts'
-import { defaultScannerCacheRoot, parseScannerSource, resolveScannerPackage } from './scanner/modules/package.ts'
-import type { ScannerResolutionOptions } from './scanner/modules/inventory.ts'
+import groma from '../package.json' with { type: 'json' }
+import { readPluginConfig } from './scanner/modules/config.ts'
+import { defaultPluginCacheRoot, parsePluginSource, resolvePluginPackage, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
+import type { PluginResolutionOptions } from './scanner/modules/inventory.ts'
 
 export interface WorkSourceSelection {
   id: string
@@ -18,24 +18,30 @@ export interface WorkSourceSelection {
 }
 
 /** Read only the selected package; an absent selection never imports or probes a work source. */
-export async function configuredWorkSource(root: string, options: ScannerResolutionOptions = {}): Promise<WorkSourceSelection | undefined> {
-  const selected = (await readScannerConfig(root)).workSources?.[0]
+export async function configuredWorkSource(root: string, options: PluginResolutionOptions = {}): Promise<WorkSourceSelection | undefined> {
+  const selected = (await readPluginConfig(root)).workSources?.[0]
   if (!selected) return undefined
   const base = { ...selected, kind: 'workSource' as const }
   try {
-    const source = parseScannerSource(root, selected.source)
-    const resolved = await resolveScannerPackage(source, options.cacheRoot ?? defaultScannerCacheRoot(), 'workSource')
+    const source = parsePluginSource(root, selected.source)
+    const resolved = await resolvePluginPackage(source, options.cacheRoot ?? defaultPluginCacheRoot(), 'workSource')
     if (!resolved) return { ...base, status: 'missing', message: `Restore ${selected.source} with groma plugin install, or restore its local path.` }
     if (resolved.id !== selected.id) throw new Error(`Configured work source ${selected.id} resolves to ${resolved.id}`)
     const details = { ...base, name: resolved.name, version: resolved.version }
-    const required = resolved.compatibility?.groma
-    if (required && !Bun.semver.satisfies(groma.version, required)) {
-      return { ...details, status: 'blocked', message: `Requires Groma ${required}; this computer has ${groma.version}. Update Groma.` }
-    }
+    const incompatible = hostIncompatibility(resolved)
+    if (incompatible) return { ...details, status: 'blocked', message: incompatible }
     return await importedWorkSource(resolved.entry, details)
   } catch (error) {
     return { ...base, status: 'blocked', message: error instanceof Error ? error.message : String(error) }
   }
+}
+
+/** Why this groma.md version cannot load a work-source package, when the range its manifest declares excludes it. */
+export function hostIncompatibility(resolved: ResolvedWorkSourcePackage): string | undefined {
+  const required = resolved.compatibility?.groma
+  return required && !Bun.semver.satisfies(groma.version, required)
+    ? `Requires Groma ${required}; this computer has ${groma.version}. Update Groma.`
+    : undefined
 }
 
 async function importedWorkSource(
@@ -48,8 +54,10 @@ async function importedWorkSource(
     throw new Error(`Work source ${details.id} must export a default WorkSourcePlugin with matching id, readiness and create`)
   }
   const readiness = plugin.readiness()
+  // The contract names what an adapter lacks only through its install command, so this wording fits every adapter.
+  const missing = readiness.install ? `Required tool missing. Install with ${readiness.install}.` : 'Required tool missing.'
   return { ...details, plugin, status: readiness.status === 'found' ? 'found' : 'blocked',
-    message: readiness.status === 'found' ? 'Work source is ready.' : `Backlog CLI missing. Install with ${readiness.install}.`,
+    message: readiness.status === 'found' ? 'Work source is ready.' : missing,
     ...(readiness.install ? { install: readiness.install } : {}) }
 }
 

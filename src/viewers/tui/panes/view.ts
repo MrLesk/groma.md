@@ -18,7 +18,7 @@ import type { AnnotatedElement } from '../../../types.ts'
 
 /** A compact entry to Backlog, centered below the architecture canvas. */
 function recapLine(theme: ViewerTheme, world: TerminalViewModel, width: number): Line | undefined {
-  const notice = world.scanners?.notice
+  const notice = world.pluginSettings?.notice
   if (notice?.message) return [chunk(` [S] Scanners · ${notice.message} `, notice.tone === 'hint' ? theme.syntax.type : theme.modified)]
   if (world.revision === undefined && !isEmptyWorld(world) && !hasComponents(world)) {
     return [plain(theme, ` ${noComponentsTitle} · ${noComponentsHint} `)]

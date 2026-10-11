@@ -3,7 +3,7 @@ import { floatingBarCss } from './atoms/floating-bar.ts'
 import { settingsControl, settingsCss } from './settings/control.ts'
 import { settingsDialogCss } from './atoms/settings-dialog.ts'
 import { duplicatesCss } from './duplicates/view.ts'
-import { scannerSettingsCss } from './scanners/settings.ts'
+import { pluginSettingsCss } from './scanners/settings.ts'
 import { projectReviewControl, projectReviewCss } from './review/control.ts'
 import { readFileSync } from 'node:fs'
 
@@ -76,7 +76,7 @@ const legendKinds: C4Kind[][] = [
 
 const style = `
   ${fontCss}
-  ${scannerSettingsCss}${duplicatesCss}${projectReviewCss}${settingsCss}${settingsDialogCss}
+  ${pluginSettingsCss}${duplicatesCss}${projectReviewCss}${settingsCss}${settingsDialogCss}
   :root {
     ${cssBlock(palettes.light)}
     --backlog-mark-image: url("data:image/png;base64,${backlogMark}");

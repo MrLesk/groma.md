@@ -2,12 +2,11 @@ import { homedir } from 'node:os'
 import path from 'node:path'
 
 import type { WorkSourcePlugin } from '@groma/work-source'
-import { configuredWorkSource } from '../work-sources.ts'
 import packageJson from '../../package.json' with { type: 'json' }
 
 import { humanInstructionGuides } from '../instructions.ts'
-import { readScannerSettings, type ScannerSettings } from '../scanner/modules/settings.ts'
-
+import { readPluginSettings, type PluginSettings } from '../scanner/modules/settings.ts'
+import { configuredWorkSource } from '../work-sources.ts'
 
 export const documentationUrl = 'https://groma.md'
 export const welcomeVersion = packageJson.version
@@ -121,7 +120,7 @@ export interface WelcomePlugin {
 }
 
 export interface WelcomeModel {
-  scanners?: ScannerSettings
+  pluginSettings?: PluginSettings
   project: string
   folder: string
   status: string
@@ -167,13 +166,13 @@ export async function loadWelcomeModel(
   workSourcePlugin?: WorkSourcePlugin,
 ): Promise<WelcomeModel> {
   const root = path.resolve(repositoryRoot)
-  const scanners = await readScannerSettings(root)
+  const pluginSettings = await readPluginSettings(root)
   const selected = workSourcePlugin ? { id: workSourcePlugin.id, ...workSourcePlugin.readiness() } : await configuredWorkSource(root)
   return {
     project: path.basename(root),
     folder: displayFolder(root),
     status: 'Architecture ready',
-    scanners,
+    pluginSettings,
     plugins: selected ? [selected] : [],
   }
 }

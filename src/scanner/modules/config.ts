@@ -18,7 +18,7 @@ export interface ConfiguredWorkSource {
   source: string
 }
 
-export interface ScannerConfig {
+export interface PluginConfig {
   icons?: ConfiguredWorkSource[]
   workSources?: ConfiguredWorkSource[]
   scanners: ConfiguredScanner[]
@@ -28,7 +28,7 @@ export interface ScannerConfig {
   useGitignore?: boolean
 }
 
-const scannerId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const pluginId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /** A JSON value holding a list of strings, such as patterns. */
 export function stringArray(value: unknown): value is string[] {
@@ -36,7 +36,7 @@ export function stringArray(value: unknown): value is string[] {
 }
 
 /** A scanner's exclusions in the order they apply: the global list, then the scanner's own. */
-export function exclusionPatterns(config: ScannerConfig, scanner: string): string[] {
+export function exclusionPatterns(config: PluginConfig, scanner: string): string[] {
   return [...config.exclude ?? [], ...config.scanners.find(entry => entry.id === scanner)?.exclude ?? []]
 }
 
@@ -86,7 +86,7 @@ function configuredScanner(
     || typeof candidate.settings !== 'object' || Array.isArray(candidate.settings))) {
     throw new Error(`${sourceFilename} scanners[${index}].settings must be an object`)
   }
-  if (typeof candidate.id !== 'string' || !scannerId.test(candidate.id)) {
+  if (typeof candidate.id !== 'string' || !pluginId.test(candidate.id)) {
     throw new Error(`${sourceFilename} scanners[${index}].id must be lowercase kebab-case`)
   }
   if (typeof candidate.source !== 'string' || candidate.source.trim() === '') {
@@ -108,10 +108,9 @@ function configuredWorkSources(value: unknown, filename: string): ConfiguredWork
       || Object.keys(entry).some(key => !['id', 'source'].includes(key))) {
       throw new Error(`${filename} workSources entries must contain only id and source`)
     }
-    if (typeof entry.id !== 'string' || !scannerId.test(entry.id)) {
+    if (typeof entry.id !== 'string' || !pluginId.test(entry.id)) {
       throw new Error(`${filename} workSources id must be lowercase kebab-case`)
     }
-    if (entry.id !== 'backlog') throw new Error(`${filename} supports only the backlog work source`)
     if (typeof entry.source !== 'string' || !entry.source.trim()) {
       throw new Error(`${filename} workSources source must be non-empty`)
     }
@@ -123,30 +122,36 @@ function configuredScanners(values: unknown[], sourceFilename: string): Configur
   const scanners = values.map((scanner, index) => {
     return configuredScanner(scanner, index, sourceFilename)
   })
-  const ids = new Set<string>()
   const sources = new Set<string>()
   for (const scanner of scanners) {
-    if (ids.has(scanner.id)) throw new Error(`duplicate configured scanner id: ${scanner.id}`)
     if (sources.has(scanner.source)) {
       throw new Error(`duplicate configured scanner source: ${scanner.source}`)
     }
-    ids.add(scanner.id)
     sources.add(scanner.source)
   }
   return scanners.sort((left, right) => left.id.localeCompare(right.id))
 }
 
-function parseScannerConfig(
+/** Removing and updating address a plugin by id alone, so one id names one entry across every section. */
+function requireUniqueIds(plugins: readonly { id: string }[], sourceFilename: string): void {
+  const ids = new Set<string>()
+  for (const { id } of plugins) {
+    if (ids.has(id)) throw new Error(`${sourceFilename} uses plugin id ${id} more than once; an id names one plugin across all sections`)
+    ids.add(id)
+  }
+}
+
+function parsePluginConfig(
   source: string,
   sourceFilename: string,
-): ScannerConfig {
+): PluginConfig {
   const value: unknown = JSON.parse(source)
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${sourceFilename} must be an object`)
   }
   const config = value as Record<string, unknown>
   if (Object.keys(config).some(key => !['scanners', 'workSources', 'icons', 'exclude', 'useGitignore'].includes(key)) || !Array.isArray(config.scanners)) {
-    throw new Error(`${sourceFilename} must contain a scanners array, and optionally an exclude array and useGitignore`)
+    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, an icons array, an exclude array and useGitignore`)
   }
   if (config.exclude !== undefined && !stringArray(config.exclude)) {
     throw new Error(`${sourceFilename} exclude must be an array of strings`)
@@ -156,19 +161,21 @@ function parseScannerConfig(
   }
   const icons = configuredIcons(config.icons, sourceFilename)
   const workSources = configuredWorkSources(config.workSources, sourceFilename)
+  const scanners = configuredScanners(config.scanners, sourceFilename)
+  requireUniqueIds([...scanners, ...workSources], sourceFilename)
   return {
     ...(workSources.length ? { workSources } : {}),
     ...(icons.length ? { icons } : {}),
-    scanners: configuredScanners(config.scanners, sourceFilename),
+    scanners,
     ...(config.exclude === undefined ? {} : { exclude: config.exclude as string[] }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
   }
 }
 
-export async function readScannerConfig(repositoryRoot: string): Promise<ScannerConfig> {
+export async function readPluginConfig(repositoryRoot: string): Promise<PluginConfig> {
   const filesystem = GromaFileSystem.open(repositoryRoot)
   try {
-    return parseScannerConfig(
+    return parsePluginConfig(
       await filesystem.read('plugins.json'),
       filesystem.sourceFilename('plugins.json'),
     )
@@ -178,9 +185,9 @@ export async function readScannerConfig(repositoryRoot: string): Promise<Scanner
   }
 }
 
-export async function writeScannerConfig(
+export async function writePluginConfig(
   repositoryRoot: string,
-  config: ScannerConfig,
+  config: PluginConfig,
 ): Promise<void> {
   const ordered = [...config.scanners].sort((left, right) => left.id.localeCompare(right.id))
   await GromaFileSystem.open(repositoryRoot).write(
@@ -196,7 +203,7 @@ function configuredIcons(value: unknown, filename: string): ConfiguredWorkSource
   return value.map(entry => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)
       || Object.keys(entry).some(key => !['id', 'source'].includes(key))
-      || typeof entry.id !== 'string' || !scannerId.test(entry.id)
+      || typeof entry.id !== 'string' || !pluginId.test(entry.id)
       || typeof entry.source !== 'string' || !entry.source.trim()) {
       throw new Error(`${filename} icons entries require a lowercase kebab-case id and a source`)
     }

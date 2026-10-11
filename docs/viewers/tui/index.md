@@ -243,7 +243,7 @@ relationships remain saved. With no installed selections, scanning does nothing.
 A failed active scanner reports its error and leaves the previous scan result.
 Architecture edits and Backlog updates remain live independently.
 
-Press `Shift+S` in the map, or `s` on the splash screen, to open **Scanners**. A warning means no installed scanner matches the detected project; a quiet
+Press `Shift+S` in the map, or `s` on the splash screen, to open **Plugins**. A warning means no installed scanner matches the detected project; a quiet
 hint means some detected support is missing or uncertain. Settings show matched
 files, package state and readiness. Add an exact npm/Git/local source, install a
 confirmed recommendation, restore a missing package, remove a project selection,

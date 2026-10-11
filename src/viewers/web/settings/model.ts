@@ -1,10 +1,11 @@
-import type { ScannerSettings } from '../../../scanner/modules/settings-model.ts'
+import type { PluginSettings } from '../../../scanner/modules/settings-model.ts'
 
 /** Only actionable scanner problems need a warning; recommendations alone do not. */
-export function scannerWarning(settings: ScannerSettings | undefined): { scannerId?: string } | undefined {
+export function scannerWarning(settings: PluginSettings | undefined): { scannerId?: string } | undefined {
   if (settings?.notice.tone !== 'warning' && settings?.notice.tone !== 'error') return undefined
-  const scanner = settings.scanners.find(item => item.status === 'blocked')
-    ?? settings.scanners.find(item => item.status === 'missing')
-    ?? settings.scanners.find(item => item.match === 'matched' && item.status === 'available')
+  const scanners = settings.plugins.filter(plugin => plugin.kind === 'scanner')
+  const scanner = scanners.find(item => item.status === 'blocked')
+    ?? scanners.find(item => item.status === 'missing')
+    ?? scanners.find(item => item.match === 'matched' && item.status === 'available')
   return { scannerId: scanner?.id }
 }
