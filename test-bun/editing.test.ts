@@ -73,6 +73,9 @@ test.concurrent('web edits reject conflicting fields as one request and accept u
     const technology = changedEdit({ technology: inspected.technology }, { technology: 'TypeScript' })
     assert.equal((await send(technology)).status, 200)
     assert.equal((await read()).technology, 'TypeScript')
+    // An empty level means the element inherits; a second form that still starts from it is stale.
+    assert.equal((await send({ criticality: 'high', original: { criticality: '' } })).status, 200)
+    assert.equal((await send({ criticality: 'low', original: { criticality: '' } })).status, 409)
     await writes.draft(root, relation)
     const relationship = {
       id: relation.name, relation: relation.relation,

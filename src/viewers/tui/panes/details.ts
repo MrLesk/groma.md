@@ -13,8 +13,8 @@ import { workListLines } from './hierarchy.ts'
 import { taskFileRows } from './code.ts'
 import type {
   AnnotatedElement,
-  ArchitectureFinding,
   ArchitectureFlow,
+  DuplicatedLogicFinding,
   WorkChecklistItem,
   WorkItem,
   WorkItemDetails,
@@ -56,7 +56,7 @@ function declarationRows(
   symbols: readonly CodeSymbol[],
   width: number,
   actionCursor: string | undefined,
-  findings: readonly ArchitectureFinding[],
+  findings: readonly DuplicatedLogicFinding[],
   indent = '',
 ): PaneLines {
   const facts = [declaration.entry ? 'entry' : undefined, declaration.visibility, declaration.kind === 'function' ? undefined : declaration.kind, `line ${declaration.line}`].filter(fact => fact !== undefined).join(' · ')
@@ -99,7 +99,7 @@ function codeRows(
   width: number,
   structure: readonly CodeFile[] | undefined,
   actionCursor: string | undefined,
-  findings: readonly ArchitectureFinding[],
+  findings: readonly DuplicatedLogicFinding[],
 ): PaneLines {
   if (element.code.length === 0) return { lines: [] }
   const lines: Line[] = [[], heading(theme, 'Code', width)]
@@ -200,7 +200,7 @@ function whatLines(theme: ViewerTheme, element: AnnotatedElement, world: Termina
   return { lines, cursor }
 }
 
-/** The selected element under one tab: its kind line, then meaning or evidence. */
+/** The selected element under one tab: its kind line, its criticality unless normal, its icon and colour, then meaning or evidence. */
 export function detailsLines(
   theme: ViewerTheme,
   element: AnnotatedElement,
@@ -214,12 +214,15 @@ export function detailsLines(
   workList?: WorkListSettings,
 ): PaneLines {
   const byId: Elements = new Map(world.elements.map(item => [item.representationId, item]))
-  const head: Line = [
+  const head: Line[] = [[
     kindMark(theme, element.kind, element.external),
     chunk(` ${kindLabel(element.kind, element.external)}`, theme.foreground, element.external ? TextAttributes.DIM : 0),
     dim(theme, ' · '),
     chunk(element.origin, theme[element.origin], TextAttributes.BOLD),
-  ]
+  ]]
+  // Normal is the default level, so only the other three get a line. Its own line keeps the level whole in a narrow pane.
+  const level = element.criticality ?? 'normal'
+  if (level !== 'normal') head.push([dim(theme, `Criticality · ${level}`)])
   const appearance = [element.icon ? `Icon: ${element.icon}` : '', element.colour ? `Colour: ${element.colour}` : '']
     .filter(Boolean).flatMap(value => wrap(value, width).map(row => [plain(theme, row)]))
   const body = tab === 'tasks'
@@ -228,8 +231,8 @@ export function detailsLines(
     ? howLines(theme, element, world, width, actionCursor, structure)
     : whatLines(theme, element, world, byId, width, pickedId, actionCursor)
   return {
-    lines: [head, ...appearance, ...body.lines],
-    ...(body.cursor === undefined ? {} : { cursor: body.cursor + 1 + appearance.length }),
+    lines: [...head, ...appearance, ...body.lines],
+    ...(body.cursor === undefined ? {} : { cursor: body.cursor + head.length + appearance.length }),
   }
 }
 

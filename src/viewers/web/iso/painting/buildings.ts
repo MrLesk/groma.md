@@ -50,7 +50,9 @@ function floorSvg(
 export function buildingsSvg(scene: ProjectedScene): SvgNode[] {
   return scene.buildings.map(projected => {
     const { building, floors, text } = projected
-    return withAccent(node('g', { 'aria-label': building.title, 'data-id': building.representationId }, classOf(projected), [
+    const level = building.criticality
+    const label = level === 'high' || level === 'critical' ? `${building.title} · ${level}` : building.title
+    return withAccent(node('g', { 'aria-label': label, 'data-id': building.representationId }, classOf(projected), [
       ...floors.flatMap((faces, index) => floorSvg(projected, faces, building.floors[index])),
       surfaceText(text, buildingFont(building), 'label', scene.view, building.resolvedIcon),
     ]), building)

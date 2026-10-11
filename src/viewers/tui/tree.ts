@@ -1,3 +1,4 @@
+import type { Criticality } from '../../criticality.ts'
 import { compareSemanticElements } from '../../element-order.ts'
 import type { AnnotatedElement, ArchitectureGraph, C4Kind, Origin } from '../../types.ts'
 
@@ -15,6 +16,7 @@ export interface TreeRow {
   external: boolean
   depth: number
   origin: Origin
+  criticality?: Criticality
   hasChildren: boolean
   expanded: boolean
   /** Direct children hidden behind a collapsed row. */
@@ -89,6 +91,7 @@ function rows<Element extends AnnotatedElement>(
       external: element.external,
       depth,
       origin: element.origin,
+      criticality: element.criticality,
       hasChildren: children.length > 0,
       expanded,
       count: children.length,

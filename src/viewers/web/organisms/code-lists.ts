@@ -1,4 +1,4 @@
-import type { ArchitectureFinding, ArchitectureFindingInstance, CodeReference } from '../../../types.ts'
+import type { ArchitectureFindingInstance, CodeReference, DuplicatedLogicFinding } from '../../../types.ts'
 import {
   copiesOfSymbol,
   type OperationCopies,
@@ -102,7 +102,7 @@ function copiesPanel(
 }
 
 interface CopiesContext {
-  findings: readonly ArchitectureFinding[]
+  findings: readonly DuplicatedLogicFinding[]
   elementId: string
   list: HTMLElement
   onSource: (file: string, line?: number) => void
@@ -260,7 +260,7 @@ function fileRow(group: CodeGroup, onSource: (file: string, line?: number) => vo
 export function codeList(
   references: readonly CodeReference[],
   structure: readonly CodeFile[],
-  findings: readonly ArchitectureFinding[],
+  findings: readonly DuplicatedLogicFinding[],
   elementId: string,
   onSource: (file: string, line?: number) => void,
 ): HTMLElement {

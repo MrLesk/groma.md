@@ -1,5 +1,7 @@
 import type { ArchitectureGraph, C4Kind, WorkItem, WorkItemDetails } from '../../../types.ts'
+import { criticalitySummary } from '../../../criticality.ts'
 import { sourceIndex } from '../../../source-index.ts'
+import { taskReviewFiles } from './priority.ts'
 import { updateTaskSummary, updateTaskText } from './updates.ts'
 import { kindGlyph } from '../../atoms/kind.ts'
 import { fileDiffRow, leaveFileDiff, paintFileDiff } from '../source/diff-view.ts'
@@ -121,6 +123,16 @@ export function paintTaskSummary(
   const body = document.createElement('div')
   body.className = 'task-summary'
   body.dataset.taskId = item.id
+  // The first line of a loaded task: how many of the components it changed are critical and high, when any is.
+  const changed = payload?.files.filter(file => file.status !== 'unchanged') ?? []
+  const owners = [...new Set(changed.map(file => index.owner(file.file)).filter(owner => owner !== undefined))]
+  const summary = criticalitySummary(owners)
+  if (summary !== '') {
+    const priority = document.createElement('p')
+    priority.dataset.taskKey = 'criticality'
+    priority.textContent = summary
+    body.append(priority)
+  }
   if (detailsError !== undefined) {
     const status = document.createElement('p')
     status.className = 'diff-status'
@@ -161,13 +173,18 @@ export function paintTaskSummary(
     }
     return row
   }))
-  const fileRows = item.modifiedFiles.map(file => {
-    const loaded = payload?.files.find(candidate => candidate.file === file)
-    if (loaded === undefined) return pendingFileRow(file, error !== undefined)
-    const row = fileDiffRow(loaded, onOpen, loaded.shared)
-    row.dataset.taskKey = file
-    return row
-  })
+  // Every recorded file has a row: the loaded diffs in review order, then the files the diff has not loaded yet.
+  const recorded = new Set(item.modifiedFiles)
+  const loaded = taskReviewFiles((payload?.files ?? []).filter(file => recorded.has(file.file)), world)
+  const loadedNames = new Set(loaded.map(file => file.file))
+  const fileRows = [
+    ...loaded.map(file => {
+      const row = fileDiffRow(file, onOpen, file.shared)
+      row.dataset.taskKey = file.file
+      return row
+    }),
+    ...item.modifiedFiles.filter(file => !loadedNames.has(file)).map(file => pendingFileRow(file, error !== undefined)),
+  ]
   section(body, 'files', 'Modified files', fileRows)
   if (payload !== undefined) body.append(sourceIdentity(payload))
   else if (error !== undefined) {

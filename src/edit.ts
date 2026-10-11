@@ -46,12 +46,13 @@ function optionalText(value: string | undefined): string | undefined {
   return value
 }
 
-function hasAppearance(input: EditArchitectureInput): boolean {
-  return input.icon !== undefined || input.colour !== undefined
+/** Icon, colour and criticality exist on architecture elements only; every other edit target refuses them. */
+function hasElementOnlyField(input: EditArchitectureInput): boolean {
+  return input.icon !== undefined || input.colour !== undefined || input.criticality !== undefined
 }
 
 function hasMeaning(input: EditArchitectureInput): boolean {
-  return hasAppearance(input)
+  return hasElementOnlyField(input)
     || [input.title, input.overview, input.description, input.technology, input.draft].some(value => value !== undefined)
 }
 
@@ -66,7 +67,7 @@ function isStructural(input: EditArchitectureInput): boolean {
 
 /** The project record: its title, description and overview, merged into the current profile. */
 async function editProject(repositoryRoot: string, input: EditArchitectureInput): Promise<string> {
-  if (isStructural(input) || input.draft !== undefined || input.technology !== undefined || hasAppearance(input)) {
+  if (isStructural(input) || input.draft !== undefined || input.technology !== undefined || hasElementOnlyField(input)) {
     throw new Error('only --title, --description and --overview are valid on the project')
   }
   const overview = input.overview
@@ -90,7 +91,7 @@ async function editDraftRecord(
   record: DraftRecord,
   input: EditArchitectureInput,
 ): Promise<string> {
-  if (input.description !== undefined || input.technology !== undefined || hasAppearance(input) || input.draft !== undefined || isStructural(input)) {
+  if (input.description !== undefined || input.technology !== undefined || hasElementOnlyField(input) || input.draft !== undefined || isStructural(input)) {
     throw new Error('only --title and --overview are valid on a draft record')
   }
   const overview = input.overview
@@ -119,13 +120,13 @@ async function elementMeaning(
 function editAddressed(repositoryRoot: string, input: EditArchitectureInput): Promise<string | StructuralResult> | undefined {
   if (input.relation === undefined && isGroupAddress(input.id)) {
     if (input.relation !== undefined || input.overview !== undefined || input.description !== undefined
-      || input.technology !== undefined || hasAppearance(input) || input.draft !== undefined || isStructural(input)) {
+      || input.technology !== undefined || hasElementOnlyField(input) || input.draft !== undefined || isStructural(input)) {
       throw new Error('only --title is valid on a group')
     }
     return editGroup(repositoryRoot, { address: input.id, title: input.title, original: input.original })
   }
   if (input.relation !== undefined) {
-    if (input.title !== undefined || input.overview !== undefined || hasAppearance(input) || input.draft !== undefined || isStructural(input)) {
+    if (input.title !== undefined || input.overview !== undefined || hasElementOnlyField(input) || input.draft !== undefined || isStructural(input)) {
       throw new Error('only --description and --technology are valid on a relation')
     }
     return editRelation(repositoryRoot, {
@@ -146,7 +147,7 @@ export async function editArchitecture(
   const model = buildArchitectureModel(records.documents)
   const flow = records.flows.find(document => requireGromaMapping(document.frontmatter, document.sourceFilename).id === input.id)
   if (flow !== undefined) {
-    if (hasAppearance(input)) throw new Error('icon and colour apply only to architecture elements')
+    if (hasElementOnlyField(input)) throw new Error('icon, colour and criticality apply only to architecture elements')
     if (input.newId !== undefined) throw new Error('--id renames systems, containers, and components')
     checkEdit(input.original, resolveFlows([flow], model)[0]!, input)
     return editFlow(repositoryRoot, records, flow, input)
@@ -159,8 +160,8 @@ export async function editArchitecture(
     return editDraftRecord(repositoryRoot, record, input)
   }
 
-  checkEdit(input.original, { ...element, parent: element.parentId ?? '' }, input)
-  if (!hasMeaning(input) && !isStructural(input)) throw new Error('--title, --overview, --description, --technology, --icon, --colour or --draft is required')
+  checkEdit(input.original, { ...element, parent: element.parentId ?? '', criticality: element.declaredCriticality }, input)
+  if (!hasMeaning(input) && !isStructural(input)) throw new Error('--title, --overview, --description, --technology, --icon, --colour, --criticality or --draft is required')
   const source = hasMeaning(input) ? await elementMeaning(repositoryRoot, records, element, input) : undefined
 
   if (isStructural(input)) {
@@ -170,6 +171,7 @@ export async function editArchitecture(
       technology: input.technology,
       icon: input.icon,
       colour: input.colour,
+      criticality: input.criticality,
       draft: input.draft,
       overview: input.overview,
       description: input.description,

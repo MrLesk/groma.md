@@ -14,7 +14,7 @@ import { copiesOf, detectDuplicatedLogic, findingsForOwner, prepareArchitectureF
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import { scanRepository } from '../src/scanner.ts'
 import { inspectDetails } from '../src/viewers/web/organisms/details.ts'
-import type { ArchitectureFinding } from '../src/types.ts'
+import type { DuplicatedLogicFinding } from '../src/types.ts'
 import { scannerFiles } from '../src/scanner/modules/selection.ts'
 
 /** The files Groma hands the TypeScript scanner with its package defaults. */
@@ -70,7 +70,7 @@ async function scannedFixture(fixture = 'duplicated-logic', bin = 'src/ready-a.t
   return root
 }
 
-function namesOf(finding: ArchitectureFinding): string[] {
+function namesOf(finding: DuplicatedLogicFinding): string[] {
   return finding.instances.map(instance => instance.name).sort()
 }
 
@@ -108,7 +108,7 @@ test.concurrent('operations starting on one line each take the other as their co
   const starting = (name: string, endLine: number): ScanOperation => ({
     id: `src/min.js#${name}`, file: 'src/min.js', name, startLine: 1, endLine, tokens: ruleTokens,
   })
-  const copyNames = (findings: ArchitectureFinding[], name: string) => copiesOf(findings, 'src/min.js', 1, name)?.copies.map(instance => instance.name)
+  const copyNames = (findings: DuplicatedLogicFinding[], name: string) => copiesOf(findings, 'src/min.js', 1, name)?.copies.map(instance => instance.name)
   const oneLine = detectDuplicatedLogic([observation([starting('Rules.canStart', 1), starting('Rules.readyToRun', 1)])], new Map<string, string>())
   expect(copyNames(oneLine, 'canStart')).toEqual(['Rules.readyToRun'])
   expect(copyNames(oneLine, 'readyToRun')).toEqual(['Rules.canStart'])

@@ -1,5 +1,7 @@
 import type { ScanDiagnostic, ScannerIdentity } from '@groma/scanner'
 
+import type { Criticality } from './criticality.ts'
+
 export type C4Kind = 'actor' | 'system' | 'container' | 'component'
 export type Origin = 'observed' | 'draft'
 /** The OKF lifecycle word every element document carries. */
@@ -98,6 +100,8 @@ export interface ArchitectureElement {
   technology?: string
   icon?: string
   colour?: string
+  /** The level written on this element; absent while it inherits. `criticalityOf` resolves the effective level. */
+  declaredCriticality?: Criticality
   code: CodeReference[]
   status: ElementStatus
   /** The draft record this element belongs to; a stable element may carry it too. */
@@ -151,6 +155,10 @@ export interface AnnotatedElement {
   colour?: string
   /** `icon` as the icon loader resolved it; absent for an unknown name, and never stored in Markdown. */
   resolvedIcon?: ResolvedIcon
+  /** The effective level after inheritance; absent only in hand-built worlds, which read as normal. */
+  criticality?: Criticality
+  /** The level written on this element itself, for editing and comparison; absent while it inherits. */
+  declaredCriticality?: Criticality
   code: CodeReference[]
   /** Total lines across the code files; absent only in hand-built worlds. */
   codeLines?: number
@@ -176,8 +184,8 @@ export interface ArchitectureGraph {
   flows: ArchitectureFlow[]
   elements: AnnotatedElement[]
   relationships: AnnotatedRelationship[]
-  /** Review questions from the current scan; omitted when the process has not scanned. */
-  findings?: readonly ArchitectureFinding[]
+  /** Possible duplicates from the current scan; omitted when the process has not scanned. */
+  findings?: readonly DuplicatedLogicFinding[]
 }
 
 export interface ArchitectureFindingInstance {
@@ -189,7 +197,7 @@ export interface ArchitectureFindingInstance {
 }
 
 /** A possible duplicated or similar implementation. Not a collaboration and not a required change. */
-export interface ArchitectureFinding {
+export interface DuplicatedLogicFinding {
   id: string
   kind: 'duplicated-logic'
   title: string
@@ -197,6 +205,16 @@ export interface ArchitectureFinding {
   instances: ArchitectureFindingInstance[]
   differences: string[]
 }
+
+/** An in-progress or done task whose modified files belong to a critical component. A request for human review. */
+export interface CriticalChangeFinding {
+  kind: 'critical-change'
+  /** Names the task and the component. */
+  title: string
+}
+
+/** What `groma lint` reports. `kind` tells which fields a finding has. Not an architecture collaboration. */
+export type ArchitectureFinding = DuplicatedLogicFinding | CriticalChangeFinding
 
 /** A named scenario; steps reference existing relationships in their authored order. */
 export interface ArchitectureFlow {

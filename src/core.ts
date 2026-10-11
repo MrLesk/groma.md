@@ -4,6 +4,7 @@ import path from 'node:path'
 import { architectureFindingsFor } from './architecture-findings.ts'
 import { buildArchitectureModel, draftRecordOf } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
+import { criticalityOf } from './criticality.ts'
 import { attachElementIcons } from './icon-packs.ts'
 import { moveBlocker } from './movable.ts'
 import { resolveFlows } from './flow-model.ts'
@@ -83,6 +84,8 @@ export function annotateArchitecture(
     ...(element.technology === undefined ? {} : { technology: element.technology }),
     ...(element.icon === undefined ? {} : { icon: element.icon }),
     ...(element.colour === undefined ? {} : { colour: element.colour }),
+    criticality: criticalityOf(element, byId),
+    ...(element.declaredCriticality === undefined ? {} : { declaredCriticality: element.declaredCriticality }),
     code: element.code.map(reference => ({ ...reference, ...(counts.get(reference.file) ?? { dependencies: 0, dependents: 0 }) })),
     // The web pane offers a new parent only for a component the write would move.
     movable: element.kind === 'component'

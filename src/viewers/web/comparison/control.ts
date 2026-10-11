@@ -1,9 +1,10 @@
 import { animateContent } from '../chrome/motion.ts'
+import { criticalitySummary } from '../../../criticality.ts'
 import type { Comparison, ChangeStatus } from '../../../history/comparison.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import type { LayeredScene } from '../iso/projection/separation.ts'
 import { chromeButton } from '../atoms/button.ts'
-import { comparisonTree, changeStatuses, changeLabels, changeMarks, isChange, nextChange, type VisibleStatus } from './tree.ts'
+import { comparisonChanges, changeStatuses, changeLabels, changeMarks, isChange, nextChange, type VisibleStatus } from './tree.ts'
 
 /** Removes filtered deletions from the projection; authored world, retained positions and bounds stay intact. */
 export function filterComparisonScene(scene: LayeredScene, world: ArchitectureGraph, comparison: Comparison | undefined,
@@ -11,7 +12,7 @@ export function filterComparisonScene(scene: LayeredScene, world: ArchitectureGr
   if (comparison === undefined || enabled.has('removed')) return scene
   const removed = new Set(Object.values(comparison.components).filter(change => change.status === 'removed')
     .map(change => change.before!.representationId))
-  for (const id of comparisonTree(world, comparison).former) removed.add(id)
+  for (const id of comparisonChanges(world, comparison).former) removed.add(id)
   return {
     ...scene,
     buildings: scene.buildings.filter(({ building }) => !removed.has(building.representationId)),
@@ -64,7 +65,9 @@ export function createComparisonControl(host: HTMLElement, select: (id: string) 
   previous.onclick = () => step(-1)
   next.onclick = () => step(1)
   stepper.append(previous, position, next)
-  bar.append(filters, stepper)
+  const priority = document.createElement('span')
+  priority.setAttribute('aria-live', 'polite')
+  bar.append(priority, filters, stepper)
   host.append(bar)
   document.addEventListener('keydown', event => {
     if (bar.hidden || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return
@@ -103,7 +106,11 @@ export function createComparisonControl(host: HTMLElement, select: (id: string) 
       if (nextPair !== pair) { enabled = new Set(changeStatuses); pair = nextPair }
       const statuses = comparison === undefined ? [] : [...Object.values(comparison.components).map(change => change.status), ...Object.values(comparison.relationships)]
       bar.hidden = !statuses.some(isChange)
-      order = comparison === undefined ? [] : comparisonTree(world, comparison, enabled).order
+      const changes = comparison === undefined ? undefined : comparisonChanges(world, comparison, enabled)
+      order = changes?.order ?? []
+      // The summary counts the rows of the Changes list and hides when none of them is critical or high.
+      priority.textContent = criticalitySummary(changes?.rows ?? [])
+      priority.hidden = priority.textContent === ''
       buttons.forEach((button, index) => {
         const status = changeStatuses[index]!
         const count = statuses.filter(item => item === status).length

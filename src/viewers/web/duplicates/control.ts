@@ -1,4 +1,4 @@
-import type { AnnotatedElement, ArchitectureFinding, ArchitectureFindingInstance, ArchitectureGraph } from '../../../types.ts'
+import type { AnnotatedElement, ArchitectureFindingInstance, ArchitectureGraph, DuplicatedLogicFinding } from '../../../types.ts'
 import type { SourcePayload } from '../../source/read.ts'
 import { compareOperations, comparisonReader, duplicateGroups, operationSource } from './model.ts'
 import { choice, node, sourceColumn } from './view.ts'
@@ -40,7 +40,7 @@ export function createDuplicatesControl(options: Options) {
     return operationSource(payload.source, instance)
   }
 
-  function comparison(finding: ArchitectureFinding, row?: HTMLElement): HTMLElement {
+  function comparison(finding: DuplicatedLogicFinding, row?: HTMLElement): HTMLElement {
     const section = node('section')
     const selectors = node('div', '', 'duplicate-filters')
     const entries: [string, string][] = finding.instances.map((instance, index) => [String(index), `${instance.name} · ${instance.file}:${instance.startLine}`])
@@ -69,12 +69,12 @@ export function createDuplicatesControl(options: Options) {
     return section
   }
 
-  function showComparison(finding: ArchitectureFinding, row?: HTMLElement): void {
+  function showComparison(finding: DuplicatedLogicFinding, row?: HTMLElement): void {
     reader.invalidate()
     detail.replaceChildren(comparison(finding, row))
   }
 
-  function filters(findings: readonly ArchitectureFinding[]): HTMLElement {
+  function filters(findings: readonly DuplicatedLogicFinding[]): HTMLElement {
     const owners = new Set(findings.flatMap(finding => finding.instances.flatMap(instance => instance.owner === undefined ? [] : [instance.owner])))
     const entries: [string, string][] = options.world().elements.filter(element => owners.has(element.id)).map(element => [element.id, element.title])
     const row = node('div', '', 'duplicate-filters')
@@ -85,7 +85,7 @@ export function createDuplicatesControl(options: Options) {
     return row
   }
 
-  function candidate(finding: ArchitectureFinding): HTMLElement {
+  function candidate(finding: DuplicatedLogicFinding): HTMLElement {
     const row = node('button', '', 'duplicate-row')
     row.type = 'button'
     row.setAttribute('aria-expanded', String(finding.id === selected))
@@ -106,7 +106,7 @@ export function createDuplicatesControl(options: Options) {
     return row
   }
 
-  function groupList(groups: readonly ArchitectureFinding[]): HTMLElement {
+  function groupList(groups: readonly DuplicatedLogicFinding[]): HTMLElement {
     const list = node('div', '', 'duplicate-list')
     for (const finding of groups) {
       list.append(candidate(finding))

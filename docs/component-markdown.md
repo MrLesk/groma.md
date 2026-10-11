@@ -168,7 +168,39 @@ groma.md-only fields live together under `groma`:
 | `technology` | no | Free text naming implementation technology, comma-separated. |
 | `icon` | no | An installed icon name (optionally `pack-id:name`) or one emoji. |
 | `colour` | no | Theme-independent accent: red, orange, amber, yellow, green, teal, cyan, blue, indigo, violet, purple, pink, brown, grey, or `#RRGGBB`. |
+| `criticality` | no | Human judgment: `low`, `normal`, `high`, or `critical`. Inherits from the parent when omitted. |
 | `code` | no | Scanner-produced source evidence. |
+
+### Criticality
+
+Criticality describes the damage a mistake in an element could cause. It is
+supporting knowledge about an existing C4 element, not another element or
+containment level. The optional `groma.criticality` field belongs to Groma's
+application profile; OKF readers still see ordinary titles, Markdown, and links.
+Groma interprets the level for review priority and agent guidance.
+
+The four levels are `low`, `normal`, `high`, and `critical`. An omitted level
+inherits its parent's effective level, recursively; without an explicit
+ancestor, it is `normal`. An explicit level overrides inheritance. Every source
+file takes its owning component's effective level, without a separate file list.
+People and agents may set a level during curation. Scans preserve it and never
+choose or write a level from code structure, language, or file size.
+
+Use `groma edit <id> --criticality <level>` or the details form. An empty value
+removes the explicit level and restores inheritance. `groma view <id> --plain`
+prints the effective level. The details panes show it unless it is `normal`.
+High buildings and hierarchy rows carry `!`; critical ones carry `!!` in every
+theme.
+
+Revision comparisons and task reviews list critical components first, then
+high, normal, and low, breaking ties by added plus deleted source lines. When a
+changed component is critical or high, the changes bar and the task summary
+start with how many of each changed.
+
+Critical elements and their source files are read-only for agents unless a
+person allows the change: the
+[agent guide index](agent-instructions/index.md#criticality-and-agent-changes)
+states that rule, the rule for high elements, and what `groma lint` reports.
 
 There is no `kind` field. The standard `type` carries the C4 type, and the
 body does not repeat `title` as a level-one heading.

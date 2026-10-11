@@ -20,6 +20,12 @@ Element IDs also link actors, systems, drafts, and architecture-only work.
 Titles, group addresses, and issue URLs remain context. A file only maps once
 the loaded architecture records its owner; References do not declare ownership.
 
+## Critical and high elements
+
+Before changing files, follow "Criticality and agent changes" in
+`groma agent-instructions`, which also explains the `groma lint` finding for a
+task that changes a critical component.
+
 ## After each file change
 
 1. Read the task with `backlog task view <task-id> --plain` before changing

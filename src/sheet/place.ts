@@ -1,3 +1,4 @@
+import { criticalityMark } from '../criticality.ts'
 import { compareSemanticElements } from '../element-order.ts'
 import type { AnnotatedElement, AnnotatedRelationship, ArchitectureGraph } from '../types.ts'
 import { composePlacement } from './compose.ts'
@@ -65,6 +66,7 @@ function item(element: AnnotatedElement): SheetItem {
     representationId: element.representationId,
     id: element.id,
     title: element.title,
+    criticality: element.criticality,
     origin: element.origin,
     resolvedIcon: element.resolvedIcon,
     colour: element.colour,
@@ -76,7 +78,11 @@ function buildingNode(element: AnnotatedElement, ranges: FileMeasureRanges, degr
     ? { kind: 'round' }
     : element.external ? { kind: 'pill' } : { kind: 'block' }
   const size = buildingFont(element)
-  const lines = shape.kind === 'pill' ? [element.title] : roofLines(element.title, size)
+  const titleLines = shape.kind === 'pill' ? [element.title] : roofLines(element.title, size)
+  // The title wraps first. The mark then joins the first line with a no-break space, so a later rewrap,
+  // which splits at an ordinary space, never leaves the mark on a line of its own.
+  const mark = criticalityMark(element.criticality)
+  const lines = mark === '' ? titleLines : [`${mark}\u00A0${titleLines[0]}`, ...titleLines.slice(1)]
   const base = footprintOf(lines, shape, degree, size, element.resolvedIcon !== undefined)
   const floors = element.kind === 'component'
     ? floorsOf(element.origin, element.code, ranges, base)

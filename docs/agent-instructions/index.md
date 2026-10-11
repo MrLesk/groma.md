@@ -52,6 +52,27 @@ ordinary readers can understand titles, descriptions, body text, and links.
 groma.md interprets its own metadata for containment, source ownership, and map
 presentation. Use the CLI to maintain that metadata and source references.
 
+## Criticality and agent changes
+
+Every element has a criticality level: `low`, `normal`, `high`, or `critical`.
+An element without one takes its parent's; the
+[field contract](https://github.com/MrLesk/Groma.md/blob/main/docs/component-markdown.md#criticality)
+defines the levels and how to set one.
+
+When any element is critical or high, this command prints those elements and
+their files above the guide it was asked for. Read that list before changing
+files:
+
+- Critical elements and their files are read-only for agents. Change one only
+  after a person explicitly allows it.
+- Explain every change to a high element or its files in the task's
+  implementation notes.
+
+`groma lint` reports each in-progress or done task whose modified files belong
+to a critical component. The finding asks a person to review the change. It
+stays for as long as the task is on the board, because groma.md does not record
+whether the change was allowed.
+
 ## Curation workflow and expected result
 
 A scan writes no descriptions or overviews. While no element has either, the

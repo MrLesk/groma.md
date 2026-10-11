@@ -1,7 +1,8 @@
 import { animateRow } from '../chrome/motion.ts'
-import type { Comparison } from '../../../history/comparison.ts'
+import type { Comparison, ComponentChange } from '../../../history/comparison.ts'
 import { chromeButton } from '../atoms/button.ts'
-import { comparisonTree, changeStatuses, changeMarks, changeLabels, isChange, type ChangeCounts, type VisibleStatus } from '../comparison/tree.ts'
+import { comparisonChanges, changeStatuses, changeMarks, changeLabels, isChange, type ChangeCounts, type VisibleStatus } from '../comparison/tree.ts'
+import { criticalityMark } from '../../../criticality.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import { initialTree, semanticTreeRows, toggleExpansion, type TreeRow } from '../../tui/tree.ts'
 import { replaceTreeChildren, sidebarBranches, sidebarRow } from './sidebar-row.ts'
@@ -31,12 +32,31 @@ function hierarchyRow(
   const button = sidebarRow(row.title, row.kind, row.hasChildren
     ? { expanded: row.expanded, count: row.count, toggle: () => onToggle(row) }
     : undefined)
+  const priority = criticalityMark(row.criticality)
+  if (priority) {
+    const mark = document.createElement('span')
+    mark.textContent = priority
+    mark.title = `criticality: ${row.criticality}`
+    mark.setAttribute('aria-label', mark.title)
+    button.append(mark)
+  }
   button.dataset.id = row.id
   if (selectedIds.has(row.id)) button.classList.add('selected')
   if (row.origin !== 'observed') button.classList.add('ghost')
 
   const change = Object.values(comparison?.components ?? {}).find(item => (item.after ?? item.before)?.representationId === row.id)
   if (change?.status === 'removed' || former) button.classList.add('former')
+  appendChangeMarks(button, row, change, counts)
+  button.prepend(...sidebarBranches(followingSiblings))
+  button.addEventListener('click', event => onSelect(row.id, event.shiftKey))
+  return button
+}
+
+/**
+ * A system or container row of the All tree shows how many components below it changed, in place of its child
+ * count. A changed component row, in either list, shows its changed lines and its status.
+ */
+function appendChangeMarks(button: HTMLButtonElement, row: TreeRow, change: ComponentChange | undefined, counts: ChangeCounts | undefined): void {
   if (counts !== undefined) {
     button.querySelector('.name')!.textContent = row.title
     for (const status of changeStatuses) if (counts[status] > 0) button.append(statusMark(status, counts[status]))
@@ -51,9 +71,6 @@ function hierarchyRow(
     }
     button.append(statusMark(change.status))
   }
-  button.prepend(...sidebarBranches(followingSiblings))
-  button.addEventListener('click', event => onSelect(row.id, event.shiftKey))
-  return button
 }
 
 function statusMark(status: typeof changeStatuses[number], count?: number): HTMLElement {
@@ -94,7 +111,7 @@ function paintHierarchy(
   onSelect: (id: string, additive: boolean) => void,
   onToggle: (row: TreeRow) => void,
   comparison?: Comparison,
-  changes?: ReturnType<typeof comparisonTree>,
+  changes?: ReturnType<typeof comparisonChanges>,
 ): void {
   const list = document.createElement('div')
   let shownExternals = false
@@ -150,12 +167,12 @@ export function createHierarchy(host: HTMLElement, onSelect: (id: string, additi
   const paint = (world: ArchitectureGraph, selectedIds: readonly string[], comparison?: Comparison, enabled?: ReadonlySet<VisibleStatus>): void => {
     modes.hidden = comparison === undefined
     document.getElementById('flows')!.hidden = comparison !== undefined && changesOnly
-    const changes = comparison === undefined ? undefined : comparisonTree(world, comparison, enabled)
+    const changes = comparison === undefined ? undefined : comparisonChanges(world, comparison, enabled)
     buttons.forEach((button, index) => {
       button.setAttribute('aria-pressed', String(changesOnly === (index === 0)))
       button.onclick = () => { changesOnly = index === 0; paint(world, selectedIds, comparison, enabled) }
     })
-    const rows = changes !== undefined && changesOnly ? semanticTreeRows(changes.world, selectedIds, { expanded: new Set(changes.world.elements.map(element => element.representationId)), collapsed: tree.collapsed })
+    const rows = changes !== undefined && changesOnly ? changes.rows
       : semanticTreeRows(world, selectedIds, tree).filter(row => row.kind !== 'actor')
     paintHierarchy(host, rows, new Set(selectedIds), onSelect, row => {
       tree = toggleExpansion(tree, row)

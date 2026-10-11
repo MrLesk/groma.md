@@ -139,6 +139,7 @@ export function registerWriteCommands(program: Command): void {
     .option('--technology <text>', 'technology of an element (empty removes it) or of a relation')
     .option('--icon <name>', 'icon from an installed pack, or emoji (empty removes it)')
     .option('--colour <name>', 'accent colour name or #RRGGBB (empty removes it)')
+    .option('--criticality <level>', 'low, normal, high or critical (empty inherits from parent)')
     .option('--draft <draft-id>', 'tag this element with the draft that touches it')
     .option('--group <name>', 'assign this component to a sibling group')
     .option('--ungroup', 'remove this component from its group')
@@ -158,6 +159,7 @@ export function registerWriteCommands(program: Command): void {
           steps: options.steps,
           description: options.description,
           technology: options.technology,
+          criticality: options.criticality,
           draft: options.draft,
           group: options.group,
           ungroup: options.ungroup,

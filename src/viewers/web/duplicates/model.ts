@@ -1,8 +1,8 @@
 import { diffLines } from 'diff'
-import type { ArchitectureFinding, ArchitectureFindingInstance } from '../../../types.ts'
+import type { ArchitectureFindingInstance, DuplicatedLogicFinding } from '../../../types.ts'
 
 /** Filtering selects whole groups, keeping copies outside the chosen component available. */
-export function duplicateGroups(findings: readonly ArchitectureFinding[], owner: string, match: string): ArchitectureFinding[] {
+export function duplicateGroups(findings: readonly DuplicatedLogicFinding[], owner: string, match: string): DuplicatedLogicFinding[] {
   return findings.filter(finding => (match === '' || finding.match === match)
     && (owner === '' || finding.instances.some(instance => instance.owner === owner)))
 }

@@ -26,7 +26,7 @@ source code ──scan──▶ groma|.groma/*.md ──view──▶ maps
    - groma add relation, groma edit relation, groma remove relation — author or reword a file interaction, or remove a draft interaction. Current relationships cannot be removed.
    - groma remove — take away a person, an external, a ghost, a code-free component or empty boundary, a draft nothing belongs to, a draft relation, or a group.
 5. groma accept <id> — accept a ghost only if a scan has matched it. The file stays where it is; only its status changes.
-6. groma lint — report architecture issues from current scanner evidence. The first rule checks for possible duplicate logic; another lists icons that no installed pack resolves. Saved architecture stays unchanged. Exit code 1 means findings or a scanner failure; 0 means no findings in the available evidence.
+6. groma lint — report architecture issues: tasks that change a critical component, possible duplicate logic in current scanner evidence, and icons that no installed pack resolves. Saved architecture stays unchanged. Exit code 1 means findings or a scanner failure; 0 means no findings in the available evidence.
 
 ## Rules of engagement
 
@@ -49,6 +49,7 @@ Say what must be true, not how to build it. Do not specify frameworks, file layo
   Same box, still solid; the tag says the draft changes it. An empty --draft value clears the tag.
 - Rename a part or a draft record, id unchanged: groma edit <id> --title <text>
 - Rename the id of a system, container, or component: groma edit <id> --id <new-id>. Its document and the documents under it move, and relationship rows and flow steps that link them follow.
+- Criticality of an element: groma edit <id> --criticality <low|normal|high|critical>. Pass an empty value to inherit the parent's level. groma agent-instructions explains what critical and high mean for agents.
 - Technology of an element: groma edit <id> --technology <text>. Pass an empty value to remove it.
 - Current long overview: groma edit <id> --overview <markdown>. Pass an empty value to clear it.
 - Optional concise description: groma edit <id> --description <text>. Pass an empty value to remove it.

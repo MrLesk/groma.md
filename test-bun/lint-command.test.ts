@@ -65,3 +65,37 @@ test.concurrent('lint checks fresh scanner evidence and reports failures without
     expect(await snapshot(path.join(root, 'groma'))).toEqual(empty)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
+
+// groma lint reads tasks once through the work source that plugins.json selects; a source it cannot read is an error.
+test.concurrent('lint reports a task of the selected work source on a critical component, and a source it cannot read', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-lint-work-'))
+  try {
+    await cp(path.join(fixtures, 'edit'), root, { recursive: true })
+    const git = Bun.spawn(['git', 'init', '--quiet', root], { stdout: 'ignore', stderr: 'pipe' })
+    expect(await git.exited).toBe(0)
+    expect((await command(root, 'edit', 'orders', '--criticality', 'critical')).code).toBe(0)
+    await mkdir(path.join(root, 'adapter'))
+    await writeFile(path.join(root, 'adapter/package.json'), JSON.stringify({
+      name: 'work-source-fixture', version: '1.0.0', type: 'module',
+      groma: { workSource: { id: 'tasks', entry: './index.js', compatibility: { groma: '*' } } },
+    }))
+    /** The adapter's read as JavaScript: an expression it returns, or a block that throws. */
+    const adapterReading = (read: string) => writeFile(path.join(root, 'adapter/index.js'), `export default {
+      id: 'tasks', readiness: () => ({ status: 'found' }),
+      create: () => ({ read: async () => ${read}, readItem: async id => ({ id }), watch: () => ({ close() {} }) }),
+    }`)
+    await adapterReading(`({ statuses: ['To Do', 'Doing'], defaultStatus: 'To Do', items: [
+      { id: 'WORK-1', title: 'Change orders', status: 'Doing', modifiedFiles: ['src/orders.ts'] },
+    ] })`)
+    await writePluginConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }], icons: [] })
+    const reported = await command(root, 'lint')
+    expect(reported.code, reported.error).toBe(1)
+    expect(reported.out).toContain('WORK-1')
+    expect(reported.out).toContain('orders')
+
+    await adapterReading(`{ throw new Error('work-source-fixture-failure') }`)
+    const failed = await command(root, 'lint')
+    expect(failed.code).toBe(1)
+    expect(failed.error).toContain('work-source-fixture-failure')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})

@@ -1,3 +1,4 @@
+import type { Criticality } from '../criticality.ts'
 import type { AnnotatedRelationship, C4Kind, Origin, ResolvedIcon } from '../types.ts'
 
 /** A rectangle in map cells: `gx`, `gy` is the north corner, `w` runs along gx, `d` along gy. */
@@ -14,6 +15,7 @@ export interface SheetItem {
   id: string
   title: string
   origin: Origin
+  criticality?: Criticality
   resolvedIcon?: ResolvedIcon
   colour?: string
 }
@@ -75,7 +77,11 @@ export interface Building extends SheetItem {
   heightUnits: number
   shape: Shape
   floors: BuildingFloor[]
-  /** The title as laid on the roof, one or two lines. */
+  /**
+   * The title as laid on the roof, one or two lines. On a high or critical building the first line starts with
+   * the criticality mark, joined to the title by a no-break space. An icon is not one of these lines: it has its
+   * own row above them.
+   */
   lines: string[]
 }
 

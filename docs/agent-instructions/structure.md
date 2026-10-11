@@ -98,7 +98,7 @@ surviving component.
 
 Combined records must have the same kind and parent. Absorbed records cannot
 have body content, concept-addressed relationships, a group, technology, an
-icon, or a colour.
+icon, a colour, or criticality.
 The children a combine absorbs directly cannot have body content either, so a
 system combine refuses a described container while a described component two
 levels down relocates with it. A component move requires an empty body; a

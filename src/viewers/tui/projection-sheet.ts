@@ -39,10 +39,13 @@ function width(text: string): number {
 /** A terminal line holds this many characters before a long name wraps at its middle space. */
 const LINE = 16
 
-/** The roof lines, rewrapped when a single line would make the box wider than its neighbours. */
+/**
+ * The roof lines, rewrapped when a single line would make the box wider than its neighbours. The rewrap starts
+ * from the laid lines, not from the title, so a criticality mark on the first line stays on the map.
+ */
 function terminalLines(building: Building): string[] {
   if (building.lines.every(line => width(line) <= LINE)) return building.lines
-  const name = building.title
+  const name = building.lines.join(' ')
   let split = -1
   for (let index = 0; index < name.length; index += 1) {
     if (name[index] === ' ' && (split < 0 || Math.abs(index - name.length / 2) < Math.abs(split - name.length / 2))) split = index

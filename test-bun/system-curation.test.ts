@@ -183,3 +183,15 @@ test.concurrent('a move that would leave a flow step unresolvable is refused and
     expect((await loadAnnotatedArchitecture(root)).elements).toEqual(before.elements)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
+
+
+test.concurrent('combining a scan component refuses authored criticality and preserves its ownership', async () => {
+  const root = await repository()
+  try {
+    await editArchitecture(root, { id: 'b', criticality: 'critical' })
+    const before = await loadAnnotatedArchitecture(root)
+    await expect(editArchitecture(root, { id: 'a', combine: ['b'] })).rejects.toThrow('authored metadata')
+    const after = await loadAnnotatedArchitecture(root)
+    expect(after.elements).toEqual(before.elements)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})

@@ -32,7 +32,7 @@ export const advancedCommands = [
   {
     command: 'groma lint',
     description: 'report architecture issues',
-    content: 'Checks current evidence from installed scanners for possible duplicate logic. Does not change saved architecture. Exit code 1 means findings or a scanner failure; 0 means no findings in available evidence.',
+    content: 'Checks tasks for changes to critical components, current evidence from installed scanners for possible duplicate logic, and icon names no installed pack resolves. Does not change saved architecture. Exit code 1 means findings or a scanner failure; 0 means no findings in available evidence.',
   },
   {
     command: 'groma export <directory>',
