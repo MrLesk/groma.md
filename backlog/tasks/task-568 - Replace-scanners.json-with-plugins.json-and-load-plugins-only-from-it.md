@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-09 13:12'
+updated_date: '2026-10-11 16:10'
 labels: []
 dependencies: []
 references:
@@ -97,6 +97,12 @@ modified_files:
   - .github/workflows/release.yml
   - docs/scanners/publishing.md
   - test-bun/scanner-release.test.ts
+  - docs/product-model.md
+  - docs/viewers/index.md
+  - docs/viewers/creating-a-plugin.md
+  - docs/index.md
+  - README.md
+  - CONTRIBUTING.md
 type: feature
 ordinal: 645000
 ---
@@ -150,6 +156,8 @@ Update everything that names scanners.json: docs/scanners/ (setup, discovery, in
 1. Replace the configuration filename with plugins.json and validate explicit scanner and work-source selections, preserving scanner fields. 2. Share scanner source resolution, package installation and release compatibility with work sources; load only configured work sources. 3. Add plugin management commands, connect init and both viewers, and group settings by plugin kind. 4. Convert repository configuration, fixtures, documentation and CI references. 5. Inspect supported flows and diffs without installs, builds or tests as requested; scan and curate task-owned architecture changes. Existing tests cover scanner configuration and package lifecycle; adapt filename expectations. Add focused coverage only for explicit work-source loading, selection cardinality and compatibility, whose absence currently permits implicit Backlog execution.
 
 Review fixes (9 October 2026): 1. Extend scripts/scanner-release.ts staging and publication to include the Backlog work-source adapter and @groma/work-source contract, with an exact declared contract dependency. Keep init npm-only; public install remains a next-release gate. 2. Put shared update source preparation in src/scanner/modules/package.ts, while callers keep kind validation and scanner settings. Route settings restore by plugins.json; extract scanner-list duplicate validation and web detail labels to keep changed functions at complexity 15 or lower. Retain loadWorkSource for TASK-564 integration. 3. Test authority: TASK-568 AC3/AC5 and the reproduced unpublished adapter failure require the next staged release to yield installable work-source packages. Wrong outcome: adapter or contract missing from staging, invalid dependency metadata, or a packed adapter cannot be added/restored from a registry. Existing scanner-release tests cover scanner assembly only; extend that file with the smallest stage/pack/local-registry add-and-restore test for these packages. Existing scanner-update, scanner-settings, configuration and work-source tests cover the behavior-preserving refactors; do not add duplicate tests. 4. Run focused checks and bun run check, one cold simplicity review, implementer specification/quality review and one full-context complexity review; record release-only gaps and curate any caused architecture changes before the local commit.
+
+Maintainability pass (11 October 2026), review findings A to H: 1. A: correct docs that still describe an embedded Backlog work source, the old cache folder and implicit Backlog setup, so they state the opt-in behaviour. 2. B: in offerBacklog report a failed Backlog initialization before the already-selected return; rename the UI method to match its question. 3. C: reject a plugin id repeated across the scanners and workSources sections in one place while parsing plugins.json. 4. D: remove every place where generic plugin code names the Backlog adapter (config, plugin management, readiness wording, official flag, setup doc); official work sources are decided like official scanners, by the embedded manifest id. 5. F: one sentence in docs/scanners/setup.md that reporting work-source readiness imports the adapter. 6. G: restore each file's import grouping, indentation and JSON import attributes. 7. H: the architecture workflow restores only released scanner packages and leaves the work source on its repository path. 8. E last: first give the work-source settings row and resolved package their own shape so neither carries scanner placeholder values, then one mechanical rename commit (plugin config, package, source, settings) with no behaviour change. Tests for this pass. (a) Rule: a failed Backlog initialization during groma init is reported (finding B, reproduced: a rerun with Backlog selected returns before the error). Wrong result caught: init finishes without the error line. Gap: no test drives runInitCommand; add one test in test-bun/work-source-selection.test.ts with injected dependencies. (b) Rule: plugin ids are unique across sections because remove and update address a plugin by id alone (finding C). Wrong result caught: a hand-written plugins.json with one id in both sections loads and remove or update acts on the work source instead of the scanner. Gap: only duplicate scanner ids were rejected and nothing tested it; add one parse test in the same file. (c) Rule: core accepts any work-source id (finding D; acceptance criterion 2 only refuses a second entry). Wrong result caught: an adapter whose id is not backlog is refused. Gap: the fixture adapter used the id backlog; change the fixture id instead of adding a test.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes

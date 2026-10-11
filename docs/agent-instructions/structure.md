@@ -70,7 +70,7 @@ Git ignores.
 "exclude": ["/scripts/", "/test/", "**/*.spec.ts"]
 ```
 
-`plugins.json` is scanner configuration, not architecture Markdown, so edit it
+`plugins.json` is plugin configuration, not architecture Markdown, so edit it
 directly. Patterns are relative to the repository root and use `/` separators;
 a leading `/` matches only at the root. Excluded files do not become new
 components. Components already stored for newly excluded files keep their Code

@@ -6,20 +6,23 @@ records as a strict OKF v0.2 application profile.
 
 `groma init` starts by creating the Git repository when needed, then sets the
 project name and storage root. It uses the visible `groma/` directory by
-default or the hidden `.groma/` directory when selected. When the Backlog.md
-CLI is available and the project is not yet initialized, the same command
-initializes Backlog.md and writes its AGENTS.md CLI nudge. Existing Git and
+default or the hidden `.groma/` directory when selected. When `plugins.json`
+selects the Backlog.md work source, its CLI is available and Backlog.md is not
+yet initialized, the same command initializes Backlog.md and writes its
+AGENTS.md CLI nudge. Existing Git and
 Backlog.md projects stay unchanged. Running it again edits the current project
 name, keeps the chosen root, and refreshes groma.md's managed agent instructions.
 
-Interactive setup can install Backlog.md when it is missing. When the
+Interactive setup asks whether the project uses Backlog.md for tasks. A yes
+installs the Backlog.md CLI when it is missing, adds the work source to
+`plugins.json` and initializes Backlog.md. When the
 architecture has no observed components, it can run the first scan and open
 either viewer. The terminal setup from `groma view` and the browser setup page
 from `groma web` use the same repository initialization. The resulting
 `project.md` belongs to the project owner.
 
 Without a terminal, pass both values explicitly. This form also initializes
-Git and Backlog.md when needed:
+Git when needed, and Backlog.md when `plugins.json` already selects it:
 
 ```bash
 groma init "Shop" --directory groma
