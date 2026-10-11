@@ -219,20 +219,15 @@ program
   .description("This repo's architecture in Git")
   .option('--plain', 'print as plain text')
   .action(async () => {
-    try {
-      const interactive = process.stdin.isTTY === true
-        && process.stdout.isTTY === true
-        && !program.opts().plain
-      if (!interactive) {
-        if (!await continueWhenReady(false)) return
-        console.log(await renderPlainWelcome(process.cwd()))
-        return
-      }
-      await runInteractiveWelcome()
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error))
-      process.exitCode = 1
+    const interactive = process.stdin.isTTY === true
+      && process.stdout.isTTY === true
+      && !program.opts().plain
+    if (!interactive) {
+      if (!await continueWhenReady(false)) return
+      console.log(await renderPlainWelcome(process.cwd()))
+      return
     }
+    await runInteractiveWelcome()
   })
 
 program
@@ -265,12 +260,7 @@ program
     process.exit(0)
   })
   .action(async (directory: string, options: { url?: string; revision?: string; from?: string }) => {
-    try {
-      await exportWeb(directory, options)
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error))
-      process.exitCode = 1
-    }
+    await exportWeb(directory, options)
   })
 
 withListWindowOptions(program
@@ -326,12 +316,7 @@ program
       console.log(selected.content)
       return
     }
-    try {
-      await runInteractiveWelcome('instructions')
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error))
-      process.exitCode = 1
-    }
+    await runInteractiveWelcome('instructions')
   })
 
 program
@@ -349,4 +334,10 @@ program
     console.log(selected)
   })
 
-await program.parseAsync()
+// A command that throws ends here: its message alone is printed and the exit code is 1.
+try {
+  await program.parseAsync()
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
+}
