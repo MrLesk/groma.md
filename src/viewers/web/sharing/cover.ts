@@ -26,7 +26,9 @@ function titleWithin(title: string, width: number): string {
 
 /**
  * The real map sits on one continuous field; a glass footer carries the project's sharing identity. The cover
- * renderer has only the bundled fonts, which hold no emoji, so an emoji icon is hidden rather than drawn as an empty box.
+ * renderer has only the bundled fonts, which hold no emoji, so an emoji icon is hidden rather than drawn as an empty
+ * box. The sheet has already reserved its room, which stays empty: the line above a building's name, and the icon's
+ * width before a surface's name.
  */
 export function renderCover(payload: CoverPayload, theme: WebTheme): string {
   const palette = palettes[theme]

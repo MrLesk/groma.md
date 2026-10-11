@@ -1,4 +1,4 @@
-import { CONTAINER_FONT, PLANE, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
+import { CONTAINER_FONT, ICON_ADVANCE, PLANE, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
 import type { ResolvedIcon } from '../../../../types.ts'
 import type { ProjectionView, SurfaceLabel, SurfaceText } from '../projection/project.ts'
 import { planeMatrix, project } from '../projection/project.ts'
@@ -36,14 +36,14 @@ export function surfaceLabelLayout(
   }
   const paddingX = Math.min(step.padding / length(1, 0), text.band.width / 20)
   const paddingY = Math.min(step.padding / length(0, 1), text.band.height / 20)
-  const contentWidth = text.width + (hasIcon ? size * 1.2 : 0)
+  const contentWidth = text.width + (hasIcon ? size * ICON_ADVANCE : 0)
   const fontSize = Math.min(
     step.size * size / CONTAINER_FONT,
     size * (text.band.width - 2 * paddingX) / contentWidth,
     (text.band.height - 3 * paddingY) / TITLE_LINE_HEIGHT,
   )
   const width = contentWidth * fontSize / size
-  const iconWidth = hasIcon ? fontSize * 1.2 : 0
+  const iconWidth = hasIcon ? fontSize * ICON_ADVANCE : 0
   return {
     fontSize,
     iconWidth,
@@ -56,7 +56,7 @@ export function surfaceLabelLayout(
   }
 }
 
-/** Building names stay inset on their own roofs, laid out in plane pixels. */
+/** Building names stay inset on their own roofs, laid out in plane pixels. An icon takes the first line and the name starts below it. */
 export function surfaceText(
   text: SurfaceText,
   size: number,
@@ -65,10 +65,11 @@ export function surfaceText(
   icon?: ResolvedIcon,
 ): SvgNode {
   const padding = textPadding(size)
+  const firstLine = icon === undefined ? 0 : 1
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, className,
     [...(icon ? [iconNode(icon, padding, padding, size)] : []), ...text.lines.map((line, index) => node('text', {
       x: padding,
-      y: padding + size * 0.9 + index * textLineHeight(size),
+      y: padding + size * 0.9 + (firstLine + index) * textLineHeight(size),
       'font-size': size,
     }, 'text', line))])
 }

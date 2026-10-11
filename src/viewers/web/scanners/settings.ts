@@ -71,8 +71,7 @@ function detectionDetails(scanner: ScannerSetting): string {
 }
 
 function detailLabel(plugin: PluginSetting): string {
-  if (plugin.kind === 'icons') return 'Icon pack'
-  if (plugin.kind === 'workSource') return 'Plugin details'
+  if (plugin.kind !== 'scanner') return 'Plugin details'
   if (plugin.status === 'blocked' || plugin.status === 'missing' || !plugin.matches.length) return 'Scanner details'
   const count = plugin.matches.length
   return `${count} matching ${count === 1 ? 'file' : 'files'}`

@@ -26,7 +26,7 @@ async function lintArchitecture(repositoryRoot: string, window: ListWindow): Pro
 
 export function registerLintCommand(program: Command): void {
   withListWindowOptions(program.command('lint')
-    .description('Report architecture issues (currently possible duplicate logic)'))
+    .description('Report architecture issues (possible duplicate logic and unknown icon names)'))
     .action(async options => {
       try {
         process.exitCode = await lintArchitecture(process.cwd(), parseListWindow(options, process.argv.slice(2)))

@@ -5,9 +5,11 @@ import type { ProjectedScene } from '../projection/project.ts'
 import { node, type SvgNode } from './svg.ts'
 
 /**
- * Gives an element's group its authored accent. The group only carries the colour, as `color`; the accent rules in
- * style.ts paint the element's own faces, ground and title from it. Those rules follow the rest colours and precede
- * the draft, selection and comparison rules, so every state still wins, in the browser and in covers alike.
+ * Gives an element's group its authored accent. The group only carries the colour; the accent rules in style.ts
+ * paint the element's own faces, ground and title from it. The colour travels as the `color` attribute and not as
+ * a custom property, because the cover renderer cannot read `var()`: the browser's rules take it as `currentColor`
+ * and a cover's rules select the group by it. Those rules follow the rest colours and precede the draft, selection
+ * and comparison rules, so every state still wins, in the browser and in covers alike.
  */
 export function withAccent(group: SvgNode, item: Pick<SheetItem, 'colour'>): SvgNode {
   const colour = accentColour(item.colour)

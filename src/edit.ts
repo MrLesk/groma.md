@@ -50,6 +50,11 @@ function hasAppearance(input: EditArchitectureInput): boolean {
   return input.icon !== undefined || input.colour !== undefined
 }
 
+function hasMeaning(input: EditArchitectureInput): boolean {
+  return hasAppearance(input)
+    || [input.title, input.overview, input.description, input.technology, input.draft].some(value => value !== undefined)
+}
+
 function isStructural(input: EditArchitectureInput): boolean {
   return input.group !== undefined
     || input.ungroup === true
@@ -155,9 +160,8 @@ export async function editArchitecture(
   }
 
   checkEdit(input.original, { ...element, parent: element.parentId ?? '' }, input)
-  const hasMeaning = [input.title, input.overview, input.description, input.technology, input.icon, input.colour, input.draft].some(value => value !== undefined)
-  if (!hasMeaning && !isStructural(input)) throw new Error('--title, --overview, --description, --technology or --draft is required')
-  const source = hasMeaning ? await elementMeaning(repositoryRoot, records, element, input) : undefined
+  if (!hasMeaning(input) && !isStructural(input)) throw new Error('--title, --overview, --description, --technology, --icon, --colour or --draft is required')
+  const source = hasMeaning(input) ? await elementMeaning(repositoryRoot, records, element, input) : undefined
 
   if (isStructural(input)) {
     return curateElement(repositoryRoot, records, model, {

@@ -1,7 +1,7 @@
 import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
-import { isAccentColour } from './element-appearance.ts'
+import { accentColour } from './element-appearance.ts'
 import { isReservedId, kebabCase } from './naming.ts'
 import { DRAFT_TYPE, c4Kind, requireGromaMapping } from './okf-profile.ts'
 import { storedConnections } from './relationship-markdown.ts'
@@ -141,7 +141,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
   const technology = optionalText(groma.technology, 'technology', sourceFilename)
   const icon = optionalText(groma.icon, 'icon', sourceFilename)
   const colour = optionalText(groma.colour, 'colour', sourceFilename)
-  if (colour !== undefined && !isAccentColour(colour)) invalidElement(sourceFilename, 'colour must be a supported colour name or #RRGGBB')
+  if (colour !== undefined && accentColour(colour) === undefined) invalidElement(sourceFilename, 'colour must be a supported colour name or #RRGGBB')
   const draft = draftOf(groma, sourceFilename)
 
   return {

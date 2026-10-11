@@ -3,7 +3,7 @@ import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
 import type { Plane, ProjectionView } from '../projection/project.ts'
-import { ACCENT_TINT, FACADE_MARK, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
+import { ACCENT_TINT, ACCENT_TITLE, FACADE_MARK, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
 import type { Level } from './scale.ts'
 import { mark, node, type SvgNode } from './svg.ts'
 
@@ -86,18 +86,24 @@ function surfaceColours(kind: string, depth: number, palette?: Palette): string 
 }
 
 /**
- * The colours of an accented element. Its group carries the accent as `color` (appearance.ts): the element's own faces
- * and ground are stroked in it and filled with it mixed into the theme's paper, and its title is written in it. The
- * browser mixes with the live theme. A cover needs explicit colours, so it gets one fill rule for each accent in its
- * scene. These rules have the specificity of the rest colours and of the draft rule, and must stay between the two.
+ * The colours of an accented element. Its group carries the accent as `color` (appearance.ts). The element's own
+ * faces and ground are stroked in the accent and filled with it mixed into the theme's paper; its title is the accent
+ * mixed toward the theme's ink. The browser mixes with the live theme through `currentColor`. A cover needs explicit
+ * colours, so it gets these rules once for each accent in its scene. They have the specificity of the rest colours
+ * and of the draft rule, and must stay between the two.
  */
 function accentRules(palette: Palette | undefined, accents: readonly string[]): string {
-  const fills = palette === undefined
-    ? `#map .accented > .ground, #map .accented .face { fill: color-mix(in srgb, currentColor ${(ACCENT_TINT * 100).toFixed(1)}%, var(--paper)); }`
-    : accents.map(accent => `#map [color="${accent}"] > .ground, #map [color="${accent}"] .face { fill: ${mixColour(palette.paper, accent, ACCENT_TINT)}; }`).join('\n  ')
-  return `#map .accented > .ground, #map .accented .face { stroke: currentColor; }
-  #map .accented > .label .text { fill: currentColor; }
-  ${fills}`
+  const rules = (group: string, accent: string, tint: string, title: string) =>
+    `#map ${group} > .ground, #map ${group} .face { stroke: ${accent}; fill: ${tint}; }
+  #map ${group} > .label .text { fill: ${title}; }`
+  const percent = (share: number) => `${(share * 100).toFixed(1)}%`
+  if (palette === undefined) {
+    return rules('.accented', 'currentColor',
+      `color-mix(in srgb, currentColor ${percent(ACCENT_TINT)}, var(--paper))`,
+      `color-mix(in srgb, var(--ink) ${percent(ACCENT_TITLE)}, currentColor)`)
+  }
+  return accents.map(accent => rules(`[color="${accent}"]`, accent,
+    mixColour(palette.paper, accent, ACCENT_TINT), mixColour(accent, palette.ink, ACCENT_TITLE))).join('\n  ')
 }
 
 /** The camera attributes that stop facade and surface patterns below readable size at zoom `k`; the map and its covers set the same ones. */
