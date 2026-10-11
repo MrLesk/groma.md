@@ -4,6 +4,7 @@ title: Harden audited surfaces and correct documentation drift
 status: In Progress
 assignee: []
 created_date: '2026-09-27 01:23'
+updated_date: '2026-10-11 16:10'
 labels: []
 dependencies: []
 modified_files:
@@ -36,6 +37,7 @@ modified_files:
   - .github/workflows/ci.yml
   - .github/workflows/release.yml
   - .github/workflows/architecture.yml
+  - test-bun/backlog-cli.test.ts
 priority: high
 type: task
 ordinal: 611000
@@ -67,3 +69,18 @@ This task tracks the remediation PR: 28 findings fixed in code/docs plus CI acti
 - [ ] #3 Public contracts or documentation are updated when behavior changes.
 - [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+Clean-up pass on the external audit pull request (#113), on top of today's main.
+1. Merge origin/main. Main already reports an absent referenced TypeScript config (TASK-558), so its projects.ts replaces the pull request's version.
+2. Renumber this record to TASK-581; main owns TASK-531.
+3. Restore main's code where a change guards a case nobody reproduced in a supported flow, or duplicates another owner: Backlog field coercion, SIGKILL escalation and stream resync; the Swift 256 MB output limit; dropping symlinks that leave the repository; the re-measured numbers in relationship-inference.md; relationship row escaping; the process-wide module mock, the help-wording test and the hand-made DOM tests.
+4. Web viewer: listen on the loopback interface only. Reject a stored code reference whose file is absolute or has a '..' segment in codeReferencesOf, the one owner of code reference validation, and delete the per-route checks and containment.ts.
+5. Check every kept change against main: smallest form, no second copy, no misleading name or comment.
+6. Rewrite this record to describe what the pull request contains afterwards.
+
+Tests (rule and authority; wrong result caught; coverage gap):
+- test-bun/backlog-cli.test.ts, 'a task id with shell characters never reaches the Backlog CLI' (kept from the pull request, moved here). Rule: readItem passes an id to the Backlog CLI only when it is letters, digits, '.', '_' and '-'; a task id is repository content and the Windows npm shim runs through cmd.exe (owner decision, lane step 3a). Wrong result: 'backlog task view' starts with the id 'TASK-1 & calc'. Gap: no other test passes an id to readItem.
+<!-- SECTION:PLAN:END -->
