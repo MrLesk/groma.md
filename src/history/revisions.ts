@@ -235,7 +235,7 @@ async function withGitTree<T>(
   finally { await snapshot.close() }
 }
 
-/** Opens an immutable revision for a session; its owner must close it when the session ends. */
+/** Extracts a complete commit into a temporary folder and leaves it there; the caller must `close` it to delete the folder. */
 export function openGitRevision(repositoryRoot: string, revisionId: string) {
   return openGitTree(repositoryRoot, revisionId, [])
 }

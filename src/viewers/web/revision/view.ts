@@ -66,7 +66,9 @@ export const revisionCss = `
   #end-comparison { margin-left: 4px; font-size: 18px; padding: 6px 9px; animation: revision-fade-in ${motion} both; }
   .revision-playback { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; flex: none; }
   .revision-playback[hidden], .revision-playback-caption[hidden] { display: none; }
-  .revision-playback select { width: 54px; padding: 4px; }
+  .revision-speed { position: relative; --popover-width: 72px; }
+  .revision-speed > summary { list-style: none; }
+  .revision-speed > summary::-webkit-details-marker { display: none; }
   .revision-playback-caption {
     position: absolute; top: calc(100% + 8px); left: 0; z-index: 10;
     max-width: min(560px, 70vw); padding: 7px 10px; border: 1px solid var(--hairline);

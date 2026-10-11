@@ -18,7 +18,7 @@ groma:
 description: Browses, compares and plays readable Git architecture revisions
 ---
 
-Owns the selected revision or comparison and the commit search fields. Plays a selected commit range in Git order with speed and Stop controls, shows the current commit, preloads upcoming frames, and finishes on the full-range comparison. The chosen endpoints remain separate from the displayed playback frame, so editing either endpoint after Stop keeps the other choice. Play waits for endpoint navigation to finish. The browser keeps the selected range in its URL and uses the existing map motion for each step.
+Owns the selected revision or comparison and the commit search fields. Plays a selected commit range in Git order with speed and Stop controls, skips commits the current reader cannot read, shows the current commit, preloads upcoming frames, and finishes on the full-range comparison. The chosen endpoints remain separate from the displayed playback frame, so editing either endpoint after Stop keeps the other choice. Play waits for endpoint navigation to finish. The browser keeps the selected range in its URL and uses the existing map motion for each step.
 
 ## Relationships
 

@@ -335,7 +335,8 @@ and the list disables every commit on the wrong side of the other endpoint. A li
 that names the newer commit as the start opens the same comparison, older first.
 The × ends the comparison and opens B. Ordinary browsing then opens either
 individual snapshot. The URL stores A in `from` and B in `revision` (omitted for
-the working tree).
+the working tree). In the live map, **Play** beside the fields walks the commits
+from A to B; see [Play architecture history](history-playback.md).
 `web/revision/view.ts` owns the fields, the list rows, and their motion;
 `web/revision/control.ts` owns the displayed revision or pair and which field is
 the search. Motion uses the chrome motion variables and is off under reduced

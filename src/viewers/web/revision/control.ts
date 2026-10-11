@@ -1,8 +1,8 @@
 import type { WebDataSource } from '../data.ts'
 import { bindPopover } from '../atoms/popover.ts'
 import type { WebBootPayload, WebPayload, WebWorkPayload } from '../payload.ts'
-import { NARROW_HEADER, pendingPairFields, revisionFields, revisionOptions, snapshotNotice, type RevisionField } from './view.ts'
 import { createRevisionPlayback } from './playback.ts'
+import { NARROW_HEADER, pendingPairFields, revisionFields, revisionOptions, snapshotNotice, type RevisionField } from './view.ts'
 
 interface RevisionControlOptions {
   box: HTMLElement

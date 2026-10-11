@@ -1,4 +1,5 @@
-import type { WebDataSource } from '../data.ts'
+import { UnreadableRevisionError, type WebDataSource } from '../data.ts'
+import { bindPopover } from '../atoms/popover.ts'
 import type { WebPayload, WebRevision } from '../payload.ts'
 
 interface PlaybackOptions {
@@ -11,36 +12,65 @@ interface PlaybackOptions {
   error(reason: unknown): void
 }
 
+const SPEEDS = [0.5, 1, 2, 4]
+
+/** The speed choice, built from the header's dropdown atom (atoms/popover.ts) like the theme menu. */
+function speedControl(onChange: () => void) {
+  let speed = 1
+  const menu = document.createElement('details')
+  menu.className = 'revision-speed'
+  const label = document.createElement('summary')
+  label.className = 'chrome-button'
+  label.setAttribute('aria-label', 'Playback speed')
+  const list = document.createElement('div')
+  list.className = 'anchored-popover'
+  const options = SPEEDS.map(value => {
+    const option = document.createElement('button')
+    option.type = 'button'
+    option.className = 'anchored-option'
+    option.textContent = `${value}×`
+    option.addEventListener('click', () => {
+      speed = value
+      paint()
+      menu.open = false
+      label.focus()
+      onChange()
+    })
+    return option
+  })
+  function paint(): void {
+    label.textContent = `${speed}×`
+    for (const [index, option] of options.entries()) option.setAttribute('aria-current', String(SPEEDS[index] === speed))
+  }
+  list.append(...options)
+  menu.append(label, list)
+  bindPopover(menu)
+  paint()
+  return { element: menu, get value() { return speed } }
+}
+
 /** Plays immutable revision comparisons; the revision control continues to own the displayed payload. */
 export function createRevisionPlayback(options: PlaybackOptions) {
   const { root, data } = options
+  let range: { from: WebRevision; to: WebRevision } | undefined
+  let running = false
+  let generation = 0
+  let wake: (() => void) | undefined
+  const cache = new Map<string, Promise<WebPayload>>()
   const control = document.createElement('span')
   control.className = 'revision-playback'
   control.hidden = true
   const button = document.createElement('button')
   button.type = 'button'
   button.className = 'chrome-button'
-  const speed = document.createElement('select')
-  speed.className = 'chrome-button'
-  speed.setAttribute('aria-label', 'Playback speed')
-  for (const value of [0.5, 1, 2, 4]) {
-    const option = document.createElement('option')
-    option.value = String(value)
-    option.textContent = `${value}×`
-    option.selected = value === 1
-    speed.append(option)
-  }
+  // A new speed applies at once: the step that is waiting ends.
+  const speed = speedControl(() => wake?.())
   const caption = document.createElement('span')
   caption.className = 'revision-playback-caption'
   caption.hidden = true
   caption.setAttribute('role', 'status')
-  control.append(button, speed, caption)
+  control.append(button, speed.element, caption)
   root.append(control)
-  let range: { from: WebRevision; to: WebRevision } | undefined
-  let running = false
-  let generation = 0
-  let wake: (() => void) | undefined
-  const cache = new Map<string, Promise<WebPayload>>()
 
   const keyOf = (revision: string, from?: string) => JSON.stringify([revision, from])
   function remember(payload: WebPayload): void {
@@ -54,7 +84,7 @@ export function createRevisionPlayback(options: PlaybackOptions) {
     if (pending === undefined) {
       pending = data.readWorld(revision, from)
       cache.set(key, pending)
-      // Prefetched errors are reported only if playback reaches that step.
+      // A preloaded frame that fails is handled only when playback reaches that step.
       void pending.catch(() => {})
     }
     return pending
@@ -84,7 +114,7 @@ export function createRevisionPlayback(options: PlaybackOptions) {
 
   function pause(): Promise<void> {
     return new Promise(resolve => {
-      const timer = window.setTimeout(done, 1500 / Number(speed.value))
+      const timer = window.setTimeout(done, 1500 / speed.value)
       function done(): void { window.clearTimeout(timer); wake = undefined; resolve() }
       wake = done
     })
@@ -96,6 +126,7 @@ export function createRevisionPlayback(options: PlaybackOptions) {
     caption.hidden = false
   }
 
+  /** Loads the next two frames ahead. It assumes each commit follows a readable one; a wrong guess costs one request. */
   function preload(revisions: WebRevision[], index: number): void {
     for (const next of [index + 1, index + 2]) {
       const revision = revisions[next]
@@ -103,14 +134,28 @@ export function createRevisionPlayback(options: PlaybackOptions) {
     }
   }
 
+  /** The frame that shows `revision` after `shown`, or undefined when the current reader cannot read that commit. */
+  async function frame(revision: WebRevision, shown: WebRevision | undefined): Promise<WebPayload | undefined> {
+    try {
+      return await read(revision.id, shown?.id)
+    } catch (reason) {
+      if (reason instanceof UnreadableRevisionError) return undefined
+      throw reason
+    }
+  }
+
+  /** Shows the range in Git order. An unreadable commit is skipped: the next frame continues from the last one shown. */
   async function walk(revisions: WebRevision[], token: number): Promise<boolean> {
+    let shown: WebRevision | undefined
     for (let index = 0; index < revisions.length; index++) {
       preload(revisions, index)
       const revision = revisions[index]!
-      const payload = await read(revision.id, revisions[index - 1]?.id)
+      const payload = await frame(revision, shown)
       if (token !== generation) return false
+      if (payload === undefined) continue
       describe(revision)
-      options.present(payload, index === 0)
+      options.present(payload, shown === undefined)
+      shown = revision
       await pause()
       if (token !== generation) return false
     }
@@ -144,7 +189,6 @@ export function createRevisionPlayback(options: PlaybackOptions) {
   }
 
   button.addEventListener('click', () => { if (running) stop(); else void play() })
-  speed.addEventListener('change', () => wake?.())
   return {
     paint,
     remember,

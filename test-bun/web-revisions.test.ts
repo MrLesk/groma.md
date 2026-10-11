@@ -8,9 +8,23 @@ import { createWebMapSession } from '../src/viewers/web/map-session.ts'
 import type { WebPayload, WebRevision } from '../src/viewers/web/payload.ts'
 import { listGromaRevisions } from '../src/history/revisions.ts'
 
+const fixture = path.resolve(import.meta.dir, '../test/fixtures/source-view')
+
+function gitIn(root: string) {
+  return (...args: string[]) => execFileSync('git', ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', ...args], { cwd: root, encoding: 'utf8' }).trim()
+}
+
+function openSession(root: string) {
+  return createWebMapSession(root, { scan: false, workSource: {
+    async read() { return EMPTY_WORK_SNAPSHOT },
+    async readItem() { throw new Error('No task') },
+    watch() { return { close() {} } },
+  } })
+}
+
 test.concurrent('web history includes source-only commits and reads the selected snapshot without changing checkout', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-web-revisions-'))
-  const git = (...args: string[]) => execFileSync('git', ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', ...args], { cwd: root, encoding: 'utf8' }).trim()
+  const git = gitIn(root)
   let session: Awaited<ReturnType<typeof createWebMapSession>> | undefined
   try {
     git('init', '--quiet')
@@ -19,7 +33,7 @@ test.concurrent('web history includes source-only commits and reads the selected
     git('add', '.')
     git('commit', '--quiet', '-m', 'Before architecture')
     const unsupported = git('rev-parse', 'HEAD')
-    await cp(path.resolve(import.meta.dir, '../test/fixtures/source-view'), root, { recursive: true })
+    await cp(fixture, root, { recursive: true })
     git('add', '.')
     git('commit', '--quiet', '-m', 'Architecture snapshot')
     const before = git('rev-parse', 'HEAD')
@@ -32,11 +46,7 @@ test.concurrent('web history includes source-only commits and reads the selected
     const terminalHistory = await listGromaRevisions(root)
     expect(terminalHistory.map(revision => revision.id)).toEqual([before])
     expect(terminalHistory[0]?.compatible).toBe(true)
-    session = await createWebMapSession(root, { scan: false, workSource: {
-      async read() { return EMPTY_WORK_SNAPSHOT },
-      async readItem() { throw new Error('No task') },
-      watch() { return { close() {} } },
-    } })
+    session = await openSession(root)
     const request = (url: string) => session!.fetch(new Request(`http://localhost${url}`))
     const revisions = await (await request('/revisions.json')).json() as WebRevision[]
     expect(revisions.map(revision => revision.id)).toEqual([after, before, unsupported])
@@ -61,7 +71,7 @@ test.concurrent('web history includes source-only commits and reads the selected
     const pairedSource = await (await request(`/source.json?${query}&from=${before}&revision=${after}`)).json()
     expect(pairedSource.source).toBe(source)
     expect((await request(`/world.json?from=${after}&revision=${after}`)).status).toBe(400)
-    // Loaded revisions must also serve historical details without reading Git again.
+    // A commit that is still extracted serves historical details without reading Git again.
     const gitDirectory = path.join(root, '.git')
     const heldGitDirectory = path.join(root, '.cached-git')
     await rename(gitDirectory, heldGitDirectory)
@@ -86,6 +96,49 @@ test.concurrent('web history includes source-only commits and reads the selected
       expect(live.comparison?.components[component.id]?.status).toBe('modified')
       expect(live.generation).toBeGreaterThan(selected.generation)
     } finally { await reader.cancel() }
+  } finally {
+    await session?.close()
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test.concurrent('web history keeps few commits extracted, retries a failed read, and lists a playback range without reading its middle', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-web-archives-'))
+  const git = gitIn(root)
+  const commit = (message: string) => { git('add', '--all'); git('commit', '--quiet', '-m', message); return git('rev-parse', 'HEAD') }
+  let session: Awaited<ReturnType<typeof createWebMapSession>> | undefined
+  try {
+    git('init', '--quiet')
+    git('config', 'core.autocrlf', 'false')
+    await cp(fixture, root, { recursive: true })
+    const readable = [commit('Architecture')]
+    const project = path.join(root, 'groma/project.md')
+    const profile = await readFile(project, 'utf8')
+    await rm(project)
+    const unreadable = commit('Architecture without its project document')
+    await writeFile(project, profile)
+    // More readable commits than the host keeps extracted at once.
+    for (let receipt = 1; receipt <= 5; receipt++) {
+      await writeFile(path.join(root, 'src/orders.ts'), `export const receipt = ${receipt}\n`)
+      readable.push(commit(`Receipt ${receipt}`))
+    }
+    const [oldest, newest] = [readable[0]!, readable.at(-1)!]
+    session = await openSession(root)
+    const status = async (url: string) => (await session!.fetch(new Request(`http://localhost${url}`))).status
+    const range = await session.fetch(new Request(`http://localhost/playback.json?from=${oldest}&revision=${newest}`))
+    expect((await range.json() as WebRevision[]).map(revision => revision.id)).toEqual([oldest, unreadable, ...readable.slice(1)])
+    expect(await status(`/playback.json?from=${unreadable}&revision=${newest}`)).toBe(422)
+    for (const id of readable) expect(await status(`/world.json?revision=${id}`)).toBe(200)
+    // With Git out of reach, only a commit that is still extracted can be served.
+    const gitDirectory = path.join(root, '.git')
+    const heldGitDirectory = path.join(root, '.held-git')
+    await rename(gitDirectory, heldGitDirectory)
+    try {
+      expect(await status(`/world.json?revision=${newest}`)).toBe(200)
+      // The oldest commit was closed, and a Git failure is a server error, not an unreadable architecture.
+      expect(await status(`/world.json?revision=${oldest}`)).toBe(500)
+    } finally { await rename(heldGitDirectory, gitDirectory) }
+    expect(await status(`/world.json?revision=${oldest}`)).toBe(200)
   } finally {
     await session?.close()
     await rm(root, { recursive: true, force: true })

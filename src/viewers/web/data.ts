@@ -1,7 +1,7 @@
 import type { ScannerSettings, ScannerSettingsAction } from '../../scanner/modules/settings-model.ts'
 import type { AcceptInput, AddInput, DraftInput, EditArchitectureInput, RemoveInput } from '../../authoring.ts'
 import type { WorkItemDetails } from '../../types.ts'
-import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'
+import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT, UNREADABLE_REVISION_STATUS } from './payload.ts'
 import type { WebBootPayload, WebPayload, WebRevision, WebWorkPayload } from './payload.ts'
 import type { SourcePayload } from '../source/read.ts'
 import type { CodeFile } from '../source/structure.ts'
@@ -13,7 +13,10 @@ export interface WebDataSource {
   onScanners?: (state: ScannerSettings) => void
   readWorld(revision?: string, from?: string): Promise<WebPayload>
   readRevisions(): Promise<WebRevision[]>
-  /** Live-only compatible commits, ordered from the selected start to end. */
+  /**
+   * Live only. Every commit from `from` to `revision`, oldest first. Some of them may hold an architecture the
+   * current reader cannot read: `readWorld` then throws UnreadableRevisionError and playback skips the commit.
+   */
   readPlaybackRevisions?(revision: string, from: string): Promise<WebRevision[]>
   readCode(element: string, revision?: string, from?: string): Promise<readonly CodeFile[]>
   readSource(element: string, file: string, revision?: string, from?: string): Promise<SourcePayload>
@@ -31,8 +34,12 @@ export interface WebDataSource {
   }): { close(): void }
 }
 
+/** A read named a commit whose architecture the current reader cannot read. */
+export class UnreadableRevisionError extends Error {}
+
 async function responseJson<T>(path: string): Promise<T> {
   const response = await fetch(path)
+  if (response.status === UNREADABLE_REVISION_STATUS) throw new UnreadableRevisionError(await response.text())
   if (!response.ok) throw new Error(await response.text())
   return response.json() as Promise<T>
 }
