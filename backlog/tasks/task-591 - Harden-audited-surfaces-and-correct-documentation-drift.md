@@ -1,10 +1,10 @@
 ---
 id: TASK-591
 title: Harden audited surfaces and correct documentation drift
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-09-27 01:23'
-updated_date: '2026-10-11 19:37'
+updated_date: '2026-10-11 19:40'
 labels: []
 dependencies: []
 modified_files:
@@ -62,13 +62,13 @@ Of the audit's 28 fixes, 19 remain, 7 are back to main's code and 2 were already
 - [x] #4 A Backlog task id or status name appears as text in the work island and is never parsed as HTML
 - [x] #5 A manifest that is not JSON, a dependency installed above the repository, a dotted task id and a failing export behave as their tests state, and each test fails on main
 - [x] #6 Every removed change is back to main's code together with its helpers, tests and doc sentences
-- [ ] #7 bun run check passes with no more lint warnings than main
+- [x] #7 bun run check passes with no more lint warnings than main
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -153,4 +153,6 @@ Verification, all run in this worktree on macOS with Bun 1.4.3:
 - bun run check was not run here; the orchestrator runs it. test-bun/nested-scanners.test.ts timed out in one or two of its twelve concurrent tests on most runs, and did the same on an export of origin/main; each test passes alone.
 
 Correction history: commit 0587db65 (loopback binding) also carries the removal of the per-route checks and containment.ts, which belongs to the next commit. Commit 660db60a describes the gate and document changes but holds only the renamed test file; 2cd82310 adds them. No commit was rewritten.
+
+Orchestrator verification, 11 October 2026, on main with Bun 1.4.3 merged: bun run check exit 0 on macOS (18 Node tests; 791 Bun tests passed, 52 skipped for missing optional toolchains, 0 failed; lint shows main's one warning and two infos). All action pins were checked against the upstream tags and carry their exact release. Linux and Windows evidence comes from CI on the pull request; the loopback listener with the printed localhost address was run on macOS only before that. Left for the owner: the printed address (localhost over a 127.0.0.1 listener), symlinks that point outside the repository staying listed, file names with a pipe, bracket or line break in relationship rows, and the rule that a GET route must never change anything, which only a comment guards.
 <!-- SECTION:NOTES:END -->
