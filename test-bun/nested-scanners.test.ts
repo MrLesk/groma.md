@@ -235,6 +235,21 @@ test.concurrent('TypeScript configs with no inputs or an absent base keep valid 
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('a TypeScript scan keeps source when a referenced generated config is absent', async () => {
+  const root = await repository()
+  try {
+    // A fresh Nuxt 4 checkout: the root config references only configs that `nuxt prepare` generates.
+    await writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ files: [], references: [{ path: './.nuxt/tsconfig.app.json' }] }))
+    await mkdir(path.join(root, 'app'))
+    await writeFile(path.join(root, 'app/entry.ts'), "import { work } from './target'; export function run() { return work() }")
+    await writeFile(path.join(root, 'app/target.ts'), 'export function work() { return 1 }')
+    const graph = await buildImportGraph(root, await typescriptFiles(root))
+    expect(graph.files.map(file => file.file).sort()).toEqual(['app/entry.ts', 'app/target.ts'])
+    expect(graph.files.find(file => file.file === 'app/entry.ts')!.imports).toEqual(['app/target.ts'])
+    expect(graph.diagnostics.map(item => [item.code, item.file])).toEqual([['typescript-missing-config-reference', 'tsconfig.json']])
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 
 test.concurrent('shared TypeScript operations keep one physical identity and all compiler claims', async () => {
   const root = await repository()

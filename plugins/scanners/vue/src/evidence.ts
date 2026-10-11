@@ -66,20 +66,27 @@ export class VueEvidence {
     }
   }
 
-  private component(file: string, position: number): VueVirtualCode | undefined {
-    const candidates = new Set<VueVirtualCode>()
-    for (const node of this.project.nodes(file, position)) {
-      if (!ts.isIdentifier(node)) continue
-      const symbol = this.project.checker.getSymbolAtLocation(node)
-      if (!symbol || !(symbol.flags & ts.SymbolFlags.Alias)) continue
-      const target = this.project.checker.getAliasedSymbol(symbol)
-      for (const declaration of target.declarations ?? []) {
-        const source = declaration.getSourceFile()
-        const sfc = this.project.owned(source) && this.project.sfc(source.fileName)
-        if (sfc) candidates.add(sfc)
-      }
-    }
+  /**
+   * The SFC a template element renders: the one its tag imports, else the one registered globally under that tag. An
+   * imported name shadows a global registration of the same tag, as in Vue.
+   */
+  private component(file: string, element: ElementNode, position: number): VueVirtualCode | undefined {
+    const candidates = new Set(this.importedComponents(file, position) ?? this.project.globalComponents(element.tag))
     return candidates.size === 1 ? [...candidates][0] : undefined
+  }
+
+  /** The owned SFCs an import of the tag's name declares; undefined when no import names the tag. */
+  private importedComponents(file: string, position: number): VueVirtualCode[] | undefined {
+    const aliases = this.project.nodes(file, position).flatMap(node => {
+      const symbol = ts.isIdentifier(node) ? this.project.checker.getSymbolAtLocation(node) : undefined
+      return symbol && symbol.flags & ts.SymbolFlags.Alias ? [this.project.checker.getAliasedSymbol(symbol)] : []
+    })
+    if (!aliases.length) return undefined
+    return aliases.flatMap(target => (target.declarations ?? []).flatMap(declaration => {
+      const source = declaration.getSourceFile()
+      const sfc = this.project.owned(source) && this.project.sfc(source.fileName)
+      return sfc ? [sfc] : []
+    }))
   }
 
   private handler(file: string, position: number): Operation | undefined {
@@ -206,7 +213,7 @@ export class VueEvidence {
     const statement = expression.statements[0]
     if (expression.statements.length !== 1 || !statement || !ts.isExpressionStatement(statement)
       || !ts.isIdentifier(statement.expression)) return false
-    const child = this.component(file, templateOffset + element.loc.start.offset + 1)
+    const child = this.component(file, element, templateOffset + element.loc.start.offset + 1)
     const target = this.handler(file, templateOffset + event.exp.loc.start.offset)
     if (!child || !target) return false
     const targetId = this.operationId(target)

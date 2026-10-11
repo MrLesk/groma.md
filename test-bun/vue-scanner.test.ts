@@ -205,6 +205,37 @@ test.concurrent('Vue reads tracked components and Nuxt routes without generated 
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
 
+test.concurrent('Vue binds events on components that a prepared Nuxt 4 project registers globally', async () => {
+  const { temporary, root, scanner } = await setup()
+  try {
+    // Nuxt 4 compiles through Git-ignored generated configs whose declarations register every app component.
+    await writeFile(path.join(root, '.gitignore'), '.nuxt\nnode_modules\n')
+    await writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ files: [], references: [{ path: './.nuxt/tsconfig.app.json' }] }))
+    await mkdir(path.join(root, '.nuxt'))
+    await writeFile(path.join(root, '.nuxt/tsconfig.app.json'), JSON.stringify({
+      compilerOptions: { module: 'ESNext', moduleResolution: 'Bundler', strict: true, skipLibCheck: true },
+      include: ['../*.ts', '../*.vue', './components.d.ts'],
+    }))
+    await writeFile(path.join(root, '.nuxt/components.d.ts'),
+      "declare module 'vue' { export interface GlobalComponents { SaveEmitter: typeof import('../Emitter.vue')['default'] } }\nexport {}\n")
+    await mkdir(path.join(root, 'node_modules/vue'), { recursive: true })
+    await writeFile(path.join(root, 'node_modules/vue/package.json'), JSON.stringify({ name: 'vue', types: 'index.d.ts' }))
+    await writeFile(path.join(root, 'node_modules/vue/index.d.ts'), 'export interface GlobalComponents {}\n')
+    const host = await readFile(path.join(root, 'Host.vue'), 'utf8')
+    // Vue finds the registered `SaveEmitter` under either tag spelling.
+    await writeFile(path.join(root, 'Host.vue'), host.replace("import Emitter from './Emitter.vue'\n", '')
+      .replace('<Emitter @saved="onSaved" />', '<SaveEmitter @saved="onSaved" />')
+      .replace('<Emitter @saved="receive" />', '<save-emitter @saved="receive" />'))
+    const observation = (await scanner.scan(root, {}, await vueFiles(root)))!
+    expect(observation.diagnostics.filter(item => item.code === 'unsupported-vue-binding')).toEqual([])
+    const owners = new Map(observation.files.map(file => [file.file, file.file]))
+    expect(inferRelationships([observation], owners)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ source: 'Emitter.vue', target: 'Host.vue', technology: 'vue' }),
+      expect.objectContaining({ source: 'Emitter.vue', target: 'receiver.ts', technology: 'vue' }),
+    ]))
+  } finally { await rm(temporary, { recursive: true, force: true }) }
+})
+
 test.concurrent('Vue scans local components when an extended generated config is absent', async () => {
   const { temporary, root, scanner } = await setup()
   try {

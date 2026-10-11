@@ -83,10 +83,6 @@ export function mountTerminalViewer(
   }
   let closed = false
   let scannerSettingsOpen = false
-  let resolveClosed!: () => void
-  const closedPromise = new Promise<void>(resolve => {
-    resolveClosed = resolve
-  })
   const theme = viewerTheme()
   // Each depth keeps its own camera, so returning to it finds the map where it was.
   const cameras = new Map<string, TerminalCamera>()
@@ -218,7 +214,6 @@ export function mountTerminalViewer(
     clearTimeout(frameTimer)
     renderer.keyInput.off('keypress', onKeypress)
     renderer.off('destroy', onRendererDestroy)
-    resolveClosed()
   }
 
   function onRendererDestroy(): void {
@@ -399,7 +394,7 @@ export function mountTerminalViewer(
   repaint()
 
   return {
-    closed: closedPromise,
+    closed: renderer.closed,
     destroy,
     refresh,
     update,

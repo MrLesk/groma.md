@@ -36,6 +36,42 @@ function projectConfig(root: string, repositoryRoot: string, files: ReadonlySet<
   }
 }
 
+/** A config's compiler settings with the Vue language plugin they configure, so `.vue` files count among its inputs. */
+function readConfig(configFile: string) {
+  const vue = createParsedCommandLine(vueTypeScript, ts.sys, configFile)
+  const plugin = createVueLanguagePlugin<string>(vueTypeScript, vue.options, vue.vueOptions, id => id)
+  const parsed = ts.parseJsonSourceFileConfigFileContent(ts.readJsonConfigFile(configFile, ts.sys.readFile), ts.sys,
+    path.dirname(configFile), {}, configFile, undefined, plugin.typescript!.extraFileExtensions)
+  return { configFile, vueOptions: vue.vueOptions, plugin, parsed }
+}
+
+/**
+ * The config that compiles a package's SFCs. A solution config, such as Nuxt 4's, names no source and references the
+ * configs that do, which a framework may generate: the first existing one that includes one of the package's SFCs
+ * compiles it. Without such a config, as in a checkout the framework has not prepared yet, the solution config stays.
+ */
+function sourceConfig(configFile: string, packageSfc: (file: string) => boolean) {
+  const config = readConfig(configFile)
+  if (config.parsed.fileNames.length) return config
+  for (const reference of config.parsed.projectReferences ?? []) {
+    const referencedFile = ts.resolveProjectReferencePath(reference)
+    if (!ts.sys.fileExists(referencedFile)) continue
+    const referenced = readConfig(referencedFile)
+    if (referenced.parsed.fileNames.some(packageSfc)) return referenced
+  }
+  return config
+}
+
+/** The `['default']` index of `typeof import('./GameTile.vue')['default']`: the component an SFC exports. */
+function defaultExport(index: ts.TypeNode): boolean {
+  return ts.isLiteralTypeNode(index) && ts.isStringLiteral(index.literal) && index.literal.text === 'default'
+}
+
+/** Vue resolves a template tag such as `<game-tile>` to the PascalCase name `GameTile` that GlobalComponents declares. */
+function pascalCase(tag: string): string {
+  return tag.replace(/-(\w)/g, (_, letter: string) => letter.toUpperCase()).replace(/^\w/, letter => letter.toUpperCase())
+}
+
 export class VueProject {
   readonly program: ts.Program
   readonly checker: ts.TypeChecker
@@ -43,6 +79,8 @@ export class VueProject {
   readonly root: string
   readonly options
   readonly diagnostics: ScanDiagnostic[]
+  /** Vue's GlobalComponents interface with the augmentations the program loads; absent when Vue is not installed. */
+  private readonly globals: ts.Type | undefined
   private language!: Language<string>
   private readonly plugin
   /** The scanner's files, the only repository files the project reads beyond what the compiler follows. */
@@ -59,14 +97,10 @@ export class VueProject {
       const local = relative(repositoryRoot, file)
       return (owners.get(local) ?? root) === root && (local.startsWith('../') || files.has(local))
     }
-    const configFile = projectConfig(root, repositoryRoot, files)
-    const configRoot = path.dirname(configFile)
-    const config = ts.readJsonConfigFile(configFile, ts.sys.readFile)
-    const vue = createParsedCommandLine(vueTypeScript, ts.sys, configFile)
-    this.options = vue.vueOptions
-    this.plugin = createVueLanguagePlugin<string>(vueTypeScript, vue.options, vue.vueOptions, id => id)
-    const parsed = ts.parseJsonSourceFileConfigFileContent(config, ts.sys, configRoot, {}, configFile,
-      undefined, this.plugin.typescript!.extraFileExtensions)
+    const { configFile, vueOptions, plugin, parsed } = sourceConfig(projectConfig(root, repositoryRoot, files),
+      file => file.endsWith('.vue') && selected(file))
+    this.options = vueOptions
+    this.plugin = plugin
     failDiagnostics(parsed.errors.filter(item => item.code !== 5083))
     this.diagnostics = parsed.errors.filter(item => item.code === 5083).map(item => ({
       severity: 'warning', code: 'vue-missing-config-base', file: relative(repositoryRoot, configFile),
@@ -77,8 +111,10 @@ export class VueProject {
     host.getCurrentDirectory = () => root
     this.program = proxyCreateProgram(vueTypeScript, ts.createProgram, () => ({
       languagePlugins: [this.plugin], setup: language => { this.language = language },
-    // A root the config declares but the disk lacks stays, so the compiler reports it as absent.
-    }))({ rootNames: [...new Set([...assigned, ...parsed.fileNames.filter(file => selected(file) || !ts.sys.fileExists(file))])],
+    // A root the config declares but the disk lacks stays, so the compiler reports it as absent. The config's declaration
+    // files, such as a framework's generated GlobalComponents, are compiler context even when Git ignores them.
+    }))({ rootNames: [...new Set([...assigned, ...parsed.fileNames.filter(file =>
+      selected(file) || !ts.sys.fileExists(file) || /\.d\.[cm]?ts$/.test(file))])],
       options: parsed.options, host })
     failDiagnostics(this.program.getSyntacticDiagnostics())
     this.diagnostics.push(...this.program.getOptionsDiagnostics().filter(item => item.code === 6053).map(item => ({
@@ -86,6 +122,12 @@ export class VueProject {
       message: `A declared TypeScript source is absent; available source was still scanned. ${ts.flattenDiagnosticMessageText(item.messageText, ' ')}`,
     })))
     this.checker = this.program.getTypeChecker()
+    const vueResolution = ts.resolveModuleName('vue', path.join(root, 'package.json'), parsed.options, host).resolvedModule
+    const vueSource = vueResolution && this.program.getSourceFile(vueResolution.resolvedFileName)
+    // The checker's module symbol includes augmentations such as `declare module 'vue'`.
+    const vueModule = vueSource && this.checker.getSymbolAtLocation(vueSource)
+    const exported = vueModule && this.checker.getExportsOfModule(vueModule).find(symbol => symbol.name === 'GlobalComponents')
+    this.globals = exported && this.checker.getDeclaredTypeOfSymbol(exported)
     this.files = this.program.getSourceFiles().filter(source => this.owned(source) && selected(source.fileName))
     for (const source of this.files) this.validateSfc(source.fileName)
   }
@@ -94,6 +136,20 @@ export class VueProject {
   owned(source: ts.SourceFile): boolean {
     return !source.isDeclarationFile && !relative(this.root, source.fileName).startsWith('../')
       && !source.fileName.includes('/node_modules/') && this.readable.has(relative(this.root, source.fileName))
+  }
+
+  /**
+   * The owned SFCs that GlobalComponents declares for a template tag, in the form Nuxt and unplugin-vue-components
+   * generate for components registered in every template: `GameTile: typeof import('./GameTile.vue')['default']`.
+   */
+  globalComponents(tag: string): VueVirtualCode[] {
+    return (this.globals?.getProperty(pascalCase(tag))?.declarations ?? []).flatMap(declaration => {
+      const type = ts.isPropertySignature(declaration) ? declaration.type : undefined
+      if (!type || !ts.isIndexedAccessTypeNode(type) || !ts.isImportTypeNode(type.objectType) || !defaultExport(type.indexType)) return []
+      const source = this.checker.getTypeFromTypeNode(type.objectType).getSymbol()?.valueDeclaration
+      const sfc = source && ts.isSourceFile(source) && this.owned(source) && this.sfc(source.fileName)
+      return sfc ? [sfc] : []
+    })
   }
 
   sfc(file: string): VueVirtualCode | undefined {
