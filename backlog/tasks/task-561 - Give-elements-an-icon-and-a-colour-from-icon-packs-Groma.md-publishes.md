@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-11 16:33'
+updated_date: '2026-10-11 16:34'
 labels:
   - senior
 dependencies: []
@@ -189,6 +189,8 @@ F. docs/icons.md and the Element appearance section follow the code; architectur
 Checks: bun run typecheck passed. bunx biome lint: 1 warning and 2 infos, the same three as before the change, none in a changed file. bun scripts/lint-web-scrollbars.ts passed. Focused bun tests passed: 113 tests in 19 files (web-stats, revision-comparison, system-curation, scanner-update, iso-map, inspect-details, web-page-inset, tui-source, detach, rename, editing, web-export, web-sharing, web-shell, chrome, plain-view, sheet-scene, lint-command, scanner-release). The legend, combine and comparison tests failed before their fixes. groma lint on a scratch project reported only the unknown icon name. Headless Chromium on an exported scratch project showed the legend rows, the details title with its pack icon and colour, and emoji drawn as text beside container, system and building titles in the light theme. The full bun run check was not run in this lane.
 
 Finding G (found while rendering covers for A, not in the review list). Reproduced: with the branch as it was before this pass, the cover of test/fixtures/viewer-view, which has no icon and no colour, had every island, slab and building filled black (28020 pure black pixels in each theme of a three-box cover). Cause: the earlier fix pass wrote the rest colours as :not(.accented) rules, and resvg drops a selector that uses :not() or :is() together with every selector listed after it. Fix: withAccent in iso/painting/appearance.ts puts the accent on the element's group as two inherited values (color for the accent, fill for its tint) and the class accented; two plain rules in mapDrawingCss, placed after the rest colours and before the draft rule, hand them to the element's own faces, ground and title. The rest rules are plain again, as they were before the icon work, and the recursive rewrite of child nodes is gone. Selection, flow, comparison and draft rules keep winning by order and specificity. Checked: the new cover test fails on the earlier branch state and passes now; covers of a scratch project in light, dark and blueprint show rest tints, accents, pack icons and no emoji boxes; headless Chromium in light, dark and blueprint shows rest colours, accented surfaces and titles, a selected and a context accented surface with the highlight stroke and title, and accented drafts hollow and dashed in their accent. Not exercised in a browser: flow, hover and comparison states over an accent; their rules are later in the stylesheet or more specific than the two accent rules. Checks after G: bun run typecheck passed; bunx biome lint unchanged (1 warning, 2 infos, none in a changed file); 105 focused bun tests in 17 files passed (web-sharing, iso-map, unidentified-container, web-map-pointer, web-export, web-stats, revision-comparison, system-curation, scanner-update, inspect-details, web-page-inset, tui-source, web-map-presentation, web-map-highlights, web-layer-mode, sheet-scene, web-camera-layer).
+
+After G: reworded the icon paragraph of docs/icons.md so it says only what the code does (a resolved pack icon travels with the map; the web pane also draws it beside the title). node --import=tsx --test test/*.test.ts passed, 16 of 16.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

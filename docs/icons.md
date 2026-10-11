@@ -20,12 +20,12 @@ same colour.
 
 Icon names resolve through installed packs in configured order. Use `pack:name`
 to select a particular pack. An unknown name draws no icon and `groma lint`
-reports the element and name. The map, the web details pane, exported pages
-and covers embed a pack icon as its SVG, so showing it needs neither the
-installed pack nor network access. An emoji needs no pack: the map draws it as
-text in the reader's own emoji font. Covers show pack icons only, because the
-cover renderer has no emoji font. The details panes list the icon's name, or
-the emoji, beside the colour.
+reports the element and name. A resolved pack icon travels with the map as its
+SVG, so an exported page or a cover shows it without the pack and without
+network access. An emoji needs no pack: the map draws it as text in the
+reader's own emoji font. Covers show pack icons only, because the cover
+renderer has no emoji font. The details panes list the icon's name, or the
+emoji, and the colour; the web pane also draws a pack icon beside the title.
 
 ## Make a pack
 
