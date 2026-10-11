@@ -1,11 +1,11 @@
 ---
 id: TASK-590
 title: Add six web colour themes
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-07 17:00'
-updated_date: '2026-10-11 16:11'
+updated_date: '2026-10-11 16:16'
 labels: []
 dependencies: []
 references:
@@ -60,6 +60,8 @@ Focused viewer checks: 14 pass, 0 fail with the repository runner options. Chrom
 Renamed the electric-blue/cyan palette to Electric at the owner request; removed product references from public code, documentation, task description and PR. All 14 focused tests and browser checks for all 9 palettes pass after renaming. Website export rebuilt; 57 site tests pass.
 
 Maintainer pass, 11 October 2026: merged main (Bun 1.4.3, OpenTUI 0.6.0) and renumbered this record from TASK-557, which main already uses. A cold simplicity review led to these changes: the theme names are one list (webThemes) that the menu, URL values, page CSS and cover images all read; cssBlock no longer emits color-scheme, so the main viewer keeps its behaviour for Light, Dark and Blueprint and only the startup screen sets it, as before; the theme menu marks are typed without casts; the theme tests name their themes literally again and include one new theme (sand).
+
+Maintainer verification, 11 October 2026, on Bun 1.4.3 with main merged: bun run check passed (Biome: one existing warning and two infos outside the changed files; TypeScript passed; 16 Node tests; 780 Bun tests passed, 52 skipped for missing optional toolchains, 0 failed). Live viewer on a fixture project: the theme menu lists ten choices, the four original ones with their icons and the six new ones with a dot in their highlight colour; theme=sand and theme=electric apply their palettes from the URL; the viewer's document colour scheme is unchanged from main; no console errors. Open for the owner: every export now writes nine cover images instead of three (about 2.2 s and 3.8 MB against 0.75 s and 1.2 MB on this repository's map), and the new palettes use their own highlight colour for selection instead of the brand green. Two commits in this branch's history contain a third-party product name; squash-merge to keep it out of main.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
