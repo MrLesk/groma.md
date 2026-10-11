@@ -67,6 +67,17 @@ test.concurrent('a second work-source entry is rejected before either adapter lo
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('a plugin id shared by a scanner and a work source is rejected', async () => {
+  const root = await project()
+  try {
+    await writeScannerConfig(root, {
+      scanners: [{ id: 'backlog', source: './scanner', include: ['**/*.fixture'] }],
+      workSources: [{ id: 'backlog', source: './adapter' }],
+    })
+    await expect(readScannerConfig(root)).rejects.toThrow('more than once')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('groma init reports a failed Backlog initialization when the work source is already selected', async () => {
   const root = await project()
   const errors: string[] = []

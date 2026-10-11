@@ -122,17 +122,23 @@ function configuredScanners(values: unknown[], sourceFilename: string): Configur
   const scanners = values.map((scanner, index) => {
     return configuredScanner(scanner, index, sourceFilename)
   })
-  const ids = new Set<string>()
   const sources = new Set<string>()
   for (const scanner of scanners) {
-    if (ids.has(scanner.id)) throw new Error(`duplicate configured scanner id: ${scanner.id}`)
     if (sources.has(scanner.source)) {
       throw new Error(`duplicate configured scanner source: ${scanner.source}`)
     }
-    ids.add(scanner.id)
     sources.add(scanner.source)
   }
   return scanners.sort((left, right) => left.id.localeCompare(right.id))
+}
+
+/** Removing and updating address a plugin by id alone, so one id names one entry across every section. */
+function requireUniqueIds(plugins: readonly { id: string }[], sourceFilename: string): void {
+  const ids = new Set<string>()
+  for (const { id } of plugins) {
+    if (ids.has(id)) throw new Error(`${sourceFilename} uses plugin id ${id} more than once; an id names one plugin across all sections`)
+    ids.add(id)
+  }
 }
 
 function parseScannerConfig(
@@ -154,9 +160,11 @@ function parseScannerConfig(
     throw new Error(`${sourceFilename} useGitignore must be true or false`)
   }
   const workSources = configuredWorkSources(config.workSources, sourceFilename)
+  const scanners = configuredScanners(config.scanners, sourceFilename)
+  requireUniqueIds([...scanners, ...workSources], sourceFilename)
   return {
     ...(workSources.length ? { workSources } : {}),
-    scanners: configuredScanners(config.scanners, sourceFilename),
+    scanners,
     ...(config.exclude === undefined ? {} : { exclude: config.exclude as string[] }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
   }
