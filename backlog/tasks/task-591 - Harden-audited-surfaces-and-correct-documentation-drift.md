@@ -4,7 +4,7 @@ title: Harden audited surfaces and correct documentation drift
 status: In Progress
 assignee: []
 created_date: '2026-09-27 01:23'
-updated_date: '2026-10-11 16:10'
+updated_date: '2026-10-11 16:11'
 labels: []
 dependencies: []
 modified_files:
@@ -38,6 +38,7 @@ modified_files:
   - .github/workflows/release.yml
   - .github/workflows/architecture.yml
   - test-bun/backlog-cli.test.ts
+  - test-bun/scanner-source-listing.test.ts
 priority: high
 type: task
 ordinal: 611000
@@ -83,4 +84,6 @@ Clean-up pass on the external audit pull request (#113), on top of today's main.
 
 Tests (rule and authority; wrong result caught; coverage gap):
 - test-bun/backlog-cli.test.ts, 'a task id with shell characters never reaches the Backlog CLI' (kept from the pull request, moved here). Rule: readItem passes an id to the Backlog CLI only when it is letters, digits, '.', '_' and '-'; a task id is repository content and the Windows npm shim runs through cmd.exe (owner decision, lane step 3a). Wrong result: 'backlog task view' starts with the id 'TASK-1 & calc'. Gap: no other test passes an id to readItem.
+
+- test-bun/scanner-source-listing.test.ts, 'the repository listing leaves out a symlink whose target is absent'. Rule: the listing holds the repository files that exist (src/repository-listing.ts contract) and a symlink without a target must not stop it (owner decision, lane step 3c). Wrong result: repositoryListing throws ENOENT from realpathSync, or lists the link, once the existence filter is dropped or reordered. Gap: no listing test holds a symlink without a target. Main's code already passes it; no code change was needed.
 <!-- SECTION:PLAN:END -->

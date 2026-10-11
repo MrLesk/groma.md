@@ -105,8 +105,17 @@ test.skipIf(process.platform === 'win32').concurrent('the repository listing nam
     await writeFile(path.join(outside, 'Shared.swift'), 'struct Shared {}\n')
     await symlink(path.join(outside, 'Shared.swift'), path.join(root, 'Shared.swift'))
     const listed = await repositoryListing(root)
-    expect(listed.filter(file => file.endsWith('.swift'))).toEqual(['Ledger.swift', 'Other.swift', 'Package.swift'])
+    expect(listed.filter(file => file.endsWith('.swift'))).toEqual(['Ledger.swift', 'Other.swift', 'Package.swift', 'Shared.swift'])
   } finally { await Promise.all([root, outside].map(directory => rm(directory, { recursive: true, force: true }))) }
+})
+
+test.skipIf(process.platform === 'win32').concurrent('the repository listing leaves out a symlink whose target is absent', async () => {
+  const root = await repository('swift-source')
+  try {
+    await symlink('Absent.swift', path.join(root, 'Dangling.swift'))
+    const listed = await repositoryListing(root)
+    expect(listed.filter(file => file.endsWith('.swift'))).toEqual(['Ledger.swift', 'Other.swift', 'Package.swift'])
+  } finally { await rm(root, { recursive: true, force: true }) }
 })
 
 test.concurrent('a stylesheet is listed only by a scanner that reads component styles', async () => {
