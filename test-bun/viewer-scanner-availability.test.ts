@@ -75,11 +75,11 @@ test.concurrent('a live session reports failed tooling without preventing saved 
     session = await createScannerSession(root)
     await session.reconfigure()
     expect(session.state.notice.tone).toBe('error')
-    expect(session.state.scanners[0]?.status).toBe('blocked')
+    expect(session.state.plugins[0]?.status).toBe('blocked')
     expect(await snapshot(root)).toEqual(before)
     expect((await loadAnnotatedArchitecture(root)).relationships.length).toBeGreaterThan(0)
     await session.change({ action: 'remove', id: scanner.id })
-    expect(session.state.scanners.some(item => item.id === scanner.id)).toBe(false)
+    expect(session.state.plugins.some(item => item.id === scanner.id)).toBe(false)
     expect(await snapshot(root)).toEqual(before)
   } finally { await session?.close(); await rm(root, { recursive: true, force: true }) }
 })

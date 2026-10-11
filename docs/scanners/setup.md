@@ -79,11 +79,11 @@ The web offers bulk installation when a group has multiple installable scanners.
 recommendation has one **Install** button; multiple recommendations also offer
 **Install all**. Settings is always available in live web.
 A warning appears only when scanning needs attention and opens the affected
-plugin in Settings. Potential duplicates belong to the separate Project review.
+scanner in Settings. Potential duplicates belong to the separate Project review.
 
 **Install** selects a published stable release for this groma.md version and
 computer, saves its exact version, and scans. **Install recommended scanners**
-performs that flow for all current recommendations. **Install missing scanners**
+performs that flow for all current recommendations. **Install missing plugins**
 restores the exact selections shared by the team and scans. Both actions keep
 successful installations if another package fails; Retry attempts the remaining
 work. Existing selections are never silently upgraded.
@@ -115,7 +115,7 @@ Full error output is available inline through Details; the web shows **Needs
 attention** on the row and keeps the full diagnostic in **Error details**. groma.md does
 not install project dependencies or development tools on the user's behalf.
 
-In the terminal, `i` installs recommended scanners, `m` installs missing scanners,
+In the terminal, `i` installs recommended scanners, `m` installs missing plugins,
 and `r` retries a failed installation. `/` edits search, Enter keeps the filter, and Escape clears it
 while editing. `d` toggles details; Page Up/Down scrolls the open details or moves
 through the list. Web details expand inside the selected row.

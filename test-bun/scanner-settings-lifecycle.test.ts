@@ -42,7 +42,7 @@ test.concurrent('settings changes reconfigure live scanning and keep saved evide
     expect(session.state.notice.tone, JSON.stringify(session.state)).toBe('warning')
     await session.change({ action: 'add', source })
     expect(session.state.notice.tone).toBe('neutral')
-    expect(session.state.scanners.map(item => item.id)).toEqual(['fixture'])
+    expect(session.state.plugins.map(item => item.id)).toEqual(['fixture'])
     const changed = new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Source edit did not reach the new scanner subscription')), 3000)
       nextFold = () => { clearTimeout(timer); resolve() }
@@ -58,10 +58,10 @@ test.concurrent('settings changes reconfigure live scanning and keep saved evide
     const beforeCheck = folds
     await session.change({ action: 'retry' })
     expect(folds).toBe(beforeCheck + 1)
-    expect(session.state.scanners.find(item => item.id === 'fixture')?.status).toBe('ready')
+    expect(session.state.plugins.find(item => item.id === 'fixture')?.status).toBe('ready')
     await writeScannerConfig(root, { ...config, exclude: ['ui/'] })
     await session.reconfigure()
-    expect(session.state.scanners[0]?.match).toBe('none')
+    expect(session.state.plugins[0]).toMatchObject({ match: 'none' })
     await session.change({ action: 'remove', id: 'fixture' })
     expect((await loadAnnotatedArchitecture(root)).elements).toEqual(scanned.elements)
     await expect(session.change({ action: 'add', source: path.join(root, 'missing-plugin') })).rejects.toThrow('scanner package not found')
@@ -78,12 +78,12 @@ test.concurrent('install reports preparation failures automatically and retry sc
   const session = await createScannerSession(root)
   try {
     await session.change({ action: 'add', source })
-    expect(session.state.scanners[0]?.status).toBe('blocked')
-    expect(session.state.scanners[0]?.message).toContain('Install the project tool.')
+    expect(session.state.plugins[0]?.status).toBe('blocked')
+    expect(session.state.plugins[0]?.message).toContain('Install the project tool.')
     expect((await loadAnnotatedArchitecture(root)).elements).toEqual(before.elements)
     await rm(path.join(root, 'tool-missing'))
     await session.change({ action: 'retry' })
-    expect(session.state.scanners[0]?.status).toBe('ready')
+    expect(session.state.plugins[0]?.status).toBe('ready')
     expect((await loadAnnotatedArchitecture(root)).elements.flatMap(element => element.code).some(code => code.symbol === 'first')).toBe(true)
   } finally { await session.close(); await rm(root, { recursive: true, force: true }) }
 })
@@ -110,11 +110,11 @@ test.concurrent('live scanning updates healthy evidence, reports every failure a
   ] })
   let nextFold: (() => void) | undefined
   const session = await createScannerSession(root, { onFold() { nextFold?.() } })
-  const blocked = () => session.state.scanners.filter(item => item.status === 'blocked').map(item => item.id).sort()
+  const blocked = () => session.state.plugins.filter(item => item.status === 'blocked').map(item => item.id).sort()
   try {
     await session.reconfigure()
     expect(blocked()).toEqual(['broken', 'tool'])
-    expect(session.state.scanners.find(item => item.id === 'fixture')?.status).toBe('ready')
+    expect(session.state.plugins.find(item => item.id === 'fixture')?.status).toBe('ready')
     const changed = new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Healthy scanner did not process the source edit')), 3000)
       nextFold = () => { clearTimeout(timer); resolve() }

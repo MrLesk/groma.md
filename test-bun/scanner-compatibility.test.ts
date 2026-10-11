@@ -47,7 +47,7 @@ test.concurrent('a Groma mismatch blocks plugin code while another selection can
       await session.reconfigure()
       await session.change({ action: 'retry' })
       expect((await readFile(path.join(root, 'calls.txt'), 'utf8'))).toHaveLength(4)
-      expect(session.state.scanners.find(item => item.id === 'blocked')?.status).toBe('blocked')
+      expect(session.state.plugins.find(item => item.id === 'blocked')?.status).toBe('blocked')
       await session.change({ action: 'remove', id: 'eligible' })
       expect((await loadScannerRegistry(root)).scannerIds).toEqual([])
       expect((await loadAnnotatedArchitecture(root)).elements).toEqual(before.elements)

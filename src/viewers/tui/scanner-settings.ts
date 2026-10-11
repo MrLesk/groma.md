@@ -1,7 +1,7 @@
 import { createCliRenderer, FrameBufferRenderable, RGBA, type CliRenderer, type KeyEvent, type PasteEvent } from '@opentui/core'
 import { watchArchitecture } from '../../architecture-watch.ts'
 import { createScannerSession, type ScannerSession } from '../../scanner/session.ts'
-import { scannerGroups, scannerSettingAction, scannerMatchReason, scannerSettingLabel, type ScannerSetting, type ScannerSettingsAction } from '../../scanner/modules/settings-model.ts'
+import { scannerGroups, scannerSettingAction, scannerMatchReason, scannerSettingLabel, type PluginSetting, type ScannerSettingsAction } from '../../scanner/modules/settings-model.ts'
 import { loadWelcomeModel, welcomeSheet } from '../../welcome/model.ts'
 import { paintShell } from '../../welcome/view.ts'
 import { wrap } from './panes/text.ts'
@@ -16,7 +16,7 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
   let selectedId: string | undefined
   let busy = false, closed = false, searching = false, details = false
   let query = '', scroll = 0, detailScroll = 0
-  let visible: ScannerSetting[] = []
+  let visible: PluginSetting[] = []
   let input: { action: 'add' | 'update'; value: string; id?: string } | undefined
   let message = ''
   let failedAction: ScannerSettingsAction | undefined
@@ -31,40 +31,41 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
   function line(value: string, y: number, color = foreground) {
     text(frame.frameBuffer, value, 4, y, frame.width - 8, color, background)
   }
-  function paintDetails(scanner: ScannerSetting | undefined, y: number, height: number) {
-    if (!scanner) return
+  function paintDetails(plugin: PluginSetting | undefined, y: number, height: number) {
+    if (!plugin) return
     const rows = [
-      `Source: ${scanner.source ?? scanner.installSource ?? scanner.name}`,
-      message || scanner.message,
-      ...scanner.matches,
+      `Source: ${plugin.source ?? plugin.installSource ?? plugin.name}`,
+      message || plugin.message,
+      ...(plugin.kind === 'scanner' ? plugin.matches : []),
     ].flatMap(value => wrap(value, frame.width - 8))
     detailScroll = Math.max(0, Math.min(detailScroll, rows.length - height))
     rows.slice(detailScroll, detailScroll + height).forEach((value, index) => { line(value, y + index) })
   }
-  function paintRow(scanner: ScannerSetting, y: number) {
-    const action = scannerSettingAction(scanner)
+  function paintRow(plugin: PluginSetting, y: number) {
+    const action = scannerSettingAction(plugin)
     const label = action ? (action.action === 'retry' ? '[Retry]' : '[Install]') : ''
     const nameWidth = 30, descriptionWidth = Math.max(18, frame.width - nameWidth - 26)
-    const name = `${scanner.id}${scanner.version ? ` ${scanner.version}` : ''}`
-    const description = scanner.source ? scannerSettingLabel(scanner) : scannerMatchReason(scanner)
-    line(`${scanner.id === selectedId ? '> ' : '  '}${name.slice(0, nameWidth).padEnd(nameWidth)} ${description.slice(0, descriptionWidth).padEnd(descriptionWidth)} ${label}`,
-      y, scanner.id === selectedId ? green : foreground)
+    const name = `${plugin.id}${plugin.version ? ` ${plugin.version}` : ''}`
+    // Only a scanner recommendation has no saved source; its row says where the project matched.
+    const description = plugin.kind === 'scanner' && !plugin.source ? scannerMatchReason(plugin) : scannerSettingLabel(plugin)
+    line(`${plugin.id === selectedId ? '> ' : '  '}${name.slice(0, nameWidth).padEnd(nameWidth)} ${description.slice(0, descriptionWidth).padEnd(descriptionWidth)} ${label}`,
+      y, plugin.id === selectedId ? green : foreground)
   }
   function paintList(y: number, height: number) {
-    const groups = scannerGroups(session.state.scanners, query)
-    visible = groups.flatMap(group => group.scanners)
-    if (!visible.some(scanner => scanner.id === selectedId)) selectedId = visible[0]?.id
+    const groups = scannerGroups(session.state.plugins, query)
+    visible = groups.flatMap(group => group.plugins)
+    if (!visible.some(plugin => plugin.id === selectedId)) selectedId = visible[0]?.id
     const rows = groups.flatMap(group => [
-      { title: group.title, scanner: undefined as ScannerSetting | undefined },
-      ...group.scanners.map(scanner => ({ title: '', scanner })),
+      { title: group.title, plugin: undefined as PluginSetting | undefined },
+      ...group.plugins.map(plugin => ({ title: '', plugin })),
     ])
-    const selectedRow = rows.findIndex(row => row.scanner?.id === selectedId)
+    const selectedRow = rows.findIndex(row => row.plugin?.id === selectedId)
     if (selectedRow < scroll) scroll = selectedRow
     if (selectedRow >= scroll + height) scroll = selectedRow - height + 1
     scroll = Math.max(0, Math.min(scroll, rows.length - height))
     if (!rows.length) line(query ? 'No plugins match your search.' : 'No plugins for this project. [a] Add plugin', y)
     rows.slice(scroll, scroll + height).forEach((row, index) => {
-      if (row.scanner) paintRow(row.scanner, y + index)
+      if (row.plugin) paintRow(row.plugin, y + index)
       else line(row.title, y + index, blue)
     })
   }
@@ -80,15 +81,15 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
     if (closed || frame.isDestroyed) return
     const { contentY: y } = paintShell(frame.frameBuffer, model, sheet)
     line(`Plugins                  [a] Add plugin${failedAction ? '  [r] Retry installation' : ''}`, y, green)
-    const recommended = session.state.scanners.filter(item => !item.source && item.installSource).length
-    const missing = session.state.scanners.filter(item => item.status === 'missing').length
-    line([recommended ? `[i] Install recommended scanners (${recommended})` : '', missing ? `[m] Install missing scanners (${missing})` : ''].filter(Boolean).join('  '), y + 1)
+    const recommended = session.state.plugins.filter(item => !item.source && item.installSource).length
+    const missing = session.state.plugins.filter(item => item.status === 'missing').length
+    line([recommended ? `[i] Install recommended scanners (${recommended})` : '', missing ? `[m] Install missing plugins (${missing})` : ''].filter(Boolean).join('  '), y + 1)
     line(`Search: ${query}${searching ? '▌' : '  [/] Edit'}`, y + 2)
     const start = y + 4
     const detailHeight = details ? Math.min(7, Math.floor((frame.height - start - 4) / 2)) : 0
     const listHeight = Math.max(1, frame.height - start - 4 - detailHeight)
     paintList(start, listHeight)
-    if (details) paintDetails(visible.find(scanner => scanner.id === selectedId), start + listHeight + 1, detailHeight)
+    if (details) paintDetails(visible.find(plugin => plugin.id === selectedId), start + listHeight + 1, detailHeight)
     paintFooter()
     frame.requestRender()
   }
@@ -126,16 +127,16 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
     else return
     paint()
   }
-  function scannerKey(key: KeyEvent, scanner: ScannerSetting) {
-    if (key.name === 'u' && scanner.source) input = { action: 'update', id: scanner.id, value: scanner.source }
-    if (key.name === 'x' && scanner.source) void change({ action: 'remove', id: scanner.id })
+  function pluginKey(key: KeyEvent, plugin: PluginSetting) {
+    if (key.name === 'u' && plugin.source) input = { action: 'update', id: plugin.id, value: plugin.source }
+    if (key.name === 'x' && plugin.source) void change({ action: 'remove', id: plugin.id })
     if (key.name === 'return') {
-      const action = scannerSettingAction(scanner)
+      const action = scannerSettingAction(plugin)
       if (action) void change(action)
     }
   }
   function select(offset: number) {
-    const index = visible.findIndex(scanner => scanner.id === selectedId)
+    const index = visible.findIndex(plugin => plugin.id === selectedId)
     selectedId = visible[Math.max(0, Math.min(visible.length - 1, index + offset))]?.id
     detailScroll = 0
   }
@@ -149,12 +150,12 @@ export async function mountScannerSettings(renderer: CliRenderer, session: Scann
       case '/': searching = true; break
       case 'd': details = !details; detailScroll = 0; break
       case 'a': input = { action: 'add', value: '' }; break
-      case 'i': if (session.state.scanners.some(item => !item.source && item.installSource)) void change({ action: 'install-recommended' }); break
-      case 'm': if (session.state.scanners.some(item => item.status === 'missing')) void change({ action: 'install-missing' }); break
+      case 'i': if (session.state.plugins.some(item => !item.source && item.installSource)) void change({ action: 'install-recommended' }); break
+      case 'm': if (session.state.plugins.some(item => item.status === 'missing')) void change({ action: 'install-missing' }); break
       case 'r': if (failedAction) void change(failedAction); break
       default: {
-        const scanner = visible.find(scanner => scanner.id === selectedId)
-        if (scanner) scannerKey(key, scanner)
+        const plugin = visible.find(plugin => plugin.id === selectedId)
+        if (plugin) pluginKey(key, plugin)
       }
     }
     paint()

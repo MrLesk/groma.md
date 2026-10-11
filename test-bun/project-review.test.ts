@@ -3,8 +3,8 @@ import type { ScannerSetting, ScannerSettings } from '../src/scanner/modules/set
 import { scannerWarning } from '../src/viewers/web/settings/model.ts'
 
 function settings(tone: ScannerSettings['notice']['tone'], statuses: ScannerSetting['status'][]): ScannerSettings {
-  return { notice: { tone, message: '' }, limits: [], scanners: statuses.map((status, index) => ({
-    id: String(index), name: '', official: true, technologies: [], matches: [], match: 'matched', status, message: '',
+  return { notice: { tone, message: '' }, limits: [], plugins: statuses.map((status, index) => ({
+    kind: 'scanner', id: String(index), name: '', official: true, technologies: [], matches: [], match: 'matched', status, message: '',
   })) }
 }
 
@@ -12,6 +12,12 @@ test.concurrent('scanner warnings open a failed plugin before missing or recomme
   expect(scannerWarning(settings('error', ['available', 'missing', 'blocked']))?.scannerId).toBe('2')
   expect(scannerWarning(settings('warning', ['available', 'missing']))?.scannerId).toBe('1')
   expect(scannerWarning(settings('warning', ['available']))?.scannerId).toBe('0')
+})
+
+test.concurrent('a scanner warning opens a scanner even when a work source needs attention', () => {
+  const state = settings('warning', ['available'])
+  state.plugins.unshift({ kind: 'workSource', id: 'tasks', name: '', official: false, status: 'blocked', message: '' })
+  expect(scannerWarning(state)?.scannerId).toBe('0')
 })
 
 test.concurrent('healthy and partial coverage states do not show scanner warnings', () => {

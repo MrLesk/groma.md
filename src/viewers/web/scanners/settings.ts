@@ -2,7 +2,7 @@ import type { WebDataSource } from '../data.ts'
 import { escaped } from '../atoms/escape.ts'
 import { scannerName } from './name.ts'
 import { isNpmPackageName } from '../../../scanner/modules/published.ts'
-import { scannerGroups, scannerSettingAction, scannerUpgradeAction, scannerMatchReason, type ScannerSetting, type ScannerSettings, type ScannerSettingsAction } from '../../../scanner/modules/settings-model.ts'
+import { scannerGroups, scannerSettingAction, scannerUpgradeAction, scannerMatchReason, type PluginSetting, type ScannerSetting, type ScannerSettings, type ScannerSettingsAction } from '../../../scanner/modules/settings-model.ts'
 
 export const scannerSettingsCss = `
   #scanner-settings { min-height: 0; display: flex; flex-direction: column; gap: 16px; }
@@ -52,15 +52,15 @@ export const scannerSettingsCss = `
   }
 `
 
-function rowActions(scanner: ScannerSetting, upgrades: ScannerSettings['upgrades']) {
-  const id = escaped(scanner.id)
+function rowActions(plugin: PluginSetting, upgrades: ScannerSettings['upgrades']) {
+  const id = escaped(plugin.id)
   const button = (action: string, title: string) => `<button class="chrome-button" type="button" data-action="${action}" data-id="${id}">${title}</button>`
-  const action = scannerUpgradeAction(scanner, upgrades) ?? scannerSettingAction(scanner)
+  const action = scannerUpgradeAction(plugin, upgrades) ?? scannerSettingAction(plugin)
   const primary = action ? button(action.action, action.action === 'update' ? 'Update' : action.action === 'retry' ? 'Retry' : 'Install') : ''
-  const npm = scanner.source && isNpmPackageName(scanner.source.slice(0, scanner.source.lastIndexOf('@')))
+  const npm = plugin.source && isNpmPackageName(plugin.source.slice(0, plugin.source.lastIndexOf('@')))
   const update = npm ? button('version', 'Choose version') : button('version', 'Update')
-  const retry = action?.action === 'update' && scanner.status === 'blocked' ? button('retry', 'Retry scan') : ''
-  const more = scanner.source ? retry + update + button('remove', 'Remove from project') : ''
+  const retry = action?.action === 'update' && plugin.status === 'blocked' ? button('retry', 'Retry scan') : ''
+  const more = plugin.source ? retry + update + button('remove', 'Remove from project') : ''
   return { primary, more }
 }
 
@@ -70,27 +70,27 @@ function detectionDetails(scanner: ScannerSetting): string {
     + `<ul class="scanner-evidence">${scanner.matches.map(file => `<li>${escaped(file)}</li>`).join('')}</ul><p data-no-matches hidden>No matching paths</p>`
 }
 
-function detailLabel(scanner: ScannerSetting): string {
-  if (scanner.kind === 'workSource') return 'Plugin details'
-  if (scanner.status === 'blocked' || scanner.status === 'missing' || !scanner.matches.length) return 'Scanner details'
-  const count = scanner.matches.length
+function detailLabel(plugin: PluginSetting): string {
+  if (plugin.kind === 'workSource') return 'Plugin details'
+  if (plugin.status === 'blocked' || plugin.status === 'missing' || !plugin.matches.length) return 'Scanner details'
+  const count = plugin.matches.length
   return `${count} matching ${count === 1 ? 'file' : 'files'}`
 }
 
-function settingRow(scanner: ScannerSetting, upgrades: ScannerSettings['upgrades']): string {
-  const { primary, more } = rowActions(scanner, upgrades)
-  const upgrade = scanner.source ? upgrades?.[scanner.source] : undefined
-  const attention = scanner.status === 'blocked' || scanner.status === 'missing'
-  const status = { blocked: 'Needs attention', missing: 'Needs attention', ready: 'Installed', unchecked: 'Installed', available: '' }[scanner.status]
+function settingRow(plugin: PluginSetting, upgrades: ScannerSettings['upgrades']): string {
+  const { primary, more } = rowActions(plugin, upgrades)
+  const upgrade = plugin.source ? upgrades?.[plugin.source] : undefined
+  const attention = plugin.status === 'blocked' || plugin.status === 'missing'
+  const status = { blocked: 'Needs attention', missing: 'Needs attention', ready: 'Installed', unchecked: 'Installed', available: '' }[plugin.status]
   const badge = status ? `<span class="scanner-status${attention ? ' attention' : ''}">${status}</span>` : ''
-  const reason = scanner.kind === 'workSource' || scanner.match === 'matched' ? '' : `<p>${escaped(scannerMatchReason(scanner))}</p>`
-  const version = [scanner.version, upgrade?.version].filter(Boolean).join(' → ')
-  const metadata = [version, scanner.official ? 'Official' : 'Third-party'].filter(Boolean).join(' · ')
+  const reason = plugin.kind === 'workSource' || plugin.match === 'matched' ? '' : `<p>${escaped(scannerMatchReason(plugin))}</p>`
+  const version = [plugin.version, upgrade?.version].filter(Boolean).join(' → ')
+  const metadata = [version, plugin.official ? 'Official' : 'Third-party'].filter(Boolean).join(' · ')
   const updateError = upgrade?.error ? `<p>Could not check for updates. ${escaped(upgrade.error)}</p>` : ''
-  const details = detailLabel(scanner)
-  return `<section class="scanner-row" data-scanner-id="${escaped(scanner.id)}"><div class="scanner-header"><div class="scanner-heading"><strong>${escaped(scannerName(scanner.id))}</strong><span class="scanner-version">${escaped(metadata)}</span></div>${badge}<div class="scanner-primary">${primary}</div></div>`
-    + `<details><summary>${details}</summary><div class="scanner-body"><code class="scanner-package">${escaped(scanner.source ?? scanner.installSource ?? scanner.name)}</code>`
-    + `${reason}${scanner.message ? `<p>${escaped(scanner.message)}</p>` : ''}${detectionDetails(scanner)}${updateError}<div class="scanner-actions">${more}</div></div></details></section>`
+  const details = detailLabel(plugin)
+  return `<section class="scanner-row" data-scanner-id="${escaped(plugin.id)}"><div class="scanner-header"><div class="scanner-heading"><strong>${escaped(scannerName(plugin.id))}</strong><span class="scanner-version">${escaped(metadata)}</span></div>${badge}<div class="scanner-primary">${primary}</div></div>`
+    + `<details><summary>${details}</summary><div class="scanner-body"><code class="scanner-package">${escaped(plugin.source ?? plugin.installSource ?? plugin.name)}</code>`
+    + `${reason}${plugin.message ? `<p>${escaped(plugin.message)}</p>` : ''}${plugin.kind === 'scanner' ? detectionDetails(plugin) : ''}${updateError}<div class="scanner-actions">${more}</div></div></details></section>`
 }
 
 function filterEvidence(input: HTMLInputElement): void {
@@ -102,13 +102,13 @@ function filterEvidence(input: HTMLInputElement): void {
 }
 
 function settingGroup(group: ReturnType<typeof scannerGroups>[number], showBulk: boolean, upgrades: ScannerSettings['upgrades']): string {
-  const missing = group.scanners.every(scanner => scanner.status === 'missing')
-  const recommended = group.scanners.every(scanner => !scanner.source)
+  const missing = group.plugins.every(plugin => plugin.status === 'missing')
+  const recommended = group.plugins.every(plugin => !plugin.source)
   const title = group.title
   const action = missing ? 'install-missing' : recommended ? 'install-recommended' : undefined
-  const installable = group.scanners.filter(scanner => scanner.status === 'missing' || scanner.installSource).length
+  const installable = group.plugins.filter(plugin => plugin.status === 'missing' || plugin.installSource).length
   const bulk = showBulk && action && installable > 1 ? `<button class="chrome-button" type="button" data-group="${action}">${missing ? 'Install missing' : 'Install all'}</button>` : ''
-  return `<section class="scanner-group"><div class="scanner-group-heading"><h2>${title}<span class="scanner-count">${group.scanners.length}</span></h2>${bulk}</div>${group.scanners.map(scanner => settingRow(scanner, upgrades)).join('')}</section>`
+  return `<section class="scanner-group"><div class="scanner-group-heading"><h2>${title}<span class="scanner-count">${group.plugins.length}</span></h2>${bulk}</div>${group.plugins.map(plugin => settingRow(plugin, upgrades)).join('')}</section>`
 }
 
 /** Plugin management uses the live data source inside Settings. */
@@ -139,7 +139,7 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
     const focused = document.activeElement?.closest<HTMLElement>('[data-scanner-id]')?.dataset.scannerId
     const focusedSelector = document.activeElement?.matches('[data-evidence-search]') ? '[data-evidence-search]' : 'button'
     const filters = new Map([...rows.querySelectorAll<HTMLInputElement>('[data-evidence-search]')].map(input => [input.closest<HTMLElement>('[data-scanner-id]')!.dataset.scannerId, input.value]))
-    const groups = scannerGroups(next.scanners, search.value)
+    const groups = scannerGroups(next.plugins, search.value)
     rows.innerHTML = groups.length ? groups.map(group => settingGroup(group, !search.value.trim(), upgrades)).join('') : '<p>No plugins match.</p>'
     for (const detail of rows.querySelectorAll('details')) detail.open = expanded.has(detail.closest<HTMLElement>('[data-scanner-id]')?.dataset.scannerId)
     for (const input of rows.querySelectorAll<HTMLInputElement>('[data-evidence-search]')) {
@@ -165,7 +165,7 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
     notice.hidden = !notice.textContent
     paintRows(next)
     setBusy()
-    const diagnostic = tone === 'error' && !next.scanners.some(scanner => scanner.status === 'blocked') ? next.notice.message : next.limits.join('\n')
+    const diagnostic = tone === 'error' && !next.plugins.some(plugin => plugin.status === 'blocked') ? next.notice.message : next.limits.join('\n')
     if (!failedAction) showError('Scanner details', diagnostic)
   }
   async function read(checkUpdates = false) {
@@ -175,8 +175,8 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
       paint(checkUpdates ? state ?? next : next)
     }
     catch (cause) {
-      showError('Could not load scanners', String(cause))
-      if (!checkUpdates) onState({ scanners: [], notice: { tone: 'error', message: String(cause) }, limits: [] })
+      showError('Could not load plugins', String(cause))
+      if (!checkUpdates) onState({ plugins: [], notice: { tone: 'error', message: String(cause) }, limits: [] })
     }
   }
   async function change(action: ScannerSettingsAction) {
@@ -185,7 +185,7 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
     if (state) paint(state)
     try { paint(await data.changeScanners!(action)) }
     catch (cause) {
-      showError('Scanner action failed', cause instanceof Error ? cause.message : String(cause))
+      showError('Plugin action failed', cause instanceof Error ? cause.message : String(cause))
       failedAction = action; retry.hidden = false
     } finally {
       busy = undefined
@@ -198,7 +198,7 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
   function sourceForm(id?: string) {
     updateId = id
     form.hidden = false
-    source.value = state?.scanners.find(scanner => scanner.id === id)?.source ?? ''
+    source.value = state?.plugins.find(plugin => plugin.id === id)?.source ?? ''
     form.querySelector('button')!.textContent = id ? 'Update' : 'Add'
     source.focus()
   }
@@ -217,8 +217,8 @@ export function bindScannerSettings(data: WebDataSource, host: HTMLElement, onSt
     switch (action) {
       case 'retry': void change({ action }); break
       case 'update': {
-        const scanner = state?.scanners.find(item => item.id === id)
-        const update = scanner && scannerUpgradeAction(scanner, upgrades)
+        const plugin = state?.plugins.find(item => item.id === id)
+        const update = plugin && scannerUpgradeAction(plugin, upgrades)
         if (update) void change(update)
         break
       }
