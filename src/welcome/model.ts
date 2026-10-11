@@ -2,12 +2,11 @@ import { homedir } from 'node:os'
 import path from 'node:path'
 
 import type { WorkSourcePlugin } from '@groma/work-source'
-import { configuredWorkSource } from '../work-sources.ts'
 import packageJson from '../../package.json' with { type: 'json' }
 
 import { humanInstructionGuides } from '../instructions.ts'
 import { readScannerSettings, type ScannerSettings } from '../scanner/modules/settings.ts'
-
+import { configuredWorkSource } from '../work-sources.ts'
 
 export const documentationUrl = 'https://groma.md'
 export const welcomeVersion = packageJson.version

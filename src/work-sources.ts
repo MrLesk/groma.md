@@ -1,6 +1,6 @@
 import { pathToFileURL } from 'node:url'
 import { EMPTY_WORK_SOURCE, type WorkSource, type WorkSourcePlugin } from '@groma/work-source'
-import groma from '../package.json'
+import groma from '../package.json' with { type: 'json' }
 import { readScannerConfig } from './scanner/modules/config.ts'
 import { defaultScannerCacheRoot, parseScannerSource, resolveScannerPackage, type ResolvedScannerPackage } from './scanner/modules/package.ts'
 import type { ScannerResolutionOptions } from './scanner/modules/inventory.ts'

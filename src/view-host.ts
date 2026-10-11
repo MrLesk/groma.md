@@ -4,7 +4,6 @@ import {
 import type { CliRenderer } from '@opentui/core'
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 import type { WorkSource } from '@groma/work-source'
-import { workSourceSession } from './work-sources.ts'
 
 import { watchArchitecture } from './architecture-watch.ts'
 import { loadAnnotatedArchitecture } from './core.ts'
@@ -19,6 +18,7 @@ import { sheetScene } from './sheet/scene.ts'
 import { mountTerminalViewer } from './viewers/tui/terminal-viewer.ts'
 import type { TerminalViewer } from './viewers/tui/terminal-viewer.ts'
 import type { TerminalViewModel } from './viewers/tui/model.ts'
+import { workSourceSession } from './work-sources.ts'
 
 interface StartViewerOptions {
   scan?: boolean
@@ -106,7 +106,7 @@ export async function startTerminalViewer(
     })
     void pullWork()
     const scannerSession = await createScannerSession(repositoryRoot, {
-    onPluginsChanged: () => workSource.reconfigure(),
+      onPluginsChanged: () => workSource.reconfigure(),
       scan: options.scan, onFold: publish,
       onSettings: scanners => { map = { ...map, scanners }; viewer.update({ ...map, work: map.revision === undefined ? work : EMPTY_WORK_SNAPSHOT }) },
     })

@@ -1,5 +1,3 @@
-import { addPlugin } from './plugin-management.ts'
-import { readScannerConfig } from './scanner/modules/config.ts'
 import { realpath, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -16,6 +14,8 @@ import {
 import { formatScanSummary, scanRepository } from './scanner.ts'
 import { NOT_INITIALIZED, type GromaDirectory } from './groma-filesystem.ts'
 import { c4Kind } from './okf-profile.ts'
+import { addPlugin } from './plugin-management.ts'
+import { readScannerConfig } from './scanner/modules/config.ts'
 import { setupScanners, type ScannerSetupUi } from './scanner/modules/setup.ts'
 
 export type PackageInstaller = 'brew' | 'bun' | 'npm'

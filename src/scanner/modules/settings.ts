@@ -1,6 +1,3 @@
-import { addPlugin, removePlugin, restoreWorkSource, updatePlugin } from '../../plugin-management.ts'
-import { configuredWorkSource } from '../../work-sources.ts'
-import { readScannerConfig } from './config.ts'
 import { scannerNotice, type ScannerSetting, type ScannerSettings, type ScannerSettingsAction } from './settings-model.ts'
 export * from './settings-model.ts'
 import type { ScannerDiscovery } from './discovery.ts'
@@ -13,6 +10,9 @@ import type { ScannerModuleLocation } from './inventory.ts'
 import type { ProjectReadiness } from './readiness.ts'
 import { parseScannerSource } from './package.ts'
 import { readPublishedScanners, selectPublishedScanner } from './published.ts'
+import { readScannerConfig } from './config.ts'
+import { addPlugin, removePlugin, restoreWorkSource, updatePlugin } from '../../plugin-management.ts'
+import { configuredWorkSource } from '../../work-sources.ts'
 
 /** Optional registry reads for an open settings dialog; scan readiness stays unchanged. */
 export async function withScannerUpgrades(settings: ScannerSettings, registry?: string): Promise<ScannerSettings> {
