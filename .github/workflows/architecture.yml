@@ -109,7 +109,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2.2.0
         with:
-          bun-version: '1.4.2'
+          bun-version: '1.4.3'
 
       - uses: actions/configure-pages@v6.0.0
         id: pages
