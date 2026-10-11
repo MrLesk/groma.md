@@ -1,11 +1,11 @@
 ---
-id: TASK-576
+id: TASK-578
 title: Add an experimental Kotlin scanner
 status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-09 15:00'
-updated_date: '2026-10-09 16:30'
+updated_date: '2026-10-11 08:56'
 labels: []
 dependencies: []
 references:
@@ -53,6 +53,7 @@ modified_files:
   - plugins/scanners/java/build.ts
   - groma/scanners.json
   - groma/systems/groma-md/containers/cli/components/scala-src-index.md
+  - backlog/tasks/task-578 - Add-an-experimental-Kotlin-scanner.md
 type: feature
 ordinal: 653000
 ---
@@ -90,7 +91,7 @@ Groma has official scanners for Java and Scala but none for Kotlin, so a Kotlin 
 4. Outline rules: top-level types and functions; members are functions, declared primary and secondary constructors (named `constructor`), and companion-object functions. Properties, type aliases and nested types are omitted. Visibility: `public` (default or explicit), `protected`, `internal`, `private`.
 5. `build.ts` (maintainer build): download pinned jars from Maven Central, compile the worker with that same compiler jar (no installed kotlinc or Gradle), write `dist/worker.jar` and `dist/lib/*.jar`, jlink a runtime to `dist/<host>/runtime`, bundle the entry, write notices. Register in `official-catalog.ts` and `scripts/scanner-release.ts` beside Scala.
 6. Docs: `docs/scanners/kotlin/index.md`, links in `docs/scanners/index.md` and README, the Kotlin row of the visibility table and discovery table.
-7. Tests (authority: TASK-576 AC 1-4 and the scanner contract requiring a fixture proving deterministic output, atomic files, root membership, operation evidence and failure without partial output). No Kotlin coverage exists. Add one isolated-package test `test-bun/kotlin-scanner.test.ts` over fixture `test/fixtures/kotlin-source`: it fails if a selected file or declaration is missing, a position ignores the non-BMP character or includes KDoc, a call is reported resolved, a visibility or companion or constructor rule is wrong, a broken file yields a partial observation, or default selection reads `src/test/`. Add `kotlin` to the existing fresh-checkout and release-assembly tests instead of new harnesses.
+7. Tests (authority: TASK-578 AC 1-4 and the scanner contract requiring a fixture proving deterministic output, atomic files, root membership, operation evidence and failure without partial output). No Kotlin coverage exists. Add one isolated-package test `test-bun/kotlin-scanner.test.ts` over fixture `test/fixtures/kotlin-source`: it fails if a selected file or declaration is missing, a position ignores the non-BMP character or includes KDoc, a call is reported resolved, a visibility or companion or constructor rule is wrong, a broken file yields a partial observation, or default selection reads `src/test/`. Add `kotlin` to the existing fresh-checkout and release-assembly tests instead of new harnesses.
 8. Run the focused test, cold simplicity review, `bun run check`, implementer specification and quality reviews, full-context complexity review; fold scanner-written `groma/` components into the language-scanner owner.
 
 9. Final worker layout differs from step 2: Main, Scan, Parse, Symbols, Operations, Calls, Outline, Json, and Declarations (the one rule shared by symbols, operations and outline: a property initialised with a function literal is a function). Visibility lives in Outline and operation naming and start position in Operations, each beside its only user.
@@ -116,6 +117,8 @@ Final full-context complexity review (separate agent): no simpler approach; one 
 Third-party notices now carry the full texts: all 30 license files that the Kotlin v2.4.21 third-party list names are copied from the tagged upstream sources into plugins/scanners/kotlin/THIRD-PARTY-NOTICES.txt after the list, with identical texts printed once under the paths that share them (22 distinct texts). This replaces the earlier note that they were only linked.
 
 Review fixes after the PR #124 code review, one commit each: leading byte order mark accepted; outline names without backticks; 512 MB worker stack with a named failure beyond it; package folders named build kept under src/<set>/kotlin and src/<set>/java; variant test source sets excluded; no fixed limit on worker output; calls in function parameter defaults reported; only a val lambda is a function; SHA-256 of downloaded jars verified; worker runner, outline mapping and package assembly shared with the Scala scanner (plugins/scanners/jvm-worker.ts, folded into component scala-src-index) and notices and JDK tool lookup shared with the Java build (plugins/scanners/jvm-package.ts, excluded from the architecture scan like the other build scripts). The shared runner also removes the Scala adapter's 64 MB output limit. bun run check with a JDK on PATH: 771 pass, 6 Swift failures from the missing Swift toolchain.
+
+Maintainer review 2026-10-11: renamed the Kotlin task from TASK-576 to TASK-578 by manually changing its filename and frontmatter, as Alex requested. TASK-576 already belongs to the private-repository FAQ task in the main checkout; TASK-577 is also occupied. TASK-578 was unused across local and fetched Git history and all available worktree Backlog records. Scanner contract review and validation are in progress.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
