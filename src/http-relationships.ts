@@ -277,11 +277,9 @@ function provider(request: SentRequest, endpoints: readonly ServedEndpoint[]): S
   return files.size === 1 && (by === 'specificity' || labels.size === 1) ? chosen.map(match => match.endpoint) : []
 }
 
-/** A stored path survives the Markdown table: emphasis would be consumed, a raw pipe or newline would split the row, a backslash or bracket would break out of text, and an entity-looking run would decode away. */
+/** Markdown emphasis would consume these characters inside a stored path. */
 function escapeLabel(text: string): string {
-  return text.replaceAll('\\', '\\\\').replaceAll('[', '\\[').replaceAll(']', '\\]').replaceAll('|', '\\|').replaceAll('&', '\\&')
-    .replaceAll(/[*_]/g, character => `\\${character}`)
-    .replaceAll('\n', '\\n').replaceAll('\r', '\\r')
+  return text.replaceAll(/[*_]/g, character => `\\${character}`)
 }
 
 /** `:id`, `:id?`, `:rest+` and `:rest*` survive the Markdown table, unlike braces. */
