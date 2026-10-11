@@ -187,6 +187,7 @@
     "/examples/",
     "/plugins/scanners/*/build.ts",
     "/plugins/scanners/framework-package.ts",
+    "/plugins/scanners/jvm-package.ts",
     "/plugins/scanners/rust/notices.ts"
   ]
 }

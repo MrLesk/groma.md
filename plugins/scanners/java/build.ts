@@ -4,39 +4,22 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { jdkTool, writeNpmNotices } from '../jvm-package.ts'
 
 const execute = promisify(execFile)
 const pluginRoot = fileURLToPath(new URL('./', import.meta.url))
-
-function tool(name: string): string {
-  const executable = process.platform === 'win32' ? `${name}.exe` : name
-  return process.env.JAVA_HOME ? path.join(process.env.JAVA_HOME, 'bin', executable) : executable
-}
 
 export async function buildWorker(destination: string): Promise<void> {
   const classes = await mkdtemp(path.join(os.tmpdir(), 'groma-java-classes-'))
   try {
     const sources = path.join(pluginRoot, 'java/md/groma/scanner')
     const files = (await readdir(sources)).filter(file => file.endsWith('.java')).sort()
-    await execute(tool('javac'), ['--release', '21', '-encoding', 'UTF-8', '-d', classes,
+    await execute(jdkTool('javac'), ['--release', '21', '-encoding', 'UTF-8', '-d', classes,
       ...files.map(file => path.join(sources, file))])
     await mkdir(path.dirname(destination), { recursive: true })
-    await execute(tool('jar'), ['--create', '--file', destination, '--date=2026-01-01T00:00:00Z',
+    await execute(jdkTool('jar'), ['--create', '--file', destination, '--date=2026-01-01T00:00:00Z',
       '--main-class', 'md.groma.scanner.Main', '-C', classes, '.'])
   } finally { await rm(classes, { recursive: true, force: true }) }
-}
-
-/** License texts of the npm packages bundled into the scanner module, found from bundle input paths. */
-async function writeNotices(inputs: string[], output: string): Promise<void> {
-  const directories = new Set(inputs.flatMap(input => /^(.*node_modules\/(?:@[^/]+\/)?[^/]+)\//.exec(input.replaceAll('\\', '/'))?.[1] ?? []))
-  const sections = ['The Java scanner module bundles these npm packages. Their license texts follow.\n']
-  for (const directory of [...directories].map(item => path.resolve(item)).sort()) {
-    const manifest = JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'))
-    const license = (await readdir(directory)).find(name => /^licen[cs]e/i.test(name))
-    if (!license) throw new Error(`Review the missing license text for ${manifest.name}@${manifest.version}`)
-    sections.push(`\n${manifest.name} ${manifest.version}\nLicense: ${manifest.license}\n\n${await readFile(path.join(directory, license), 'utf8')}`)
-  }
-  await writeFile(output, sections.join(''))
 }
 
 /** Maintainer build; consumers receive the worker and bundled module without install scripts. */
@@ -46,16 +29,17 @@ export async function buildPackage(destination: string): Promise<void> {
   await buildWorker(path.join(destination, 'dist/worker.jar'))
   const runtime = path.join(destination, 'dist', `${process.platform}-${process.arch}`, 'runtime')
   await mkdir(path.dirname(runtime), { recursive: true })
-  await execute(tool('jlink'), ['--add-modules', 'jdk.compiler,java.xml,jdk.zipfs', '--strip-debug',
+  await execute(jdkTool('jlink'), ['--add-modules', 'jdk.compiler,java.xml,jdk.zipfs', '--strip-debug',
     '--no-header-files', '--no-man-pages', '--output', runtime])
-  const settings = await execute(tool('java'), ['-XshowSettings:properties', '-version'])
+  const settings = await execute(jdkTool('java'), ['-XshowSettings:properties', '-version'])
   const javaHome = settings.stderr.match(/java.home = (.+)/)?.[1]?.trim()
   if (!javaHome) throw new Error('Cannot locate the build JDK for compiler release definitions.')
   await cp(path.join(javaHome, 'lib/ct.sym'), path.join(runtime, 'lib/ct.sym'))
   const built = await Bun.build({ entrypoints: ['index', 'worker'].map(name => path.join(pluginRoot, `src/${name}.ts`)),
     outdir: path.join(destination, 'src'), target: 'bun', format: 'esm', naming: '[name].js', metafile: true })
   if (!built.success) throw new Error(built.logs.join('\n'))
-  await writeNotices(Object.keys(built.metafile?.inputs ?? {}), path.join(destination, 'THIRD-PARTY-NOTICES.txt'))
+  await writeNpmNotices('The Java scanner module bundles these npm packages. Their license texts follow.\n',
+    Object.keys(built.metafile?.inputs ?? {}), path.join(destination, 'THIRD-PARTY-NOTICES.txt'))
   await writeFile(path.join(destination, 'package.json'), `${JSON.stringify({
     name: manifest.name, version: manifest.version, description: manifest.description, private: manifest.private, type: 'module', license: 'MIT',
     os: [process.platform], cpu: [process.arch],
