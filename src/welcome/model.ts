@@ -6,7 +6,7 @@ import packageJson from '../../package.json' with { type: 'json' }
 
 import { humanInstructionGuides } from '../instructions.ts'
 import { readPluginSettings, type PluginSettings } from '../scanner/modules/settings.ts'
-import { configuredWorkSource } from '../work-sources.ts'
+import { checkWorkSourceReadiness } from '../work-sources.ts'
 
 export const documentationUrl = 'https://groma.md'
 export const welcomeVersion = packageJson.version
@@ -167,7 +167,7 @@ export async function loadWelcomeModel(
 ): Promise<WelcomeModel> {
   const root = path.resolve(repositoryRoot)
   const pluginSettings = await readPluginSettings(root)
-  const selected = workSourcePlugin ? { id: workSourcePlugin.id, ...workSourcePlugin.readiness() } : await configuredWorkSource(root)
+  const selected = workSourcePlugin ? { id: workSourcePlugin.id, ...workSourcePlugin.readiness() } : await checkWorkSourceReadiness(root)
   return {
     project: path.basename(root),
     folder: displayFolder(root),

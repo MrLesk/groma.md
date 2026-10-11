@@ -2,7 +2,7 @@ import type { Command } from 'commander'
 import { addPlugin, installPlugins, removePlugin, updatePlugin } from './plugin-management.ts'
 import { parseListWindow, printListPage, withListWindowOptions } from './list-window.ts'
 import { scannerInventory } from './scanner/modules/inventory.ts'
-import { configuredWorkSource } from './work-sources.ts'
+import { checkWorkSourceReadiness } from './work-sources.ts'
 
 async function run(action: () => Promise<void>): Promise<void> {
   try { await action() }
@@ -12,7 +12,7 @@ async function run(action: () => Promise<void>): Promise<void> {
 /** Every selection with what this computer has of it; reading a work source's readiness imports its adapter. */
 async function pluginInventory(root: string) {
   const scanners = (await scannerInventory(root)).map(scanner => ({ ...scanner, kind: 'scanner' as const, message: '' }))
-  const work = await configuredWorkSource(root)
+  const work = await checkWorkSourceReadiness(root)
   return [...scanners, ...(work ? [{ id: work.id, kind: work.kind, source: work.source, status: work.status, message: work.message }] : [])]
 }
 

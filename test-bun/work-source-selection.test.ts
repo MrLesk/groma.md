@@ -5,7 +5,7 @@ import path from 'node:path'
 import { runInitCommand, type InitCommandUi } from '../src/init-command.ts'
 import { addPlugin, removePlugin } from '../src/plugin-management.ts'
 import { readPluginConfig, writePluginConfig } from '../src/scanner/modules/config.ts'
-import { configuredWorkSource, workSourceSession } from '../src/work-sources.ts'
+import { checkWorkSourceReadiness, workSourceSession } from '../src/work-sources.ts'
 
 async function project(range = '*') {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-work-selection-'))
@@ -30,7 +30,7 @@ async function project(range = '*') {
 
 test.concurrent('work-source selection controls reads and closes its watch when removed', async () => {
   const root = await project()
-  let watch: { close(): Promise<void> } | undefined
+  let watch: { close(): void | Promise<void> } | undefined
   try {
     await writePluginConfig(root, { scanners: [], workSources: [] })
     const session = await workSourceSession(root)
@@ -51,7 +51,7 @@ test.concurrent('a work-source version mismatch blocks loading before plugin cod
   const root = await project('>=99.0.0')
   try {
     await writePluginConfig(root, { scanners: [], workSources: [{ id: 'tasks', source: './adapter' }] })
-    const selection = await configuredWorkSource(root)
+    const selection = await checkWorkSourceReadiness(root)
     expect(selection?.status).toBe('blocked')
     expect(selection?.message).toContain('>=99.0.0')
   } finally { await rm(root, { recursive: true, force: true }) }

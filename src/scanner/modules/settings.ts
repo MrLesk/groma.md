@@ -10,7 +10,7 @@ import type { ProjectReadiness } from './readiness.ts'
 import { parsePluginSource, type PluginInstallOptions } from './package.ts'
 import { readPublishedPlugins, selectPublishedPlugin } from './published.ts'
 import { addPlugin, removePlugin, restorePlugin, updatePlugin } from '../../plugin-management.ts'
-import { configuredWorkSource, type WorkSourceSelection } from '../../work-sources.ts'
+import { checkWorkSourceReadiness, type WorkSourceSelection } from '../../work-sources.ts'
 
 /** Optional registry reads for an open settings dialog; scan readiness stays unchanged. */
 export async function withPluginUpgrades(settings: PluginSettings, registry?: string): Promise<PluginSettings> {
@@ -100,7 +100,7 @@ export async function readPluginSettings(root: string, checks: readonly ProjectR
   try {
     const [proposal, modules] = await Promise.all([discoverScanners(root, options), configuredScannerModules(root, options)])
     const state = scannerSettingsState(proposal, modules, checks)
-    const work = await configuredWorkSource(root, options)
+    const work = await checkWorkSourceReadiness(root, options)
     return work ? { ...state, plugins: [...state.plugins, workSourceSetting(work)] } : state
   } catch (error) {
     return { plugins: [], notice: { tone: 'error', message: error instanceof Error ? error.message : String(error) }, limits: [] }
