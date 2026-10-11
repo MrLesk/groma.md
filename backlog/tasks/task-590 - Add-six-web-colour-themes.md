@@ -19,6 +19,7 @@ modified_files:
   - test-bun/web-sharing.test.ts
   - docs/viewers/web/index.md
   - src/viewers/web/url.ts
+  - src/viewers/web/sharing/images.ts
 ordinal: 640000
 ---
 
