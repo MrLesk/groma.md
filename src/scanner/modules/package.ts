@@ -4,6 +4,7 @@ import { homedir } from 'node:os'
 import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { stringArray } from './config.ts'
+import { installDependencies } from './package-manager.ts'
 import { isNpmPackageName } from './published.ts'
 
 export interface NpmScannerSource {
@@ -203,20 +204,6 @@ async function installNpmScanner(
   const resolved = await resolveScannerPackage(source, cacheRoot)
   if (resolved === undefined) throw new Error(`installed scanner is missing: ${source.source}`)
   return resolved
-}
-
-async function installDependencies(directory: string, source: string, registry?: string): Promise<void> {
-  const command = [process.execPath, 'install', '--ignore-scripts']
-  if (registry !== undefined) command.push(`--registry=${registry}`)
-  const child = Bun.spawn(command, {
-    cwd: directory,
-    env: { ...process.env, BUN_BE_BUN: '1' },
-    stderr: 'pipe', stdout: 'ignore',
-  })
-  const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()])
-  if (exitCode !== 0) {
-    throw new Error(`Could not download ${source}. Check your connection and registry access, then retry.\n${stderr.trim() || `exit ${exitCode}`}`)
-  }
 }
 
 async function git(directory: string, ...args: string[]): Promise<string> {
