@@ -189,5 +189,5 @@ export async function startScannerSettings(root: string): Promise<void> {
   const renderer = await createCliRenderer({ clearOnShutdown: true, consoleMode: 'disabled', exitOnCtrlC: true, screenMode: 'alternate-screen', useMouse: false })
   const architecture = await watchArchitecture(root, { onChange: () => session.reconfigure() })
   try { await mountScannerSettings(renderer, session, root) }
-  finally { await architecture.close(); await session.close(); renderer.destroy() }
+  finally { await architecture.close(); await session.close(); renderer.destroy(); await renderer.closed }
 }
