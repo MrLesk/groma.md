@@ -1,5 +1,5 @@
 import { repositoryListing } from './repository-listing.ts'
-import { exclusion, exclusionPatterns, readScannerConfig } from './scanner/modules/config.ts'
+import { exclusion, exclusionPatterns, readPluginConfig } from './scanner/modules/config.ts'
 import { loadScannerRegistry } from './scanner/registry.ts'
 
 /**
@@ -18,7 +18,7 @@ function excludingPattern(patterns: readonly string[], file: string): string | u
  * with its error, beside the other scanners' answer.
  */
 export async function missingOwnerReason(repositoryRoot: string, file: string): Promise<string> {
-  const config = await readScannerConfig(repositoryRoot)
+  const config = await readPluginConfig(repositoryRoot)
   if (!(await repositoryListing(repositoryRoot, config.useGitignore ?? true)).includes(file)) {
     return `unknown target: ${file}; not a repository file`
   }
@@ -26,7 +26,7 @@ export async function missingOwnerReason(repositoryRoot: string, file: string): 
   const globalPattern = excludingPattern(config.exclude ?? [], file)
   // A scanner's own `!pattern` can restore the file, so the global pattern answers only when no scanner keeps it.
   if (globalPattern !== undefined && config.scanners.every(scanner => hidingPattern(scanner.id) !== undefined)) {
-    return `no owner: ${file}; excluded by scanners.json pattern ${globalPattern}`
+    return `no owner: ${file}; excluded by plugins.json pattern ${globalPattern}`
   }
   const registry = await loadScannerRegistry(repositoryRoot)
   const { readers, failures } = await registry.readersOfFile(repositoryRoot, file)
@@ -34,7 +34,7 @@ export async function missingOwnerReason(repositoryRoot: string, file: string): 
   const waiting = readerPatterns.filter(({ pattern }) => pattern === undefined).map(({ scanner }) => scanner)
   const reasons = [
     ...(waiting.length > 0 ? [`read by ${waiting.join(', ')} and waiting for a scan, so run groma scan`] : []),
-    ...readerPatterns.flatMap(({ scanner, pattern }) => pattern === undefined ? [] : [`excluded for ${scanner} by scanners.json pattern ${pattern}`]),
+    ...readerPatterns.flatMap(({ scanner, pattern }) => pattern === undefined ? [] : [`excluded for ${scanner} by plugins.json pattern ${pattern}`]),
     ...failures.map(({ scanner, message }) => `${scanner} could not list its sources: ${message}`),
   ]
   return `no owner: ${file}; ${reasons.length > 0 ? reasons.join('; ') : 'no enabled scanner reads it'}`

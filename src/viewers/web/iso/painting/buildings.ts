@@ -1,6 +1,7 @@
 import { buildingFont } from '../../../../sheet/measure.ts'
 import type { BuildingFloor } from '../../../../sheet/types.ts'
 import type { Plane, ProjectedBuilding, ProjectedScene } from '../projection/project.ts'
+import { withAccent } from './appearance.ts'
 import { facadePattern, facadePatternId } from './style.ts'
 import { node, pointsAttribute, type SvgNode } from './svg.ts'
 import { surfaceText } from './text.ts'
@@ -51,9 +52,9 @@ export function buildingsSvg(scene: ProjectedScene): SvgNode[] {
     const { building, floors, text } = projected
     const level = building.criticality
     const label = level === 'high' || level === 'critical' ? `${building.title} · ${level}` : building.title
-    return node('g', { 'aria-label': label, 'data-id': building.representationId }, classOf(projected), [
+    return withAccent(node('g', { 'aria-label': label, 'data-id': building.representationId }, classOf(projected), [
       ...floors.flatMap((faces, index) => floorSvg(projected, faces, building.floors[index])),
-      surfaceText(text, buildingFont(building), 'label', scene.view),
-    ])
+      surfaceText(text, buildingFont(building), 'label', scene.view, building.resolvedIcon),
+    ]), building)
   })
 }

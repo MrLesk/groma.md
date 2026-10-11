@@ -333,7 +333,7 @@ function roofText(building: Building, view: ProjectionView): SurfaceText {
   const top = building.floors.at(-1)
   const roof = top === undefined ? building.rect : centredRect(building.rect, top.footprint)
   if (!curved(shape)) return { origin: project(roof.gx, roof.gy, heightUnits, view), lines }
-  const block = roofBlock(lines, buildingFont(building))
+  const block = roofBlock(lines, buildingFont(building), building.resolvedIcon !== undefined)
   return {
     origin: project(
       roof.gx + (roof.w - block.w / PLANE) / 2,

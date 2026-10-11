@@ -212,7 +212,7 @@ export function createBacklogPlugin(
   resolveCommand: BacklogCommandResolver = findBacklogCommand,
 ): WorkSourcePlugin {
   return {
-    id: 'backlog.md',
+    id: 'backlog',
     readiness() {
       return resolveCommand() === null
         ? { status: 'missing', install: installCommand }
@@ -227,4 +227,4 @@ export function createBacklogPlugin(
   }
 }
 
-export const backlogPlugin = createBacklogPlugin()
+export default createBacklogPlugin()

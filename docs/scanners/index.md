@@ -72,16 +72,17 @@ before opening, then start a source watch session.
 Source and architecture watch subscriptions are ready before viewer startup
 completes, so the first edit can update the open map.
 
-Optional modules are enabled only through `scanners.json` in the selected
+Optional modules are enabled only through `plugins.json` in the selected
 `groma/` or `.groma/` directory, normally written by `groma scanner add`.
 `groma scanner list` derives found and missing package availability without executing third-party code.
 `groma scanner check` checks source inputs and scanner-owned tools.
 Network installation happens only after explicit selection in setup,
 `scanner add`, `scanner update`, or `scanner install`.
 
-Bare `groma` shows scanner readiness beside the embedded Backlog work-source
-readiness in one fixed bottom row. The complete scanner inventory and scanner
-management syntax remain under Advanced commands.
+Bare `groma` shows the scanner notice above its commands and, in one fixed
+bottom row, the readiness of the work source that `plugins.json` selects. That
+row stays empty when none is selected. The complete scanner inventory and
+scanner management syntax remain under Advanced commands.
 
 ## Fresh checkouts
 
@@ -106,7 +107,7 @@ not become new map elements. groma.md core continues to own architectural meanin
 
 ## Scanner settings
 
-Use the same `scanners.json` for scanner selection and settings. Add an
+Use the same `plugins.json` for scanner selection and settings. Add an
 optional `settings` object to the relevant entry, preserving its installed
 `source` and all other entries:
 
@@ -136,7 +137,7 @@ on retained entries. See the [plugin contract](creating-a-plugin.md#scanner-sett
 
 ## Selecting source files
 
-`scanners.json` inside the selected `groma/` or `.groma/` directory decides which
+`plugins.json` inside the selected `groma/` or `.groma/` directory decides which
 files each scanner reads:
 
 ```json

@@ -193,10 +193,6 @@ export function createClackInitUi(): InitCommandUi {
 
   return {
     cancel: message => clackCancel(message),
-    confirmBacklogInstall: async () => selected(await confirmPrompt(
-      'Backlog.md is not installed. Install it now?',
-      accent,
-    )),
     confirmInit: async () => selected(await confirmPrompt(
       'Groma is not initialized here. Initialize now? (y/n)',
       accent,
@@ -207,6 +203,10 @@ export function createClackInitUi(): InitCommandUi {
     )),
     confirmScan: async () => selected(await confirmPrompt(
       'Run your first architecture scan now?',
+      accent,
+    )),
+    confirmUseBacklog: async () => selected(await confirmPrompt(
+      'Use Backlog.md for project tasks?',
       accent,
     )),
     directory: async () => selected(await selectPrompt<GromaDirectory>(

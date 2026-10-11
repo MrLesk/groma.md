@@ -68,6 +68,8 @@ function item(element: AnnotatedElement): SheetItem {
     title: element.title,
     criticality: element.criticality,
     origin: element.origin,
+    resolvedIcon: element.resolvedIcon,
+    colour: element.colour,
   }
 }
 
@@ -81,7 +83,7 @@ function buildingNode(element: AnnotatedElement, ranges: FileMeasureRanges, degr
   // which splits at an ordinary space, never leaves the mark on a line of its own.
   const mark = criticalityMark(element.criticality)
   const lines = mark === '' ? titleLines : [`${mark}\u00A0${titleLines[0]}`, ...titleLines.slice(1)]
-  const base = footprintOf(lines, shape, degree, size)
+  const base = footprintOf(lines, shape, degree, size, element.resolvedIcon !== undefined)
   const floors = element.kind === 'component'
     ? floorsOf(element.origin, element.code, ranges, base)
     : []
@@ -110,9 +112,9 @@ function subtreeConnections(key: string, children: readonly Node[], relationship
 
 /** The cells a surface's own name needs in its front band. */
 function nameWidth(paint: Node['paint']): number {
-  if (paint.kind === 'island') return nameCells(paint.name.toUpperCase(), ISLAND_FONT, ISLAND_SPACING)
+  if (paint.kind === 'island') return nameCells(paint.name.toUpperCase(), ISLAND_FONT, ISLAND_SPACING, paint.element?.resolvedIcon !== undefined)
   if (paint.kind === 'zone') return nameCells(paint.name, GROUP_FONT)
-  if (paint.kind === 'slab') return nameCells(paint.element.title, CONTAINER_FONT)
+  if (paint.kind === 'slab') return nameCells(paint.element.title, CONTAINER_FONT, 0, paint.element.resolvedIcon !== undefined)
   return 0
 }
 

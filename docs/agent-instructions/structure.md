@@ -58,7 +58,7 @@ record.
 
 Tests, fixtures, build scripts, and other development tooling are not product
 architecture unless the human says so. Exclude them before curating: add Git
-ignore patterns to the global `exclude` array in `<groma-root>/scanners.json`,
+ignore patterns to the global `exclude` array in `<groma-root>/plugins.json`,
 or to one scanner entry's own `exclude` array to affect only that scanner, keep
 the existing entries, and run `groma scan`. A scanner's own list starts with the
 defaults its package declares; a `!` pattern there restores a globally excluded
@@ -70,7 +70,7 @@ Git ignores.
 "exclude": ["/scripts/", "/test/", "**/*.spec.ts"]
 ```
 
-`scanners.json` is scanner configuration, not architecture Markdown, so edit it
+`plugins.json` is plugin configuration, not architecture Markdown, so edit it
 directly. Patterns are relative to the repository root and use `/` separators;
 a leading `/` matches only at the root. Excluded files do not become new
 components. Components already stored for newly excluded files keep their Code
@@ -97,7 +97,8 @@ combine instead collects the absorbed components' Code references on the
 surviving component.
 
 Combined records must have the same kind and parent. Absorbed records cannot
-have body content, concept-addressed relationships, a group, technology, or criticality.
+have body content, concept-addressed relationships, a group, technology, an
+icon, a colour, or criticality.
 The children a combine absorbs directly cannot have body content either, so a
 system combine refuses a described container while a described component two
 levels down relocates with it. A component move requires an empty body; a

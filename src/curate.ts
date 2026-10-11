@@ -303,7 +303,7 @@ function requireCombinableSources(
     if (source.external !== target.external) {
       throw new Error('an external system and an internal system cannot combine')
     }
-    if (source.group !== undefined || source.technology !== undefined || source.declaredCriticality !== undefined) {
+    if ([source.group, source.technology, source.icon, source.colour, source.declaredCriticality].some(field => field !== undefined)) {
       throw new Error(`cannot combine "${source.id}" because it has authored metadata`)
     }
   }

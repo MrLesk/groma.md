@@ -138,6 +138,8 @@ function elementDetails(element: AnnotatedElement): string[] {
   if (element.parent !== null) lines.push(`parent: ${element.parent}`)
   lines.push(`criticality: ${element.criticality ?? 'normal'}`)
   if (element.technology !== undefined) lines.push(`technology: ${element.technology}`)
+  if (element.icon !== undefined) lines.push(`icon: ${element.icon}`)
+  if (element.colour !== undefined) lines.push(`colour: ${element.colour}`)
   if (element.description !== undefined) lines.push(`description: ${element.description}`)
   if (element.overview !== '') lines.push(...element.overview.split(/\n\s*\n/))
   return lines

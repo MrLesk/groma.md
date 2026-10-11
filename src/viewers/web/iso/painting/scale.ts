@@ -34,6 +34,14 @@ export function tintAt(depth: number): number {
   return ISLAND_TINT * TINT_RATIO ** depth
 }
 
+/** Share of an element's authored accent mixed into the paper of its own surfaces, the same in every theme. */
+export const ACCENT_TINT = 0.22
+/**
+ * Share of ink mixed into an accent for the element's title, the same in every theme, so the title lightens on dark
+ * paper and darkens on light paper. At this share every named accent reads on its own tint at a contrast of 4.5 or more.
+ */
+export const ACCENT_TITLE = 0.45
+
 /** Hover, selection and lit routes climb the stroke ladder by this many levels. */
 export function emphasis(steps: number): number {
   return STROKE_RATIO ** steps

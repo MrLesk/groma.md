@@ -1,13 +1,10 @@
 import { homedir } from 'node:os'
 import path from 'node:path'
 
-import type { WorkSourcePlugin } from '@groma/work-source'
-import { backlogPlugin } from '@groma/work-source-backlog'
 import packageJson from '../../package.json' with { type: 'json' }
 
 import { humanInstructionGuides } from '../instructions.ts'
-import { readScannerSettings, type ScannerSettings } from '../scanner/modules/settings.ts'
-import type { ScannerReadiness } from '../scanner/modules/inventory.ts'
+import { readPluginSettings, type PluginSettings } from '../scanner/modules/settings.ts'
 
 export const documentationUrl = 'https://groma.md'
 export const welcomeVersion = packageJson.version
@@ -23,7 +20,7 @@ export const welcomeActions = [
     command: 'groma scan',
     description: 'refresh architecture from source',
   },
-  { id: 'scanners', command: 'Scanners ›', description: 'Manage project scanners' },
+  { id: 'plugins', command: 'Plugins ›', description: 'Manage project plugins' },
 ] as const
 
 export const instructionsAction = {
@@ -114,18 +111,11 @@ export const nestedPageIndicator = ' ›'
 
 export type WelcomeActionId = typeof welcomeActions[number]['id']
 
-export interface WelcomePlugin {
-  id: string
-  status: ScannerReadiness
-  install?: string
-}
-
 export interface WelcomeModel {
-  scanners?: ScannerSettings
+  pluginSettings?: PluginSettings
   project: string
   folder: string
   status: string
-  plugins: readonly WelcomePlugin[]
 }
 
 export interface WelcomeSheet {
@@ -162,31 +152,20 @@ function displayFolder(repositoryRoot: string): string {
     : root
 }
 
-export async function loadWelcomeModel(
-  repositoryRoot: string,
-  workSourcePlugin: WorkSourcePlugin = backlogPlugin,
-): Promise<WelcomeModel> {
+export async function loadWelcomeModel(repositoryRoot: string): Promise<WelcomeModel> {
   const root = path.resolve(repositoryRoot)
-  const scanners = await readScannerSettings(root)
-  const workSource = workSourcePlugin.readiness()
   return {
     project: path.basename(root),
     folder: displayFolder(root),
     status: 'Architecture ready',
-    scanners,
-    plugins: [
-      { id: workSourcePlugin.id, ...workSource },
-
-    ],
+    pluginSettings: await readPluginSettings(root),
   }
 }
 
-export function pluginSummary(plugins: readonly WelcomePlugin[]): string {
-  return plugins.map(plugin => {
-    const install = plugin.install === undefined ? '' : ` (${plugin.install})`
-    const status = plugin.status === 'found' ? '✓ ready' : plugin.status
-    return `${plugin.id}: ${status}${install}`
-  }).join(' │ ')
+/** The work source that plugins.json selects and whether it can run, or nothing when the project selects none. */
+export function workSourceSummary(model: WelcomeModel): string | undefined {
+  const workSource = model.pluginSettings?.plugins.find(plugin => plugin.kind === 'workSource')
+  return workSource && `${workSource.id}: ${workSource.status === 'ready' ? '✓ ready' : workSource.message}`
 }
 
 export function welcomeSheet(model: WelcomeModel): WelcomeSheet {
@@ -210,11 +189,9 @@ export function welcomeSheet(model: WelcomeModel): WelcomeSheet {
   }
 }
 
-export async function renderPlainWelcome(
-  repositoryRoot: string,
-  workSourcePlugin: WorkSourcePlugin = backlogPlugin,
-): Promise<string> {
-  const model = await loadWelcomeModel(repositoryRoot, workSourcePlugin)
+export async function renderPlainWelcome(repositoryRoot: string): Promise<string> {
+  const model = await loadWelcomeModel(repositoryRoot)
+  const workSource = workSourceSummary(model)
   return [
     `groma.md v${welcomeVersion}`,
     'architecture in Git',
@@ -223,7 +200,7 @@ export async function renderPlainWelcome(
     `project: ${model.project}`,
     `folder: ${model.folder}`,
     `status: ${model.status}`,
-    `plugins: ${pluginSummary(model.plugins)}`,
+    ...(workSource ? [`work source: ${workSource}`] : []),
     '',
     ...welcomeActions.map(action => `${action.command} — ${action.description}`),
     `${instructionsAction.command} — ${instructionsAction.description}`,

@@ -18,7 +18,7 @@ preprocessor errors fail the scan without a partial observation.
 
 `entry` defaults to `main.asm`; `includePaths` defaults to `["."]`. Both use
 paths relative to the repository. For Cityssembly, keep the installed `source`
-and set its scanner entry in `groma/scanners.json` to:
+and set its scanner entry in `groma/plugins.json` to:
 
 ```json
 {

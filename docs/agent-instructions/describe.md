@@ -27,12 +27,12 @@ of writing guesses. Optional fields need content only when they add meaning.
 
 | Command | Target | Options |
 | --- | --- | --- |
-| `groma edit <id>` | an element ID: actor, external system, system, container, or component | `--title`, `--description`, `--overview`, `--technology`, `--criticality` |
+| `groma edit <id>` | an element ID: actor, external system, system, container, or component | `--title`, `--description`, `--overview`, `--technology`, `--icon`, `--colour`, `--criticality` |
 | `groma edit <draft-id>` | a draft ID | `--title`, `--overview` |
 | `groma edit project` | the word `project`, meaning the project record | `--title`, `--description`, `--overview` |
 
-`--title` renames the record; its ID stays. An empty `--description` or
-`--technology` value removes that field, and an empty `--overview` clears the
+`--title` renames the record; its ID stays. An empty `--description`,
+`--technology`, `--icon` or `--colour` value removes that field, and an empty `--overview` clears the
 body. `--criticality` takes a level, or an empty value to inherit the parent's;
 see "Criticality and agent changes" in `groma agent-instructions`.
 `groma view` has no `project` target: the project record is

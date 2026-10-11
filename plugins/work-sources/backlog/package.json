@@ -5,7 +5,21 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "private": false,
+  "description": "Read and watch Backlog.md tasks through its CLI.",
   "dependencies": {
-    "@groma/work-source": "workspace:*"
+    "@groma/work-source": "0.1.0"
+  },
+  "files": [
+    "src"
+  ],
+  "groma": {
+    "workSource": {
+      "id": "backlog",
+      "entry": "./src/index.ts",
+      "compatibility": {
+        "groma": ">=0.6.6"
+      }
+    }
   }
 }

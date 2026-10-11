@@ -51,7 +51,7 @@ The repository uses Bun workspaces. The directory names describe responsibility:
 - `plugins/` contains packages that implement those contracts for a specific integration. Language scanners live under
   `plugins/scanners/`, and work-source adapters live under `plugins/work-sources/`.
 - A plugin is a package with an extension role; it is not a different package format. Plugin packages depend on shared
-  package contracts. Some are embedded in the main application, while others can be configured and loaded separately.
+  package contracts. The main application loads only the plugins a project selects in `plugins.json`.
 - Not every conceptual plugin is under `plugins/`. The TUI and web viewers are shipped with the main application under
   `src/viewers/`; their plugin boundary describes their role, not their directory.
 

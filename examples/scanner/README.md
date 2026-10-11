@@ -27,7 +27,7 @@ relationship between them: the example has not supplied call evidence.
 The scanner reads exactly the files its include list names, and the package's
 `groma.scanner.include` is the default that `groma scanner add` writes into the
 project. To try a change, add `src/*.mjs` to the scanner's `include` list in
-`project/groma/scanners.json`, then run `groma scan` again: the supplied
+`project/groma/plugins.json`, then run `groma scan` again: the supplied
 `extra.mjs` enters the map with no change to the plugin. To observe a source
 inventory change, add a `.js` file under `project/src` and rerun the scan.
 Restart an existing watch session after changing plugin implementation; source

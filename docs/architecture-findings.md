@@ -5,10 +5,12 @@
 Run `groma lint` to check for architecture issues. The first rule reports possible
 duplicate logic, with operation names and source file:line locations. It uses
 current evidence from configured, installed scanners and respects project
-exclusions. It does not write architecture records or change scanner selections.
-A second rule reports tasks that change a critical component; the
+exclusions. A second rule lists each element whose `icon` is neither an icon of
+an installed pack nor an emoji. A third rule reports tasks that change a
+critical component; the
 [agent guide index](agent-instructions/index.md#criticality-and-agent-changes)
-describes it.
+describes it. The command does not write architecture records or change scanner
+selections.
 
 The command exits with code 1 when it finds issues or a scanner fails, and 0
 otherwise. An empty result applies only to the available scanner evidence;

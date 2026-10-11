@@ -200,7 +200,7 @@ function whatLines(theme: ViewerTheme, element: AnnotatedElement, world: Termina
   return { lines, cursor }
 }
 
-/** The selected element under one tab: its kind line, its criticality unless normal, then meaning or evidence. */
+/** The selected element under one tab: its kind line, its criticality unless normal, its icon and colour, then meaning or evidence. */
 export function detailsLines(
   theme: ViewerTheme,
   element: AnnotatedElement,
@@ -223,14 +223,16 @@ export function detailsLines(
   // Normal is the default level, so only the other three get a line. Its own line keeps the level whole in a narrow pane.
   const level = element.criticality ?? 'normal'
   if (level !== 'normal') head.push([dim(theme, `Criticality · ${level}`)])
+  const appearance = [element.icon ? `Icon: ${element.icon}` : '', element.colour ? `Colour: ${element.colour}` : '']
+    .filter(Boolean).flatMap(value => wrap(value, width).map(row => [plain(theme, row)]))
   const body = tab === 'tasks'
     ? componentTaskLines(theme, element, world, width, actionCursor, workList)
     : tab === 'how'
     ? howLines(theme, element, world, width, actionCursor, structure)
     : whatLines(theme, element, world, byId, width, pickedId, actionCursor)
   return {
-    lines: [...head, ...body.lines],
-    ...(body.cursor === undefined ? {} : { cursor: body.cursor + head.length }),
+    lines: [...head, ...appearance, ...body.lines],
+    ...(body.cursor === undefined ? {} : { cursor: body.cursor + head.length + appearance.length }),
   }
 }
 

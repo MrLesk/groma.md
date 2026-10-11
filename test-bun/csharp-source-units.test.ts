@@ -38,7 +38,7 @@ packaged('packaged C# partial classes retain one curated owner and attach newly 
     let completed: (() => void) | undefined
     session = await createScannerSession(root, { onFold() { completed?.() } })
     await session.change({ action: 'add', source: artifact! })
-    expect(session.state.scanners.find(scanner => scanner.id === 'csharp')?.status).toBe('ready')
+    expect(session.state.plugins.find(scanner => scanner.id === 'csharp')?.status).toBe('ready')
     const changed = Promise.withResolvers<void>()
     completed = () => changed.resolve()
     const added = 'Core/Partial.Third.cs'

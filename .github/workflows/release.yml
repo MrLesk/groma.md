@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_scanners:
-        description: Publish changed scanner packages without releasing Groma
+        description: Publish changed scanner and work-source packages without releasing Groma
         type: boolean
         default: false
   release:
@@ -106,7 +106,7 @@ jobs:
           bun install --frozen-lockfile --ignore-scripts
           dotnet restore plugins/scanners/csharp/dotnet/Groma.CSharpScanner.csproj --locked-mode
         shell: bash
-      - name: Build runnable scanner packages
+      - name: Build runnable scanner and work-source packages
         env:
           GROMA_SWIFT_PM_CACHE: ${{ github.workspace }}/.groma/swift-syntax-build
         run: bun scripts/scanner-release.ts stage scanner-packages
@@ -145,7 +145,7 @@ jobs:
         run: bun scripts/scanner-release.ts assemble scanner-artifacts scanner-packages
       - name: Use npm 11 for trusted publishing
         run: npm install --global npm@11
-      - name: Publish contract and official scanners
+      - name: Publish contracts, official scanners and Backlog work source
         run: bun scripts/scanner-release.ts publish scanner-packages
         env:
           NPM_CONFIG_PROVENANCE: true

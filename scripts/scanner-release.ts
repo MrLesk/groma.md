@@ -1,10 +1,15 @@
 import { chmod, cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { readPublishedScanners } from '../src/scanner/modules/published.ts'
+import { readPublishedPlugins } from '../src/scanner/modules/published.ts'
 import { assembleCSharpPackages } from './package-csharp-scanner.ts'
 
 const repository = { type: 'git', url: 'https://github.com/MrLesk/groma.md.git' }
 const scannerIds = ['nasm', 'cobol', 'java', 'scala', 'kotlin', 'go', 'rust', 'csharp', 'angular', 'vue', 'react', 'typescript', 'python', 'php', 'swift', 'javascript']
+/**
+ * Where the official icon pack is staged. It is an icon pack, not a scanner: no loop over scannerIds reaches it,
+ * and its own package.json already holds the release metadata that staging adds to scanner manifests.
+ */
+const iconPackDirectory = 'icons-architecture'
 
 async function manifest(directory: string) {
   return JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'))
@@ -26,16 +31,26 @@ async function completeTogether(operations: Promise<void>[]) {
   if (failures.length > 0) throw new AggregateError(failures, 'Scanner release operations failed')
 }
 
+async function stageSourcePackage(source: string, directory: string) {
+  await mkdir(directory, { recursive: true })
+  await cp(path.join(source, 'src'), path.join(directory, 'src'), { recursive: true })
+  await cp('LICENSE', path.join(directory, 'LICENSE'))
+  await writeManifest(directory, { ...await manifest(source), license: 'MIT', repository,
+    files: ['src', 'LICENSE'], publishConfig: { access: 'public' } })
+}
+
+/** The Backlog adapter and its contract are platform-independent release packages. */
+export async function stageWorkSourcePackages(output: string) {
+  await stageSourcePackage('packages/work-source', path.join(output, 'work-source-contract'))
+  await stageSourcePackage('plugins/work-sources/backlog', path.join(output, 'work-source-backlog'))
+}
+
 /** Stage runnable packages for this host; publishing is a separate explicit action. */
 async function stage(output: string) {
   await mkdir(output, { recursive: true })
-  const contract = path.join(output, 'contract')
-  await mkdir(contract, { recursive: true })
-  await cp('packages/scanner/src', path.join(contract, 'src'), { recursive: true })
-  await cp('LICENSE', path.join(contract, 'LICENSE'))
-  await writeManifest(contract, { ...await manifest('packages/scanner'), license: 'MIT', repository,
-    files: ['src', 'LICENSE'], publishConfig: { access: 'public' } })
-  const builders = {
+  await stageSourcePackage('packages/scanner', path.join(output, 'contract'))
+  await stageWorkSourcePackages(output)
+  const scannerBuilders = {
     php: (await import('../plugins/scanners/php/build.ts')).buildPackage,
     python: (await import('../plugins/scanners/python/build.ts')).buildPackage,
     typescript: (await import('../plugins/scanners/typescript/build.ts')).buildPackage,
@@ -52,9 +67,11 @@ async function stage(output: string) {
     javascript: (await import('../plugins/scanners/javascript/build.ts')).buildPackage,
     swift: (await import('../plugins/scanners/swift/build.ts')).buildPackage,
   }
+  const buildIconPack = (await import('../plugins/icons/architecture/build.ts')).buildPackage
   await completeTogether([
-    ...Object.entries(builders).map(([id, build]) => build(path.join(output, id))),
+    ...Object.entries(scannerBuilders).map(([id, build]) => build(path.join(output, id))),
     run([process.execPath, 'scripts/package-csharp-scanner.ts', path.join(output, 'csharp')]),
+    buildIconPack(path.join(output, iconPackDirectory)),
   ])
   for (const id of scannerIds) {
     const directory = path.join(output, id)
@@ -96,13 +113,13 @@ async function prepareWorkers(directory: string, relative: string, worker: strin
 
 /** Wait for the exact uploaded version; the catalog shares one deadline across its packages. */
 export async function waitForPublishedScanner(staged: { name: string; version: string }, deadline: number, registry?: string) {
-  let published = (await readPublishedScanners(staged.name, registry))[staged.version]
+  let published = (await readPublishedPlugins(staged.name, registry))[staged.version]
   while (!published) {
     const remaining = deadline - Date.now()
     if (remaining <= 0) throw new Error(`Timed out waiting for npm metadata for ${staged.name}@${staged.version}`)
     console.log(`Waiting for npm metadata for ${staged.name}@${staged.version}`)
     await Bun.sleep(Math.min(10_000, remaining))
-    published = (await readPublishedScanners(staged.name, registry))[staged.version]
+    published = (await readPublishedPlugins(staged.name, registry))[staged.version]
   }
   return published
 }
@@ -145,9 +162,18 @@ async function publish(input: string) {
       throw new Error(`${id}: confirm public names, versions and compatibility before publishing`)
     }
   }
-  await publishPackage(path.join(input, 'contract'))
-  await completeTogether(scannerIds.map(id => id === 'csharp'
-    ? publishCSharp(input) : publishPackage(path.join(input, id))))
+  const workSource = await manifest(path.join(input, 'work-source-backlog'))
+  if (workSource.private || !workSource.groma.workSource.compatibility.groma) {
+    throw new Error('backlog: confirm public name, version and compatibility before publishing')
+  }
+  const iconPack = await manifest(path.join(input, iconPackDirectory))
+  if (iconPack.private || !iconPack.groma?.icons?.icons) throw new Error('Icon pack requires public package metadata')
+  await completeTogether(['contract', 'work-source-contract'].map(id => publishPackage(path.join(input, id))))
+  await publishPackage(path.join(input, 'work-source-backlog'))
+  await completeTogether([
+    ...scannerIds.map(id => id === 'csharp' ? publishCSharp(input) : publishPackage(path.join(input, id))),
+    publishPackage(path.join(input, iconPackDirectory)),
+  ])
 }
 
 async function publishCSharp(input: string) {

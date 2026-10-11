@@ -11,6 +11,7 @@ import { createEmptyState } from './chrome/empty.ts'
 import { createMapDebugPanel } from './chrome/map-debug.ts'
 import { bindMapView } from './chrome/map-view.ts'
 import { bindC4Filter } from './chrome/c4-filter.ts'
+import { paintColourLegend } from './chrome/colour-legend.ts'
 import { animateControl, animateContent } from './chrome/motion.ts'
 import { measureFrame, type MapFrame } from './chrome/frame.ts'
 import { bindChromeActions, createWebShell, pageHosts } from './chrome/shell.ts'
@@ -460,6 +461,7 @@ function paintWorld(): void {
   authoring.refresh()
   pins.paint(currentPins.filter(pin => map.anchorOf(pin.elementId) !== undefined))
   island.paint(currentPins, work)
+  paintColourLegend(document.getElementById('colour-legend')!, world.elements)
   camera.paint()
   paintViewState()
   source.restore()

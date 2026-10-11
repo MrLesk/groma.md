@@ -1,35 +1,49 @@
-export interface ScannerSetting {
+/** What a settings row shows for a plugin of any kind. */
+interface PluginSettingFields {
   id: string
   name: string
+  /** The selection saved in plugins.json. A recommendation that is not selected yet has `installSource` instead. */
   source?: string
+  installSource?: string
   version?: string
   official: boolean
+  status: 'ready' | 'unchecked' | 'blocked' | 'missing' | 'available'
+  message: string
+}
+/** A scanner row adds what project detection found for the scanner's technologies. */
+export interface ScannerSetting extends PluginSettingFields {
+  kind: 'scanner'
   technologies: string[]
   matches: string[]
   match: 'matched' | 'none' | 'unknown'
-  status: 'ready' | 'unchecked' | 'blocked' | 'missing' | 'available'
-  message: string
-  installSource?: string
 }
-export interface ScannerSettings {
-  scanners: ScannerSetting[]
+export interface WorkSourceSetting extends PluginSettingFields {
+  kind: 'workSource'
+}
+export interface IconPackSetting extends PluginSettingFields {
+  kind: 'icons'
+}
+/** One row of the plugin settings list; `kind` tells which fields the row has. */
+export type PluginSetting = ScannerSetting | WorkSourceSetting | IconPackSetting
+export interface PluginSettings {
+  plugins: PluginSetting[]
   notice: { tone: 'neutral' | 'hint' | 'warning' | 'error'; message: string }
   limits: string[]
   upgrades?: Record<string, { version?: string; error?: string }>
 }
-export type ScannerSettingsAction =
+export type PluginSettingsAction =
   | { action: 'add'; source: string }
   | { action: 'install' | 'restore' | 'remove'; id: string }
   | { action: 'update'; id: string; source?: string }
   | { action: 'retry' | 'install-recommended' | 'install-missing' }
 
 /** An offered update belongs to the exact source that was checked. */
-export function scannerUpgradeAction(scanner: ScannerSetting, upgrades: ScannerSettings['upgrades']): ScannerSettingsAction | undefined {
-  const version = scanner.source ? upgrades?.[scanner.source]?.version : undefined
-  return version ? { action: 'update', id: scanner.id, source: `${scanner.name}@${version}` } : undefined
+export function pluginUpgradeAction(plugin: PluginSetting, upgrades: PluginSettings['upgrades']): PluginSettingsAction | undefined {
+  const version = plugin.source ? upgrades?.[plugin.source]?.version : undefined
+  return version ? { action: 'update', id: plugin.id, source: `${plugin.name}@${version}` } : undefined
 }
 
-export function scannerNotice(scanners: readonly ScannerSetting[], limits: readonly string[]): ScannerSettings['notice'] {
+export function scannerNotice(scanners: readonly ScannerSetting[], limits: readonly string[]): PluginSettings['notice'] {
   if (scanners.some(scanner => scanner.status === 'blocked')) return { tone: 'error', message: 'A scanner needs attention. Saved architecture is available.' }
   const matched = scanners.filter(scanner => scanner.match === 'matched')
   const useful = matched.filter(scanner => scanner.status === 'ready' || scanner.status === 'unchecked')
@@ -42,28 +56,32 @@ export function scannerNotice(scanners: readonly ScannerSetting[], limits: reado
   return { tone: 'neutral', message: matched.length ? '' : 'No source project detected. Showing saved architecture.' }
 }
 
-export function scannerSettingLabel(scanner: ScannerSetting): string {
-  if (scanner.status === 'blocked') return scanner.message
-  if (scanner.match === 'none' && scanner.status !== 'missing') return 'No matching project files'
-  return { ready: '', unchecked: '', missing: 'Package missing', available: 'Not installed' }[scanner.status]
+export function pluginSettingLabel(plugin: PluginSetting): string {
+  if (plugin.status === 'blocked') return plugin.message
+  if (plugin.kind !== 'scanner') return plugin.message
+  if (plugin.match === 'none' && plugin.status !== 'missing') return 'No matching project files'
+  return { ready: '', unchecked: '', missing: 'Package missing', available: 'Not installed' }[plugin.status]
 }
 
 /** Project selection and local package availability are different responsibilities. */
-export function scannerGroups(scanners: readonly ScannerSetting[], query = '') {
+export function pluginGroups(plugins: readonly PluginSetting[], query = ''): { title: string; plugins: PluginSetting[] }[] {
   const search = query.trim().toLocaleLowerCase()
-  const matching = scanners.filter(scanner => [scanner.id, scanner.name, scanner.source ?? '', ...scanner.technologies]
+  const matching = plugins.filter(plugin => [plugin.id, plugin.name, plugin.source ?? '', ...(plugin.kind === 'scanner' ? plugin.technologies : [])]
     .some(value => value.toLocaleLowerCase().includes(search)))
+  const scanners = matching.filter(plugin => plugin.kind === 'scanner')
   return [
-    { title: 'Installed', scanners: matching.filter(scanner => scanner.source && scanner.status !== 'missing') },
-    { title: 'Missing on this computer', scanners: matching.filter(scanner => scanner.source && scanner.status === 'missing') },
-    { title: 'Recommended', scanners: matching.filter(scanner => !scanner.source) },
-  ].filter(group => group.scanners.length)
+    { title: 'Scanners · Installed', plugins: scanners.filter(scanner => scanner.source && scanner.status !== 'missing') },
+    { title: 'Scanners · Missing on this computer', plugins: scanners.filter(scanner => scanner.source && scanner.status === 'missing') },
+    { title: 'Scanners · Recommended', plugins: scanners.filter(scanner => !scanner.source) },
+    { title: 'Icon packs', plugins: matching.filter(plugin => plugin.kind === 'icons') },
+    { title: 'Work sources', plugins: matching.filter(plugin => plugin.kind === 'workSource') },
+  ].filter(group => group.plugins.length)
 }
 
-export function scannerSettingAction(scanner: ScannerSetting): ScannerSettingsAction | undefined {
-  if (scanner.source && scanner.status === 'blocked') return { action: 'retry' }
-  if (scanner.source) return scanner.status === 'missing' ? { action: 'restore', id: scanner.id } : undefined
-  return scanner.installSource ? { action: 'install', id: scanner.id } : undefined
+export function pluginSettingAction(plugin: PluginSetting): PluginSettingsAction | undefined {
+  if (plugin.source && plugin.status === 'blocked') return { action: 'retry' }
+  if (plugin.source) return plugin.status === 'missing' ? { action: 'restore', id: plugin.id } : undefined
+  return plugin.installSource ? { action: 'install', id: plugin.id } : undefined
 }
 
 export function scannerMatchReason(scanner: ScannerSetting): string {

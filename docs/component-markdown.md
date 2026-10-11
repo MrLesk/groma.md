@@ -166,6 +166,8 @@ groma.md-only fields live together under `groma`:
 | `draft` | no | ID of the draft record this concept belongs to or that touches it. |
 | `group` | no | Readable name of a hand-authored sibling cluster. |
 | `technology` | no | Free text naming implementation technology, comma-separated. |
+| `icon` | no | An installed icon name (optionally `pack-id:name`) or one emoji. |
+| `colour` | no | Theme-independent accent: red, orange, amber, yellow, green, teal, cyan, blue, indigo, violet, purple, pink, brown, grey, or `#RRGGBB`. |
 | `criticality` | no | Human judgment: `low`, `normal`, `high`, or `critical`. Inherits from the parent when omitted. |
 | `code` | no | Scanner-produced source evidence. |
 
@@ -476,3 +478,16 @@ TypeScript, NestJS, and PostgreSQL.
 
 The live [groma.md system](../groma/systems/groma/system.md) and
 [MVP draft](../groma/drafts/mvp.md) are a complete package example.
+
+## Element appearance
+
+`groma edit <id> --icon <name> --colour <name>` and the web details form
+set the optional `groma.icon` and `groma.colour` fields. Empty values remove
+them. Scans preserve both fields. These are Groma presentation semantics on
+the existing C4 element, not C4 types or OKF requirements.
+
+A colour name and its `#RRGGBB` value are the same colour. `groma edit
+--combine` refuses to absorb a record that has an icon or a colour, as it does
+for a group or technology. A revision comparison reports a changed icon or
+colour as a modification of its component.
+See [icon packs and colours](icons.md) for drawing, installation and publishing.

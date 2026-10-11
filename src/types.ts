@@ -98,6 +98,8 @@ export interface ArchitectureElement {
   external: boolean
   group?: string
   technology?: string
+  icon?: string
+  colour?: string
   /** The level written on this element; absent while it inherits. `criticalityOf` resolves the effective level. */
   declaredCriticality?: Criticality
   code: CodeReference[]
@@ -134,6 +136,9 @@ export interface ArchitectureModel {
   relationships: ArchitectureRelationship[]
 }
 
+/** How a viewer draws an element's icon: an installed pack's SVG as a data URI, or an emoji as text. */
+export type ResolvedIcon = { kind: 'image'; uri: string } | { kind: 'emoji'; text: string }
+
 export interface AnnotatedElement {
   representationId: string
   id: string
@@ -146,6 +151,10 @@ export interface AnnotatedElement {
   external: boolean
   group?: string
   technology?: string
+  icon?: string
+  colour?: string
+  /** `icon` as the icon loader resolved it; absent for an unknown name, and never stored in Markdown. */
+  resolvedIcon?: ResolvedIcon
   /** The effective level after inheritance; absent only in hand-built worlds, which read as normal. */
   criticality?: Criticality
   /** The level written on this element itself, for editing and comparison; absent while it inherits. */

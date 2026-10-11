@@ -1,6 +1,7 @@
 import { realpath, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 
+import backlogAdapter from '../plugins/work-sources/backlog/package.json' with { type: 'json' }
 import { loadArchitecture } from './architecture-reader.ts'
 import { createClackInitUi } from './init-command-ui.ts'
 import {
@@ -13,6 +14,8 @@ import {
 import { formatScanSummary, scanRepository } from './scanner.ts'
 import { NOT_INITIALIZED, type GromaDirectory } from './groma-filesystem.ts'
 import { c4Kind } from './okf-profile.ts'
+import { addPlugin } from './plugin-management.ts'
+import { readPluginConfig } from './scanner/modules/config.ts'
 import { setupScanners, type ScannerSetupUi } from './scanner/modules/setup.ts'
 
 export type PackageInstaller = 'brew' | 'bun' | 'npm'
@@ -28,10 +31,10 @@ export interface InitCommandInput {
 
 export interface InitCommandUi extends ScannerSetupUi {
   cancel(message: string): void
-  confirmBacklogInstall(): Promise<boolean | undefined>
   confirmInit(): Promise<boolean | undefined>
   confirmOpenWeb(): Promise<boolean | undefined>
   confirmScan(): Promise<boolean | undefined>
+  confirmUseBacklog(): Promise<boolean | undefined>
   directory(): Promise<GromaDirectory | undefined>
   error(message: string): void
   install(message: string, operation: () => Promise<boolean>): Promise<boolean>
@@ -56,6 +59,8 @@ export interface InitCommandDependencies extends RepositoryInitDependencies {
   install(installer: PackageInstaller): Promise<boolean>
   output(message: string): void
   scan(repositoryRoot: string): ReturnType<typeof scanRepository>
+  /** Adds the Backlog.md adapter to plugins.json; false when its package cannot be found or installed. */
+  selectBacklog(repositoryRoot: string): Promise<boolean>
   setupScanners: typeof setupScanners
   ui: InitCommandUi
 }
@@ -65,7 +70,13 @@ export interface InitCommandActions {
 }
 
 export interface RepositoryInitResult extends GromaInitResult {
-  backlog: 'initialized' | 'unchanged' | 'unavailable' | 'failed'
+  /**
+   * What became of Backlog.md, which is set up only for a project whose plugins.json selects its adapter:
+   * - `unselected`: the project selects no work source, or another one;
+   * - `unavailable`: the adapter is selected but the `backlog` CLI is not installed;
+   * - `unchanged`, `initialized` or `failed`: the adapter is selected and the CLI was asked.
+   */
+  backlog: 'unselected' | 'unavailable' | 'unchanged' | 'initialized' | 'failed'
 }
 
 class InitializationCancelled extends Error {}
@@ -174,6 +185,15 @@ async function initializeGit(repositoryRoot: string): Promise<boolean> {
   }
 }
 
+async function selectBacklog(repositoryRoot: string): Promise<boolean> {
+  try {
+    await addPlugin(repositoryRoot, backlogAdapter.name)
+    return true
+  } catch {
+    return false
+  }
+}
+
 const defaultDependencies: InitCommandDependencies = {
   backlogAvailable: () => Bun.which('backlog') !== null,
   backlogInitialized,
@@ -185,6 +205,7 @@ const defaultDependencies: InitCommandDependencies = {
   install: installBacklog,
   output: message => console.log(message),
   scan: scanRepository,
+  selectBacklog,
   setupScanners,
   ui: clackUi,
 }
@@ -209,11 +230,14 @@ async function ensureGit(
   throw new Error('Could not initialize Git. Groma setup cannot continue.')
 }
 
-async function initializeAvailableBacklog(
+/** Runs `backlog init` only for a project that selects the Backlog.md adapter; another work source is left alone. */
+async function initializeSelectedBacklog(
   repositoryRoot: string,
   projectName: string,
   dependencies: RepositoryInitDependencies,
 ): Promise<RepositoryInitResult['backlog']> {
+  const config = await readPluginConfig(repositoryRoot)
+  if (!config.workSources.some(work => work.id === backlogAdapter.groma.workSource.id)) return 'unselected'
   if (!dependencies.backlogAvailable()) return 'unavailable'
   if (await dependencies.backlogInitialized(repositoryRoot)) return 'unchanged'
   return await dependencies.initializeBacklog(repositoryRoot, projectName)
@@ -231,11 +255,7 @@ export async function initializeRepository(
   const dependencies = { ...defaultDependencies, ...overrides }
   await ensureGit(repositoryRoot, dependencies)
   const groma = await initializeGroma(repositoryRoot, input, prompts)
-  const backlog = await initializeAvailableBacklog(
-    repositoryRoot,
-    groma.projectName,
-    dependencies,
-  )
+  const backlog = await initializeSelectedBacklog(repositoryRoot, groma.projectName, dependencies)
   return { ...groma, backlog }
 }
 
@@ -247,40 +267,46 @@ function commandReminder(ui: InitCommandUi): void {
   ui.note('Run groma web for the browser map.', 'Open Groma later')
 }
 
+/**
+ * Asks whether the project uses Backlog.md. On yes it selects the adapter and then installs the CLI when missing,
+ * in that order, so a failed selection leaves nothing installed behind. True when Backlog.md is ready to initialize.
+ */
+async function chooseBacklog(repositoryRoot: string, dependencies: InitCommandDependencies): Promise<boolean> {
+  const ui = dependencies.ui
+  // plugins.json holds one work source at most, so a project that already selects another is not offered Backlog.md.
+  if ((await readPluginConfig(repositoryRoot)).workSources.length) return false
+  const wanted = await ui.confirmUseBacklog()
+  if (wanted === undefined) cancelled()
+  if (!wanted) return false
+  if (!await dependencies.selectBacklog(repositoryRoot)) {
+    ui.error('Could not select the Backlog.md work source. Groma setup will continue.')
+    return false
+  }
+  if (dependencies.backlogAvailable()) return true
+  const installer = inferPackageInstaller(await dependencies.executablePath()) ?? await ui.installer()
+  if (installer === undefined) cancelled()
+  if (await ui.install(`Installing Backlog.md with ${installer}`, () => dependencies.install(installer))) return true
+  ui.error(`Could not run ${installationCommand(installer).join(' ')}. Groma setup will continue.`)
+  return false
+}
+
+/** The wizard's Backlog.md step: offers it to a project without a work source and reports what did not work. */
 async function offerBacklog(
   repositoryRoot: string,
   projectName: string,
   status: RepositoryInitResult['backlog'],
   dependencies: InitCommandDependencies,
 ): Promise<void> {
-  if (status === 'initialized' || status === 'unchanged') return
-  if (status === 'failed') {
-    dependencies.ui.error(
-      'Could not initialize Backlog.md. Groma setup will continue.',
-    )
-    return
+  let outcome = status
+  if (status === 'unselected') {
+    if (!await chooseBacklog(repositoryRoot, dependencies)) return
+    outcome = await initializeSelectedBacklog(repositoryRoot, projectName, dependencies)
   }
-  const wanted = await dependencies.ui.confirmBacklogInstall()
-  if (wanted === undefined) cancelled()
-  if (!wanted) return
-  const inferred = inferPackageInstaller(await dependencies.executablePath())
-  const installer = inferred ?? await dependencies.ui.installer()
-  if (installer === undefined) cancelled()
-  const command = installationCommand(installer)
-  const installed = await dependencies.ui.install(
-    `Installing Backlog.md with ${installer}`,
-    () => dependencies.install(installer),
-  )
-  if (!installed) {
-    dependencies.ui.error(
-      `Could not run ${command.join(' ')}. Groma setup will continue.`,
-    )
-    return
+  if (outcome === 'unavailable') {
+    dependencies.ui.error('Backlog.md is selected but its CLI is not installed, so it was not initialized. Groma setup will continue.')
   }
-  if (!await dependencies.initializeBacklog(repositoryRoot, projectName)) {
-    dependencies.ui.error(
-      'Could not initialize Backlog.md. Groma setup will continue.',
-    )
+  if (outcome === 'failed') {
+    dependencies.ui.error('Could not initialize Backlog.md. Groma setup will continue.')
   }
 }
 

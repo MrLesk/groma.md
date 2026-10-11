@@ -1,7 +1,7 @@
-# Publish official scanners
+# Publish official scanners and work sources
 
-Official scanners and the author contract remain in this repository. The shared
-release workflow stages runnable packages, publishes them to npm, and then
+Official scanners, the Backlog work-source adapter and their contracts remain
+in this repository. The shared release workflow stages runnable packages, publishes them to npm, and then
 builds groma.md with the exact published discovery metadata. The package manifests
 own names, versions, detection rules and groma.md API requirements. Changed packages require new
 versions; npm versions cannot be replaced. The workflow reuses exact versions
@@ -10,8 +10,9 @@ contents changed before starting a release.
 
 Repository validation and the five platform scanner builds start together.
 Each platform builds its independent scanners concurrently. Scanner publication
-waits for validation and every platform build to succeed. The contract publishes
-first, then the scanner packages publish concurrently. C# publishes its platform
+waits for validation and every platform build to succeed. Both contracts publish
+first. The Backlog work-source adapter publishes next, then the scanner packages
+publish concurrently. C# publishes its platform
 runtime packages before its adapter. Each concurrent group
 finishes all started work before reporting any failures or advancing.
 
@@ -27,7 +28,12 @@ the shared workflow for both scanner packages and the main groma.md CLI.
 To release changed scanners without a new groma.md version, run the same workflow
 manually with `publish_scanners` enabled. Leave it disabled for a build-only run.
 
-The author contract is `@groma/scanner`. Official packages use
+The scanner author contract is `@groma/scanner`. The Backlog adapter is
+`@groma/work-source-backlog` and declares an exact dependency on
+`@groma/work-source`. Its release includes TypeScript source and the license,
+and declares the minimum host version in `groma.workSource.compatibility.groma`.
+The adapter calls the separately installed Backlog.md CLI; it does not bundle it.
+Official scanner packages use
 `@groma/scanner-<id>`; the main CLI remains `groma.md`. Scanner manifests declare
 their minimum groma.md API version in `groma.scanner.discovery.compatibility.groma`,
 currently `>=0.3.0`. Newer stable groma.md versions remain eligible. Raise the minimum
@@ -63,7 +69,9 @@ dotnet restore plugins/scanners/csharp/dotnet/Groma.CSharpScanner.csproj --locke
 bun scripts/scanner-release.ts stage /tmp/scanner-packages
 ```
 
-This stages the contract and all official scanner packages without publishing them.
+This stages both contracts, all official scanner packages and the Backlog
+work-source adapter without publishing them. The platform-independent work-source
+packages are included in every host artifact and retained during assembly.
 Maintainer builds may download scanner build dependencies and runtime packs.
 Use these folders with `groma scanner add` for focused local validation. For a
 multi-platform release, collect the staged host directories, then assemble them:
@@ -85,7 +93,8 @@ request approval in the browser. Then configure trusted publishing once for each
 npm trust github @groma/scanner --repository MrLesk/groma.md --file release.yml --allow-publish
 ```
 
-Repeat the command with each `@groma/scanner-<id>` name and each
+Repeat the command with `@groma/work-source`, `@groma/work-source-backlog`,
+each `@groma/scanner-<id>` name and each
 `@groma/scanner-csharp-<platform>-<architecture>` runtime package. The package must already
 exist, and npm requests two-factor approval for the trust change. Later GitHub
 releases use the same workflow and publish automatically.
@@ -96,7 +105,8 @@ bun scripts/scanner-release.ts publish /tmp/scanner-release
 ```
 
 The command refuses private or incomplete scanner release metadata. It publishes
-the contract first, followed by the scanners concurrently. After successful publication,
+both contracts first, then the Backlog work-source adapter, followed by the
+scanners concurrently. After successful publication,
 the workflow installs their metadata into the build checkout before compiling:
 
 ```sh
@@ -133,3 +143,7 @@ home and only Git on PATH, checks useful local facts, repeats the scan and
 compares source bytes. The JavaScript harness rejects network fetches.
 This is evidence for the exercised host, not a claim of testing every target.
 See [fresh-checkout validation](fresh-checkout-validation.md).
+
+The release also stages and publishes the platform-independent
+`@groma/icons-architecture` pack. See [icon packs](../icons.md) for its manifest,
+assets, and third-party publishing contract.

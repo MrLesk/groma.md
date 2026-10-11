@@ -63,7 +63,8 @@ function changedText(className: string, before: string | undefined, after: strin
 
 const fields = [
   ['title', 'name', 'what'], ['technology', 'technology', 'how'], ['parent', 'parent', 'what'],
-  ['declaredCriticality', 'criticality', 'what'], ['group', 'group', 'what'], ['origin', 'status', 'what'], ['draft', 'draft', 'what'],
+  ['declaredCriticality', 'criticality', 'what'], ['group', 'group', 'what'], ['icon', 'icon', 'what'], ['colour', 'colour', 'what'],
+  ['origin', 'status', 'what'], ['draft', 'draft', 'what'],
 ] as const
 
 export function componentReasons(change: ComponentChange | undefined) {
@@ -135,6 +136,8 @@ export function comparisonOverview(body: Element, change: ComponentChange, world
   changedField(body, 'Parent', parentName(before.parent), parentName(after.parent))
   changedField(body, 'Criticality', before.declaredCriticality ?? 'Inherit', after.declaredCriticality ?? 'Inherit')
   changedField(body, 'Group', before.group, after.group)
+  changedField(body, 'Icon', before.icon, after.icon)
+  changedField(body, 'Colour', before.colour, after.colour)
   changedField(body, 'Status', before.origin, after.origin)
   changedField(body, 'Draft', before.draft, after.draft)
 }

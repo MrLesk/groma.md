@@ -5,6 +5,7 @@ import { architectureFindingsFor } from './architecture-findings.ts'
 import { buildArchitectureModel, draftRecordOf } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { criticalityOf } from './criticality.ts'
+import { attachElementIcons } from './icon-packs.ts'
 import { moveBlocker } from './movable.ts'
 import { resolveFlows } from './flow-model.ts'
 import type {
@@ -81,6 +82,8 @@ export function annotateArchitecture(
     external: element.external,
     ...(element.group === undefined ? {} : { group: element.group }),
     ...(element.technology === undefined ? {} : { technology: element.technology }),
+    ...(element.icon === undefined ? {} : { icon: element.icon }),
+    ...(element.colour === undefined ? {} : { colour: element.colour }),
     criticality: criticalityOf(element, byId),
     ...(element.declaredCriticality === undefined ? {} : { declaredCriticality: element.declaredCriticality }),
     code: element.code.map(reference => ({ ...reference, ...(counts.get(reference.file) ?? { dependencies: 0, dependents: 0 }) })),
@@ -141,7 +144,7 @@ export async function loadAnnotatedArchitecture(
   options: { onFilesystemAccess?: FilesystemAccessHandler } = {},
 ): Promise<AnnotatedArchitectureModel> {
   const model = annotateArchitecture(await loadArchitecture(repositoryRoot, options))
-  await attachCodeLines(repositoryRoot, model.elements)
+  await Promise.all([attachCodeLines(repositoryRoot, model.elements), attachElementIcons(repositoryRoot, model.elements)])
   const findings = architectureFindingsFor(repositoryRoot)
   return findings.length === 0 ? model : { ...model, findings }
 }

@@ -42,10 +42,10 @@ output, such as `jquery-ui.min.js`, and `node_modules`, `dist`, `build` and
 lists select.
 
 A bundle under an ordinary name, such as `vendor.js`, is read like any other
-source; a project that keeps it out adds a pattern to `scanners.json`.
+source; a project that keeps it out adds a pattern to `plugins.json`.
 
 Test sources are treated like any other JavaScript source: the defaults name
-none, so a project that keeps them out adds a pattern to `scanners.json`.
+none, so a project that keeps them out adds a pattern to `plugins.json`.
 
 TypeScript sources belong to the [TypeScript scanner](../typescript/index.md)
 and single-file components to the [Vue scanner](../vue/index.md). This scanner

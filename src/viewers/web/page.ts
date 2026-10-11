@@ -3,7 +3,7 @@ import { floatingBarCss } from './atoms/floating-bar.ts'
 import { settingsControl, settingsCss } from './settings/control.ts'
 import { settingsDialogCss } from './atoms/settings-dialog.ts'
 import { duplicatesCss } from './duplicates/view.ts'
-import { scannerSettingsCss } from './scanners/settings.ts'
+import { pluginSettingsCss } from './scanners/settings.ts'
 import { projectReviewControl, projectReviewCss } from './review/control.ts'
 import { readFileSync } from 'node:fs'
 
@@ -17,6 +17,7 @@ import { anchoredPopoverCss } from './atoms/popover.ts'
 import { kindGlyph, kindLabel } from '../atoms/kind.ts'
 import { cssBlock, palettes, themeLabel, themeModes, webFontFamily, type WebThemeMode } from './atoms/theme.ts'
 import { addDialogCss } from './chrome/add.ts'
+import { colourLegendCss } from './chrome/colour-legend.ts'
 import { creditsControl, creditsCss } from './chrome/credits.ts'
 import { editorCss } from './editing/gestures.ts'
 import { emptyState, emptyStateCss } from './chrome/empty.ts'
@@ -27,6 +28,7 @@ import { motionCss } from './chrome/motion.ts'
 import { detailsPanelCss } from './chrome/shell.ts'
 import { flowRowCss } from './flow/row.ts'
 import { mapCss } from './iso/painting/style.ts'
+import { elementTitleCss } from './organisms/details.ts'
 import { editableCss } from './organisms/editable.ts'
 import { removeCss } from './organisms/remove.ts'
 import { relationshipCardCss } from './organisms/relationship-card.ts'
@@ -74,7 +76,7 @@ const legendKinds: C4Kind[][] = [
 
 const style = `
   ${fontCss}
-  ${scannerSettingsCss}${duplicatesCss}${projectReviewCss}${settingsCss}${settingsDialogCss}
+  ${pluginSettingsCss}${duplicatesCss}${projectReviewCss}${settingsCss}${settingsDialogCss}
   :root {
     ${cssBlock(palettes.light)}
     --backlog-mark-image: url("data:image/png;base64,${backlogMark}");
@@ -385,7 +387,7 @@ const style = `
 ${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
 ${emptyStateCss}
 ${addDialogCss}${editorCss}
-${relationshipCardCss}${removeCss}${editableCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}`
+${relationshipCardCss}${removeCss}${editableCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}${colourLegendCss}${elementTitleCss}`
 
 function legend(): string {
   return legendKinds.map(line => {
@@ -461,7 +463,7 @@ export function renderPage(payload: WebBootPayload, url?: URL): string {
     + searchControl({ search: searchIcon, close: closeIcon })
     + `<div class="header-actions">${projectReviewControl}<div id="map-controls" class="controls" aria-label="Map controls"><button id="fit" aria-label="Fit map">${fitIcon}<span>Fit</span></button><button id="zoom-out" aria-label="Zoom out"><span class="control-glyph">−</span></button><span id="zoom" aria-live="polite"></span><button id="zoom-in" aria-label="Zoom in"><span class="control-glyph">+</span></button></div><div class="header-utilities">${settingsControl(themeControl())}${helpControl()}${creditsControl(infoIcon, lockup)}</div></div>`
     + '</header>'
-    + `<nav id="hierarchy" aria-label="Hierarchy"><div id="hierarchy-title"><span class="pane-label">Hierarchy</span>${payload.delivery.kind === 'live' ? '<button id="add" type="button" aria-label="Add">+</button>' : ''}<button id="hierarchy-toggle" type="button" aria-controls="hierarchy-content">${hierarchyIcon}</button></div><div id="hierarchy-content"><div id="flows"></div><div id="tree"></div><div id="legend">${legend()}</div></div></nav>`
+    + `<nav id="hierarchy" aria-label="Hierarchy"><div id="hierarchy-title"><span class="pane-label">Hierarchy</span>${payload.delivery.kind === 'live' ? '<button id="add" type="button" aria-label="Add">+</button>' : ''}<button id="hierarchy-toggle" type="button" aria-controls="hierarchy-content">${hierarchyIcon}</button></div><div id="hierarchy-content"><div id="flows"></div><div id="tree"></div><div id="legend">${legend()}<aside id="colour-legend" aria-label="Architecture colours"></aside></div></div></nav>`
     + `<div id="map" role="tabpanel" aria-label="Architecture map"></div>${mapViewControl()}${c4FilterControl()}`
     + emptyState(payload)
     + `<div id="details-dock"><aside id="details" aria-label="Details"><div class="details-controls"><button id="details-expand" aria-label="Expand details" title="Expand details" aria-expanded="false">${expandIcon}${collapseIcon}</button><button id="details-close" aria-label="Close details">${closeIcon}</button></div><p class="meta"></p><h1></h1><nav class="controls tabs"></nav><div class="body"></div></aside></div>`

@@ -1,17 +1,17 @@
-import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
-import { backlogPlugin } from '@groma/work-source-backlog'
 import type { Command } from 'commander'
 import { architectureFindingItems, detectDuplicatedLogic } from './architecture-findings.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { criticalTaskFindings } from './criticality.ts'
+import { unknownIcons } from './icon-packs.ts'
 import { sourceIndex } from './source-index.ts'
 import { parseListWindow, printListPage, withListWindowOptions, type ListWindow } from './list-window.ts'
 import { loadScannerRegistry } from './scanner/registry.ts'
+import { workSourceSession } from './work-sources.ts'
 
 /**
- * Report tasks that change a critical component, and possible duplicate logic in current scanner evidence.
- * Saved architecture stays unchanged.
+ * Report tasks that change a critical component, possible duplicate logic in current scanner evidence, and icon
+ * names no installed pack resolves. Saved architecture stays unchanged.
  */
 async function lintArchitecture(repositoryRoot: string, window: ListWindow): Promise<number> {
   const records = await loadArchitecture(repositoryRoot)
@@ -19,20 +19,21 @@ async function lintArchitecture(repositoryRoot: string, window: ListWindow): Pro
   const owners = sourceIndex(model.elements).byFile
   const registry = await loadScannerRegistry(repositoryRoot)
   const { observations, failures } = await registry.collectObservations(repositoryRoot)
-  // A repository without a Backlog.md project, or without the CLI, has no tasks to check.
-  const work = await backlogPlugin.create(repositoryRoot).read().catch(() => EMPTY_WORK_SNAPSHOT)
+  // Tasks come from the work source that plugins.json selects; with none selected or ready there are no tasks.
+  const work = await (await workSourceSession(repositoryRoot)).read()
   const findings = [...criticalTaskFindings(model.elements, work), ...detectDuplicatedLogic(observations, owners)]
-  printListPage(architectureFindingItems(findings), window)
+  const icons = await unknownIcons(repositoryRoot, model.elements)
+  printListPage([...architectureFindingItems(findings), ...icons], window)
   for (const failure of failures) console.error(failure.message)
-  if (!window.count && findings.length === 0 && failures.length === 0) {
-    console.log('No task changes a critical component. No duplicate findings in available scanner evidence.')
+  if (!window.count && findings.length === 0 && icons.length === 0 && failures.length === 0) {
+    console.log('No task changes a critical component. No duplicate findings in available scanner evidence. No unknown icon names.')
   }
-  return findings.length > 0 || failures.length > 0 ? 1 : 0
+  return findings.length > 0 || icons.length > 0 || failures.length > 0 ? 1 : 0
 }
 
 export function registerLintCommand(program: Command): void {
   withListWindowOptions(program.command('lint')
-    .description('Report critical task changes and possible duplicate logic'))
+    .description('Report architecture issues (critical task changes, possible duplicate logic and unknown icon names)'))
     .action(async options => {
       try {
         process.exitCode = await lintArchitecture(process.cwd(), parseListWindow(options, process.argv.slice(2)))

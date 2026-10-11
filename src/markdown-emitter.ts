@@ -19,6 +19,8 @@ export interface MeaningChanges {
   overview?: string
   description?: string
   technology?: string
+  icon?: string
+  colour?: string
   criticality?: string
   draft?: string
 }
@@ -29,6 +31,8 @@ export function withMeaning(source: string, input: MeaningChanges): string {
   if (input.overview !== undefined) source = replaceLeadProse(source, input.overview)
   source = withDescription(source, input.description)
   if (input.technology !== undefined) source = withGromaField(source, 'technology', input.technology || undefined)
+  if (input.icon !== undefined) source = withGromaField(source, 'icon', input.icon || undefined)
+  if (input.colour !== undefined) source = withGromaField(source, 'colour', input.colour || undefined)
   if (input.criticality !== undefined) source = withGromaField(source, 'criticality', input.criticality || undefined)
   if (input.draft !== undefined) source = withGromaField(source, 'draft', input.draft || undefined)
   return source
@@ -77,7 +81,7 @@ export function withGromaCode(source: string, code: CodeReference[]): string {
 
 export function withGromaField(
   source: string,
-  field: 'id' | 'group' | 'parent' | 'draft' | 'technology' | 'criticality',
+  field: 'id' | 'group' | 'parent' | 'draft' | 'technology' | 'icon' | 'colour' | 'criticality',
   value: string | undefined,
 ): string {
   return withGromaChange(source, groma => {

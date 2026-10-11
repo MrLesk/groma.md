@@ -1,4 +1,4 @@
-import type { ScannerSettings } from '../../scanner/modules/settings-model.ts'
+import type { PluginSettings } from '../../scanner/modules/settings-model.ts'
 import type { ProjectProfile } from '../../project-profile.ts'
 import type { SheetScene } from '../../sheet/types.ts'
 import type { AnnotatedArchitectureModel, WorkSnapshot } from '../../types.ts'
@@ -6,7 +6,7 @@ import type { GromaRevision } from '../../history/revisions.ts'
 
 /** Architecture meaning plus Core's composed sheet, used as input to the terminal layout. */
 export interface TerminalViewModel extends AnnotatedArchitectureModel {
-  scanners?: ScannerSettings
+  pluginSettings?: PluginSettings
   sheet: SheetScene
   /** groma/project.md, shown read-only under p. */
   project?: ProjectProfile

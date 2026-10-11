@@ -7,7 +7,7 @@ import { ROOF_SHADOW, centredRect } from '../src/sheet/grid.ts'
 import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, PLANE, buildingFont, curved, roofBlock, textPadding, textWidth } from '../src/sheet/measure.ts'
 import { sheetScene } from '../src/sheet/scene.ts'
 import type { Building, RoutePoint, SheetScene } from '../src/sheet/types.ts'
-import type { Bounds, Point } from '../src/types.ts'
+import type { Bounds, Point, ResolvedIcon } from '../src/types.ts'
 import type { ProjectProfile } from '../src/project-profile.ts'
 import {
   fitCamera,
@@ -26,7 +26,7 @@ import {
 import type { ProjectedScene, ProjectionView } from '../src/viewers/web/iso/projection/project.ts'
 import { presentScene } from '../src/viewers/web/iso/view-motion/presentation.ts'
 import { NESTED_POSE, OVERHEAD_POSE } from '../src/viewers/web/iso/view-motion/orbit.ts'
-import { surfaceLabelLayout } from '../src/viewers/web/iso/painting/text.ts'
+import { surfaceLabel, surfaceLabelLayout } from '../src/viewers/web/iso/painting/text.ts'
 import { box, openclawFixtureRoot, repositoryRoot, viewerFixtureRoot, worldOf } from './helpers.ts'
 
 const profile = (title: string, overview: string): ProjectProfile => ({
@@ -318,6 +318,23 @@ function groundPoint(point: Point, view: ProjectionView): Point {
   }
 }
 
+const pictured: ResolvedIcon = { kind: 'image', uri: 'data:image/svg+xml;base64,PHN2Zy8+' }
+
+/** A label draws an icon exactly when it has one, inside its own selectable area. */
+function assertIconInside(painted: ReturnType<typeof surfaceLabel>, layout: ReturnType<typeof surfaceLabelLayout>, withIcon: boolean): void {
+  assert.ok(Array.isArray(painted.children))
+  const images = painted.children.filter(child => child.tag === 'image')
+  assert.equal(images.length, withIcon ? 1 : 0)
+  for (const image of images) {
+    const iconX = Number(image.attributes.x)
+    const iconY = Number(image.attributes.y)
+    assert.ok(iconX >= layout.x && iconX + Number(image.attributes.width) <= layout.x + layout.width,
+      'icon fits inside the selectable title width')
+    assert.ok(iconY >= layout.leader && iconY + Number(image.attributes.height) <= layout.height,
+      'icon fits inside the reserved title height')
+  }
+}
+
 for (const mode of ['iso', '2d'] as const) {
   test.concurrent(`${mode} external labels clear their surfaces and roofs and fit the camera`, async () => {
     const world = await loadAnnotatedArchitecture(`${repositoryRoot}/test/fixtures/plain-view`)
@@ -341,9 +358,12 @@ for (const mode of ['iso', '2d'] as const) {
       .map(face => screenBox(face.points.map(point => groundPoint(point, scene.view))))))
     for (const viewport of [{ width: 1200, height: 400 }, { width: 400, height: 1200 }]) {
       const camera = fitCamera(scene.bounds, viewport)
-      for (const zoom of [camera.k / 2, camera.k, camera.k * 2, 4]) {
+      // Every label is checked without an icon and with one, which shares the label's band with the name.
+      const cases = [camera.k / 2, camera.k, camera.k * 2, 4].flatMap(zoom => [{ zoom, withIcon: false }, { zoom, withIcon: true }])
+      for (const { zoom, withIcon } of cases) {
         const fitted = surfaces.map(({ rect, text, size }) => {
-          const layout = surfaceLabelLayout(text, size, zoom, scene.view)
+          const layout = surfaceLabelLayout(text, size, zoom, scene.view, withIcon)
+          assertIconInside(surfaceLabel(text, size, scene.view, 0, zoom, withIcon ? pictured : undefined), layout, withIcon)
           const origin = groundPoint(text.origin, scene.view)
           const label = {
             x: origin.x + layout.x / PLANE, y: origin.y,

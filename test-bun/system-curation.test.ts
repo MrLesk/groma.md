@@ -131,6 +131,19 @@ test.concurrent('an external system is no destination, and a container needs a s
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('a record with an authored icon or colour is not absorbed by a combine', async () => {
+  const root = await repository()
+  try {
+    // `a` and `b` are sibling components; the combine would delete b's document and its appearance with it.
+    for (const appearance of [{ icon: '📦', colour: '' }, { icon: '', colour: 'blue' }]) {
+      await editArchitecture(root, { id: 'b', ...appearance })
+      const before = await loadAnnotatedArchitecture(root)
+      await expect(editArchitecture(root, { id: 'a', combine: ['b'] })).rejects.toThrow('authored metadata')
+      expect((await loadAnnotatedArchitecture(root)).elements).toEqual(before.elements)
+    }
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('an authored concept row naming a moved or absorbed record refuses the change and writes nothing', async () => {
   const root = await repository()
   try {
