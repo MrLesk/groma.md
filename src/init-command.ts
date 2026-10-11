@@ -30,10 +30,10 @@ export interface InitCommandInput {
 
 export interface InitCommandUi extends ScannerSetupUi {
   cancel(message: string): void
-  confirmBacklogInstall(): Promise<boolean | undefined>
   confirmInit(): Promise<boolean | undefined>
   confirmOpenWeb(): Promise<boolean | undefined>
   confirmScan(): Promise<boolean | undefined>
+  confirmUseBacklog(): Promise<boolean | undefined>
   directory(): Promise<GromaDirectory | undefined>
   error(message: string): void
   install(message: string, operation: () => Promise<boolean>): Promise<boolean>
@@ -257,14 +257,14 @@ async function offerBacklog(
   dependencies: InitCommandDependencies,
 ): Promise<void> {
   if (status === 'initialized' || status === 'unchanged') return
-  if ((await readScannerConfig(repositoryRoot)).workSources?.length) return
   if (status === 'failed') {
     dependencies.ui.error(
       'Could not initialize Backlog.md. Groma setup will continue.',
     )
     return
   }
-  const wanted = await dependencies.ui.confirmBacklogInstall()
+  if ((await readScannerConfig(repositoryRoot)).workSources?.length) return
+  const wanted = await dependencies.ui.confirmUseBacklog()
   if (wanted === undefined) cancelled()
   if (!wanted) return
   if (!dependencies.backlogAvailable()) {

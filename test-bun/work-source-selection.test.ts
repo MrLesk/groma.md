@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { runInitCommand, type InitCommandUi } from '../src/init-command.ts'
 import { addPlugin, removePlugin } from '../src/plugin-management.ts'
 import { readScannerConfig, writeScannerConfig } from '../src/scanner/modules/config.ts'
 import { configuredWorkSource, workSourceSession } from '../src/work-sources.ts'
@@ -63,5 +64,25 @@ test.concurrent('a second work-source entry is rejected before either adapter lo
       { id: 'backlog', source: './adapter' }, { id: 'other', source: './other' },
     ] })
     await expect(readScannerConfig(root)).rejects.toThrow('at most one work source')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('groma init reports a failed Backlog initialization when the work source is already selected', async () => {
+  const root = await project()
+  const errors: string[] = []
+  const ui: InitCommandUi = {
+    cancel() {}, intro() {}, note() {}, outro() {}, error: message => { errors.push(message) },
+    confirmInit: async () => true, confirmOpenWeb: async () => false, confirmScan: async () => false, confirmUseBacklog: async () => false,
+    directory: async () => 'groma', install: async () => false, installer: async () => undefined,
+    projectName: async current => current, selectScanners: async () => [],
+  }
+  try {
+    await writeScannerConfig(root, { scanners: [], workSources: [{ id: 'backlog', source: './adapter' }] })
+    const outcome = await runInitCommand({ repositoryRoot: root, interactive: true, opensViewer: true }, { openWeb: async () => {} }, {
+      ui, gitInitialized: async () => true, setupScanners: async () => true,
+      backlogAvailable: () => true, backlogInitialized: async () => false, initializeBacklog: async () => false,
+    })
+    expect(outcome).toBe('completed')
+    expect(errors).toHaveLength(1)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
