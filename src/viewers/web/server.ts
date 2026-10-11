@@ -13,27 +13,26 @@ import { createWebMapSession } from './map-session.ts'
 import { renderSetupPage } from './startup/page.ts'
 import { createStartupProgress } from './startup/progress.ts'
 
-/** The loopback names a browser can reach this viewer at, with any port; anything else is a rebound foreign origin. */
-const LOCAL_HOSTS: Record<string, true> = { localhost: true, '127.0.0.1': true, '[::1]': true, '::1': true }
+/** The host names that mean this machine, whatever the port. */
+const loopbackHosts = new Set(['localhost', '127.0.0.1', '[::1]'])
 
 /**
- * Whether the viewer must refuse this request: the Host must be a loopback name (a rebound foreign
- * Host would make an attacker page same-origin with the private map) and a state-changing request
- * that names a browser origin must come from this viewer's own host; bare CLI clients carry no
- * Origin at all and pass.
+ * Whether a browser sent this request on behalf of a page that is not this viewer. Any site the
+ * user visits can make their browser call a local address, and the map shows private source and
+ * writes to the repository.
+ *
+ * - The Host must name this machine. A site that points its own name at 127.0.0.1 (DNS rebinding)
+ *   would otherwise read the map as a page of its own.
+ * - A request that changes something and says which page sent it must come from this viewer; a
+ *   form on another site would otherwise reach the write routes. A client that is not a browser
+ *   sends neither header and passes.
  */
-function rejected(request: Request): boolean {
-  const host = request.headers.get('host')
-  if (host === null) return true
-  let name: string
-  try { name = new URL(`http://${host}`).hostname }
-  catch { name = host }
-  if (LOCAL_HOSTS[name] !== true) return true
-  if (request.method === 'GET' || request.method === 'HEAD' || request.method === 'OPTIONS') return false
-  const origin = request.headers.get('origin') ?? request.headers.get('referer')
-  if (origin === null) return false
-  try { return new URL(origin).host.toLowerCase() !== host.toLowerCase() }
-  catch { return true }
+function fromAnotherSite(request: Request): boolean {
+  const viewer = URL.parse(`http://${request.headers.get('host') ?? ''}`)
+  if (viewer === null || !loopbackHosts.has(viewer.hostname)) return true
+  if (request.method === 'GET' || request.method === 'HEAD') return false
+  const sender = request.headers.get('origin') ?? request.headers.get('referer')
+  return sender !== null && URL.parse(sender)?.host !== viewer.host
 }
 
 type MapSession = Awaited<ReturnType<typeof createWebMapSession>>
@@ -145,11 +144,13 @@ export async function startWebViewer(
   }
 
   const server = Bun.serve({
+    // The IPv4 loopback address: no other machine can connect.
+    hostname: '127.0.0.1',
     port: options.port ?? 4747,
     // The map's live event stream must stay open between changes.
     idleTimeout: 0,
     async fetch(request) {
-      if (rejected(request)) return new Response('Forbidden', { status: 403 })
+      if (fromAnotherSite(request)) return new Response('Forbidden', { status: 403 })
       const route = `${request.method} ${new URL(request.url).pathname}`
       if (route === 'GET /startup-events') return progress.response()
       if (route === 'GET /ready') {
@@ -167,6 +168,7 @@ export async function startWebViewer(
     },
   })
 
+  // `localhost` reaches 127.0.0.1 on every platform; a client that tries `::1` first falls back to it.
   const url = `http://localhost:${server.port}`
   options.onListening?.(url)
   if (initial.initialized) await openMap(options.scan === true)

@@ -26,9 +26,9 @@ async function preparedViewer(fixture: string, mutate?: (root: string) => Promis
 }
 
 /** One raw HTTP request with an exact Host header; a rebound Host is only visible on the wire. */
-function rawStatus(port: number, host: string): Promise<number> {
+function rawStatus(port: number, host: string, address = '127.0.0.1'): Promise<number> {
   const { promise, resolve, reject } = Promise.withResolvers<number>()
-  const socket = connect(port, '127.0.0.1', () => {
+  const socket = connect(port, address, () => {
     socket.write(`GET / HTTP/1.1\r\nHost: ${host}\r\nConnection: close\r\n\r\n`)
   })
   socket.setEncoding('utf8')
@@ -76,6 +76,22 @@ test.concurrent('the viewer serves the operator loopback and refuses a rebound f
     expect(await rawStatus(port, 'evil.com')).toBe(403)
     expect(await rawStatus(port, 'localhost.evil.com')).toBe(403)
     expect(await rawStatus(port, 'localhost:4747@evil.com')).toBe(403)
+  } finally {
+    await viewer.close()
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+/** An address of this machine that another machine on its network connects to, when it has one. */
+const networkAddress = Object.values(os.networkInterfaces()).flat()
+  .find(address => address?.family === 'IPv4' && !address.internal)?.address
+
+test.skipIf(networkAddress === undefined).concurrent('the viewer accepts no connection on a network address', async () => {
+  const { root, viewer } = await preparedViewer('empty-project')
+  try {
+    const port = Number(new URL(viewer.url).port)
+    // A client that is not a browser sends whatever Host it likes, so the Host check cannot keep it out.
+    await expect(rawStatus(port, `localhost:${port}`, networkAddress)).rejects.toThrow()
   } finally {
     await viewer.close()
     await rm(root, { recursive: true, force: true })

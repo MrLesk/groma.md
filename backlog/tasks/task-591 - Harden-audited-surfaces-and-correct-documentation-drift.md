@@ -4,7 +4,7 @@ title: Harden audited surfaces and correct documentation drift
 status: In Progress
 assignee: []
 created_date: '2026-09-27 01:23'
-updated_date: '2026-10-11 16:15'
+updated_date: '2026-10-11 16:37'
 labels: []
 dependencies: []
 modified_files:
@@ -41,6 +41,7 @@ modified_files:
   - test-bun/scanner-source-listing.test.ts
   - test-bun/cli-actions.test.ts
   - test-bun/web-hardening.test.ts
+  - docs/viewers/web/index.md
 priority: high
 type: task
 ordinal: 611000
@@ -90,4 +91,6 @@ Tests (rule and authority; wrong result caught; coverage gap):
 - test-bun/scanner-source-listing.test.ts, 'the repository listing leaves out a symlink whose target is absent'. Rule: the listing holds the repository files that exist (src/repository-listing.ts contract) and a symlink without a target must not stop it (owner decision, lane step 3c). Wrong result: repositoryListing throws ENOENT from realpathSync, or lists the link, once the existence filter is dropped or reordered. Gap: no listing test holds a symlink without a target. Main's code already passes it; no code change was needed.
 
 - test-bun/cli-actions.test.ts, 'a failed export prints its message and exits 1 without a stack trace' (kept from the pull request; now runs in its own temporary repository instead of this checkout). Rule: a command that fails prints the message and exits 1, as groma scan and groma view already do (audit finding D2-3, kept by the owner). Wrong result: groma export prints a source frame and stack lines, which main does for an unknown revision. Gap: no test runs groma export to a failure.
+
+- test-bun/web-hardening.test.ts, 'the viewer accepts no connection on a network address'. Rule: the viewer listens on the loopback address only (owner decision, lane step 4a, from the external review). Wrong result: a client on the network that sends 'Host: localhost' gets the map; main answers 200 on the machine's network address. Gap: every other server test connects through loopback, and the Host check cannot stop a client that is not a browser.
 <!-- SECTION:PLAN:END -->
