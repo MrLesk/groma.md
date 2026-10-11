@@ -76,8 +76,11 @@ function buildingNode(element: AnnotatedElement, ranges: FileMeasureRanges, degr
     ? { kind: 'round' }
     : element.external ? { kind: 'pill' } : { kind: 'block' }
   const size = buildingFont(element)
-  const title = [criticalityMark(element.criticality), element.title].filter(Boolean).join(' ')
-  const lines = shape.kind === 'pill' ? [title] : roofLines(title, size)
+  const titleLines = shape.kind === 'pill' ? [element.title] : roofLines(element.title, size)
+  // The title wraps first. The mark then joins the first line with a no-break space, so a later rewrap,
+  // which splits at an ordinary space, never leaves the mark on a line of its own.
+  const mark = criticalityMark(element.criticality)
+  const lines = mark === '' ? titleLines : [`${mark}\u00A0${titleLines[0]}`, ...titleLines.slice(1)]
   const base = footprintOf(lines, shape, degree, size)
   const floors = element.kind === 'component'
     ? floorsOf(element.origin, element.code, ranges, base)

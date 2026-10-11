@@ -2,8 +2,7 @@ import { readFile, realpath, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { compiledAsset } from './compiled-asset.ts'
-import { criticalityOf } from './criticality.ts'
-import type { ArchitectureElement } from './types.ts'
+import type { AnnotatedElement } from './types.ts'
 
 const instructionFiles = ['AGENTS.md', 'CLAUDE.md'] as const
 const managedBlockPattern = /<!-- groma:start -->[\s\S]*?<!-- groma:end -->/g
@@ -81,16 +80,24 @@ export async function initializeAgentInstructions(repositoryRoot: string): Promi
   }))
 }
 
-/** Live architecture rules precede the static guide so an agent sees its protected scope. */
-export function criticalityInstructions(elements: readonly ArchitectureElement[]): string {
-  const byId = new Map(elements.map(element => [element.id, element]))
+/** One listed element: its id and title, then the files a component owns, which take its level. */
+function listedElement(element: AnnotatedElement): string {
+  const files = [...new Set(element.code.map(code => code.file))]
+  const name = `- ${element.id} (${element.title})`
+  return files.length === 0 ? name : `${name}: ${files.join(', ')}`
+}
+
+/**
+ * The elements whose effective level is critical or high, each list under its rule. Printed above the static
+ * guide so an agent sees its protected scope first; empty when no element has either level.
+ */
+export function criticalityInstructions(elements: readonly AnnotatedElement[]): string {
   return (['critical', 'high'] as const).flatMap(level => {
-    const selected = elements.filter(element => criticalityOf(element, byId) === level)
+    const selected = elements.filter(element => element.criticality === level)
     if (selected.length === 0) return []
     const rule = level === 'critical'
       ? 'Read-only for agents: do not change these elements or their files without explicit permission from a person.'
       : "Explain every change to these elements or their files in the task's implementation notes."
-    return [`## ${level === 'critical' ? 'Critical' : 'High'} elements`, rule,
-      ...selected.map(element => `- ${element.id} (${element.title})${element.code.length ? `: ${[...new Set(element.code.map(code => code.file))].join(', ')}` : ''}`), '']
+    return [`## ${level === 'critical' ? 'Critical' : 'High'} elements`, rule, ...selected.map(listedElement), '']
   }).join('\n')
 }

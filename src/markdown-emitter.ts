@@ -133,7 +133,6 @@ export function renderArchitectureDocument(input: {
   kind: C4Kind
   parent?: string | null
   technology?: string
-  criticality?: string
   draft?: string
   name: string
   description?: string
@@ -149,7 +148,6 @@ export function renderArchitectureDocument(input: {
     groma.parent = input.parent
   }
   if (input.technology !== undefined) groma.technology = input.technology
-  if (input.criticality !== undefined) groma.criticality = input.criticality
   if (input.draft !== undefined) groma.draft = input.draft
   if ((input.code?.length ?? 0) > 0) groma.code = input.code
   const content = input.overview.trim() === '' ? '\n' : `\n\n${input.overview.trim()}\n`

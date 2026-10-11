@@ -3,17 +3,7 @@ import { cpus } from 'node:os'
 import { Worker } from 'node:worker_threads'
 import type { CodeDeclaration, CodeSymbol, ScanObservation, ScanOperation } from '@groma/scanner'
 
-import { criticalityOf } from './criticality.ts'
-import { sourceIndex } from './source-index.ts'
-import type {
-  ArchitectureElement,
-  ArchitectureFinding,
-  ArchitectureFindingInstance,
-  CriticalChangeFinding,
-  DuplicatedLogicFinding,
-  WorkItem,
-  WorkSnapshot,
-} from './types.ts'
+import type { ArchitectureFinding, ArchitectureFindingInstance, DuplicatedLogicFinding } from './types.ts'
 
 /** Every compared body, including each identical copy, needs this many tokens. */
 const MIN_COMPARED_TOKENS = 8
@@ -442,26 +432,4 @@ export function prepareArchitectureFindings(observations: readonly ScanObservati
     },
     close: () => Promise.all(workers.map(worker => worker.terminate())),
   }
-}
-
-/**
- * One finding for each in-progress or done task and each critical component that owns one of its modified
- * files, however many of that component's files the task lists.
- */
-export function criticalTaskFindings(elements: readonly ArchitectureElement[], work: WorkSnapshot): CriticalChangeFinding[] {
-  const byId = new Map(elements.map(element => [element.id, element]))
-  const index = sourceIndex(elements)
-  // In progress or done: any configured status except the default one, in which a task waits to be started.
-  const inProgressOrDone = (item: WorkItem) => item.status !== work.defaultStatus && work.statuses.includes(item.status)
-  return work.items.filter(inProgressOrDone).flatMap(item => {
-    // Only a component declares code, so every owner is a component.
-    const owners = new Set(item.modifiedFiles.map(file => index.owner(file)).filter(owner => owner !== undefined))
-    return [...owners]
-      .filter(owner => criticalityOf(owner, byId) === 'critical')
-      .map(owner => ({
-        id: `critical-change:${item.id}:${owner.id}`,
-        kind: 'critical-change' as const,
-        title: `${item.id} (${item.title}) changes critical component ${owner.id} (${owner.title})`,
-      }))
-  })
 }

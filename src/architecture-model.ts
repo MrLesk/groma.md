@@ -157,7 +157,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     external,
     ...(group === undefined ? {} : { group }),
     ...(technology === undefined ? {} : { technology }),
-    ...(criticality === undefined ? {} : { criticality: criticality as Criticality }),
+    ...(criticality === undefined ? {} : { declaredCriticality: criticality as Criticality }),
     code: codeReferencesOf(groma.code, kind, message => {
       throw new ArchitectureModelError('INVALID_ELEMENT', sourceFilename, message)
     }),

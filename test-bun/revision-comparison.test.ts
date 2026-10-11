@@ -6,7 +6,7 @@ import { compareArchitecture, type SourceTexts } from '../src/history/comparison
 import { filterComparisonScene } from '../src/viewers/web/comparison/control.ts'
 import { presentScene } from '../src/viewers/web/iso/view-motion/presentation.ts'
 import { NESTED_POSE } from '../src/viewers/web/iso/view-motion/orbit.ts'
-import { comparisonTree, nextChange } from '../src/viewers/web/comparison/tree.ts'
+import { comparisonChanges, nextChange } from '../src/viewers/web/comparison/tree.ts'
 import { sheetScene } from '../src/sheet/scene.ts'
 import type { AnnotatedArchitectureModel } from '../src/types.ts'
 import { readView, writeView } from '../src/viewers/web/url.ts'
@@ -83,19 +83,21 @@ test.concurrent('an id that changes kind keeps both elements, so both comparison
 })
 
 
-test.concurrent('the Changes list holds changed components and independent relationships, with counts owned by ancestors', async () => {
+test.concurrent('the Changes list ranks changed components by criticality, then by size, ahead of independent relationships; counts belong to ancestors', async () => {
   const { before, after, oldSources, newSources } = await fixture()
+  // The removed component has the smallest change, so only its level can put it first.
+  before.elements.find(element => element.id === 'receipt-sender')!.criticality = 'critical'
   const compared = compareArchitecture(before, after, oldSources, newSources)
   const comparison = { ...compared, from: null }
-  const tree = comparisonTree(compared.world, comparison)
-  expect(tree.rows.map(row => row.id)).not.toContain('payment')
-  expect(tree.counts.get('shop')).toEqual({ added: 1, modified: 1, removed: 1 })
-  expect(tree.counts.get('api')).toEqual({ added: 1, modified: 1, removed: 0 })
-  expect(tree.former.has('mail')).toBe(true)
-  expect(tree.order.slice(-3)).toEqual(compared.world.relationships.map(item => item.id))
-  expect(tree.order.indexOf('checkout')).toBeLessThan(tree.order.indexOf('receipt-sender'))
+  const changes = comparisonChanges(compared.world, comparison)
+  const ranked = ['receipt-sender', 'checkout', 'receipt-worker']
+  expect(changes.rows.map(row => row.id)).toEqual(ranked)
+  expect(changes.order).toEqual([...ranked, ...compared.world.relationships.map(item => item.id)])
+  expect(changes.counts.get('shop')).toEqual({ added: 1, modified: 1, removed: 1 })
+  expect(changes.counts.get('api')).toEqual({ added: 1, modified: 1, removed: 0 })
+  expect(changes.former.has('mail')).toBe(true)
   const empty = compareArchitecture(after, after, newSources, newSources)
-  expect(comparisonTree(empty.world, { ...empty, from: null }).order).toEqual([])
+  expect(comparisonChanges(empty.world, { ...empty, from: null }).order).toEqual([])
 })
 
 
@@ -104,12 +106,12 @@ test.concurrent('comparison filters share list counts and navigation while remov
   const compared = compareArchitecture(before, after, oldSources, newSources)
   const comparison = { ...compared, from: null }
   const enabled = new Set(['added'] as const)
-  const tree = comparisonTree(compared.world, comparison, enabled)
-  expect(tree.counts.get('shop')).toEqual({ added: 1, modified: 0, removed: 0 })
-  expect(tree.order).toEqual(['receipt-worker', 'relationship:0'])
-  expect(nextChange(tree.order, undefined, 1)).toBe('receipt-worker')
-  expect(nextChange(tree.order, 'relationship:0', 1)).toBe('receipt-worker')
-  expect(nextChange(tree.order, 'receipt-worker', -1)).toBe('relationship:0')
+  const changes = comparisonChanges(compared.world, comparison, enabled)
+  expect(changes.counts.get('shop')).toEqual({ added: 1, modified: 0, removed: 0 })
+  expect(changes.order).toEqual(['receipt-worker', 'relationship:0'])
+  expect(nextChange(changes.order, undefined, 1)).toBe('receipt-worker')
+  expect(nextChange(changes.order, 'relationship:0', 1)).toBe('receipt-worker')
+  expect(nextChange(changes.order, 'receipt-worker', -1)).toBe('relationship:0')
   expect(nextChange([], undefined, 1)).toBeUndefined()
   const scene = presentScene(sheetScene(compared.world), undefined, NESTED_POSE)
   const original = structuredClone(scene)
@@ -149,7 +151,7 @@ test.concurrent('prose presentation separates replacements and keeps large rewri
 })
 
 
-test.concurrent('a parent criticality edit changes inherited priority without marking unchanged components', async () => {
+test.concurrent('a component whose effective level changes with its parent stays unchanged and out of the Changes list', async () => {
   const { before, oldSources } = await fixture()
   for (const element of before.elements) element.criticality = 'normal'
   const after = structuredClone(before)
@@ -157,10 +159,9 @@ test.concurrent('a parent criticality edit changes inherited priority without ma
   parent.declaredCriticality = parent.criticality = 'critical'
   for (const element of after.elements) if (element.parent === parent.id) element.criticality = 'critical'
   const compared = compareArchitecture(before, after, oldSources, oldSources)
-  expect(compared.components.checkout!.after!.criticality).toBe('critical')
   expect(compared.components.checkout!.status).toBe('unchanged')
   expect(compared.components.payment!.status).toBe('unchanged')
-  expect(comparisonTree(compared.world, { ...compared, from: null }).order).toEqual([])
+  expect(comparisonChanges(compared.world, { ...compared, from: null }).order).toEqual([])
 })
 
 test.concurrent('declaring or clearing an inherited level is an own change with a criticality reason', async () => {

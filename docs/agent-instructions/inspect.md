@@ -21,7 +21,7 @@ add descriptions, actors, flows, groups, or relationship rows.
 | | a draft ID | Prints the draft's outcome and the elements it touches. |
 | | an exact repository-relative source file | Prints the owning component's ID, kind, title, and parent, the file connections of map relationships split into incoming and outgoing, and the command for the owner's complete record. Rows between files of one component are not listed; `groma view <owner-id> --plain` lists relationships that name the owner element. |
 | `groma scanner list` | none | Lists the configured scanners and whether each is ready. |
-| `groma lint` | none | Pages possible duplicate logic from fresh scanner evidence. Findings are review questions: they are not relationships and do not merge components. |
+| `groma lint` | none | Pages tasks that change a critical component, and possible duplicate logic from fresh scanner evidence. Findings are review questions: they are not relationships and do not merge components. |
 
 A relationship line reads `source -> target | description | technology`, with
 a trailing `| draft` on a draft relationship. The overview lifts each end to

@@ -1,7 +1,7 @@
 import { animateRow } from '../chrome/motion.ts'
 import type { Comparison, ComponentChange } from '../../../history/comparison.ts'
 import { chromeButton } from '../atoms/button.ts'
-import { comparisonTree, changeStatuses, changeMarks, changeLabels, isChange, type ChangeCounts, type VisibleStatus } from '../comparison/tree.ts'
+import { comparisonChanges, changeStatuses, changeMarks, changeLabels, isChange, type ChangeCounts, type VisibleStatus } from '../comparison/tree.ts'
 import { criticalityMark } from '../../../criticality.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import { initialTree, semanticTreeRows, toggleExpansion, type TreeRow } from '../../tui/tree.ts'
@@ -36,7 +36,7 @@ function hierarchyRow(
   if (priority) {
     const mark = document.createElement('span')
     mark.textContent = priority
-    mark.title = `${row.criticality} criticality`
+    mark.title = `criticality: ${row.criticality}`
     mark.setAttribute('aria-label', mark.title)
     button.append(mark)
   }
@@ -111,7 +111,7 @@ function paintHierarchy(
   onSelect: (id: string, additive: boolean) => void,
   onToggle: (row: TreeRow) => void,
   comparison?: Comparison,
-  changes?: ReturnType<typeof comparisonTree>,
+  changes?: ReturnType<typeof comparisonChanges>,
 ): void {
   const list = document.createElement('div')
   let shownExternals = false
@@ -167,7 +167,7 @@ export function createHierarchy(host: HTMLElement, onSelect: (id: string, additi
   const paint = (world: ArchitectureGraph, selectedIds: readonly string[], comparison?: Comparison, enabled?: ReadonlySet<VisibleStatus>): void => {
     modes.hidden = comparison === undefined
     document.getElementById('flows')!.hidden = comparison !== undefined && changesOnly
-    const changes = comparison === undefined ? undefined : comparisonTree(world, comparison, enabled)
+    const changes = comparison === undefined ? undefined : comparisonChanges(world, comparison, enabled)
     buttons.forEach((button, index) => {
       button.setAttribute('aria-pressed', String(changesOnly === (index === 0)))
       button.onclick = () => { changesOnly = index === 0; paint(world, selectedIds, comparison, enabled) }

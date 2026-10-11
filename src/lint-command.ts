@@ -1,14 +1,18 @@
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 import { backlogPlugin } from '@groma/work-source-backlog'
 import type { Command } from 'commander'
-import { architectureFindingItems, criticalTaskFindings, detectDuplicatedLogic } from './architecture-findings.ts'
+import { architectureFindingItems, detectDuplicatedLogic } from './architecture-findings.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
+import { criticalTaskFindings } from './criticality.ts'
 import { sourceIndex } from './source-index.ts'
 import { parseListWindow, printListPage, withListWindowOptions, type ListWindow } from './list-window.ts'
 import { loadScannerRegistry } from './scanner/registry.ts'
 
-/** Inspect current scanner evidence without folding it into saved architecture. */
+/**
+ * Report tasks that change a critical component, and possible duplicate logic in current scanner evidence.
+ * Saved architecture stays unchanged.
+ */
 async function lintArchitecture(repositoryRoot: string, window: ListWindow): Promise<number> {
   const records = await loadArchitecture(repositoryRoot)
   const model = buildArchitectureModel(records.documents)
@@ -21,7 +25,7 @@ async function lintArchitecture(repositoryRoot: string, window: ListWindow): Pro
   printListPage(architectureFindingItems(findings), window)
   for (const failure of failures) console.error(failure.message)
   if (!window.count && findings.length === 0 && failures.length === 0) {
-    console.log('No architecture findings.')
+    console.log('No task changes a critical component. No duplicate findings in available scanner evidence.')
   }
   return findings.length > 0 || failures.length > 0 ? 1 : 0
 }

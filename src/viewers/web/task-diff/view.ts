@@ -173,13 +173,18 @@ export function paintTaskSummary(
     }
     return row
   }))
-  const fileRows = payload === undefined
-    ? item.modifiedFiles.map(file => pendingFileRow(file, error !== undefined))
-    : taskReviewFiles(payload.files, world).map(file => {
+  // Every recorded file has a row: the loaded diffs in review order, then the files the diff has not loaded yet.
+  const recorded = new Set(item.modifiedFiles)
+  const loaded = taskReviewFiles((payload?.files ?? []).filter(file => recorded.has(file.file)), world)
+  const loadedNames = new Set(loaded.map(file => file.file))
+  const fileRows = [
+    ...loaded.map(file => {
       const row = fileDiffRow(file, onOpen, file.shared)
       row.dataset.taskKey = file.file
       return row
-    })
+    }),
+    ...item.modifiedFiles.filter(file => !loadedNames.has(file)).map(file => pendingFileRow(file, error !== undefined)),
+  ]
   section(body, 'files', 'Modified files', fileRows)
   if (payload !== undefined) body.append(sourceIdentity(payload))
   else if (error !== undefined) {

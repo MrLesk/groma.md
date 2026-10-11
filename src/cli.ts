@@ -8,12 +8,10 @@ import { confirm } from '@clack/prompts'
 import packageJson from '../package.json' with { type: 'json' }
 
 import { agentGuideNames, criticalityInstructions, firstScanAgentNote, readAgentGuide } from './agent-instructions.ts'
-import { buildArchitectureModel } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { annotateArchitecture } from './core.ts'
 import { awaitsCuration, firstScanHint, firstScanTitle } from './empty-world.ts'
 import { ensureInitialized, runInitCommand } from './init-command.ts'
-import { gromaInitialization } from './initialize.ts'
 import { humanInstructionGuide } from './instructions.ts'
 import { listWindowRequested, parseListWindow, withListWindowOptions, type ListWindow } from './list-window.ts'
 import { registerLintCommand } from './lint-command.ts'
@@ -21,6 +19,7 @@ import { registerScannerCommands } from './scanner/cli.ts'
 import { formatScanReport, scanRepository, watchScan } from './scanner.ts'
 import { renderPlainWelcome, startWelcome } from './welcome.ts'
 import { registerWriteCommands } from './write-commands.ts'
+import type { AnnotatedArchitectureModel } from './types.ts'
 import type { WelcomeActionId, WelcomeScreen } from './welcome.ts'
 
 const program = new Command()
@@ -150,13 +149,19 @@ async function exportWeb(directory: string, options: { url?: string; revision?: 
   await exported.close()
 }
 
-/** A stored architecture nobody has curated yet; false where Groma is not set up or cannot read it. */
-async function awaitingCuration(root: string): Promise<boolean> {
+/** The stored architecture; undefined where Groma is not set up or cannot read it. */
+async function storedArchitecture(root: string): Promise<AnnotatedArchitectureModel | undefined> {
   try {
-    return awaitsCuration(annotateArchitecture(await loadArchitecture(root)))
+    return annotateArchitecture(await loadArchitecture(root))
   } catch {
-    return false
+    return undefined
   }
+}
+
+/** A stored architecture nobody has curated yet; false where there is none to read. */
+async function awaitingCuration(root: string): Promise<boolean> {
+  const world = await storedArchitecture(root)
+  return world !== undefined && awaitsCuration(world)
 }
 
 async function scanOnce(): Promise<void> {
@@ -329,12 +334,10 @@ program
       process.exitCode = 1
       return
     }
-    if (guide === undefined && await awaitingCuration(process.cwd())) console.log(`${firstScanAgentNote}\n`)
-    if (gromaInitialization(process.cwd()).initialized) {
-      const records = await loadArchitecture(process.cwd())
-      const guidance = criticalityInstructions(buildArchitectureModel(records.documents).elements)
-      if (guidance) console.log(guidance)
-    }
+    const world = await storedArchitecture(process.cwd())
+    if (guide === undefined && world !== undefined && awaitsCuration(world)) console.log(`${firstScanAgentNote}\n`)
+    const guidance = criticalityInstructions(world?.elements ?? [])
+    if (guidance) console.log(guidance)
     console.log(selected)
   })
 

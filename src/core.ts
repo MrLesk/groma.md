@@ -82,7 +82,7 @@ export function annotateArchitecture(
     ...(element.group === undefined ? {} : { group: element.group }),
     ...(element.technology === undefined ? {} : { technology: element.technology }),
     criticality: criticalityOf(element, byId),
-    ...(element.criticality === undefined ? {} : { declaredCriticality: element.criticality }),
+    ...(element.declaredCriticality === undefined ? {} : { declaredCriticality: element.declaredCriticality }),
     code: element.code.map(reference => ({ ...reference, ...(counts.get(reference.file) ?? { dependencies: 0, dependents: 0 }) })),
     // The web pane offers a new parent only for a component the write would move.
     movable: element.kind === 'component'

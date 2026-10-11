@@ -75,7 +75,10 @@ export interface Building extends SheetItem {
   heightUnits: number
   shape: Shape
   floors: BuildingFloor[]
-  /** The title as laid on the roof, one or two lines. */
+  /**
+   * The title as laid on the roof, one or two lines. On a high or critical building the first line starts with
+   * the criticality mark, joined to the title by a no-break space.
+   */
   lines: string[]
 }
 

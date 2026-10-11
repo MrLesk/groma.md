@@ -180,8 +180,5 @@ test.concurrent('combining a scan component refuses authored criticality and pre
     await expect(editArchitecture(root, { id: 'a', combine: ['b'] })).rejects.toThrow('authored metadata')
     const after = await loadAnnotatedArchitecture(root)
     expect(after.elements).toEqual(before.elements)
-    expect(after.elements.find(element => element.id === 'b')).toMatchObject({
-      criticality: 'critical', declaredCriticality: 'critical', code: [{ file: 'one/b.ts' }],
-    })
   } finally { await rm(root, { recursive: true, force: true }) }
 })

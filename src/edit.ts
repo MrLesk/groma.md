@@ -150,7 +150,7 @@ export async function editArchitecture(
     return editDraftRecord(repositoryRoot, record, input)
   }
 
-  checkEdit(input.original, { ...element, parent: element.parentId ?? '' }, input)
+  checkEdit(input.original, { ...element, parent: element.parentId ?? '', criticality: element.declaredCriticality }, input)
   const hasMeaning = [input.title, input.overview, input.description, input.technology, input.criticality, input.draft].some(value => value !== undefined)
   if (!hasMeaning && !isStructural(input)) throw new Error('--title, --overview, --description, --technology, --criticality or --draft is required')
   const source = hasMeaning ? await elementMeaning(repositoryRoot, records, element, input) : undefined

@@ -12,7 +12,7 @@ export function isChange(status: ChangeStatus | undefined): status is VisibleSta
   return status !== undefined && status !== 'unchanged'
 }
 
-/** One pass over the compared components collects what comparisonTree returns about them and their ancestors. */
+/** One pass over the compared components collects what comparisonChanges returns about them and their ancestors. */
 function componentChanges(world: ArchitectureGraph, comparison: Comparison, enabled: ReadonlySet<VisibleStatus>) {
   const byId = new Map(world.elements.map(element => [element.representationId, element]))
   const counts = new Map<string, ChangeCounts>()
@@ -52,7 +52,7 @@ function componentChanges(world: ArchitectureGraph, comparison: Comparison, enab
  *   hides them while Removed is filtered out.
  * - elements: every element of `world`, so a relationship row can name its two ends.
  */
-export function comparisonTree(world: ArchitectureGraph, comparison: Comparison,
+export function comparisonChanges(world: ArchitectureGraph, comparison: Comparison,
   enabled: ReadonlySet<VisibleStatus> = new Set(changeStatuses)) {
   const { counts, priorities, former } = componentChanges(world, comparison, enabled)
   const ranked = world.elements.filter(element => priorities.has(element.representationId)).sort((left, right) =>

@@ -99,7 +99,7 @@ export interface ArchitectureElement {
   group?: string
   technology?: string
   /** The level written on this element; absent while it inherits. `criticalityOf` resolves the effective level. */
-  criticality?: Criticality
+  declaredCriticality?: Criticality
   code: CodeReference[]
   status: ElementStatus
   /** The draft record this element belongs to; a stable element may carry it too. */
@@ -199,7 +199,6 @@ export interface DuplicatedLogicFinding {
 
 /** An in-progress or done task whose modified files belong to a critical component. A request for human review. */
 export interface CriticalChangeFinding {
-  id: string
   kind: 'critical-change'
   /** Names the task and the component. */
   title: string
