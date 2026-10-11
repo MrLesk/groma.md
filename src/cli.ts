@@ -203,7 +203,7 @@ async function runInteractiveWelcome(screen: WelcomeScreen = 'launcher'): Promis
       const session = await startWelcome(process.cwd(), screen)
       try {
         if (session.selection !== undefined) await runWelcomeAction(session.selection)
-      } finally { session.close() }
+      } finally { await session.close() }
       reopen = session.selection === 'scanners'
     }
   } finally {

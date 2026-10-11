@@ -38,7 +38,7 @@
   "bin": {
     "groma": "src/cli.ts"
   },
-  "packageManager": "bun@1.4.2",
+  "packageManager": "bun@1.4.3",
   "engines": {
     "bun": ">=1.4.1",
     "node": ">=20.19.0"
@@ -59,21 +59,21 @@
     "@comark/html": "0.7.0",
     "@groma/scanner": "workspace:*",
     "@groma/work-source": "workspace:*",
-    "@opentui/core": "0.5.12",
+    "@opentui/core": "0.6.0",
     "@parcel/watcher": "2.6.0",
     "@resvg/resvg-wasm": "2.6.2",
     "comark": "0.7.0",
     "commander": "15.0.0",
     "diff": "9.0.0",
     "fuse.js": "7.5.0",
-    "ignore": "7.0.10"
+    "ignore": "7.0.12"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.14",
+    "@biomejs/biome": "2.5.15",
     "@types/bun": "1.4.2",
-    "@types/node": "26.6.2",
+    "@types/node": "26.6.5",
     "tsx": "4.23.15",
-    "typescript": "7.1.0-dev.20260924.1"
+    "typescript": "7.1.0-dev.20261011.1"
   },
   "patchedDependencies": {
     "@parcel/watcher@2.6.0": "patches/@parcel%2Fwatcher@2.6.0.patch"
