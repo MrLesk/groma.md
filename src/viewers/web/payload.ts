@@ -1,3 +1,4 @@
+import type { CodeHistory } from '../../history/code-history.ts'
 import type { Comparison } from '../../history/comparison.ts'
 import type { GitRevision } from '../../history/revisions.ts'
 import type { SheetScene } from '../../sheet/types.ts'
@@ -41,6 +42,13 @@ export interface WebWorkPayload {
 
 /** What the server ships on boot, on `/world.json` and on every SSE `world` event. */
 export type WebPayload = WebMapPayload & WebWorkPayload
+
+/** Code history read for one map generation, so the page can drop an answer for a map it does not show. */
+export interface WebCodeHistoryPayload {
+  generation: number
+  /** Null when the repository has no commit. */
+  history: CodeHistory | null
+}
 
 /** Repository-backed reads materialized before a static Web view is published. */
 export interface PublishedReads {

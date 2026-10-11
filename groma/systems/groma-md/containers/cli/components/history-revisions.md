@@ -13,8 +13,7 @@ groma:
     - scanner: typescript
       file: src/history/snapshots.ts
     - scanner: typescript
-      file: src/history/code-metrics.ts
-      symbol: readCodeHistory
+      file: src/history/code-history.ts
   group: Architecture records
 description: Reads Git revisions and component change counts without changing working files
 ---

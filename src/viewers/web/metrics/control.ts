@@ -1,18 +1,31 @@
-import { componentMetrics, type CodeHistory, type ComponentMetrics } from '../../../component-metrics.ts'
+import { componentMetrics, outlierLine, type ComponentMetrics } from '../../../component-metrics.ts'
+import type { CodeHistory } from '../../../history/code-history.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import { mixColour } from '../atoms/theme.ts'
+import type { WebCodeHistoryPayload } from '../payload.ts'
 import { paintMetricDetails } from './details.ts'
 
 type Metric = 'none' | 'commits' | 'committers' | 'cochange' | 'instability'
 const labels: Record<Metric, string> = { none: 'None', commits: 'Commits', committers: 'Committers', cochange: 'Co-change', instability: 'Instability' }
+/** What the legend says a metric's scale counts. */
+const meanings: Record<Exclude<Metric, 'none'>, string> = {
+  commits: 'Distinct commits touching component files',
+  committers: 'Distinct committers touching component files',
+  cochange: 'Sum of commits shared with other components',
+  instability: 'Outgoing / (incoming + outgoing); isolated = 0',
+}
 
 interface Options {
   world(): ArchitectureGraph
   generation(): number
   live(): boolean
+  readCodeHistory(window: number): Promise<WebCodeHistoryPayload>
   repaint(): void
   select(id: string): void
 }
+
+/** The commits read when the page opens. The History window field changes the number until the page is reloaded. */
+const DEFAULT_HISTORY_WINDOW = 500
 
 /** The two ends of the tint scale, the same in every theme: blue for the lowest value, orange for the highest. */
 const SCALE_LOW = '#4287b4'
@@ -40,14 +53,14 @@ export const metricsCss = `
      iso/painting/style.ts, so the name of a selected or lit building still reads on its tint. */
   #map .building[data-metric] .label .text { fill: ${TINTED_LABEL} !important; }
   #map .building .metric-outlier { fill: ${SCALE_HIGH}; stroke: var(--paper); stroke-width: 1px; paint-order: stroke; }
-  .code-metrics h2, .code-metrics h3 { font-size: 12px; margin: 16px 0 8px; }
-  .code-metrics p { font-size: 12px; }
 `
 
+/** Draws, relabels or removes the triangle left of a building's name. */
 function markOutlier(building: SVGElement, metrics: ComponentMetrics | undefined): void {
+  const description = outlierLine(metrics)
   const previous = building.querySelector('.metric-outlier')
-  if (!metrics?.outliers.length) { previous?.remove(); return }
-  if (previous !== null) return
+  if (description === undefined) { previous?.remove(); return }
+  if (previous !== null) { previous.setAttribute('aria-label', description); return }
   const label = building.querySelector('.label')
   const text = label?.querySelector('text')
   if (label === null || label === undefined || text === null || text === undefined) return
@@ -57,7 +70,7 @@ function markOutlier(building: SVGElement, metrics: ComponentMetrics | undefined
   mark.setAttribute('y', text.getAttribute('y') ?? '0')
   mark.setAttribute('font-size', String(size * 0.8))
   mark.setAttribute('class', 'metric-outlier')
-  mark.setAttribute('aria-label', `Outlier: ${metrics.outliers.join(', ')}`)
+  mark.setAttribute('aria-label', description)
   mark.textContent = '▲'
   label.append(mark)
 }
@@ -77,7 +90,7 @@ export function createMetricsControl(options: Options) {
   controls.id = 'metric-options'
   controls.innerHTML = '<label>Colour by<select aria-label="Colour by">'
     + Object.entries(labels).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')
-    + '</select></label><label>History window (commits)<input type="number" min="1" step="1" value="500"></label>'
+    + `</select></label><label>History window (commits)<input type="number" min="1" step="1" value="${DEFAULT_HISTORY_WINDOW}"></label>`
   document.getElementById('settings-options')!.append(controls)
   const select = controls.querySelector('select')!
   const windowInput = controls.querySelector('input')!
@@ -85,19 +98,21 @@ export function createMetricsControl(options: Options) {
   legend.id = 'metric-legend'
   legend.hidden = true
   document.getElementById('legend')!.append(legend)
-  let measurements: ReadonlyMap<string, ComponentMetrics> = new Map()
-  let codeHistory: CodeHistory | null = null
   let metric: Metric = 'none'
-  let historyWindow = 500
-  let request = 0
-  let loading = false
+  let historyWindow = DEFAULT_HISTORY_WINDOW
+  /** The last answer for `historyWindow`: null before it, in a repository without commits and after a failed read. */
+  let codeHistory: CodeHistory | null = null
+  /** True until the first answer for `historyWindow` arrives; later reads of that window show the last answer meanwhile. */
+  let loading = true
   let error = ''
+  let request = 0
+
+  const metricsOf = (id: string) => componentMetrics(options.world()).get(id)
 
   function value(id: string): number {
-    if (metric === 'instability') return measurements.get(id)?.instability ?? 0
+    if (metric === 'instability') return metricsOf(id)?.instability ?? 0
     const item = codeHistory?.components[id]
-    if (item === undefined || metric === 'none') return 0
-    return metric === 'cochange' ? item.cochange.reduce((total, pair) => total + pair.commits, 0) : item[metric]
+    return item === undefined || metric === 'none' ? 0 : item[metric]
   }
 
   function paintBuilding(building: SVGElement, enabled: boolean, maximum: number): void {
@@ -106,44 +121,45 @@ export function createMetricsControl(options: Options) {
     building.toggleAttribute('data-metric', tinted)
     if (tinted) building.style.setProperty('--metric-fill', mixColour(SCALE_LOW, SCALE_HIGH, maximum === 0 ? 0 : value(id) / maximum))
     else building.style.removeProperty('--metric-fill')
-    markOutlier(building, options.live() ? measurements.get(id) : undefined)
+    markOutlier(building, options.live() ? metricsOf(id) : undefined)
   }
 
   function paintLegend(maximum: number): void {
-    legend.hidden = metric === 'none' || !options.live()
-    if (legend.hidden) return
+    if (metric === 'none' || !options.live()) { legend.hidden = true; return }
+    legend.hidden = false
     if (loading || error || codeHistory === null) {
       legend.textContent = loading ? 'Reading code history…' : error || 'No Git history'
       return
     }
-    const meaning = metric === 'cochange' ? 'Sum of commits shared with other components' : metric === 'instability' ? 'Outgoing / (incoming + outgoing); isolated = 0' : `Distinct ${labels[metric].toLowerCase()} touching component files`
     legend.replaceChildren()
     const title = document.createElement('div')
-    title.textContent = `${labels[metric]} · last ${codeHistory.window} commits`
+    // Instability comes from the relationships as they are now; only the Git metrics have a window.
+    title.textContent = metric === 'instability' ? labels[metric] : `${labels[metric]} · last ${codeHistory.window} commits`
     const scale = document.createElement('div')
     scale.className = 'metric-scale'
     const range = document.createElement('div')
-    range.textContent = `0 → ${maximum} · ${meaning}`
+    range.textContent = `0 → ${maximum} · ${meanings[metric]}`
     legend.append(title, scale, range)
   }
 
   function paint(): void {
     const enabled = options.live() && codeHistory !== null && metric !== 'none'
-    const maximum = metric === 'instability' ? 1 : Math.max(0, ...[...measurements.keys()].map(value))
+    const maximum = metric === 'instability' ? 1 : Math.max(0, ...[...componentMetrics(options.world()).keys()].map(value))
     for (const building of document.querySelectorAll<SVGElement>('#map .building')) paintBuilding(building, enabled, maximum)
     paintLegend(maximum)
   }
 
-  async function readHistory(currentRequest: number, generation: number): Promise<void> {
+  async function readHistory(currentRequest: number): Promise<void> {
     if (request !== currentRequest) return
     try {
-      const response = await fetch(`/metrics.json?window=${historyWindow}`)
-      if (!response.ok) throw new Error(await response.text())
-      const result = await response.json() as { generation: number; history: CodeHistory | null }
-      if (request !== currentRequest || generation !== options.generation() || result.generation !== generation) return
-      codeHistory = result.history
+      const answer = await options.readCodeHistory(historyWindow)
+      // An answer for another map than the one shown is dropped too: the world update on its way starts the next read.
+      if (request !== currentRequest || answer.generation !== options.generation()) return
+      codeHistory = answer.history
+      error = ''
     } catch (cause) {
       if (request !== currentRequest) return
+      codeHistory = null
       error = cause instanceof Error ? cause.message : String(cause)
     }
     loading = false
@@ -151,29 +167,31 @@ export function createMetricsControl(options: Options) {
     options.repaint()
   }
 
+  /**
+   * Paints the world now shown and reads its history. The last answer stays on screen until the new one arrives, so a
+   * live update does not blink the tints off.
+   */
   function refresh(): void {
     const currentRequest = ++request
-    const generation = options.generation()
-    codeHistory = null
-    error = ''
-    measurements = componentMetrics(options.world())
     controls.hidden = !options.live()
-    loading = options.live()
     paint()
-    if (!options.live()) return
-    afterNextPaint(() => readHistory(currentRequest, generation))
+    if (options.live()) afterNextPaint(() => readHistory(currentRequest))
   }
 
   select.addEventListener('change', () => { metric = select.value as Metric; paint() })
   windowInput.addEventListener('change', () => {
     if (!windowInput.checkValidity() || !Number.isSafeInteger(windowInput.valueAsNumber)) return
     historyWindow = windowInput.valueAsNumber
+    // The counts on screen belong to the previous window, so they go and the legend says that it is reading.
+    codeHistory = null
+    error = ''
+    loading = true
     refresh()
   })
   return {
     refresh, paint,
     details(host: HTMLElement, id: string) {
-      if (options.live()) paintMetricDetails(host, id, options.world(), measurements, codeHistory, options.select)
+      if (options.live()) paintMetricDetails(host, id, options.world(), codeHistory, options.select)
     },
   }
 }

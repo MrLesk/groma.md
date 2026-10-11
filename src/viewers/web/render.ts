@@ -29,7 +29,7 @@ import { bindMapPointer } from './iso/camera/pointer.ts'
 import { createCameraSession } from './iso/camera/session.ts'
 import { presentScene, createMapAnimator, createMapMotion } from './iso/view-motion/presentation.ts'
 import { paintRelationship } from './organisms/relationship-details.ts'
-import { detailsTabAfterSelection, detailsTabAfterWork, type DetailsTab, inspectSelection, paintDetails } from './organisms/details.ts'
+import { detailsTabAfterSelection, detailsTabAfterWork, type DetailsTab, type Inspected, inspectSelection, paintDetails } from './organisms/details.ts'
 import { createHierarchy } from './organisms/hierarchy.ts'
 import { createPins } from './work/pins.ts'
 import { createTip } from './organisms/tip.ts'
@@ -110,11 +110,10 @@ createProjectSettings(data)
 const review = createProjectReview({ world: () => world, revision: () => revisionControl.selected, readSource: data.readSource,
   navigate(id, file, line) { select(id); if (file !== undefined) source.open(file, line) },
 })
-const metrics = boot.delivery.kind === 'live' ? createMetricsControl({
-  world: () => world, generation: () => mapMeta.generation,
-  live: () => revisionControl.live && revisionControl.comparison === undefined,
-  repaint: () => paintViewState(false), select,
-}) : undefined
+const metrics = data.readCodeHistory === undefined ? undefined : createMetricsControl({
+  world: () => world, generation: () => mapMeta.generation, live: () => revisionControl.live,
+  readCodeHistory: data.readCodeHistory, repaint: () => paintViewState(false), select,
+})
 const taskDiff = createTaskDiffControl({
   host: detailsHost, world: () => world, readDetails: data.readTask, readDiff: data.readTaskDiff,
   repaint: paintViewState, select,
@@ -213,7 +212,7 @@ function paintDetailsState(task: WorkItem | undefined): void {
   } else if (inspected !== undefined) paintInspectedDetails(inspected, selected)
 }
 
-function paintInspectedDetails(inspected: NonNullable<ReturnType<typeof inspectSelection>>, selected: AnnotatedElement | undefined): void {
+function paintInspectedDetails(inspected: Inspected, selected: AnnotatedElement | undefined): void {
   paintDetails(detailsHost, inspected, {
     world, comparison: revisionControl.comparison,
     onSelect: select,
@@ -383,6 +382,8 @@ function repaintScene(fit: boolean): void {
   const after = sceneCentre(scene.bounds)
   paintMapView(mapMotion.view)
   const rehighlight = debug.paint(() => map.paint(scene))
+  // Tints and outlier marks sit on nodes a map paint may replace (see patch in iso/painting/svg.ts), so the metrics
+  // paint follows every map paint, here and in paintWorld.
   metrics?.paint()
   pins.paint(currentPins.filter(pin => map.anchorOf(pin.elementId) !== undefined))
   const fitted = camera.refitTo(frame)
@@ -414,7 +415,6 @@ bindChromeActions({
 function applyWorld(payload: WebPayload, reset = false): void {
   mapMeta = { generation: payload.generation, timings: payload.timings }
   world = payload.world
-  metrics?.refresh()
   changes.update(world, payload.comparison, payload.revision?.id, primarySelection(selection))
   work = payload.work
   sheet = payload.sheet
@@ -467,7 +467,7 @@ function applyWork(payload: WebWorkPayload): void {
 function paintWorld(): void {
   review.refresh()
   debug.paint(() => map.paint(scene))
-  metrics?.paint()
+  metrics?.refresh()
   revisionControl.paintProjectEdit(map.svg)
   authoring.refresh()
   pins.paint(currentPins.filter(pin => map.anchorOf(pin.elementId) !== undefined))
@@ -477,6 +477,5 @@ function paintWorld(): void {
   source.restore()
 }
 paintWorld()
-metrics?.refresh()
 focusOpened(opened.selection.kind)
 listenForEmbeddedViews(window, openView)

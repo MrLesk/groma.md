@@ -1,29 +1,26 @@
-import type { AnnotatedElement, ArchitectureGraph } from './types.ts'
+import type { AnnotatedElement, AnnotatedRelationship, ArchitectureGraph } from './types.ts'
+
+const OUTLIER_MEASURES = ['files', 'lines', 'connections'] as const
+type OutlierMeasure = typeof OUTLIER_MEASURES[number]
+
+/** A component with fewer files is never an outlier, whatever its measures. */
+const OUTLIER_MIN_FILES = 10
+/** A measure marks a component that reaches this many times its container's median of that measure. */
+const OUTLIER_MEDIAN_FACTOR = 4
 
 export interface ComponentMetrics {
   files: number
   lines: number
   connections: number
   instability: number
-  outliers: string[]
+  /** The measures in which the component stands far above the others in its container. */
+  outliers: OutlierMeasure[]
 }
 
-export interface HistoryMetrics {
-  commits: number
-  /** Distinct author email addresses. */
-  committers: number
-  cochange: { id: string; commits: number }[]
-}
-
-export interface CodeHistory {
-  window: number
-  components: Record<string, HistoryMetrics>
-}
-
-function median(values: number[]): number {
-  values.sort((a, b) => a - b)
-  const middle = Math.floor(values.length / 2)
-  return values.length % 2 ? values[middle]! : (values[middle - 1]! + values[middle]!) / 2
+function median(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  const middle = Math.floor(sorted.length / 2)
+  return sorted.length % 2 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2
 }
 
 function neighbours(world: ArchitectureGraph) {
@@ -42,29 +39,32 @@ function neighbours(world: ArchitectureGraph) {
 }
 
 function markOutliers(siblings: ComponentMetrics[]): void {
-  for (const measure of ['files', 'lines', 'connections'] as const) {
+  for (const measure of OUTLIER_MEASURES) {
     const middle = median(siblings.map(metric => metric[measure]))
-    // A median of 0 means at least half the container has nothing of this measure, often no connection. Any value
-    // is at least four times 0, so such a measure marks nobody.
+    // A median of 0 means at least half the container has nothing of this measure, often no connection. Every
+    // value reaches any multiple of 0, so such a measure marks nobody.
     if (middle === 0) continue
     for (const metric of siblings) {
-      if (metric.files >= 10 && metric[measure] >= 4 * middle) {
-        metric.outliers.push(measure === 'lines' ? 'lines of code' : measure)
-      }
+      if (metric.files >= OUTLIER_MIN_FILES && metric[measure] >= OUTLIER_MEDIAN_FACTOR * middle) metric.outliers.push(measure)
     }
   }
 }
 
-const computed = new WeakMap<readonly AnnotatedElement[], ReadonlyMap<string, ComponentMetrics>>()
+interface Computed {
+  relationships: readonly AnnotatedRelationship[]
+  metrics: ReadonlyMap<string, ComponentMetrics>
+}
+
+/** One result per loaded elements snapshot, released with that snapshot, as in source-index.ts. */
+const computed = new WeakMap<readonly AnnotatedElement[], Computed>()
 
 /**
  * Runtime evidence about existing components, never architecture metadata.
- * Computed once per loaded world and released with it. A load replaces the elements and relationships arrays
- * together and a task-only update reuses both, so the elements array identifies the world, as in source-index.ts.
+ * Computed once per loaded world: again only when the elements or the relationships array is a different one.
  */
 export function componentMetrics(world: ArchitectureGraph): ReadonlyMap<string, ComponentMetrics> {
   const existing = computed.get(world.elements)
-  if (existing !== undefined) return existing
+  if (existing?.relationships === world.relationships) return existing.metrics
   const { incoming, outgoing } = neighbours(world)
   const byId = new Map(world.elements.map(element => [element.id, element]))
   const result = new Map<string, ComponentMetrics>()
@@ -89,10 +89,14 @@ export function componentMetrics(world: ArchitectureGraph): ReadonlyMap<string, 
     siblings.set(element.parent, group)
   }
   for (const group of siblings.values()) markOutliers(group)
-  computed.set(world.elements, result)
+  computed.set(world.elements, { relationships: world.relationships, metrics: result })
   return result
 }
 
+const measureWords: Record<OutlierMeasure, string> = { files: 'files', lines: 'lines of code', connections: 'connections' }
+
+/** The one wording of an outlier: the web and terminal details print it and the map's outlier mark carries it as its label. */
 export function outlierLine(metrics: ComponentMetrics | undefined): string | undefined {
-  return metrics?.outliers.length ? `Outlier: ${metrics.outliers.join(', ')} (at least 4× container median)` : undefined
+  if (!metrics?.outliers.length) return undefined
+  return `Outlier: ${metrics.outliers.map(measure => measureWords[measure]).join(', ')} (at least ${OUTLIER_MEDIAN_FACTOR}× container median)`
 }

@@ -22,7 +22,8 @@ export interface GromaRevision extends GitRevision {
   compatible: boolean
 }
 
-function runGit(arguments_: string[], repositoryRoot: string): Promise<string> {
+/** Runs Git in the repository and resolves with what it printed, or rejects with its error text. */
+export function runGit(arguments_: string[], repositoryRoot: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn('git', arguments_, {
       cwd: repositoryRoot,
@@ -83,7 +84,7 @@ export async function readGitText(
 }
 
 /** A repository whose branch has no commit yet has no history to offer. */
-function hasCommits(repositoryRoot: string): Promise<boolean> {
+export function hasCommits(repositoryRoot: string): Promise<boolean> {
   return runGit(['rev-parse', '--verify', '--quiet', 'HEAD'], repositoryRoot)
     .then(() => true, () => false)
 }

@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-11 16:14'
+updated_date: '2026-10-11 16:43'
 labels:
   - intermediate
 dependencies: []
@@ -20,7 +20,6 @@ references:
   - screen
   - iso-project
   - src/component-metrics.ts
-  - src/history/code-metrics.ts
   - src/viewers/web/metrics/control.ts
   - src/viewers/web/metrics/details.ts
   - src/viewers/web/map-session.ts
@@ -28,26 +27,25 @@ references:
   - src/viewers/tui/panes/details.ts
   - docs/viewers/web/index.md
   - code-measurements
+  - src/history/code-history.ts
 modified_files:
   - src/component-metrics.ts
-  - src/history/code-metrics.ts
+  - src/history/code-history.ts
   - src/viewers/web/map-session.ts
   - src/viewers/web/metrics/details.ts
   - src/viewers/web/metrics/control.ts
   - src/viewers/web/render.ts
   - src/viewers/tui/panes/details.ts
   - docs/viewers/web/index.md
-  - groma/systems/groma-md/containers/cli/components/code-metrics.md
-  - groma/systems/groma-md/containers/cli/components/component-metrics.md
-  - groma/systems/groma-md/containers/cli/components/details.md
-  - groma/systems/groma-md/containers/cli/components/metrics-control.md
   - groma/systems/groma-md/containers/cli/components/src-core.md
   - groma/systems/groma-md/containers/cli/components/history-revisions.md
-  - groma/systems/groma-md/containers/export/components/metrics-control.md
-  - groma/systems/groma-md/containers/export/components/details.md
   - groma/systems/groma-md/containers/export/components/code-measurements.md
-  - test-bun/code-metrics.test.ts
   - src/viewers/web/page.ts
+  - src/history/revisions.ts
+  - src/viewers/web/payload.ts
+  - src/viewers/web/data.ts
+  - test-bun/code-history.test.ts
+  - test-bun/component-metrics.test.ts
 type: feature
 ordinal: 5
 ---
@@ -91,6 +89,10 @@ Build on line counts computed at load (src/core.ts), git reads (src/history/revi
 7. Maintainability pass on the review findings A to K of PR 123. Behaviour changes are limited to three decided corrections: (A) a measure whose container median is 0 marks no component; (C) Committers counts distinct author addresses, not the address that created the commit; (D) git log runs with --relative, so a project below the Git top level is counted. The rest keeps behaviour: (B) the metric legend stacks its lines so the colour scale has width; (E) the history window variable no longer shadows the browser's window; (F) the two scale end colours are defined once and the gradient, outlier mark and label ink derive from them; (G) the control exports its CSS and the page includes it; (H) the after-paint delay has a name; (I) component metrics are computed once per loaded elements snapshot; (J) verify that a newer history request supersedes an older one; (K) import grouping in the terminal details pane. The four metrics, the 500-commit default, the 4x and ten-file thresholds and the blue-to-orange scale stay as built.
 
 8. Tests: extend the two existing tests in test-bun/code-metrics.test.ts, no new test. (a) Zero median. Rule and authority: review decision A, refining AC4. Wrong result caught: a ten-file component is marked for a measure in which its siblings have nothing, the same predicate that marked two components sharing one relationship. Gap: the only zero-median case compared equal zeros; it becomes one component above a zero median. (b) Author addresses. Rule and authority: review decision C, AC1. Wrong result caught: commits by two authors merged by one committer count as one person. Gap: the fixture gave author and committer the same address; every fixture commit now has one fixed committer and its own author. (c) Project below the Git top level. Rule and authority: review decision D, AC1. Wrong result caught: every count is 0 because git log printed paths relative to the Git top level. Gap: the fixture project was the Git top level; it moves one directory below it.
+
+9. Apply the consolidated review list (cold simplicity review and orchestrator, 22 items). Decided behaviour: merge commits are not counted (git log --no-merges); a live update keeps the previous history on screen until the new answer arrives, and only a changed window shows the loading state; the legend title names the window only for the Git metrics. Structure: the Git result types and the co-change total live beside readCodeHistory in src/history/code-history.ts, served at /code-history.json through an optional readCodeHistory on the live WebDataSource; readCodeHistory reuses runGit and hasCommits from src/history/revisions.ts; the default window is one constant in the control and the server requires the value; outliers store measure keys, the thresholds are named constants and outlierLine is the only outlier wording; the component metrics cache also checks the relationships array; the details section reuses the heading and paragraph atoms; render.ts refreshes the control from paintWorld only. Documentation and the task record are corrected.
+
+10. Tests for step 9, in the existing two tests, which move to test-bun/code-history.test.ts and test-bun/component-metrics.test.ts so each file tests one concept. (a) Merge commits. Rule and authority: review decision 17, AC1. Wrong result caught: a merged branch counts once per commit and again for the merge commit, whose author is whoever merged, so commits and committers are too high. Gap: the fixture history was linear; it gains one side-branch commit and its merge. The window assertion uses 3 so its result does not depend on how Git orders the two same-second parents. (b) Relationship direction. Rule and authority: AC2 (Instability is outgoing over incoming plus outgoing) and the documented connections count. Wrong result caught: incoming and outgoing swapped in neighbours(), or connections not counted, which no test detects because the fixture has no relationship. Gap: one relationship between two fixture components, asserting connections and instability on both ends once. (c) The outlier assertions compare measure keys instead of display words, so a wording change in outlierLine does not fail the rule test (review item 13).
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -130,10 +132,20 @@ Behaviour-preserving changes: (B) the metric legend and its lines are blocks aga
 (J) Verified, not changed: refresh() numbers each request and readHistory drops its result or error at every await once a newer request exists, so only the newest request clears the loading state. The server does not cancel a superseded git log; it finishes and its response is discarded. An answer for a newer map generation than the page shows is dropped and the legend keeps 'Reading code history…' until the world event triggers the next read.
 
 Evidence from this pass. Tests: the two extended tests in test-bun/code-metrics.test.ts failed before the fixes (zero-median case returned ['lines of code']; the project below the Git top level returned all zeros; with --relative but %cE the two authors counted as 1) and pass after. Focused run: 55 pass, 0 fail across code-metrics, source-index, inspect-details, web-theme, web-export, web-revisions, web-page-inset, web-sharing, web-startup, web-shell, chrome, navigation, tui-source and work-folding. bun run typecheck passes. bunx biome lint: 1 warning and 2 infos in total, as before the pass, none in a changed file. Headless Chromium (Playwright script outside the repository, minimum fixture): colour scale 326x8px with three stacked lines (0px wide on the previous head), legend hidden on None, gradient between the two end colours, tints identical in light, dark and blueprint, None restores the theme colours, ghosts untouched, facade patterns unchanged, a selected tinted building keeps the label ink, the page stylesheet is the only style element with metric rules, the first read starts after two frames with the map drawn, superseded requests (slow answer, two changes before a paint, late failure) never reach the legend, and the published page has no metric element or request. Terminal: detailsLines printed the Outlier line for the ten-file fixture component on What and How and none for its siblings; tui-test was not run. bun src/cli.ts scan: created 0, refreshed 105, no change under groma/ (C#, Go, Java and Rust workers unavailable, saved data kept). The full bun run check was not run in this pass; the orchestrator runs it. test-bun/code-outline.test.ts fails about three runs in ten on an unmodified copy of the branch head as well: one concurrent test copies the shared fixture while another holds its .groma.lock.
+
+Consolidated review list, 22 items (2026-10-11, second pass). Behaviour: merge commits are not counted (git log --no-merges replaces --diff-merges=first-parent); a live update keeps the previous history on screen until the new answer arrives, and only a changed window clears it and shows 'Reading code history…'; the legend title names the window only for the Git metrics; the outlier mark's label is the outlier line and follows the component's measures. Vocabulary and ownership: src/history/code-metrics.ts is now src/history/code-history.ts and holds readCodeHistory with its result types CodeHistory and ComponentHistory; the route is /code-history.json, read through the optional readCodeHistory of the live WebDataSource, and the control exists when that method does. readCodeHistory reuses runGit and hasCommits from src/history/revisions.ts. The default window is one constant in the control; the route and the reader require the value. src/component-metrics.ts keeps only the non-Git measures: outliers hold measure keys, the two thresholds are named constants, outlierLine is the only outlier wording, the cache entry also remembers the relationships array, median sorts a copy. The details section reuses the heading and paragraph atoms and its two CSS rules are gone. render.ts refreshes the control from paintWorld only, uses the Inspected type, drops the repeated comparison clause and says why the metrics paint follows each map paint. The control no longer keeps its own copy of the component metrics.
+
+Deviation from review item 10, which asked for one exported co-change function beside the history types: the browser cannot import a value from src/history/code-history.ts, because that module imports the Git runner and the browser build fails on it ('Browser build cannot require() Node.js builtin: child_process'). The total therefore has one owner on the server: ComponentHistory.cochange is the number, computed once in componentHistory(), and the per-component list is ComponentHistory.peers. The control reads all three Git metrics as item[metric] and the details read the number, so neither sums anything.
+
+Evidence, second pass. The merge assertion fails with the old flags (a: 4 commits, 3 committers instead of 3 and 2) and the direction assertion fails with incoming and outgoing swapped. bun run typecheck passes. bunx biome lint: 1 warning and 2 infos in total, the count from before the first pass, none in a changed file. Focused tests: 67 pass, 0 fail across code-history, component-metrics, source-index, inspect-details, web-theme, web-export, web-revisions, web-page-inset, web-sharing, web-startup, web-shell, chrome, navigation, tui-source, work-folding, editing and revision-comparison. Headless Chromium on the minimum fixture: at boot the outlier mark and outlier line are present before the first answer and the Git lines after it; legend layout and titles (Instability without a window); tints in three themes and None; selected label ink; a live update keeps tints, legend and previous counts while its read is held and shows the new world's outlier wording at once on the mark and in the details; a changed window shows the wait and removes the tints; slow older answer, two changes before a paint, late failure, current failure and newer-generation answer behave as described; the published page has no metric element or request. A real web map session answers /code-history.json?window=500 and rejects a missing or zero window with 400. Terminal detailsLines prints the outlier line for the fixture outlier on What and How; tui-test was not run. Scan after the rename created the stand-alone component code-history; it was moved under cli and combined into history-revisions through the CLI, and a rescan created nothing. The full bun run check was not run; the orchestrator runs it.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Fixed live metric tints so draft ghosts remain hollow and file-type facade patterns keep their meaning. Simplified the metrics control, Git aggregation, outlier grouping and details dispatcher without changing formulas, thresholds, timing, themes or static/Markdown exclusion. Added two parallel-safe domain regressions. Focused tests: 17 pass. Full check: Node 16 pass; Bun 778 pass, 51 existing skips, 0 fail. Chromium verified all metric/theme combinations, None, history window, details/navigation, original-head failures and static exclusion; tui-test verified both outlier detail tabs. Cold simplicity and full-context complexity reviews found no blockers. Scan produced no architecture changes. Created only the authorized local task commit; no push or publication.
+Settings > Colour by tints the live map's component buildings by Commits, Committers, Co-change or Instability on one blue-to-orange scale that is the same in every theme, with a legend; None restores the map. src/history/code-history.ts runs git log over the last N commits of the current branch (500 unless the History window field says otherwise), leaves merge commits out, counts a commit once per component, counts Committers as distinct author addresses and Co-change as the commits shared with each other component, and works for a project below the Git top level. The browser reads it through the live data source (/code-history.json) after the map has painted; a live update keeps the previous answer on screen until the new one arrives. src/component-metrics.ts owns the measures that need no Git: files, lines, connections, instability and the outlier rule (at least ten files and at least four times the container's median of a measure; a zero median marks nobody). An outlier gets a triangle on its building and one line in the web and terminal details. Nothing is written to architecture Markdown, and the published page has no control, legend, tint, mark or request.
+
+Two review passes after the first implementation changed four behaviours on purpose: zero-median measures mark nobody, Committers counts authors instead of committers, a project below the Git top level is counted, and merge commits are not counted. They also gave each concern one owner (scale colours, default window, outlier wording, co-change total, Git runner) and one vocabulary (code history for Git data, component metrics for the rest).
+
+Verified in the last pass: typecheck; Biome with no warning in a changed file; 67 focused tests including test-bun/code-history.test.ts and test-bun/component-metrics.test.ts; a headless Chromium check of legend, tints, details, boot and live-update order, request supersession and the published page; a real web map session on the new route. Not run in the last pass: the full repository check and tui-test. Known and accepted: the metric CSS ships unused in the published page, a superseded git log is not cancelled on the server, and Instability is not coloured in a repository without commits.
 <!-- SECTION:FINAL_SUMMARY:END -->
