@@ -150,7 +150,7 @@ function parseScannerConfig(
   }
   const config = value as Record<string, unknown>
   if (Object.keys(config).some(key => !['scanners', 'workSources', 'exclude', 'useGitignore'].includes(key)) || !Array.isArray(config.scanners)) {
-    throw new Error(`${sourceFilename} must contain a scanners array, and optionally an exclude array and useGitignore`)
+    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, an exclude array and useGitignore`)
   }
   if (config.exclude !== undefined && !stringArray(config.exclude)) {
     throw new Error(`${sourceFilename} exclude must be an array of strings`)

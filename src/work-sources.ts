@@ -2,7 +2,7 @@ import { pathToFileURL } from 'node:url'
 import { EMPTY_WORK_SOURCE, type WorkSource, type WorkSourcePlugin } from '@groma/work-source'
 import groma from '../package.json' with { type: 'json' }
 import { readScannerConfig } from './scanner/modules/config.ts'
-import { defaultScannerCacheRoot, parseScannerSource, resolveScannerPackage, type ResolvedScannerPackage } from './scanner/modules/package.ts'
+import { defaultScannerCacheRoot, parseScannerSource, resolveScannerPackage, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
 import type { ScannerResolutionOptions } from './scanner/modules/inventory.ts'
 
 export interface WorkSourceSelection {
@@ -37,7 +37,7 @@ export async function configuredWorkSource(root: string, options: ScannerResolut
 }
 
 /** Why this groma.md version cannot load a work-source package, when the range its manifest declares excludes it. */
-export function hostIncompatibility(resolved: Pick<ResolvedScannerPackage, 'compatibility'>): string | undefined {
+export function hostIncompatibility(resolved: ResolvedWorkSourcePackage): string | undefined {
   const required = resolved.compatibility?.groma
   return required && !Bun.semver.satisfies(groma.version, required)
     ? `Requires Groma ${required}; this computer has ${groma.version}. Update Groma.`

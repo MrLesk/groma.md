@@ -1,11 +1,11 @@
 import { readScannerConfig, writeScannerConfig } from './scanner/modules/config.ts'
 import { configureScanner, installScanners, removeScanner, scannerInventory, updateScanner, type ScannerInstallOptions } from './scanner/modules/inventory.ts'
-import { defaultScannerCacheRoot, installScannerPackage, parseScannerSource, preparePluginUpdate, resolveScannerPackage, type ResolvedScannerPackage } from './scanner/modules/package.ts'
+import { defaultScannerCacheRoot, installScannerPackage, parseScannerSource, preparePluginUpdate, resolveScannerPackage, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
 import { isNpmPackageName, publishedScannerSource } from './scanner/modules/published.ts'
 import { configuredWorkSource, hostIncompatibility } from './work-sources.ts'
 
 /** Selecting, restoring or updating a work source this groma.md version cannot load is refused with the reason. */
-function requireCompatibleHost(resolved: ResolvedScannerPackage): void {
+function requireCompatibleHost(resolved: ResolvedWorkSourcePackage): void {
   const incompatible = hostIncompatibility(resolved)
   if (incompatible) throw new Error(incompatible)
 }
@@ -27,7 +27,7 @@ export async function addPlugin(root: string, input: string, options: ScannerIns
   const source = await selectedSource(root, input, options)
   const installed = await installScannerPackage(source, options.cacheRoot ?? defaultScannerCacheRoot(), options.registry)
   const resolved = installed.package
-  if (resolved.kind === 'scanner') return configureScanner(root, installed)
+  if (resolved.kind === 'scanner') return configureScanner(root, { source: installed.source, package: resolved })
   requireCompatibleHost(resolved)
   const config = await readScannerConfig(root)
   if (config.workSources?.length) throw new Error('This project supports at most one work source; remove the current selection first')

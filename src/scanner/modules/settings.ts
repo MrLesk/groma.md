@@ -145,13 +145,13 @@ async function installGroup(root: string, group: 'install-recommended' | 'instal
 }
 
 export function parseScannerSettingsAction(input: unknown): ScannerSettingsAction {
-  if (!input || typeof input !== 'object') throw new Error('Scanner action required')
+  if (!input || typeof input !== 'object') throw new Error('Plugin action required')
   const value = input as Record<string, unknown>
   const action = value.action
   if (action === 'retry' || action === 'install-recommended' || action === 'install-missing') return { action }
   if (action === 'add' && typeof value.source === 'string') return { action, source: value.source }
-  if (typeof value.id !== 'string') throw new Error('Scanner id required')
+  if (typeof value.id !== 'string') throw new Error('Plugin id required')
   if (action === 'update' && (value.source === undefined || typeof value.source === 'string')) return { action, id: value.id, source: value.source }
   if (action === 'install' || action === 'restore' || action === 'remove') return { action, id: value.id }
-  throw new Error('Unknown scanner action')
+  throw new Error('Unknown plugin action')
 }

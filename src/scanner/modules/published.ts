@@ -30,7 +30,7 @@ export function selectPublishedScanner(
   const releases = Object.values(versions).filter(item => item.name === name
     && metadata(item)?.id && metadata(item)?.entry && Bun.semver.satisfies(item.version, '*'))
     .sort((a, b) => Bun.semver.order(b.version, a.version))
-  if (!releases.length) throw new Error(`${name}: no published stable scanner release. Ask the plugin author to publish one, then retry.`)
+  if (!releases.length) throw new Error(`${name}: no published stable release. Ask the plugin author to publish one, then retry.`)
   const platform = releases.filter(item => supports(item.os, host.os) && supports(item.cpu, host.cpu))
   if (!platform.length) throw new Error(`${name}: no published release supports ${host.os}/${host.cpu}. Ask the plugin author for a build for this computer.`)
   const selected = platform.find(item => {

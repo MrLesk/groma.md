@@ -27,7 +27,7 @@ const host = { groma: '0.3.0', os: 'linux', cpu: 'x64' }
 test.concurrent('installation chooses the newest published stable release for Groma and this computer', () => {
   const versions = [release('1.0.0'), release('1.1.0'), release('2.0.0', '^0.4.0'), release('3.0.0', '^0.3.0', ['darwin']), release('4.0.0-beta.1')]
   expect(selectPublishedScanner('example-scanner', Object.fromEntries(versions.map(item => [item.version, item])), host).version).toBe('1.1.0')
-  expect(() => selectPublishedScanner('example-scanner', {}, host)).toThrow('no published stable scanner release')
+  expect(() => selectPublishedScanner('example-scanner', {}, host)).toThrow('no published stable release')
   expect(() => selectPublishedScanner('example-scanner', { one: release('1.0.0', '^0.4.0') }, host)).toThrow('Update Groma')
   expect(() => selectPublishedScanner('example-scanner', { one: release('1.0.0', '^0.3.0', ['darwin']) }, host)).toThrow('linux/x64')
 })

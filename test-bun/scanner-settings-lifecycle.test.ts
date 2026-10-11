@@ -64,7 +64,7 @@ test.concurrent('settings changes reconfigure live scanning and keep saved evide
     expect(session.state.plugins[0]).toMatchObject({ match: 'none' })
     await session.change({ action: 'remove', id: 'fixture' })
     expect((await loadAnnotatedArchitecture(root)).elements).toEqual(scanned.elements)
-    await expect(session.change({ action: 'add', source: path.join(root, 'missing-plugin') })).rejects.toThrow('scanner package not found')
+    await expect(session.change({ action: 'add', source: path.join(root, 'missing-plugin') })).rejects.toThrow('package not found')
     expect(session.state.notice.tone).toBe('error')
     expect((await readScannerConfig(root)).scanners).toEqual([])
     expect(await readFile(path.join(root, 'ui/view.fixture'), 'utf8')).toBe('second')
