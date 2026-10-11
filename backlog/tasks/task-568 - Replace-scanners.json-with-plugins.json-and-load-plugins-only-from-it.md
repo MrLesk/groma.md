@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-11 19:25'
+updated_date: '2026-10-11 19:42'
 labels: []
 dependencies: []
 references:
@@ -270,6 +270,10 @@ Architecture records (item 19): work-sources, tui-scanner-settings, scanners-set
 Tests (item 20): the two parser tests say what they assert and also observe the writer refusing; two wizard tests cover choosing Backlog (select, install CLI, initialize, selection recorded) and a failed selection (reported, nothing installed, setup continues), both seen failing under the previous order.
 
 Verification in this worktree: bun run typecheck passes; bunx biome lint reports 1 warning and 2 infos, as before the lane started, in unchanged files. Focused Bun tests pass: 62 across plugin, settings, selection, release and scanner module files; 90 across web startup, shell, export, chrome, terminal lifecycle, plain view and scan files; 64 with 12 toolchain skips across language scanner files. The plugin commands were exercised in a scratch project (add, list, second add, update, remove of unknown ids, install, both manifest errors, remove). The welcome screen and its Plugins action were read through tui-test and the web Plugins rows through a private headless Chromium over the renamed route. bun src/cli.ts scan ran; its only change is the adapter record's symbol. The full bun run check was not run in this lane.
+
+Orchestrator verification, 11 October 2026, on main with Bun 1.4.3 merged: bun run check exit 0 (16 Node tests; 790 Bun tests passed, 52 skipped for missing optional toolchains, 0 failed). The task stays In Progress on purpose: acceptance criteria 3 and 5 and Definition of Done 1 need @groma/work-source and @groma/work-source-backlog on the public registry, which happens in the next release (first publication of a new package needs a manual npm publish and a trusted-publisher binding by the owner). Until then, choosing Backlog.md in groma init reports that the selection failed and setup continues. Known and left for the owner: plugin-generic modules still live under src/scanner/modules; an existing scanners.json is ignored without a message (repository rule: no migration).
+
+CI correction, 11 October 2026: the staged-release test asserted the adapter instance after restore, which exists only when the Backlog CLI is installed on the machine, so it passed locally and failed on the CI runners. It now asserts the restored package version read from the cache; the adapter's own readiness is not part of that check. Verified on a PATH without the Backlog CLI.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
