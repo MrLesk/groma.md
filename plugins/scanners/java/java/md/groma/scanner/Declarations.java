@@ -125,9 +125,15 @@ final class Declarations extends TreePathScanner<Void, Void> {
         return id;
     }
 
+    /**
+     * A tree is identified by where it starts in its file. javac starts every variable of one declaration, such as
+     * `int a = 1, b = 2;`, at the declaration itself, so a variable also carries its name. Its initializer's start
+     * cannot stand in for the name: a lambda initializer is itself an operation that starts there.
+     */
     private String identity(Tree tree) {
         var unit = getCurrentPath().getCompilationUnit();
-        return file(unit) + "@" + trees.getSourcePositions().getStartPosition(unit, tree);
+        var id = file(unit) + "@" + trees.getSourcePositions().getStartPosition(unit, tree);
+        return tree instanceof VariableTree variable ? id + "#" + variable.getName() : id;
     }
 
     String file(CompilationUnitTree unit) {
