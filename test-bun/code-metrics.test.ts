@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import { execFileSync } from 'node:child_process'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { componentMetrics } from '../src/component-metrics.ts'
@@ -22,15 +22,19 @@ function world(elements: AnnotatedElement[]): ArchitectureGraph {
   }
 }
 
-test.concurrent('Git metrics deduplicate owned files, count distinct committers and pairs, and respect the window', async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-code-metrics-'))
+test.concurrent('Git metrics deduplicate owned files, count distinct authors and pairs, and respect the window', async () => {
+  const gitRoot = await mkdtemp(path.join(os.tmpdir(), 'groma-code-metrics-'))
+  // The project sits one directory below the Git top level, so Git's own paths differ from the component's.
+  const root = path.join(gitRoot, 'project')
   const architecture = world([component('a', ['a.ts', 'extra.ts']), component('b', ['b.ts']), component('untouched', [])])
-  const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' })
-  const commit = (email: string) => {
+  const git = (...args: string[]) => execFileSync('git', args, { cwd: gitRoot, encoding: 'utf8' })
+  // One address creates every commit, as a hosting service's web merge does; only the author differs.
+  const commit = (author: string) => {
     git('add', '.')
-    git('-c', 'user.name=Fixture', '-c', `user.email=${email}`, 'commit', '--quiet', '-m', 'Source change')
+    git('-c', 'user.name=Merge', '-c', 'user.email=merge@example.test', 'commit', '--quiet', '-m', 'Source change', `--author=Fixture <${author}>`)
   }
   try {
+    await mkdir(root)
     git('init', '--quiet')
     expect(await readCodeHistory(root, architecture)).toBeNull()
     for (const file of ['a.ts', 'extra.ts', 'b.ts']) await writeFile(path.join(root, file), 'export const value = 1\n')
@@ -52,15 +56,15 @@ test.concurrent('Git metrics deduplicate owned files, count distinct committers 
     expect(recent?.window).toBe(2)
     expect(recent?.components.a).toEqual({ commits: 0, committers: 0, cochange: [] })
     expect(recent?.components.b).toEqual({ commits: 1, committers: 1, cochange: [] })
-  } finally { await rm(root, { recursive: true, force: true }) }
+  } finally { await rm(gitRoot, { recursive: true, force: true }) }
 })
 
-test.concurrent('outliers require ten files and a strictly larger measure at least four times the container median', () => {
+test.concurrent('outliers require ten files and a measure at least four times a container median above zero', () => {
   const outliers = (counts: [number, number][]) => componentMetrics(world(counts.map(([files, lines], index) =>
     component(`part${index}`, Array.from({ length: files }, (_, file) => `${index}/${file}.ts`), lines)))).get('part0')!.outliers
   expect(outliers([[10, 400], [2, 100], [2, 100]])).toEqual(['files', 'lines of code'])
   expect(outliers([[9, 400], [2, 100], [2, 100]])).toEqual([])
   expect(outliers([[10, 399], [3, 100], [3, 100]])).toEqual([])
   expect(outliers([[10, 400], [1, 100], [3, 100], [4, 100]])).toEqual(['lines of code'])
-  expect(outliers([[10, 0], [10, 0], [10, 0]])).toEqual([])
+  expect(outliers([[10, 400], [10, 0], [10, 0]])).toEqual([])
 })

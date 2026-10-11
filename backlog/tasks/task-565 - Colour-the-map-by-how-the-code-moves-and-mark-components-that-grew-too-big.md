@@ -1,11 +1,11 @@
 ---
 id: TASK-565
 title: Colour the map by how the code moves and mark components that grew too big
-status: Done
+status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-09 13:15'
+updated_date: '2026-10-11 16:14'
 labels:
   - intermediate
 dependencies: []
@@ -47,6 +47,7 @@ modified_files:
   - groma/systems/groma-md/containers/export/components/details.md
   - groma/systems/groma-md/containers/export/components/code-measurements.md
   - test-bun/code-metrics.test.ts
+  - src/viewers/web/page.ts
 type: feature
 ordinal: 5
 ---
@@ -86,6 +87,10 @@ Build on line counts computed at load (src/core.ts), git reads (src/history/revi
 4. Add minimum runtime measurement and Git history tests only where existing coverage has no count/window/co-change/outlier assertions. The supported authority is AC1/AC3/AC4; failures are double-counted file touches, wrong distinct committers or pairs, ignored window, and changed ten-file/four-times-median eligibility. Reuse existing minimum architecture fixtures and temporary Git roots.
 5. Run focused regressions, a cold simplicity review, implementer specification and quality reviews, a full-context complexity review, and bun run check. Curate only task-caused architecture records through Groma and record each changed path immediately.
 6. Finalize objective evidence and create the authorized local task commit. No push, publication or release tag.
+
+7. Maintainability pass on the review findings A to K of PR 123. Behaviour changes are limited to three decided corrections: (A) a measure whose container median is 0 marks no component; (C) Committers counts distinct author addresses, not the address that created the commit; (D) git log runs with --relative, so a project below the Git top level is counted. The rest keeps behaviour: (B) the metric legend stacks its lines so the colour scale has width; (E) the history window variable no longer shadows the browser's window; (F) the two scale end colours are defined once and the gradient, outlier mark and label ink derive from them; (G) the control exports its CSS and the page includes it; (H) the after-paint delay has a name; (I) component metrics are computed once per loaded elements snapshot; (J) verify that a newer history request supersedes an older one; (K) import grouping in the terminal details pane. The four metrics, the 500-commit default, the 4x and ten-file thresholds and the blue-to-orange scale stay as built.
+
+8. Tests: extend the two existing tests in test-bun/code-metrics.test.ts, no new test. (a) Zero median. Rule and authority: review decision A, refining AC4. Wrong result caught: a ten-file component is marked for a measure in which its siblings have nothing, the same predicate that marked two components sharing one relationship. Gap: the only zero-median case compared equal zeros; it becomes one component above a zero median. (b) Author addresses. Rule and authority: review decision C, AC1. Wrong result caught: commits by two authors merged by one committer count as one person. Gap: the fixture gave author and committer the same address; every fixture commit now has one fixed committer and its own author. (c) Project below the Git top level. Rule and authority: review decision D, AC1. Wrong result caught: every count is 0 because git log printed paths relative to the Git top level. Gap: the fixture project was the Git top level; it moves one directory below it.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -117,6 +122,14 @@ Final verification: bun run check passed (Node: 16 pass; Bun: 778 pass, 51 skip,
 Chromium validated all 12 metric/theme combinations, hollow draft faces, unchanged facade URL fills, None restoring normal styles, configurable window, co-change links and navigation, outlier details and requests after first rendered map frames. Static delivery produces no metric controls, legend, tint, outliers or metric requests. A separate close-zoom check confirms facade display remains enabled with the same URL fills. Original-head runs independently fail at filled ghosts and replaced facade URLs. Evidence: /private/tmp/pr123-fix-evidence/browser-result.json, browser-closezoom-result.json, browser-before.log, browser-before-facade.log and browser scripts.
 tui-test at 200x60 verified the complete wrapped Outlier line on What and How tabs (tui-what.txt, tui-how.txt, tui-how.svg). Two combined close-zoom/navigation scratch runs missed the offscreen click target; visual close-zoom and fitted-map navigation checks were separated without changing product code or tests.
 The final full-context complexity review (GPT-6.1 Sol, xhigh) found no blockers or material simplifications. Cold and final reviewers were read-only and separate. Existing documentation already states the restored ghost/facade semantics and unchanged metrics contract; no documentation behavior change was required. No caches, generic framework, compatibility or future behavior were added. No Groma files changed after scanning, so no architecture curation or extra architecture commit paths were needed. Scanner worker availability remains the same limitation as the 51 existing test skips.
+
+Maintainability pass on review findings A to K (2026-10-11). Three decided behaviour corrections: (A) markOutliers in src/component-metrics.ts skips a measure whose container median is 0, so one relationship among unconnected siblings no longer marks anybody; the redundant 'greater than the median' clause is gone because a positive median makes it implied. (C) readCodeHistory reads the author address (%aE) instead of the committer address (%cE), so a hosting service that merges on its web page is not counted as a person; the Committers label stays. (D) git log runs with --relative, so a project below the Git top level gets paths that match its components' files. docs/viewers/web/index.md states the author rule and the zero-median rule.
+
+Behaviour-preserving changes: (B) the metric legend and its lines are blocks again inside #legend, whose 'div' rule had turned them into flex rows and left the colour scale 0px wide. (E) the control's history window variable is historyWindow and its history state is codeHistory, so neither shadows a browser global. (F) the two scale end colours are defined once in src/viewers/web/metrics/control.ts; the gradient, the tint (through the shared mixColour), the outlier mark and the label ink derive from them. The three face rules win by specificity; only the label rule keeps !important and names the rule it beats. (G) the control exports metricsCss and src/viewers/web/page.ts includes it; no style element is injected at run time. Like the other live-only controls' CSS, the rules are now also present, unused, in the static page. (H) the delay is named afterNextPaint. (I) componentMetrics keeps one result per elements snapshot in a WeakMap, as source-index.ts does, so the terminal details pane no longer recomputes on every render. (K) the terminal details import sits in the file's project import group. The readCodeHistory comment now says that it runs git log.
+
+(J) Verified, not changed: refresh() numbers each request and readHistory drops its result or error at every await once a newer request exists, so only the newest request clears the loading state. The server does not cancel a superseded git log; it finishes and its response is discarded. An answer for a newer map generation than the page shows is dropped and the legend keeps 'Reading code history…' until the world event triggers the next read.
+
+Evidence from this pass. Tests: the two extended tests in test-bun/code-metrics.test.ts failed before the fixes (zero-median case returned ['lines of code']; the project below the Git top level returned all zeros; with --relative but %cE the two authors counted as 1) and pass after. Focused run: 55 pass, 0 fail across code-metrics, source-index, inspect-details, web-theme, web-export, web-revisions, web-page-inset, web-sharing, web-startup, web-shell, chrome, navigation, tui-source and work-folding. bun run typecheck passes. bunx biome lint: 1 warning and 2 infos in total, as before the pass, none in a changed file. Headless Chromium (Playwright script outside the repository, minimum fixture): colour scale 326x8px with three stacked lines (0px wide on the previous head), legend hidden on None, gradient between the two end colours, tints identical in light, dark and blueprint, None restores the theme colours, ghosts untouched, facade patterns unchanged, a selected tinted building keeps the label ink, the page stylesheet is the only style element with metric rules, the first read starts after two frames with the map drawn, superseded requests (slow answer, two changes before a paint, late failure) never reach the legend, and the published page has no metric element or request. Terminal: detailsLines printed the Outlier line for the ten-file fixture component on What and How and none for its siblings; tui-test was not run. bun src/cli.ts scan: created 0, refreshed 105, no change under groma/ (C#, Go, Java and Rust workers unavailable, saved data kept). The full bun run check was not run in this pass; the orchestrator runs it. test-bun/code-outline.test.ts fails about three runs in ten on an unmodified copy of the branch head as well: one concurrent test copies the shared fixture while another holds its .groma.lock.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

@@ -27,6 +27,7 @@ import { motionCss } from './chrome/motion.ts'
 import { detailsPanelCss } from './chrome/shell.ts'
 import { flowRowCss } from './flow/row.ts'
 import { mapCss } from './iso/painting/style.ts'
+import { metricsCss } from './metrics/control.ts'
 import { editableCss } from './organisms/editable.ts'
 import { removeCss } from './organisms/remove.ts'
 import { relationshipCardCss } from './organisms/relationship-card.ts'
@@ -385,7 +386,7 @@ const style = `
 ${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
 ${emptyStateCss}
 ${addDialogCss}${editorCss}
-${relationshipCardCss}${removeCss}${editableCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}`
+${relationshipCardCss}${removeCss}${editableCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}${metricsCss}`
 
 function legend(): string {
   return legendKinds.map(line => {

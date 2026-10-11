@@ -1,7 +1,7 @@
 import { TextAttributes } from '@opentui/core'
-import { componentMetrics, outlierLine } from '../../../component-metrics.ts'
 
 import { copiesOfSymbol, type OperationCopies } from '../../../architecture-findings.ts'
+import { componentMetrics, outlierLine } from '../../../component-metrics.ts'
 import { pairDescriptions, type RelationshipPair } from '../../relationship-text.ts'
 import { kindLabel } from '../../atoms/kind.ts'
 import type { ProjectProfile } from '../../../project-profile.ts'

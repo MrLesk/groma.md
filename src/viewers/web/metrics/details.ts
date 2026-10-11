@@ -6,8 +6,8 @@ export function paintMetricDetails(
   host: HTMLElement,
   id: string,
   world: ArchitectureGraph,
-  measurements: Map<string, ComponentMetrics>,
-  history: CodeHistory | null,
+  measurements: ReadonlyMap<string, ComponentMetrics>,
+  codeHistory: CodeHistory | null,
   select: (id: string) => void,
 ): void {
   host.querySelector('.code-metrics')?.remove()
@@ -22,12 +22,12 @@ export function paintMetricDetails(
   }
   const outlier = outlierLine(metrics)
   if (outlier !== undefined) line(outlier)
-  const changes = history?.components[id]
+  const changes = codeHistory?.components[id]
   if (changes !== undefined) {
     const title = document.createElement('h2')
     title.textContent = 'Code metrics'
     section.prepend(title)
-    line(`${changes.commits} commits · ${changes.committers} committers · last ${history!.window} commits`)
+    line(`${changes.commits} commits · ${changes.committers} committers · last ${codeHistory!.window} commits`)
     line(`Instability: ${metrics.instability.toFixed(2)} · ${metrics.connections} connections`)
     line(`Co-change: ${changes.cochange.reduce((total, pair) => total + pair.commits, 0)} shared commits`)
     if (changes.cochange.length > 0) {

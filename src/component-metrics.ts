@@ -1,4 +1,4 @@
-import type { ArchitectureGraph } from './types.ts'
+import type { AnnotatedElement, ArchitectureGraph } from './types.ts'
 
 export interface ComponentMetrics {
   files: number
@@ -10,6 +10,7 @@ export interface ComponentMetrics {
 
 export interface HistoryMetrics {
   commits: number
+  /** Distinct author email addresses. */
   committers: number
   cochange: { id: string; commits: number }[]
 }
@@ -43,16 +44,27 @@ function neighbours(world: ArchitectureGraph) {
 function markOutliers(siblings: ComponentMetrics[]): void {
   for (const measure of ['files', 'lines', 'connections'] as const) {
     const middle = median(siblings.map(metric => metric[measure]))
+    // A median of 0 means at least half the container has nothing of this measure, often no connection. Any value
+    // is at least four times 0, so such a measure marks nobody.
+    if (middle === 0) continue
     for (const metric of siblings) {
-      if (metric.files >= 10 && metric[measure] > middle && metric[measure] >= 4 * middle) {
+      if (metric.files >= 10 && metric[measure] >= 4 * middle) {
         metric.outliers.push(measure === 'lines' ? 'lines of code' : measure)
       }
     }
   }
 }
 
-/** Runtime evidence about existing components, never architecture metadata. */
-export function componentMetrics(world: ArchitectureGraph): Map<string, ComponentMetrics> {
+const computed = new WeakMap<readonly AnnotatedElement[], ReadonlyMap<string, ComponentMetrics>>()
+
+/**
+ * Runtime evidence about existing components, never architecture metadata.
+ * Computed once per loaded world and released with it. A load replaces the elements and relationships arrays
+ * together and a task-only update reuses both, so the elements array identifies the world, as in source-index.ts.
+ */
+export function componentMetrics(world: ArchitectureGraph): ReadonlyMap<string, ComponentMetrics> {
+  const existing = computed.get(world.elements)
+  if (existing !== undefined) return existing
   const { incoming, outgoing } = neighbours(world)
   const byId = new Map(world.elements.map(element => [element.id, element]))
   const result = new Map<string, ComponentMetrics>()
@@ -77,6 +89,7 @@ export function componentMetrics(world: ArchitectureGraph): Map<string, Componen
     siblings.set(element.parent, group)
   }
   for (const group of siblings.values()) markOutliers(group)
+  computed.set(world.elements, result)
   return result
 }
 
