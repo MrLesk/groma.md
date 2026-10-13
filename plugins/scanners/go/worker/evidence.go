@@ -85,8 +85,16 @@ func newEvidence(result *observation) *evidence {
 		silenced: map[string]bool{}}
 }
 
+// sourcePosition is where pos stands in the file as written. A `//line` directive renames the file
+// and line Go reports in compiler messages, but evidence describes the file itself, so every
+// position this worker reports or uses as a key is read here, never through FileSet.Position.
+// Only the text of a syntax error, which go/parser writes, still follows the directive.
+func sourcePosition(files *token.FileSet, pos token.Pos) token.Position {
+	return files.PositionFor(pos, false)
+}
+
 func (s *source) offset(pos token.Pos) int {
-	bytes := s.pkg.Fset.Position(pos).Offset
+	bytes := sourcePosition(s.pkg.Fset, pos).Offset
 	after := sort.Search(len(s.wide), func(index int) bool { return s.wide[index].offset > bytes })
 	if after == 0 {
 		return bytes
@@ -94,12 +102,16 @@ func (s *source) offset(pos token.Pos) int {
 	return bytes - s.wide[after-1].surplus
 }
 
+func (s *source) line(pos token.Pos) int {
+	return sourcePosition(s.pkg.Fset, pos).Line
+}
+
 func (s *source) id(pos token.Pos) string {
 	return fmt.Sprintf("%s:%d", s.file, s.offset(pos))
 }
 
 func functionKey(pkg *packages.Package, pos token.Pos) string {
-	position := pkg.Fset.Position(pos)
+	position := sourcePosition(pkg.Fset, pos)
 	return fmt.Sprintf("%s:%d", position.Filename, position.Offset)
 }
 
@@ -108,8 +120,8 @@ func (e *evidence) addBody(s *source, declaration ast.Node, executable ast.Node,
 	id := s.id(declaration.Pos())
 	fact := operation{ID: id, File: s.file, Name: name, Position: s.offset(declaration.Pos())}
 	if tokens != nil {
-		fact.StartLine = s.pkg.Fset.Position(declaration.Pos()).Line
-		fact.EndLine = s.pkg.Fset.Position(declaration.End()).Line
+		fact.StartLine = s.line(declaration.Pos())
+		fact.EndLine = s.line(declaration.End())
 		fact.Tokens = tokens
 	}
 	e.result.Operations = append(e.result.Operations, fact)
@@ -280,7 +292,7 @@ func (e *evidence) call(caller body, call *ast.CallExpr) {
 	}
 	fact := invocation{
 		Source: caller.id, Targets: []string{}, Unresolved: true,
-		Line:     caller.source.pkg.Fset.Position(call.Pos()).Line,
+		Line:     caller.source.line(call.Pos()),
 		Position: caller.source.offset(call.Pos()),
 	}
 	if selector, ok := ast.Unparen(call.Fun).(*ast.SelectorExpr); ok {

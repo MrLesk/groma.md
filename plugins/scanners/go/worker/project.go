@@ -49,7 +49,7 @@ func (loader *sourceImporter) Import(name string) (*types.Package, error) {
 	loader.checking[name] = true
 	config := types.Config{Importer: loader, Error: func(err error) {
 		if typed, ok := err.(types.Error); ok && loader.typeErrors == 0 {
-			position := typed.Fset.Position(typed.Pos)
+			position := sourcePosition(typed.Fset, typed.Pos)
 			file, _ := filepath.Rel(loader.root, position.Filename)
 			loader.firstError.File, loader.firstError.Line = filepath.ToSlash(file), position.Line
 		}

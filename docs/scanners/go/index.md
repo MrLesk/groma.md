@@ -43,6 +43,8 @@ Files retain package and module membership. A `main` package with a `main`
 function is an execution entry whose files are that package and every module
 package it imports, directly or indirectly. Functions, methods, closures and
 package initializers supply operations and exact UTF-16 source positions.
+Positions and lines are those of the file as written: a `//line` directive,
+which renames them for compiler messages, changes none.
 Local imported aliases and concrete method calls retain their canonical target.
 Interfaces, function values and providers outside the module remain unresolved.
 An immediately invoked closure owns its own calls. Builtins and type conversions
