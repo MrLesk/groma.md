@@ -45,7 +45,7 @@ object Operations {
         addOperation(file, qualified(owner, name), ga, ga.body, buffer)
       }
     case valDefn: Defn.Val if Stats.functionValueRhs(valDefn.rhs) =>
-      valName(valDefn).foreach { name =>
+      valNames(valDefn).foreach { name =>
         addOperation(file, qualified(owner, name), valDefn, valDefn.rhs, buffer)
       }
     case _ => ()
@@ -53,6 +53,7 @@ object Operations {
 
   private def addOperation(file: String, name: String, tree: Tree, body: Tree, buffer: mutable.ListBuffer[OperationDecl]): Unit = {
     val position = tree.pos.start
+    // The names of `val a, b = ...` share the start of that one definition, so the name keeps their ids distinct.
     val id = s"$file#$name@$position"
     buffer += OperationDecl(id, file, name, position, body)
   }
@@ -60,9 +61,7 @@ object Operations {
   private def qualified(owner: Option[String], name: String): String =
     owner.fold(name)(typeName => s"$typeName.$name")
 
-  private def valName(valDefn: Defn.Val): Option[String] =
-    valDefn.pats.collectFirst {
-      case term: Term.Name           => term.value
-      case Pat.Var(term: Term.Name)  => term.value
-    }
+  /** `val a, b = x => x` evaluates its right side once for each name, so each name is its own function value. */
+  private def valNames(valDefn: Defn.Val): List[String] =
+    valDefn.pats.collect { case Pat.Var(term: Term.Name) => term.value }
 }
