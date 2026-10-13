@@ -34,17 +34,18 @@ object Scan {
                 }
             }
         }
+        val entries = Entries.of(mains, relatives, declarations)
         return mapOf(
             "schemaVersion" to 1,
             "scanner" to mapOf("id" to "kotlin", "technology" to "kotlin",
                 "engine" to "kotlin-compiler-embeddable", "engineVersion" to KotlinCompilerVersion.VERSION),
             "roots" to listOf(mapOf("id" to ROOT, "kind" to "source", "name" to "Kotlin source")),
             "files" to files,
-            "entryPoints" to Entries.of(mains, relatives, declarations),
+            "entryPoints" to entries,
             "operations" to operations,
             "invocations" to invocations,
             "httpEndpoints" to endpoints,
-            "diagnostics" to emptyList<Any>(),
+            "diagnostics" to Entries.withoutUnit(mains, entries),
         )
     }
 

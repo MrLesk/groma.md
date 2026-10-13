@@ -100,8 +100,9 @@ files or starting the worker.
 
 `Entries.kt` reports the [execution entries](../evidence.md#execution-entries-and-container-placement)
 from which core places a C4 container. A file is an entry when it declares a
-top-level `fun main` with a body, no receiver, and either no parameter, one
-`Array<String>` parameter or one `vararg String` parameter. This is the
+top-level `fun main` with a body, no receiver, no type parameters, and either
+no parameter, one `Array<String>` parameter or one `vararg String` parameter. A
+`private` main is an ordinary function. This is the
 function the JVM starts, such as the `main` that calls `runApplication` in a
 Spring Boot application. The entry is named after its file, `Application` for
 `Application.kt`, and the file is its own declaration.
@@ -114,8 +115,11 @@ them.
 
 Not reported:
 
-- a `main` under no build declaration, because nothing bounds the files that
-  run with it;
+- a `main` under no selected build declaration, because nothing bounds the
+  files that run with it. The scan reports the warning
+  `kotlin-main-without-build-declaration` on that file. A project whose include
+  list selects only `**/*.kt` gets this warning for every `main`; add the build
+  declarations to the list;
 - a `main` declared in an object or companion object, including `@JvmStatic`;
 - a launch a build configures, such as a main class named only in a plugin
   setting.
@@ -123,7 +127,13 @@ Not reported:
 Only the paths of build declarations are used. Source directories, modules,
 packaging and dependencies they declare are not read, so a POM-only aggregator
 is a unit like any other and a Gradle subproject without its own build script
-belongs to the unit above it. Files of another language in the same unit come
+belongs to the unit above it. A library module with its own build declaration
+is a separate unit even when the application depends on it: the
+[entry contract](../evidence.md#execution-entries-and-container-placement)
+excludes dependency units, so its components stay under the system. When one
+unit holds several `main` functions, each entry reports the same files, and
+core leaves files shared by several entries under the system; only the files
+that declare a `main` join a container. Files of another language in the same unit come
 from that language's scanner. Spring Modulith modules are packages inside one
 application, not separate units: they stay in the application's container, and
 grouping them is authored curation.

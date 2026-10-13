@@ -97,8 +97,13 @@ async function verifyEntriesAndEndpoints(scanner: ScannerPlugin): Promise<void> 
   const observation = (await scanner.scan(spring, {}, [
     'pom.xml', application, controller, 'worker/build.gradle.kts', 'worker/src/main/kotlin/jobs/Job.kt',
   ]))!
-  // The nested Gradle unit keeps its own file and, having no main, declares no entry.
+  // The nested Gradle unit keeps its own file and declares no entry: its only main is private, which the JVM cannot start.
   expect(observation.entryPoints).toEqual([{ file: application, declaration: application, name: 'Application', files: [application, controller] }])
+  expect(observation.diagnostics).toEqual([])
+  // Without its build declaration nothing bounds the main's unit, and the scan says why no entry is reported.
+  const unbounded = (await scanner.scan(spring, {}, [application]))!
+  expect(unbounded.entryPoints).toEqual([])
+  expect(unbounded.diagnostics).toMatchObject([{ code: 'kotlin-main-without-build-declaration', file: application }])
   const segment = (part: HttpEndpointSegment) => part.kind === 'literal' ? part.value
     : `${part.kind === 'catch-all' ? '*' : ':'}${part.name}${part.optional ? '?' : ''}${part.constrained ? '!' : ''}`
   const handler = (id: string) => observation.operations!.find(operation => operation.id === id)!.name

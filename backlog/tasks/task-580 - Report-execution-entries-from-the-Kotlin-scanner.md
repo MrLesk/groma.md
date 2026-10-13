@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-13 08:32'
-updated_date: '2026-10-13 09:55'
+updated_date: '2026-10-13 12:47'
 labels: []
 dependencies: []
 references:
@@ -69,6 +69,8 @@ In C4 the result is one container for the running application. Spring Modulith m
 5. Test (rule: AC #1, #2, #4 and the entryPoints contract in docs/scanners/evidence.md). Wrong results detected: a main reported with another unit's files, or with no entry; an entry invented for a project without main. Gap: no Kotlin entry coverage exists. Smallest test: one new fixture test/fixtures/kotlin-spring with a pom.xml unit and a nested Gradle unit, asserted in test-bun/kotlin-scanner.test.ts; the existing kotlin-source scan asserts no entry.
 6. Verify AC #3 by scanning a scratch single-module Maven Spring Boot project with bun src/cli.ts scan and reading the written container.
 7. bun run check.
+
+8. Review fixes for PR 136, requested by the user on 2026-10-13. (a) A private main or one with type parameters is not the function the JVM starts and reports no entry. (b) A main under no selected build declaration reports the warning kotlin-main-without-build-declaration on its file, so a project whose include list selects no build declaration learns why it has no container; no include list is migrated. (c) Document two limits that follow from the entryPoints contract rather than from the scanner: several mains in one unit share its files, which core leaves under the system, and a library module with its own build declaration is a separate unit. (d) Tests (rule: AC 1 and the diagnostics contract in docs/scanners/creating-a-plugin.md). Wrong results detected: an entry for a private main, silence for a main without a unit. Gap: neither case is covered. Smallest test: one private main file in the fixture's nested unit and one assertion on the existing kotlin-source scan of a main-less project plus a main scanned without its pom.xml.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -76,6 +78,8 @@ In C4 the result is one container for the running application. Spring Modulith m
 <!-- SECTION:NOTES:BEGIN -->
 Decisions: unit membership uses only the paths of pom.xml, build.gradle and build.gradle.kts; no build file is opened. A main under no build declaration reports no entry, because a one-file container would misplace the rest of the application. Only a top-level main is an entry; object and companion mains are documented as not reported.
 Verification: test-bun/kotlin-scanner.test.ts scans test/fixtures/kotlin-spring and expects exactly one entry, Application, with the two files of the Maven unit and without the file of the nested Gradle unit, which has no main and no entry (AC 1, 2, 4). A scratch single-module Maven Spring Boot project scanned with bun src/cli.ts scan wrote container shop-application holding the three Kotlin components (AC 3). bun run check: 774 pass, 6 fail; the 6 failures are the Swift scanner tests, which need a Swift toolchain this machine lacks and fail the same way on main.
+
+Review fixes for PR 136 (2026-10-13). Decisions: a private main or one with type parameters reports no entry. A main under no selected build declaration reports the warning kotlin-main-without-build-declaration, which also tells a project with an older include list why it has no container; include lists are not migrated. Left as documented limits because they follow from the entryPoints contract and core's rule, not from the scanner: several mains in one unit share its files, which core leaves under the system, and a library module with its own build declaration is a separate unit that joins no entry. The fixture test expects no entry for a private main and the warning for a main scanned without its pom.xml. Verification: test-bun/kotlin-scanner.test.ts passes on JDK 21 and 25. bun run check: 769 pass, 11 fail on JDK 21; the 5 Java scanner failures are 'release version 25 not supported' and pass on JDK 25, and the 6 Swift failures need a Swift toolchain this machine lacks, as on main.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

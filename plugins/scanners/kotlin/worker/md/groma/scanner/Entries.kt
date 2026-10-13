@@ -1,5 +1,6 @@
 package md.groma.scanner
 
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtNamedFunction
 
 /**
@@ -11,10 +12,14 @@ object Entries {
 
     fun isBuildDeclaration(relative: String): Boolean = relative.substringAfterLast('/') in BUILD_DECLARATIONS
 
-    /** Whether the file declares the function the JVM starts: a top-level `main` taking nothing or the arguments. */
+    /**
+     * Whether the file declares the function the JVM starts: a top-level `main` taking nothing or the arguments. A
+     * private `main` and one with type parameters are ordinary functions the JVM cannot start.
+     */
     fun declaresMain(source: Source): Boolean = source.file.declarations.any { declaration ->
         declaration is KtNamedFunction && declaration.name == "main" && declaration.hasBody()
             && declaration.receiverTypeReference == null && takesArguments(declaration)
+            && !declaration.hasModifier(KtTokens.PRIVATE_KEYWORD) && declaration.typeParameters.isEmpty()
     }
 
     private fun takesArguments(main: KtNamedFunction): Boolean {
@@ -36,6 +41,16 @@ object Entries {
                 "files" to members.getValue(unit))
         }
     }
+
+    /**
+     * One warning per file in `mains` that reported none of the `entries`. A project whose include list selects no
+     * build declaration gets no container, and this is where it learns why.
+     */
+    fun withoutUnit(mains: List<String>, entries: List<Map<String, Any?>>): List<Map<String, Any?>> =
+        (mains - entries.map { it["file"] }.toSet()).map { main ->
+            mapOf("severity" to "warning", "code" to "kotlin-main-without-build-declaration", "file" to main,
+                "message" to "This main reports no execution entry: no selected pom.xml, build.gradle or build.gradle.kts in its directory or above bounds its build unit. Select those files in the Kotlin scanner's include list.")
+        }
 
     /** The nearest directory above the file that holds a build declaration, so a nested unit keeps its own files. */
     private fun unitOf(relative: String, units: Set<String>): String? =
