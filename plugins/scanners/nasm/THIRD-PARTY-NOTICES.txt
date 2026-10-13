@@ -13,3 +13,6 @@ It defines WIN32_LEAN_AND_MEAN and includes windows.h instead of stringapiset.h
 so the Windows SDK receives its host architecture definitions.
 Macro expansion and assembly semantics are unchanged.
 The modified binary is used only for preprocessing selected source snapshots.
+
+The scanner code also carries the words NASM reserves, taken from the keyword
+table in asm/tokhash.c, to tell labels from instructions.

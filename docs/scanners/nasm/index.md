@@ -33,8 +33,12 @@ and set its scanner entry in `groma/scanners.json` to:
 The scanner uses NASM `-E -f elf64` without project-defined command-line macros.
 It does not run Makefiles or link the game. Preprocessing handles macros,
 includes and active conditional branches; it does not validate all assembly
-instructions or expressions that need assembled addresses. Binary assets are
-not architecture sources.
+instructions or expressions that need assembled addresses. A first word that
+the bundled NASM does not know, such as a newer instruction or a macro that is
+undefined under plain preprocessing, is read as a label, as NASM reads it. Such
+a source can fail the scan with a duplicate label, or have later local labels
+attached to that word; NASM rejects it too, unless the word stands alone on one
+line only. Binary assets are not architecture sources.
 
 ## Evidence and map meaning
 
@@ -44,6 +48,14 @@ function declarations in Code details, at their original source lines. An
 exported routine has public visibility; other routines have internal visibility
 within the selected assembly unit. Called local labels supply operation facts,
 but do not add top-level outline entries.
+
+Labels are recognized as NASM's parser recognizes them. The first word of a
+line is a label when a colon follows it, or when NASM does not reserve the word
+as an instruction, prefix, register or operand keyword, so `second`,
+`second:` and `second dec ecx` all define `second`. A local label, written with
+a leading dot, belongs to the latest label that is not local, whatever section
+that label is in. An `equ` constant names a value: it is not a routine entry
+and does not become the owner of later local labels.
 
 Direct calls to known labels in this unit have local targets. Register calls,
 memory calls and external providers remain unresolved. Calls retain their
@@ -69,6 +81,10 @@ facts; no assembly-specific stored metadata or C4 level is added.
 `src/index.ts` owns the plugin hooks and shared-contract output.
 `src/preprocess.ts` builds the selected snapshot and invokes the bundled tool.
 `src/evidence.ts` reads NASM source-location directives, labels and calls.
+`src/reserved-words.ts` lists the words the bundled NASM reserves. Preprocessing stops
+before NASM's parser decides whether a word is a label, so the scanner applies
+that rule with this list. The build fails when the pinned NASM source reserves
+other words.
 For an outline, core supplies Code paths from the loaded architecture, filtered
 by scanner selection. This includes macros owned by another component and works
 with historical source snapshots that have no Git metadata.

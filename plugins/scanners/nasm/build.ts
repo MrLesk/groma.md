@@ -6,6 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { reservedWords } from './src/reserved-words.ts'
 
 const execute = promisify(execFile)
 const root = fileURLToPath(new URL('./', import.meta.url))
@@ -47,6 +48,20 @@ async function compile(directory: string): Promise<void> {
   }
 }
 
+/** The scanner tells labels from instructions with its own copy of the words this NASM reserves. */
+async function checkReservedWords(source: string): Promise<void> {
+  const table = await readFile(path.join(source, 'asm/tokhash.c'), 'utf8')
+  // A row reads { "word", length, TOKEN_type, value, flags, number }. NASM's scanner hands back a
+  // TOKEN_ID row, and a row that only counts inside braces (TFLAG_BRC), as an ordinary identifier.
+  const rows = [...table.matchAll(/\{ "([a-z_?][^"]*)", \d+, TOKEN_(\w+), \w+, ([^,]*), /g)]
+  const reserved = new Set(rows.filter(([, , type, flags]) => type !== 'ID' && !/\bTFLAG_BRC\b/.test(flags!)).map(row => row[1]!))
+  const missing = [...reserved].filter(word => !reservedWords.has(word))
+  const extra = [...reservedWords].filter(word => !reserved.has(word))
+  if (missing.length || extra.length) {
+    throw new Error(`NASM ${version} reserves other words than src/reserved-words.ts. Add: ${missing.join(' ')}. Remove: ${extra.join(' ')}.`)
+  }
+}
+
 /** Maintainer-only build: consumers receive a source preprocessor, never run a project build. */
 export async function buildPackage(destination: string): Promise<void> {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-nasm-build-'))
@@ -55,6 +70,7 @@ export async function buildPackage(destination: string): Promise<void> {
     const tar = process.platform === 'win32' ? path.join(process.env.SystemRoot!, 'System32/tar.exe') : 'tar'
     await execute(tar, ['-xf', await archive(), '-C', temporary])
     const source = path.join(temporary, `nasm-${version}`)
+    await checkReservedWords(source)
     const main = path.join(source, 'asm/nasm.c')
     const original = await readFile(main, 'utf8')
     const needle = 'struct src_location where = src_where();'

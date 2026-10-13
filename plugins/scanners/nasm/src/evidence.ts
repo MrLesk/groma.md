@@ -1,5 +1,6 @@
 import type { ScanInvocation, ScanOperation } from '@groma/scanner'
 import type { AssemblySource, Preprocessed } from './preprocess.ts'
+import { reservedWords } from './reserved-words.ts'
 
 interface Location { file: string; line: number; position: number }
 interface Label extends Location { name: string; local: boolean }
@@ -10,7 +11,7 @@ export interface Routine extends ScanOperation { line: number; local: boolean; e
 export interface AssemblyEvidence { routines: Routine[]; calls: ScanInvocation[] }
 
 const identifier = '[a-zA-Z_.$?@][a-zA-Z_0-9.$?@#~]*'
-const labelPattern = new RegExp(`^(${identifier}):\\s*(.*)$`)
+const firstWord = new RegExp(`^(${identifier})\\s*(:?)\\s*(.*)$`)
 const directTarget = new RegExp(`^${identifier}$`)
 const register = /^(?:[re]?(?:ax|bx|cx|dx|si|di|bp|sp)|r(?:[89]|1[0-5])(?:d|w|b)?)$/i
 
@@ -21,8 +22,26 @@ function location(sources: Map<string, AssemblySource>, file: string, line: numb
   return { file, line, position: source!.offsets[line - 1]! + original.search(/\S|$/) }
 }
 
+/**
+ * NASM's local labels start with one dot. Its `..@` names start with two and NASM attaches them to
+ * no label; the scanner handles every name with a leading dot as a local label.
+ */
+function hasLeadingDot(name: string): boolean {
+  return name.startsWith('.')
+}
+
 function qualify(name: string, scope: string): string {
-  return name.startsWith('.') ? scope + name : name
+  return hasLeadingDot(name) ? scope + name : name
+}
+
+/**
+ * NASM reads the first word of a line as a label when a colon follows it or when the word is not
+ * reserved, so `second` is a label in `second:`, in `second` alone and in `second dec ecx`.
+ */
+function splitLabel(text: string): { label?: string; instruction: string } {
+  const [, word, colon, instruction] = firstWord.exec(text) ?? []
+  const isLabel = word !== undefined && (colon !== '' || !reservedWords.has(word.toLowerCase()))
+  return isLabel ? { label: word, instruction: instruction! } : { instruction: text }
 }
 
 function* sourceLines(input: Preprocessed) {
@@ -58,19 +77,25 @@ function declaration(text: string, state: AssemblyState): boolean {
   return true
 }
 
-function readCode(text: string, at: Location, state: AssemblyState): void {
-  const match = labelPattern.exec(text)
-  if (match) {
-    const local = match[1]!.startsWith('.')
-    if (!local) state.scope = match[1]!
-    const name = qualify(match[1]!, state.scope)
-    const label = { ...at, name, local }
-    if (state.labels.has(name)) throw new Error(`nasm: duplicate code label ${name}`)
-    state.labels.set(name, label)
-    state.events.push({ label })
-    text = match[2]!
-  }
-  const call = /^call\s+(.+)$/i.exec(text)
+/**
+ * The only writer of the local-label scope. NASM attaches a local label to the latest label that is
+ * not local, whatever section either is in, so every label line passes through here. An EQU constant
+ * names a value, not a place: it neither moves the scope nor starts a routine. Only labels in `.text`
+ * are kept as routine candidates.
+ */
+function defineLabel(written: string, instruction: string, at: Location, state: AssemblyState): void {
+  if (/^equ\b/i.test(instruction)) return
+  const name = qualify(written, state.scope)
+  if (!hasLeadingDot(written)) state.scope = written
+  if (!state.code) return
+  if (state.labels.has(name)) throw new Error(`nasm: duplicate code label ${name}`)
+  const label = { ...at, name, local: hasLeadingDot(written) }
+  state.labels.set(name, label)
+  state.events.push({ label })
+}
+
+function readCall(instruction: string, at: Location, state: AssemblyState): void {
+  const call = /^call\s+(.+)$/i.exec(instruction)
   if (!call) return
   const operand = call[1]!.trim()
   const target = directTarget.test(operand) && !register.test(operand) ? qualify(operand, state.scope) : undefined
@@ -80,7 +105,10 @@ function readCode(text: string, at: Location, state: AssemblyState): void {
 function instructions(input: Preprocessed): AssemblyState {
   const state: AssemblyState = { events: [], labels: new Map(), exported: new Set(), code: false, scope: '' }
   for (const { text, at } of sourceLines(input)) {
-    if (!declaration(text, state) && state.code) readCode(text, at, state)
+    if (declaration(text, state)) continue
+    const { label, instruction } = splitLabel(text)
+    if (label !== undefined) defineLabel(label, instruction, at, state)
+    if (state.code) readCall(instruction, at, state)
   }
   return state
 }
