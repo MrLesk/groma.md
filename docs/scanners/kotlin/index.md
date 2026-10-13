@@ -155,23 +155,34 @@ each combination. `@RequestMapping` takes its methods from `method =`; without
 one it serves every method. A class-level `method` joins each function's own,
 as Spring serves both.
 
+A controller without its own class-level `@RequestMapping` takes the one a
+supertype declares, as Spring does: its interfaces first, then its superclass,
+each through its own supertypes. Supertypes are found among the scanned files
+by `Types.kt`; one outside them, or reached only through a wildcard import, is
+taken to declare none.
+
 The parser resolves no names, so annotations are matched by their simple name
-and an endpoint is reported only where the source text states it:
+and a route is read only where the source text states it:
 
 - A path is a string without interpolation, passed positionally or as `value =`
   or `path =`, alone or inside `[...]` or `arrayOf(...)`.
-- A method is `RequestMethod.GET` or another `RequestMethod` constant written
-  with that qualifier.
+- A method is a `RequestMethod` constant read by its own name: `RequestMethod.GET`,
+  the fully qualified form, or an imported `GET`.
 
-A mapping with any other path or method, such as a constant, a string template
-or an imported `GET`, reports no endpoint for its function. An unreadable
-class-level mapping reports none for the whole class. This differs from the
-Java scanner, which resolves constants and reports a blocker for a route it
-cannot read; a request to such a Kotlin route stays unmatched or may match
-another readable route.
+Any other path or method is a route the scanner sees but cannot read, and is
+reported as a blocker rather than dropped or guessed. A path keeps its literal
+text up to the unreadable part, such as the interpolation in
+`"/api/$version/orders"`, and ends there with a constrained optional
+catch-all; a path held in a constant is unreadable from its start. A method the
+scanner cannot read, such as a constant imported under another name, reports
+method `*` with the same catch-all after its path. An unreadable class-level
+mapping makes every route of the class a blocker. Core reaches a blocker only
+possibly, so it never proves a row by itself and can keep a request under its
+prefix from being matched to another route; the
+[HTTP request rule](../../relationship-inference.md#http-requests) decides.
 
-Also not reported: a mapping on an interface, which may be a declarative
-client; a class-level mapping or a function mapping inherited from a supertype;
+Not reported: a mapping on an interface, which may be a declarative
+client; a function mapping inherited from a supertype;
 a function without a body; functional WebFlux routes, Ktor routes and JAX-RS
 resources; filters, interceptors and security matchers. A mapping's `params`,
 `headers`, `consumes` and `produces` conditions are not part of the fact.
@@ -179,8 +190,10 @@ resources; filters, interceptors and security matchers. A mapping's `params`,
 The [producer checklist](../evidence.md#producer-checklist) for Kotlin:
 
 1. **Which prefixes belong in the path.** The `@RequestMapping` paths on the
-   controller class itself. `@RequestMapping("/api")` with
-   `@GetMapping("/talks")` reports `/api/talks`.
+   controller class, or on the first supertype in the scanned files that
+   declares one. `@RequestMapping("/api")` with
+   `@GetMapping("/talks")` reports `/api/talks`. A prefix that is not literal
+   reports a blocker in place of each route.
 2. **Whether the construct is an endpoint.** Only a mapped function of a
    controller class is. An interface never serves.
 3. **Dynamic or unknown.** The scanner reports no requests.
@@ -191,8 +204,8 @@ The [producer checklist](../evidence.md#producer-checklist) for Kotlin:
 7. **Which segments are constrained.** `{id}` and `*` are parameters.
    `{id:\d+}` and a segment mixing text with a placeholder or wildcard, such
    as `v{version}` or `*.json`, are constrained parameters. `{*path}`, `**`, a
-   `${...}` configuration placeholder and a segment outside URL path
-   characters end the route with a constrained optional catch-all.
+   `${...}` configuration placeholder, unreadable text and a segment outside
+   URL path characters end the route with a constrained optional catch-all.
 8. **Registration order.** Spring prefers the most specific route, so
    endpoints carry no `order`.
 

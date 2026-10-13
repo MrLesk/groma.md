@@ -5,16 +5,19 @@ import org.jetbrains.kotlin.psi.KtAnnotated
 import org.jetbrains.kotlin.psi.KtAnnotationEntry
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtCollectionLiteralExpression
 import org.jetbrains.kotlin.psi.KtEscapeStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtLiteralStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
+import org.jetbrains.kotlin.psi.KtUserType
 
 /**
  * HTTP endpoints of Spring MVC and WebFlux annotated controllers. Annotations are matched by name and read as
- * written, so an endpoint is reported only where its route and method are literal text; nothing else is guessed.
+ * written. A route or method that is not literal text is never guessed: it is reported as a blocker, which only
+ * possibly takes the requests below its readable prefix.
  */
 object Endpoints {
     private val CONTROLLERS = setOf("RestController", "Controller")
@@ -26,21 +29,28 @@ object Endpoints {
     /** `{name}`, `{name:regex}` or `{*name}`. */
     private val PLACEHOLDER = Regex("\\{(\\*?)([^}:]*)(:.*)?}")
 
+    /**
+     * Stands for route text the scanner sees but cannot read. NUL is not URL path text, so `segments` ends the route
+     * at its segment with a constrained optional catch-all.
+     */
+    private const val UNREADABLE = "\u0000"
+    /** Stands for a method the scanner sees but cannot read. */
+    private const val ANY = "*"
+
     /** One mapping annotation as written: its paths, and its methods, where none means every method. */
     private class Mapping(val paths: List<String>, val methods: List<String>)
 
-    fun fromSource(source: Source, operations: List<OperationDecl>): List<Map<String, Any?>> {
+    /** `types` holds every scanned source, because a controller's class-level mapping may sit on a supertype. */
+    fun fromSource(source: Source, operations: List<OperationDecl>, types: Types): List<Map<String, Any?>> {
         val controllers = PsiTreeUtil.collectElementsOfType(source.file, KtClass::class.java).filter(::isController)
         if (controllers.isEmpty()) return emptyList()
         // A named function's operation covers its whole declaration, so the declaration finds its operation.
         val operationOf = operations.associateBy { it.body }
         return controllers.flatMap { controller ->
-            // A class-level mapping the scanner cannot read leaves every route of the class unknown.
-            val declared = mappings(controller)
-            val prefix = if (declared.isEmpty()) Mapping(listOf(""), emptyList()) else declared.first() ?: return@flatMap emptyList()
+            val prefix = classMapping(controller, types, mutableSetOf()) ?: Mapping(listOf(""), emptyList())
             controller.declarations.filterIsInstance<KtNamedFunction>().flatMap { function ->
                 val operation = operationOf[function] ?: return@flatMap emptyList()
-                mappings(function).filterNotNull().flatMap { endpoints(operation.id, prefix, it) }
+                mappings(function).flatMap { endpoints(operation.id, prefix, it) }
             }
         }
     }
@@ -49,58 +59,76 @@ object Endpoints {
     private fun isController(type: KtClass): Boolean =
         !type.isInterface() && type.annotationEntries.any { it.shortName?.asString() in CONTROLLERS }
 
-    /** Spring serves both a class-level method and a mapping's own; a side without a method adds no restriction. */
+    /**
+     * The class-level mapping Spring finds: the class's own, else the first one on its interfaces and then its
+     * superclass, searched through their own supertypes. A supertype outside the scanned sources declares none.
+     */
+    private fun classMapping(type: KtClassOrObject, types: Types, searched: MutableSet<KtClassOrObject>): Mapping? {
+        mappings(type).firstOrNull()?.let { return it }
+        if (!searched.add(type)) return null
+        val supertypes = type.superTypeListEntries.mapNotNull { entry ->
+            (entry.typeReference?.typeElement as? KtUserType)?.let { types.resolve(it, type) }
+        }
+        return supertypes.sortedBy { it !is KtClass || !it.isInterface() }.firstNotNullOfOrNull { classMapping(it, types, searched) }
+    }
+
+    /**
+     * Spring serves both a class-level method and a mapping's own; a side without a method adds no restriction, and
+     * an unreadable method on either side leaves every method possible.
+     */
     private fun endpoints(operation: String, prefix: Mapping, mapping: Mapping): List<Map<String, Any?>> {
-        val methods = (prefix.methods + mapping.methods).distinct().ifEmpty { listOf("*") }
+        val methods = (prefix.methods + mapping.methods).distinct().let { if (it.isEmpty() || ANY in it) listOf(ANY) else it }
         return prefix.paths.flatMap { base -> mapping.paths.flatMap { route -> methods.map { method ->
             mapOf("operation" to operation, "method" to method, "path" to segments("$base/$route"))
         } } }
     }
 
-    /** The mapping annotations of a class or function; one the scanner cannot read is null. */
-    private fun mappings(declaration: KtAnnotated): List<Mapping?> =
+    private fun mappings(declaration: KtAnnotated): List<Mapping> =
         declaration.annotationEntries.filter { it.shortName?.asString() in MAPPINGS }.map(::mapping)
 
-    private fun mapping(annotation: KtAnnotationEntry): Mapping? {
+    /** An unreadable method makes each route unreadable past its path, so the mapping is a blocker, not a match. */
+    private fun mapping(annotation: KtAnnotationEntry): Mapping {
         val paths = mutableListOf<String>()
         val methods = listOfNotNull(MAPPINGS[annotation.shortName?.asString()]).toMutableList()
         for (argument in annotation.valueArguments) {
-            val values = elements(argument.getArgumentExpression() ?: return null)
+            val values = elements(argument.getArgumentExpression())
             when (argument.getArgumentName()?.asName?.asString()) {
-                null, "value", "path" -> paths += values.map { literalText(it) ?: return null }
-                "method" -> methods += values.map { requestMethod(it) ?: return null }
+                null, "value", "path" -> paths += values.map(::pathText)
+                "method" -> methods += values.map { requestMethod(it) ?: ANY }
                 // `params`, `headers`, `consumes` and `produces` narrow a route without changing its path or method.
                 else -> {}
             }
         }
-        return Mapping(paths.ifEmpty { listOf("") }, methods)
+        val unknown = if (ANY in methods) "/$UNREADABLE" else ""
+        return Mapping(paths.ifEmpty { listOf("") }.map { it + unknown }, methods)
     }
 
     /** The values of an annotation array, written `[..]` or `arrayOf(..)`, or the single value itself. */
-    private fun elements(value: KtExpression): List<KtExpression?> = when {
+    private fun elements(value: KtExpression?): List<KtExpression?> = when {
         value is KtCollectionLiteralExpression -> value.getInnerExpressions()
         value is KtCallExpression && value.calleeExpression?.text == "arrayOf" -> value.valueArguments.map { it.getArgumentExpression() }
         else -> listOf(value)
     }
 
-    /** A string without interpolation; a constant or a computed string is not followed. */
-    private fun literalText(value: KtExpression?): String? {
-        if (value !is KtStringTemplateExpression) return null
-        return value.entries.map { entry ->
-            when (entry) {
-                is KtLiteralStringTemplateEntry -> entry.text
-                is KtEscapeStringTemplateEntry -> entry.unescapedValue
-                else -> return null
-            }
-        }.joinToString("")
+    /** A string's text up to its first interpolation. From there on, like a constant or a computed string, it is unreadable. */
+    private fun pathText(value: KtExpression?): String {
+        if (value !is KtStringTemplateExpression) return UNREADABLE
+        val text = StringBuilder()
+        for (entry in value.entries) when (entry) {
+            is KtLiteralStringTemplateEntry -> text.append(entry.text)
+            is KtEscapeStringTemplateEntry -> text.append(entry.unescapedValue)
+            else -> return text.append(UNREADABLE).toString()
+        }
+        return text.toString()
     }
 
+    /** The constant's own name however it is qualified: `RequestMethod.GET`, its fully qualified form, or an imported `GET`. */
     private fun requestMethod(value: KtExpression?): String? =
-        value?.text?.takeIf { it.startsWith("RequestMethod.") }?.removePrefix("RequestMethod.")?.takeIf { it in METHODS }
+        value?.text?.substringAfterLast('.')?.trim()?.takeIf { it in METHODS }
 
     /**
      * Segments of a Spring path pattern. A segment that may span segments or that the fact format cannot state,
-     * such as `{*name}`, `**` or a `${..}` configuration placeholder, ends the path with a constrained optional
+     * such as `{*name}`, `**`, a `${..}` configuration placeholder or unreadable text, ends the path with a constrained optional
      * catch-all, so the endpoint is never widened to requests the application may reject.
      */
     private fun segments(pattern: String): List<Map<String, Any?>> {
@@ -118,7 +146,7 @@ object Endpoints {
 
     /** One segment, or null when it may span segments or the format cannot state it. */
     private fun segment(part: String): Map<String, Any?>? {
-        if ("\${" in part || part == "**") return null
+        if (UNREADABLE in part || "\${" in part || part == "**") return null
         val whole = PLACEHOLDER.matchEntire(part)
         if (whole != null) {
             return if (whole.groupValues[1].isEmpty()) parameter(placeholderName(part), whole.groupValues[3].isNotEmpty()) else null

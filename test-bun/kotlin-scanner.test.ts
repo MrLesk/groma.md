@@ -94,11 +94,12 @@ async function verifyVisibility(scanner: ScannerPlugin): Promise<void> {
 async function verifyEntriesAndEndpoints(scanner: ScannerPlugin): Promise<void> {
   const application = 'src/main/kotlin/shop/Application.kt'
   const controller = 'src/main/kotlin/shop/OrderController.kt'
+  const invoices = ['src/main/kotlin/shop/InvoiceApi.kt', 'src/main/kotlin/shop/InvoiceController.kt']
   const observation = (await scanner.scan(spring, {}, [
-    'pom.xml', application, controller, 'worker/build.gradle.kts', 'worker/src/main/kotlin/jobs/Job.kt',
+    'pom.xml', application, controller, ...invoices, 'worker/build.gradle.kts', 'worker/src/main/kotlin/jobs/Job.kt',
   ]))!
   // The nested Gradle unit keeps its own file and declares no entry: its only main is private, which the JVM cannot start.
-  expect(observation.entryPoints).toEqual([{ file: application, declaration: application, name: 'Application', files: [application, controller] }])
+  expect(observation.entryPoints).toEqual([{ file: application, declaration: application, name: 'Application', files: [application, ...invoices, controller] }])
   expect(observation.diagnostics).toEqual([])
   // Without its build declaration nothing bounds the main's unit, and the scan says why no entry is reported.
   const unbounded = (await scanner.scan(spring, {}, [application]))!
@@ -107,7 +108,8 @@ async function verifyEntriesAndEndpoints(scanner: ScannerPlugin): Promise<void> 
   const segment = (part: HttpEndpointSegment) => part.kind === 'literal' ? part.value
     : `${part.kind === 'catch-all' ? '*' : ':'}${part.name}${part.optional ? '?' : ''}${part.constrained ? '!' : ''}`
   const handler = (id: string) => observation.operations!.find(operation => operation.id === id)!.name
-  // A computed route, a route held in a constant, an unmapped function and a client interface report nothing.
+  // An unmapped function and a client interface report nothing. A computed route, a route held in a constant and an
+  // unreadable method are blockers: the readable prefix, then a constrained optional catch-all.
   expect(observation.httpEndpoints!.map(endpoint => `${endpoint.method} ${handler(endpoint.operation)} /${endpoint.path.map(segment).join('/')}`)).toEqual([
     'GET OrderController.list /api/orders',
     'GET OrderController.find /api/orders/:id',
@@ -115,6 +117,11 @@ async function verifyEntriesAndEndpoints(scanner: ScannerPlugin): Promise<void> 
     'POST OrderController.search /api/orders/search',
     'GET OrderController.search /api/orders/search',
     'DELETE OrderController.remove /api/orders/files/*path?!',
+    'POST OrderController.computed /api/orders/**?!',
+    '* OrderController.constant /api/orders/**?!',
+    '* OrderController.export /api/orders/export/**?!',
+    // The class-level mapping is declared by an interface in another file.
+    'GET InvoiceController.find /api/invoices/:id',
   ])
 }
 

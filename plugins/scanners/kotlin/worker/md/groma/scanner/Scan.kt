@@ -18,13 +18,16 @@ object Scan {
         val operations = mutableListOf<Map<String, Any?>>()
         val invocations = mutableListOf<Map<String, Any?>>()
         val endpoints = mutableListOf<Map<String, Any?>>()
-        for (relative in relatives) withinStack(relative) {
-            val source = parser.read(relative)
+        // Every file is parsed before any is reported, because a controller's class-level mapping may sit on a supertype in another file.
+        val sources = relatives.map { relative -> withinStack(relative) { parser.read(relative) } }
+        val types = Types(sources)
+        for (source in sources) withinStack(source.relative) {
+            val relative = source.relative
             if (Entries.declaresMain(source)) mains += relative
             val symbols = Symbols.fromSource(source).map { mapOf("id" to it.id, "name" to it.name, "kind" to it.kind) }
             files += mapOf("file" to relative, "roots" to listOf(ROOT), "symbols" to symbols)
             val declared = Operations.fromSource(source)
-            endpoints += Endpoints.fromSource(source, declared)
+            endpoints += Endpoints.fromSource(source, declared, types)
             for (operation in declared) {
                 operations += mapOf("id" to operation.id, "file" to operation.file, "name" to operation.name, "position" to operation.position)
                 for (call in Calls.fromOperation(operation)) {

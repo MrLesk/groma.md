@@ -12,7 +12,7 @@ class OrderController(private val prefix: String) {
     @PutMapping(path = ["/{id:\\d+}/lines/line-{line}"])
     fun replace(@PathVariable id: String) {}
 
-    @RequestMapping("/search", method = [RequestMethod.POST, RequestMethod.GET])
+    @RequestMapping("/search", method = [RequestMethod.POST, GET])
     fun search() {}
 
     @DeleteMapping("/files/{*path}/ignored")
@@ -23,6 +23,9 @@ class OrderController(private val prefix: String) {
 
     @RequestMapping(ROUTE)
     fun constant() {}
+
+    @RequestMapping("/export", method = [READ])
+    fun export() {}
 
     fun helper() {}
 }
