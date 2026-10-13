@@ -20,6 +20,32 @@ test.concurrent('NASM Windows output retains the original routine location', () 
   ])
 })
 
+/** Assembly that preprocessing leaves as written: NASM's output is the source after one location directive. */
+function unchangedByPreprocessing(text: string) {
+  const lines = text.split('\n')
+  const offsets = lines.map((_, index) => lines.slice(0, index).reduce((offset, line) => offset + line.length + 1, 0))
+  return { text: `%line 1+1 main.asm\n${text}`, sources: new Map([['main.asm', { text, lines, offsets }]]) }
+}
+
+test.concurrent('A NASM local label belongs to the latest label that is not local, with or without a colon and in any section', () => {
+  const { routines, calls } = evidence(unchangedByPreprocessing([
+    '[section .text]', '[global first]', '[global second]',
+    'first:', 'LIMIT EQU 4', ' CALL .step', '.step:', ' ret',
+    'second call .step', '.step:', ' ret',
+    '[section .data]', 'counters:',
+    '[section .text]', ' call .step', '.step:', ' ret',
+  ].join('\n')))
+  expect(routines.map(routine => routine.name).sort()).toEqual(['counters.step', 'first', 'first.step', 'second', 'second.step'])
+  expect(calls.map(call => [call.source, call.targets])).toEqual([
+    ['main.asm:first', ['main.asm:first.step']], ['main.asm:second', ['main.asm:second.step']],
+  ])
+})
+
+test.concurrent('A NASM code label defined twice fails the scan', () => {
+  const twice = unchangedByPreprocessing(['[section .text]', 'helper:', ' ret', 'helper:', ' ret'].join('\n'))
+  expect(() => evidence(twice)).toThrow(/duplicate.*helper/)
+})
+
 test.concurrent('NASM retains macro call-site origins, include scope and uncertain providers in a selected source snapshot', async () => {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-nasm-test-'))
   const root = path.join(temporary, 'source')
