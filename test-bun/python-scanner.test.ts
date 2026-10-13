@@ -342,15 +342,37 @@ test.concurrent('a shared exclusion keeps invalid Python outside parsing when va
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
 
-test.concurrent('Python recognizes a Flask route registered with a view function', async () => {
+test.concurrent('Python recognizes a Flask route registered with a view function, and none through a name declared twice', async () => {
   const { root, temporary, scanner } = await fixture()
   try {
-    await writeFile(path.join(root, 'flask_case.py'), 'from flask import Flask\napp = Flask(__name__)\ndef hello(): pass\napp.add_url_rule("/hello", view_func=hello)\n')
+    await writeFile(path.join(root, 'flask_case.py'), [
+      'from flask import Flask',
+      // Names an operation only because service.py of the shared python-project fixture declares `dispatch`.
+      'from service import dispatch as view',
+      'app = Flask(__name__)',
+      'def hello(): pass',
+      'class Greeter:',
+      '    def hello(self): pass',
+      'app.add_url_rule("/hello", view_func=hello)',
+      'def view(): pass',
+      'app.add_url_rule("/a", view_func=view)',
+      'def view(): pass',
+      'app.add_url_rule("/b", view_func=view)',
+      'def page(): pass',
+      'if app:',
+      '    def page(): pass',
+      'app.add_url_rule("/c", view_func=page)',
+      '',
+    ].join('\n'))
     const scan = (await scanner.scan(root, {}, await pythonFiles(root)))!
     const handler = scan.operations!.find(operation => operation.file === 'flask_case.py' && operation.name === 'hello')!
-    expect(scan.httpEndpoints).toContainEqual({
+    // The module declares `hello` once; the method that shares the name is another name. `view` is declared twice
+    // in sequence, so which one a reference means depends on where the reference stands, which the scanner does
+    // not follow, and `page` again in a branch, so it depends on the code that runs. Their routes name neither
+    // declaration, nor the import that shares the name `view`.
+    expect(scan.httpEndpoints).toEqual([{
       operation: handler.id, method: 'GET', path: [{ kind: 'literal', value: 'hello' }],
-    })
+    }])
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
 

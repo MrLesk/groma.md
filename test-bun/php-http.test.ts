@@ -22,19 +22,28 @@ async function scanFixture(fixture = 'php-http', source?: string, base?: string)
   return { temporary, scan: (await scanner.scan(root, {}, await scannerFiles(root, manifest.groma.scanner)))! }
 }
 
-test.concurrent('Slim routes to an inherited invokable handler in another file', async () => {
+test.concurrent('Slim routes to an inherited invokable handler in another file, and to none through a class name declared twice', async () => {
   const { temporary, scan } = await scanFixture('empty-project', String.raw`<?php
 namespace Demo;
 use Slim\Factory\AppFactory;
 class ItemAction extends BaseAction {}
+if (PHP_VERSION_ID < 80000) { class DraftAction extends BaseAction {} } else { class DraftAction extends OtherAction {} }
+class PlainAction extends BaseAction {}
 $app = AppFactory::create();
 $app->get('/items', ItemAction::class);
+$app->get('/drafts', DraftAction::class);
+$app->get('/plain', PlainAction::class);
 `, `<?php namespace Demo;
 abstract class BaseAction { public function __invoke() {} }
+class OtherAction { public function __invoke() {} }
+class PlainAction {}
 `)
   try {
+    // DraftAction is declared in both branches of one file, and PlainAction in two files, only one of which
+    // extends a class. Neither name has one parent to inherit from, so each route is a blocker named after the
+    // code that registers it.
     expect(scan.httpEndpoints!.map(endpoint => [endpoint.method, endpointPath(endpoint.path), fileOf(scan, endpoint.operation)]))
-      .toEqual([['GET', '/items', 'base.php']])
+      .toEqual([['GET', '/items', 'base.php'], ['GET', '/drafts/:path*~', 'routes.php'], ['GET', '/plain/:path*~', 'routes.php']])
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
 
