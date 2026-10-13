@@ -8,9 +8,11 @@ object Scan {
     /**
      * One complete observation for the selected paths; a file that fails to parse fails the whole scan. Kotlin files
      * are parsed. The build declarations among the paths are not read: they only bound the unit of an execution entry.
+     * Any other path a configured include list selects is ignored.
      */
     fun scanRoot(parser: Parser, selected: List<String>): Map<String, Any?> {
-        val (declarations, relatives) = selected.partition(Entries::isBuildDeclaration)
+        val declarations = selected.filter(Entries::isBuildDeclaration)
+        val relatives = selected.filter { it.endsWith(".kt") }
         val files = mutableListOf<Map<String, Any?>>()
         val mains = mutableListOf<String>()
         val operations = mutableListOf<Map<String, Any?>>()
