@@ -94,6 +94,19 @@ function defineLabel(written: string, instruction: string, at: Location, state: 
   state.events.push({ label })
 }
 
+/**
+ * Where the instruction after a label starts. A call's position is the call itself, so on a source line that
+ * starts with its label the position moves past that label. A label a macro expansion wrote is not on the
+ * source line, and the line's own position stands.
+ */
+function afterLabel(at: Location, label: string, sources: Map<string, AssemblySource>): Location {
+  const original = sources.get(at.file)!.lines[at.line - 1]!
+  const start = original.search(/\S|$/)
+  if (!original.startsWith(label, start)) return at
+  const separator = /^\s*:?\s*/.exec(original.slice(start + label.length))![0]
+  return { ...at, position: at.position + label.length + separator.length }
+}
+
 function readCall(instruction: string, at: Location, state: AssemblyState): void {
   const call = /^call\s+(.+)$/i.exec(instruction)
   if (!call) return
@@ -108,7 +121,7 @@ function instructions(input: Preprocessed): AssemblyState {
     if (declaration(text, state)) continue
     const { label, instruction } = splitLabel(text)
     if (label !== undefined) defineLabel(label, instruction, at, state)
-    if (state.code) readCall(instruction, at, state)
+    if (state.code) readCall(instruction, label === undefined ? at : afterLabel(at, label, input.sources), state)
   }
   return state
 }

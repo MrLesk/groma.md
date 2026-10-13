@@ -28,17 +28,20 @@ function unchangedByPreprocessing(text: string) {
 }
 
 test.concurrent('A NASM local label belongs to the latest label that is not local, with or without a colon and in any section', () => {
-  const { routines, calls } = evidence(unchangedByPreprocessing([
+  const source = [
     '[section .text]', '[global first]', '[global second]',
     'first:', 'LIMIT EQU 4', ' CALL .step', '.step:', ' ret',
     'second call .step', '.step:', ' ret',
     '[section .data]', 'counters:',
     '[section .text]', ' call .step', '.step:', ' ret',
-  ].join('\n')))
+  ].join('\n')
+  const { routines, calls } = evidence(unchangedByPreprocessing(source))
   expect(routines.map(routine => routine.name).sort()).toEqual(['counters.step', 'first', 'first.step', 'second', 'second.step'])
   expect(calls.map(call => [call.source, call.targets])).toEqual([
     ['main.asm:first', ['main.asm:first.step']], ['main.asm:second', ['main.asm:second.step']],
   ])
+  // A call's position is the call itself, also on a line that starts with its label.
+  expect(calls.map(call => call.position)).toEqual([source.indexOf('CALL .step'), source.indexOf('call .step')])
 })
 
 test.concurrent('A NASM code label defined twice fails the scan', () => {
