@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-11 16:51'
-updated_date: '2026-10-13 18:43'
+updated_date: '2026-10-13 19:13'
 labels: []
 dependencies: []
 references:
@@ -91,6 +91,8 @@ OPEN ITEM for the owner: the guide's Cityssembly sentence (59 source files, 924 
 Verified on the combined working tree with every TASK-592 change and TASK-580 present: `bun run check` exits 0 (Node 16 pass; Bun 785 pass, 53 skip, 0 fail), no file under `groma/` changed, no changed source or test file exceeds 500 lines.
 
 Architecture: a scan made `reserved-words.ts` a stand-alone component; it was combined into `nasm-src-index`, the component that owns the NASM scanner source.
+
+Review on pull request 139 (automated code review, one finding, accepted): on a source line that holds a label and a call, the call was reported at the position of the label, because the call took the position of its line. The evidence contract (`docs/scanners/evidence.md`) gives an invocation the offset of the call itself. This held for colon labels before this task; the task made it reachable for labels written without a colon, as in `second call .step`. `afterLabel` in `evidence.ts` now moves the position past a label that the source line starts with; a label that a macro expansion wrote is not on the source line, so the position of the line stands, as before. Test decision: rule and authority, the documented invocation position; wrong result caught, a call reported at the offset of its label; gap, no test had a label and a call on one line. The assertion was added to the existing scope test and was seen failing with the old call (expected the offset of `call`, received the offset of `second`). Verified: `bun test --timeout 20000 test-bun/nasm-scanner.test.ts` 4 pass, Biome lint and typecheck clean, audit probes na1 to na8 unchanged.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
