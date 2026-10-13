@@ -66,8 +66,12 @@ export function projectConfigs(root: string, directories: readonly string[],
   return { configs: [...configs.values()], diagnostics }
 }
 
-/** One compiler program: the project sources it reports, and every repository source it reads, such as an imported library. */
-export interface AngularProgram { program: ts.Program; owned: readonly ts.SourceFile[]; sources: readonly ts.SourceFile[] }
+/**
+ * One compiler program: the project sources it owns and reports, each once, and every repository source it reads, such
+ * as an imported library. A source is reported under the name its owning program gives it: the config's spelling when
+ * a config includes it, otherwise the importing program's, otherwise the first listed one.
+ */
+export interface AngularProgram { program: ts.Program; owned: ReadonlySet<ts.SourceFile>; sources: readonly ts.SourceFile[] }
 
 function inRepository(root: string, source: ts.SourceFile): boolean {
   return !source.isDeclarationFile && !relative(root, source.fileName).startsWith('../') && !source.fileName.includes('/node_modules/')
@@ -90,25 +94,38 @@ function configOwners(wanted: ReadonlySet<string>, configs: readonly ProjectConf
   return owners
 }
 
+/**
+ * Pairs a program with the sources it owns, the ones its listed `paths` name. One source has one owner however many
+ * listed paths name it, as two spellings of a path do on a case-insensitive disk, so the owned sources are a set of the
+ * compiler's sources and never a list of paths.
+ */
+function programWithOwnedSources(program: ts.Program, paths: readonly string[]): { program: ts.Program; owned: Set<ts.SourceFile> } {
+  return { program, owned: new Set(paths.map(file => program.getSourceFile(file)!)) }
+}
+
 export function angularPrograms(root: string, files: readonly string[], configs: readonly ProjectConfig[]): AngularProgram[] {
   const wanted = new Set(files.map(file => path.resolve(root, file)))
   const owners = configOwners(wanted, configs)
   const groups = new Map<ProjectConfig, string[]>()
   for (const [file, owner] of owners) groups.set(owner, [...groups.get(owner) ?? [], file])
-  const programs = [...groups].map(([owner, rootNames]) => ({
-    program: ts.createProgram(rootNames, { ...owner.config.options, noEmit: true }), files: new Set(rootNames) }))
+  const programs = [...groups].map(([owner, rootNames]) =>
+    programWithOwnedSources(ts.createProgram(rootNames, { ...owner.config.options, noEmit: true }), rootNames))
   const loose: string[] = []
   for (const file of wanted) {
     if (owners.has(file)) continue
-    const importer = programs.find(({ program }) => program.getSourceFile(file) !== undefined)
-    if (importer) importer.files.add(file)
+    const readers = programs.filter(({ program }) => program.getSourceFile(file) !== undefined)
+    // A source that has its owner keeps it: a second listed path naming it adds no owner, even when another program
+    // reads the source first. The owned set alone only prevents a repeat inside one program, and each program has
+    // its own `ts.SourceFile` objects, so a source another program owns is found by asking every program that reads it.
+    if (readers.some(({ program, owned }) => owned.has(program.getSourceFile(file)!))) continue
+    const [importer] = readers
+    if (importer) importer.owned.add(importer.program.getSourceFile(file)!)
     else loose.push(file)
   }
-  if (loose.length) programs.push({ program: ts.createProgram(loose, { noEmit: true }), files: new Set(loose) })
-  return programs.map(({ program, files: own }) => {
-    const owned = [...own].map(file => program.getSourceFile(file)!)
+  if (loose.length) programs.push(programWithOwnedSources(ts.createProgram(loose, { noEmit: true }), loose))
+  return programs.map(({ program, owned }) => {
     // Each source's own program checks its syntax; an imported file from elsewhere is only context.
-    failDiagnostics(owned.flatMap(source => program.getSyntacticDiagnostics(source)))
+    failDiagnostics([...owned].flatMap(source => program.getSyntacticDiagnostics(source)))
     return { program, owned, sources: program.getSourceFiles().filter(source => inRepository(root, source)) }
   })
 }
