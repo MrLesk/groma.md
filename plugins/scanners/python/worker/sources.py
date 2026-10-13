@@ -14,6 +14,7 @@ CONFIGURED = object()
 ENVIRONMENT = ("os.environ.get", "os.getenv")
 SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
+DECLARATIONS = (*FUNCTIONS, ast.ClassDef)
 
 
 def module_path(file):
@@ -128,7 +129,7 @@ def read_module(file, tree, identities, shadowed):
               "bindings": Counter(name for node in ast.walk(tree) for name in binding_names(node)),
               "calls": [node for node in ast.walk(tree) if isinstance(node, ast.Call)]}
     for node in tree.body:
-        if isinstance(node, (*FUNCTIONS, ast.ClassDef)):
+        if isinstance(node, DECLARATIONS):
             module["definitions"][node.name] = node
         elif isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
             for target in (node.targets if isinstance(node, ast.Assign) else [node.target]):
@@ -145,6 +146,12 @@ def read_module(file, tree, identities, shadowed):
     # Only a name the module binds exactly once is a constant.
     for name in [name for name, count in module["bindings"].items() if count > 1]:
         module["values"].pop(name, None)
+    # Only a name the module scope declares exactly once names its declaration; a method or nested function of that
+    # name is another name. With two `def view` in sequence, which one a reference means depends on where the
+    # reference stands, which the scanner does not follow; with one of them in an `if` branch, it depends on the
+    # code that runs. `resolve_name` resolves such a name to nothing.
+    declared = Counter(node.name for node in scope_nodes(tree) if isinstance(node, DECLARATIONS))
+    module["redeclared"] = {name for name, count in declared.items() if count > 1}
     return module
 
 
@@ -231,8 +238,12 @@ def resolve(sources, module, node, depth=0):
 
 
 def resolve_name(sources, module, name, depth=0):
-    """Follow one module's name, through its imports, to what declares it."""
-    if depth > DEPTH:
+    """Follow one module's name, through its imports, to what declares it.
+
+    A name the module declares more than once resolves to nothing: `definitions` keeps only its last declaration,
+    which need not be the one a reference means.
+    """
+    if depth > DEPTH or name in module["redeclared"]:
         return None
     definition = module["definitions"].get(name)
     if definition is not None:
