@@ -191,6 +191,33 @@ goTest('Go attaches source ranges and binding-normalized tokens only to named op
   } finally { await rm(root, { recursive: true, force: true }) }
 }, 60000)
 
+goTest('Go reports positions in the file as written, whatever //line directives say', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-go-test-'))
+  const worker = path.join(root, process.platform === 'win32' ? 'worker.exe' : 'worker')
+  try {
+    await buildWorker(worker, go)
+    // First and Other start at the same byte offset behind one directive file name.
+    const sources = {
+      'go.mod': 'module example.test/line\n\ngo 1.22\n',
+      'first.go': 'package line\n\n//line grammar.y:1\nfunc First() int { return 1 }\n',
+      'other.go': 'package line\n\n//line grammar.y:1\nfunc Other() int { return 2 }\n',
+      'caller.go': 'package line\n\nfunc Caller() int {\n//line grammar.y:1\n\treturn First() + Other() + missing()\n}\n',
+    }
+    await writeFiles(root, sources)
+    const observation = await scanGoSource(root, { worker }, Object.keys(sources))
+    expect(observation.operations!.find(operation => operation.file === 'caller.go'))
+      .toMatchObject({ startLine: 3, endLine: 6 })
+    const at = (text: string) => calls(observation).find(call => call.position === sources['caller.go'].indexOf(text))!
+    expect(at('First()').providers.map(provider => provider.file)).toEqual(['first.go'])
+    expect(at('Other()').providers.map(provider => provider.file)).toEqual(['other.go'])
+    expect(at('First()').line).toBe(5)
+    // The undeclared name is the module's only type error, so the summary is located on it.
+    expect(observation.diagnostics).toContainEqual(expect.objectContaining({ file: 'caller.go', line: 5 }))
+    const [outlined] = await readGoCodeStructure(root, [{ file: 'first.go', symbols: [] }], { worker })
+    expect(outlined!.declarations[0]!.line).toBe(4)
+  } finally { await rm(root, { recursive: true, force: true }) }
+}, 60000)
+
 goTest('groma lint reports identical and near-duplicate Go bodies across renamed local names', async () => {
   const { root, worker } = await fixture('go-duplicates')
   try {
