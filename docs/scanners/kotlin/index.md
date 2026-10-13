@@ -65,8 +65,7 @@ worker parses each file without analyzing it and reports:
   `1 to 2`, and property accessors are not reported. Initializer blocks do not
   become separate operations.
 
-The scanner supplies no body fingerprints for duplicate-code findings and no
-HTTP facts. A parse or read failure rejects the whole observation and names the
+The scanner supplies no body fingerprints for duplicate-code findings. A parse or read failure rejects the whole observation and names the
 source file, with the line of a syntax error. The worker runs with a 512 MB stack for long generated
 expressions; a file nested deeper than that fails the same way. There is no successful partial scan. In a file with CRLF
 line endings or a leading byte order mark, positions and lines still refer to the file on disk.
@@ -129,6 +128,63 @@ from that language's scanner. Spring Modulith modules are packages inside one
 application, not separate units: they stay in the application's container, and
 grouping them is authored curation.
 
+## HTTP endpoints
+
+`Endpoints.kt` reports the [HTTP endpoints](../evidence.md#http-endpoints-and-requests)
+that core joins with the requests of other scanners into derived
+relationships. It reports no requests.
+
+Endpoints come from Spring MVC and WebFlux annotated controllers: a class
+annotated `@RestController` or `@Controller`, for each function with a body
+annotated `@GetMapping`, `@PostMapping`, `@PutMapping`, `@DeleteMapping`,
+`@PatchMapping` or `@RequestMapping`. The endpoint names that function's
+operation. Its path is the class's own `@RequestMapping` path followed by the
+function's. A mapping with several paths or methods reports one endpoint for
+each combination. `@RequestMapping` takes its methods from `method =`; without
+one it serves every method. A class-level `method` joins each function's own,
+as Spring serves both.
+
+The parser resolves no names, so annotations are matched by their simple name
+and an endpoint is reported only where the source text states it:
+
+- A path is a string without interpolation, passed positionally or as `value =`
+  or `path =`, alone or inside `[...]` or `arrayOf(...)`.
+- A method is `RequestMethod.GET` or another `RequestMethod` constant written
+  with that qualifier.
+
+A mapping with any other path or method, such as a constant, a string template
+or an imported `GET`, reports no endpoint for its function. An unreadable
+class-level mapping reports none for the whole class. This differs from the
+Java scanner, which resolves constants and reports a blocker for a route it
+cannot read; a request to such a Kotlin route stays unmatched or may match
+another readable route.
+
+Also not reported: a mapping on an interface, which may be a declarative
+client; a class-level mapping or a function mapping inherited from a supertype;
+a function without a body; functional WebFlux routes, Ktor routes and JAX-RS
+resources; filters, interceptors and security matchers. A mapping's `params`,
+`headers`, `consumes` and `produces` conditions are not part of the fact.
+
+The [producer checklist](../evidence.md#producer-checklist) for Kotlin:
+
+1. **Which prefixes belong in the path.** The `@RequestMapping` paths on the
+   controller class itself. `@RequestMapping("/api")` with
+   `@GetMapping("/talks")` reports `/api/talks`.
+2. **Whether the construct is an endpoint.** Only a mapped function of a
+   controller class is. An interface never serves.
+3. **Dynamic or unknown.** The scanner reports no requests.
+4. **The local helper.** The scanner reports no requests.
+5. **The base.** The scanner reports no requests.
+6. **Which operation a file-location route names.** Spring declares no routes
+   by file location.
+7. **Which segments are constrained.** `{id}` and `*` are parameters.
+   `{id:\d+}` and a segment mixing text with a placeholder or wildcard, such
+   as `v{version}` or `*.json`, are constrained parameters. `{*path}`, `**`, a
+   `${...}` configuration placeholder and a segment outside URL path
+   characters end the route with a constrained optional catch-all.
+8. **Registration order.** Spring prefers the most specific route, so
+   endpoints carry no `order`.
+
 ## Architecture ownership
 
 The worker's single source root groups evidence for this scan. A Kotlin
@@ -172,7 +228,7 @@ includes the `java.desktop` module. That makes each host runtime about 77 MB
 (24 MB compressed), beside about 60 MB of compiler jars shared by all hosts.
 
 The Kotlin test builds an isolated package and checks selection, declarations,
-calls, positions, parse failure, outlines and execution entries. The shared fresh-checkout test
+calls, positions, parse failure, outlines, execution entries and HTTP endpoints. The shared fresh-checkout test
 also runs the relocated package with an empty home and no language tools on
 `PATH`, checks repeatability, and checks that the checkout stays unchanged.
 

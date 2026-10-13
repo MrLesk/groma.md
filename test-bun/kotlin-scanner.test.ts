@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import type { CodeSymbol, ScannerPlugin, ScanObservation } from '@groma/scanner'
+import type { CodeSymbol, HttpEndpointSegment, ScannerPlugin, ScanObservation } from '@groma/scanner'
 import { buildPackage } from '../plugins/scanners/kotlin/build.ts'
 import { scannerFiles } from '../src/scanner/modules/selection.ts'
 
@@ -91,7 +91,7 @@ async function verifyVisibility(scanner: ScannerPlugin): Promise<void> {
   expect(observation.files[0]!.symbols!.some(item => item.name === 'Unknown')).toBeTrue()
 }
 
-async function verifyEntries(scanner: ScannerPlugin): Promise<void> {
+async function verifyEntriesAndEndpoints(scanner: ScannerPlugin): Promise<void> {
   const application = 'src/main/kotlin/shop/Application.kt'
   const controller = 'src/main/kotlin/shop/OrderController.kt'
   const observation = (await scanner.scan(spring, {}, [
@@ -99,6 +99,18 @@ async function verifyEntries(scanner: ScannerPlugin): Promise<void> {
   ]))!
   // The nested Gradle unit keeps its own file and, having no main, declares no entry.
   expect(observation.entryPoints).toEqual([{ file: application, declaration: application, name: 'Application', files: [application, controller] }])
+  const segment = (part: HttpEndpointSegment) => part.kind === 'literal' ? part.value
+    : `${part.kind === 'catch-all' ? '*' : ':'}${part.name}${part.optional ? '?' : ''}${part.constrained ? '!' : ''}`
+  const handler = (id: string) => observation.operations!.find(operation => operation.id === id)!.name
+  // A computed route, a route held in a constant, an unmapped function and a client interface report nothing.
+  expect(observation.httpEndpoints!.map(endpoint => `${endpoint.method} ${handler(endpoint.operation)} /${endpoint.path.map(segment).join('/')}`)).toEqual([
+    'GET OrderController.list /api/orders',
+    'GET OrderController.find /api/orders/:id',
+    'PUT OrderController.replace /api/orders/:id!/lines/:line!',
+    'POST OrderController.search /api/orders/search',
+    'GET OrderController.search /api/orders/search',
+    'DELETE OrderController.remove /api/orders/files/*path?!',
+  ])
 }
 
 test.concurrent('packaged Kotlin scanner reads selected source, bounded calls and outlines without a build model', async () => {
@@ -115,7 +127,7 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
     await verifyOutline(scanner)
     await verifyOperationScopes(scanner)
     await verifyVisibility(scanner)
-    await verifyEntries(scanner)
+    await verifyEntriesAndEndpoints(scanner)
 
     const project = path.join(temporary, 'project')
     await cp(fixture, project, { recursive: true })

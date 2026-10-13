@@ -15,12 +15,15 @@ object Scan {
         val mains = mutableListOf<String>()
         val operations = mutableListOf<Map<String, Any?>>()
         val invocations = mutableListOf<Map<String, Any?>>()
+        val endpoints = mutableListOf<Map<String, Any?>>()
         for (relative in relatives) withinStack(relative) {
             val source = parser.read(relative)
             if (Entries.declaresMain(source)) mains += relative
             val symbols = Symbols.fromSource(source).map { mapOf("id" to it.id, "name" to it.name, "kind" to it.kind) }
             files += mapOf("file" to relative, "roots" to listOf(ROOT), "symbols" to symbols)
-            for (operation in Operations.fromSource(source)) {
+            val declared = Operations.fromSource(source)
+            endpoints += Endpoints.fromSource(source, declared)
+            for (operation in declared) {
                 operations += mapOf("id" to operation.id, "file" to operation.file, "name" to operation.name, "position" to operation.position)
                 for (call in Calls.fromOperation(operation)) {
                     invocations += mapOf("source" to call.source, "targets" to emptyList<String>(), "position" to call.position,
@@ -38,6 +41,7 @@ object Scan {
             "entryPoints" to Entries.of(mains, relatives, declarations),
             "operations" to operations,
             "invocations" to invocations,
+            "httpEndpoints" to endpoints,
             "diagnostics" to emptyList<Any>(),
         )
     }
