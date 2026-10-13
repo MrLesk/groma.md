@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
  * written, so an endpoint is reported only where its route and method are literal text; nothing else is guessed.
  */
 object Endpoints {
+    private val CONTROLLERS = setOf("RestController", "Controller")
     /** A mapping annotation and the method it names; `@RequestMapping` names its methods in `method =`. */
     private val MAPPINGS = mapOf("GetMapping" to "GET", "PostMapping" to "POST", "PutMapping" to "PUT",
         "DeleteMapping" to "DELETE", "PatchMapping" to "PATCH", "RequestMapping" to null)
@@ -29,9 +30,11 @@ object Endpoints {
     private class Mapping(val paths: List<String>, val methods: List<String>)
 
     fun fromSource(source: Source, operations: List<OperationDecl>): List<Map<String, Any?>> {
+        val controllers = PsiTreeUtil.collectElementsOfType(source.file, KtClass::class.java).filter(::isController)
+        if (controllers.isEmpty()) return emptyList()
         // A named function's operation covers its whole declaration, so the declaration finds its operation.
         val operationOf = operations.associateBy { it.body }
-        return PsiTreeUtil.collectElementsOfType(source.file, KtClass::class.java).filter(::isController).flatMap { controller ->
+        return controllers.flatMap { controller ->
             // A class-level mapping the scanner cannot read leaves every route of the class unknown.
             val declared = mappings(controller)
             val prefix = if (declared.isEmpty()) Mapping(listOf(""), emptyList()) else declared.first() ?: return@flatMap emptyList()
@@ -44,7 +47,7 @@ object Endpoints {
 
     /** An interface never serves: a declarative client carries the same mapping annotations. */
     private fun isController(type: KtClass): Boolean =
-        !type.isInterface() && type.annotationEntries.any { it.shortName?.asString() in setOf("RestController", "Controller") }
+        !type.isInterface() && type.annotationEntries.any { it.shortName?.asString() in CONTROLLERS }
 
     /** Spring serves both a class-level method and a mapping's own; a side without a method adds no restriction. */
     private fun endpoints(operation: String, prefix: Mapping, mapping: Mapping): List<Map<String, Any?>> {
