@@ -5,13 +5,19 @@ import org.jetbrains.kotlin.config.KotlinCompilerVersion
 object Scan {
     private const val ROOT = "scan"
 
-    /** One complete observation for the selected files; a file that fails to parse fails the whole scan. */
-    fun scanRoot(parser: Parser, relatives: List<String>): Map<String, Any?> {
+    /**
+     * One complete observation for the selected paths; a file that fails to parse fails the whole scan. Kotlin files
+     * are parsed. The build declarations among the paths are not read: they only bound the unit of an execution entry.
+     */
+    fun scanRoot(parser: Parser, selected: List<String>): Map<String, Any?> {
+        val (declarations, relatives) = selected.partition(Entries::isBuildDeclaration)
         val files = mutableListOf<Map<String, Any?>>()
+        val mains = mutableListOf<String>()
         val operations = mutableListOf<Map<String, Any?>>()
         val invocations = mutableListOf<Map<String, Any?>>()
         for (relative in relatives) withinStack(relative) {
             val source = parser.read(relative)
+            if (Entries.declaresMain(source)) mains += relative
             val symbols = Symbols.fromSource(source).map { mapOf("id" to it.id, "name" to it.name, "kind" to it.kind) }
             files += mapOf("file" to relative, "roots" to listOf(ROOT), "symbols" to symbols)
             for (operation in Operations.fromSource(source)) {
@@ -29,6 +35,7 @@ object Scan {
                 "engine" to "kotlin-compiler-embeddable", "engineVersion" to KotlinCompilerVersion.VERSION),
             "roots" to listOf(mapOf("id" to ROOT, "kind" to "source", "name" to "Kotlin source")),
             "files" to files,
+            "entryPoints" to Entries.of(mains, relatives, declarations),
             "operations" to operations,
             "invocations" to invocations,
             "diagnostics" to emptyList<Any>(),

@@ -8,6 +8,7 @@ import { buildPackage } from '../plugins/scanners/kotlin/build.ts'
 import { scannerFiles } from '../src/scanner/modules/selection.ts'
 
 const fixture = path.resolve(import.meta.dir, '../test/fixtures/kotlin-source')
+const spring = path.resolve(import.meta.dir, '../test/fixtures/kotlin-spring')
 const orders = 'src/main/kotlin/shop/Orders.kt'
 const broken = 'src/test/kotlin/shop/Broken.kt'
 const symbol = ({ name, line, visibility, entry }: CodeSymbol) => [name, line, visibility, entry]
@@ -90,6 +91,16 @@ async function verifyVisibility(scanner: ScannerPlugin): Promise<void> {
   expect(observation.files[0]!.symbols!.some(item => item.name === 'Unknown')).toBeTrue()
 }
 
+async function verifyEntries(scanner: ScannerPlugin): Promise<void> {
+  const application = 'src/main/kotlin/shop/Application.kt'
+  const controller = 'src/main/kotlin/shop/OrderController.kt'
+  const observation = (await scanner.scan(spring, {}, [
+    'pom.xml', application, controller, 'worker/build.gradle.kts', 'worker/src/main/kotlin/jobs/Job.kt',
+  ]))!
+  // The nested Gradle unit keeps its own file and, having no main, declares no entry.
+  expect(observation.entryPoints).toEqual([{ file: application, declaration: application, name: 'Application', files: [application, controller] }])
+}
+
 test.concurrent('packaged Kotlin scanner reads selected source, bounded calls and outlines without a build model', async () => {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-kotlin-'))
   try {
@@ -104,6 +115,7 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
     await verifyOutline(scanner)
     await verifyOperationScopes(scanner)
     await verifyVisibility(scanner)
+    await verifyEntries(scanner)
 
     const project = path.join(temporary, 'project')
     await cp(fixture, project, { recursive: true })

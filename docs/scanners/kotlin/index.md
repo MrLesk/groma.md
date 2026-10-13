@@ -24,7 +24,11 @@ such as `src/main/kotlin/shop/build/`. They also exclude, in every module,
 as `src/testDebug/`, `src/androidTestDebug/` and `src/testFixtures/`.
 Adjust those lists to scan test code or a custom source layout.
 
-It does not evaluate Gradle or Maven builds, discover modules or source sets,
+The lists also select `pom.xml`, `build.gradle` and `build.gradle.kts`. The
+scanner never opens them: the path of such a build declaration only marks where
+a build unit lives, for [execution entries](#execution-entries).
+
+It does not evaluate Gradle or Maven builds, discover source sets,
 inspect dependencies, or read generated source. Kotlin scripts (`.kts`) are not
 read. A `.kt` file is a discovery clue; it does not prove a compiler version.
 Files are parsed with the parser of `kotlin-compiler-embeddable` 2.4.21. Syntax
@@ -32,8 +36,8 @@ newer than that parser supports is not promised.
 
 ## Evidence and outlines
 
-The TypeScript entry point (`src/index.ts`) filters the selected paths and
-`src/adapter.ts` starts the bundled worker (`worker/md/groma/scanner`). Running
+The TypeScript entry point (`src/index.ts`) hands the selected paths to
+`src/adapter.ts`, which starts the bundled worker (`worker/md/groma/scanner`). Running
 a worker on the bundled Java runtime and turning its outline into Code entries
 is shared with the Scala scanner in `plugins/scanners/jvm-worker.ts`. The
 worker parses each file without analyzing it and reports:
@@ -93,11 +97,43 @@ requiring project dependencies. See Kotlin's [visibility rules](https://kotlinla
 Source listing filters the supplied candidates by `.kt` without parsing
 files or starting the worker.
 
+## Execution entries
+
+`Entries.kt` reports the [execution entries](../evidence.md#execution-entries-and-container-placement)
+from which core places a C4 container. A file is an entry when it declares a
+top-level `fun main` with a body, no receiver, and either no parameter, one
+`Array<String>` parameter or one `vararg String` parameter. This is the
+function the JVM starts, such as the `main` that calls `runApplication` in a
+Spring Boot application. The entry is named after its file, `Application` for
+`Application.kt`, and the file is its own declaration.
+
+The entry's files are the selected `.kt` files of its build unit. A unit is a
+directory that holds a `pom.xml`, `build.gradle` or `build.gradle.kts`, and a
+file belongs to the nearest such directory above it. A module nested in another
+unit therefore keeps its own files, and a `main` in the parent does not claim
+them.
+
+Not reported:
+
+- a `main` under no build declaration, because nothing bounds the files that
+  run with it;
+- a `main` declared in an object or companion object, including `@JvmStatic`;
+- a launch a build configures, such as a main class named only in a plugin
+  setting.
+
+Only the paths of build declarations are used. Source directories, modules,
+packaging and dependencies they declare are not read, so a POM-only aggregator
+is a unit like any other and a Gradle subproject without its own build script
+belongs to the unit above it. Files of another language in the same unit come
+from that language's scanner. Spring Modulith modules are packages inside one
+application, not separate units: they stay in the application's container, and
+grouping them is authored curation.
+
 ## Architecture ownership
 
 The worker's single source root groups evidence for this scan. A Kotlin
 package, object, file, Gradle module, or source set does not imply a C4 system
-or container. Groma core owns architecture boundaries and interprets operation
+or container; only an execution entry lets core place one. Groma core owns architecture boundaries and interprets operation
 evidence through the [shared scanner contract](../creating-a-plugin.md).
 
 Architecture remains ordinary OKF Markdown with Code links. Other Markdown
@@ -136,7 +172,7 @@ includes the `java.desktop` module. That makes each host runtime about 77 MB
 (24 MB compressed), beside about 60 MB of compiler jars shared by all hosts.
 
 The Kotlin test builds an isolated package and checks selection, declarations,
-calls, positions, parse failure, and outlines. The shared fresh-checkout test
+calls, positions, parse failure, outlines and execution entries. The shared fresh-checkout test
 also runs the relocated package with an empty home and no language tools on
 `PATH`, checks repeatability, and checks that the checkout stays unchanged.
 

@@ -10,7 +10,10 @@
       "id": "kotlin",
       "entry": "./src/index.ts",
       "include": [
-        "**/*.kt"
+        "**/*.kt",
+        "**/pom.xml",
+        "**/build.gradle",
+        "**/build.gradle.kts"
       ],
       "exclude": [
         "build/",

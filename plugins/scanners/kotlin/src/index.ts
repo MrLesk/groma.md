@@ -12,8 +12,8 @@ export default {
   },
   readCodeStructure: readKotlinOutline,
   async scan(root, _settings, files) {
-    const sources = files.filter(isSource)
-    if (sources.length === 0) return undefined
-    return parseScanObservation(await scanWithWorker(root, sources))
+    if (!files.some(isSource)) return undefined
+    // The worker also needs the selected build declarations, whose paths bound the unit of an execution entry.
+    return parseScanObservation(await scanWithWorker(root, files))
   },
 } satisfies ScannerPlugin
