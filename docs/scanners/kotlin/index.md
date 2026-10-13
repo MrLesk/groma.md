@@ -83,7 +83,8 @@ Explicit visibility is preserved. Without a modifier, constructors are
 to `public`, except overrides that inherit their access.
 
 `Visibility.kt` finds inherited access in the requested files and the selected
-source context supplied by Groma. It follows enclosing types, same-package
+source context supplied by Groma. `Types.kt` finds the declaration a supertype
+name refers to: it follows enclosing types, same-package
 names, explicit imports (including aliases) and qualified type names. It does
 not resolve wildcard imports or type aliases. Overloads are compared by name,
 parameter count and presence of an extension receiver; all plausible declarations
