@@ -50,6 +50,15 @@ Interfaces, function values and providers outside the module remain unresolved.
 An immediately invoked closure owns its own calls. Builtins and type conversions
 are not operation calls. There is no callback propagation or framework inference.
 
+A directory may declare one name more than once, as example programs run one
+file at a time do. Every function and method with a body is still an operation.
+No valid build holds two declarations of a name, so a use of such a name means
+the function its own file declares, and stays unresolved when that file does not
+declare the name exactly once or declares it as a type, variable or constant. A
+method is one name however its receiver is written: `T`, `*T` or `T[P]`. When
+the first file in the listing that declares the name declares a type, variable
+or constant, no use of it resolves.
+
 These are temporary source facts. Packages are not proof of C4 deployment
 boundaries, and do not create new OKF concepts. Core preserves curated source
 ownership and writes ordinary Markdown Code links and reviewed relationships.
