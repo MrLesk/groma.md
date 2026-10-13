@@ -41,4 +41,23 @@ public sealed class CoverageTests
         Assert.Equal(["project:App/App.csproj", "project:Core/Core.csproj"], Assert.Single(scan.Files, file => file.File == "Shared.cs").Roots);
         Assert.Single(scan.Operations!, operation => operation.File == "Shared.cs" && operation.Name.EndsWith("Twice(int)", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public async Task ACallIntoALinkedFileNamesOnlyTheDeclarationItBindsTo()
+    {
+        // First analyzes Shared/Linked.cs. Second, which makes the calls, compiles it with FLAG and with usings First lacks.
+        using ScannerFixture fixture = new("csharp-linked-file");
+        ScanObservation scan = await new RoslynScanner().ScanAsync(fixture.Request(["First/First.csproj", "Second/Second.csproj"]));
+        Dictionary<string, ScanOperation> operations = scan.Operations!.ToDictionary(operation => operation.Id);
+        ScanInvocation Call(string member) => Assert.Single(scan.Invocations!, call => call.Member == member);
+        // Both projects read one declaration of Same, though only Second can bind its parameter type.
+        Assert.False(Call("Same").Unresolved);
+        Assert.StartsWith("Shared.Linked.Same(", operations[Assert.Single(Call("Same").Targets)].Name, StringComparison.Ordinal);
+        // First declares Plain where Second declares Flagged, and it does not declare Extra.
+        foreach (string member in new[] { "Flagged", "Extra" })
+        {
+            Assert.True(Call(member).Unresolved);
+            Assert.Empty(Call(member).Targets);
+        }
+    }
 }

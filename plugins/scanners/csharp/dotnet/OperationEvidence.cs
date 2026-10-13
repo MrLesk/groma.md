@@ -7,15 +7,21 @@ namespace Groma.CSharpScanner;
 /// <summary>Explicit source calls only. Runtime receiver/value flow is deliberately unresolved.</summary>
 internal sealed class OperationEvidence(string repositoryRoot)
 {
-    private readonly Dictionary<string, ScanOperation> operations = new(StringComparer.Ordinal);
+    private readonly Dictionary<(string Id, string? WrittenName), ScanOperation> operations = new();
     private readonly List<PendingInvocation> invocations = [];
 
     public IEnumerable<ScanOperation> Operations => operations.Values;
 
-    /// <summary>Calls that reach an operation this observation declares; a call into a package or the framework reaches none.</summary>
-    public IEnumerable<ScanInvocation> Invocations => invocations
-        .Where(pending => operations.ContainsKey(pending.Target))
-        .Select(pending => new ScanInvocation(pending.Source, [pending.Target], pending.Unresolved, pending.Line, pending.Member));
+    /// <summary>
+    /// Every call into a repository operation; a call into a package or the framework reaches none. A file that several
+    /// projects compile is analyzed once, by the first of them, and another project can parse it differently, for example
+    /// under other constants. Where a call from that project binds, the analyzed file can then declare a member with
+    /// another name, or none. So a call names its target only when the analyzed file holds the declaration the call
+    /// binds to, by OperationId.Identity, and otherwise stays unresolved without a target.
+    /// </summary>
+    public IEnumerable<ScanInvocation> Invocations => invocations.Select(pending => operations.ContainsKey(pending.Target)
+        ? new ScanInvocation(pending.Source, [pending.Target.Id], pending.Unresolved, pending.Line, pending.Member)
+        : new ScanInvocation(pending.Source, [], Unresolved: true, pending.Line, pending.Member));
 
     /// <summary>Extracts this file's operations and calls, and returns the operation each node belongs to.</summary>
     public IReadOnlyDictionary<SyntaxNode, string> Extract(SyntaxNode root, SemanticModel model, string file, CancellationToken cancellationToken)
@@ -28,29 +34,31 @@ internal sealed class OperationEvidence(string repositoryRoot)
             if (node is AnonymousFunctionExpressionSyntax lambda)
             {
                 if (IsExpressionTree(lambda, model, cancellationToken)) continue;
-                operations.TryAdd(id, new ScanOperation(id, file, lambda is AnonymousMethodExpressionSyntax ? "anonymous method" : "lambda expression"));
+                operations.TryAdd(OperationId.Identity(id, node), new ScanOperation(id, file, lambda is AnonymousMethodExpressionSyntax ? "anonymous method" : "lambda expression"));
                 callers.Add(node, id);
                 continue;
             }
             if (ExecutableMethod(node, model, cancellationToken) is not IMethodSymbol method) continue;
-            operations.TryAdd(id, ScanOperationOf(id, file, node, method, model, cancellationToken));
+            operations.TryAdd(OperationId.Identity(id, node), ScanOperationOf(id, file, node, method, model, cancellationToken));
             callers.Add(node, id);
         }
         if (root is CompilationUnitSyntax unit && unit.Members.OfType<GlobalStatementSyntax>().Any())
         {
             string id = OperationId.Of(file, root);
-            operations.TryAdd(id, new ScanOperation(id, file, "<top-level>"));
+            operations.TryAdd(OperationId.Identity(id, root), new ScanOperation(id, file, "<top-level>"));
             callers.Add(root, id);
         }
         foreach (SyntaxNode node in root.DescendantNodes().Where(IsExplicitCall))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            // A call with a type error stays unresolved, so it names no target.
+            // A call with a type error binds to no certain target, so it is not reported.
             if (Caller(node, callers) is not string caller
                 || model.GetDiagnostics(node.Span, cancellationToken).Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)) continue;
             (IMethodSymbol? target, bool unresolved) = Target(model.GetOperation(node, cancellationToken));
-            if (OperationId.OfMethod(repositoryRoot, target) is not string id) continue;
-            invocations.Add(new PendingInvocation(caller, id, unresolved, node.GetLocation().GetLineSpan().StartLinePosition.Line + 1, target!.Name));
+            // A target outside repository source, or declared without code, is an operation in no project.
+            if (OperationId.DeclarationOf(repositoryRoot, target) is not (string id, SyntaxNode declaration) || !IsExecutable(declaration)) continue;
+            invocations.Add(new PendingInvocation(Source: caller, Target: OperationId.Identity(id, declaration), Unresolved: unresolved,
+                Line: node.GetLocation().GetLineSpan().StartLinePosition.Line + 1, Member: target!.Name));
         }
         return callers;
     }
@@ -63,15 +71,25 @@ internal sealed class OperationEvidence(string repositoryRoot)
         return new ScanOperation(id, file, name, lines.StartLinePosition.Line + 1, lines.EndLinePosition.Line + 1, OperationTokens.Of(node, method, model, cancellationToken));
     }
 
-    private static IMethodSymbol? ExecutableMethod(SyntaxNode node, SemanticModel model, CancellationToken token) => node switch
+    /// <summary>
+    /// Whether a declaration holds code that runs: a method, constructor, operator or accessor with a body, an
+    /// expression-bodied getter, or a local function. It reads syntax only, so it also answers for a call's target as
+    /// the target's own project declares it, even when another project analyzed that file.
+    /// </summary>
+    private static bool IsExecutable(SyntaxNode node) => node switch
     {
-        BaseMethodDeclarationSyntax declaration when declaration.Body is not null || declaration.ExpressionBody is not null => model.GetDeclaredSymbol(declaration, token) as IMethodSymbol,
-        AccessorDeclarationSyntax accessor when accessor.Body is not null || accessor.ExpressionBody is not null => model.GetDeclaredSymbol(accessor, token) as IMethodSymbol,
-        LocalFunctionStatementSyntax local => model.GetDeclaredSymbol(local, token) as IMethodSymbol,
-        ArrowExpressionClauseSyntax arrow when arrow.Parent is PropertyDeclarationSyntax property => (model.GetDeclaredSymbol(property, token) as IPropertySymbol)?.GetMethod,
-        ArrowExpressionClauseSyntax arrow when arrow.Parent is IndexerDeclarationSyntax indexer => (model.GetDeclaredSymbol(indexer, token) as IPropertySymbol)?.GetMethod,
-        _ => null,
+        BaseMethodDeclarationSyntax declaration => declaration.Body is not null || declaration.ExpressionBody is not null,
+        AccessorDeclarationSyntax accessor => accessor.Body is not null || accessor.ExpressionBody is not null,
+        LocalFunctionStatementSyntax => true,
+        ArrowExpressionClauseSyntax getter => getter.Parent is PropertyDeclarationSyntax or IndexerDeclarationSyntax,
+        _ => false,
     };
+
+    /// <summary>The method an executable declaration declares; an expression-bodied getter belongs to its property or indexer.</summary>
+    private static IMethodSymbol? ExecutableMethod(SyntaxNode node, SemanticModel model, CancellationToken token) =>
+        !IsExecutable(node) ? null
+        : node is ArrowExpressionClauseSyntax getter ? (model.GetDeclaredSymbol(getter.Parent!, token) as IPropertySymbol)?.GetMethod
+        : model.GetDeclaredSymbol(node, token) as IMethodSymbol;
 
     /// <summary>
     /// A lambda converted to Expression&lt;T&gt; is data, not code that runs. As an argument it is one only when the call binds
@@ -130,5 +148,5 @@ internal sealed class OperationEvidence(string repositoryRoot)
         _ => null,
     };
 
-    private sealed record PendingInvocation(string Source, string Target, bool Unresolved, int Line, string Member);
+    private sealed record PendingInvocation(string Source, (string Id, string? WrittenName) Target, bool Unresolved, int Line, string Member);
 }
