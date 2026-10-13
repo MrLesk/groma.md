@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"go/types"
 	"sort"
+	"strings"
 	"unicode/utf8"
 
 	"golang.org/x/tools/go/packages"
@@ -56,12 +57,20 @@ type body struct {
 	node   ast.Node
 	id     string
 }
+
+// topLevelDeclaration is one top-level declaration of a name: the file that holds it and, when it
+// is a function or method with a body, its operation.
+type topLevelDeclaration struct {
+	file, operation string
+}
+
 type evidence struct {
-	result                      *observation
-	bodies                      []body
-	sources                     []*source
-	operationByFunctionPosition map[string]string
-	literals                    map[*ast.FuncLit]string
+	result  *observation
+	bodies  []body
+	sources []*source
+	// Every top-level declaration by the name it declares: see declaredName and operationOf.
+	declarationsByName map[string][]topLevelDeclaration
+	literals           map[*ast.FuncLit]string
 	// Operation IDs this observation declares; a fact may only reference one of them.
 	recorded map[string]bool
 	// Names whose declared type makes them a root router, names that hold a net/http client, and
@@ -78,7 +87,7 @@ type evidence struct {
 }
 
 func newEvidence(result *observation) *evidence {
-	return &evidence{result: result, operationByFunctionPosition: map[string]string{}, literals: map[*ast.FuncLit]string{},
+	return &evidence{result: result, declarationsByName: map[string][]topLevelDeclaration{}, literals: map[*ast.FuncLit]string{},
 		recorded: map[string]bool{}, routers: map[types.Object]router{}, clients: map[types.Object]bool{},
 		mounted: map[types.Object]mount{}, assignments: map[types.Object]int{}, assignedValues: map[types.Object]assignedValue{},
 		flags:    map[types.Object]bool{},
@@ -110,11 +119,6 @@ func (s *source) id(pos token.Pos) string {
 	return fmt.Sprintf("%s:%d", s.file, s.offset(pos))
 }
 
-func functionKey(pkg *packages.Package, pos token.Pos) string {
-	position := sourcePosition(pkg.Fset, pos)
-	return fmt.Sprintf("%s:%d", position.Filename, position.Offset)
-}
-
 // addBody records an operation. Only operations with tokens are compared as possible duplicate logic.
 func (e *evidence) addBody(s *source, declaration ast.Node, executable ast.Node, name string, tokens []string) string {
 	id := s.id(declaration.Pos())
@@ -137,12 +141,9 @@ func (e *evidence) declarations(s *source) {
 	for _, decl := range s.syntax.Decls {
 		switch node := decl.(type) {
 		case *ast.FuncDecl:
+			name := functionName(s, node)
 			if node.Body == nil {
-				continue
-			}
-			// Source that does not type-check, such as a redeclared function, still scans.
-			function, ok := info.Defs[node.Name].(*types.Func)
-			if !ok {
+				e.declare(s, name, "")
 				continue
 			}
 			var tokens []string
@@ -150,11 +151,15 @@ func (e *evidence) declarations(s *source) {
 			if compared && node.Name.Name != "_" && (node.Recv != nil || node.Name.Name != "init") {
 				tokens = operationTokens(info, node)
 			}
-			id := e.addBody(s, node, node.Body, function.FullName(), tokens)
-			e.operationByFunctionPosition[functionKey(s.pkg, function.Pos())] = id
+			id := e.addBody(s, node, node.Body, name, tokens)
+			e.declare(s, name, id)
 		case *ast.GenDecl:
 			if node.Tok == token.VAR {
 				e.initializers(s, node)
+			}
+			// A type, variable or constant that shares a function's name declares that name once more.
+			for _, named := range s.specSymbols(node) {
+				e.declare(s, s.packageLevelName(named.Name), "")
 			}
 		}
 	}
@@ -176,6 +181,64 @@ func (e *evidence) declarations(s *source) {
 		}
 		return true
 	})
+}
+
+// functionName qualifies a function the way go/types does, as in `pkg.Run` and `(*pkg.Store).Close`.
+// go/types keeps no object for a function whose name its package already declares. Such a
+// declaration is never a method, so its name is written out here.
+func functionName(s *source, function *ast.FuncDecl) string {
+	if object, ok := s.pkg.TypesInfo.Defs[function.Name].(*types.Func); ok {
+		return object.FullName()
+	}
+	return s.packageLevelName(function.Name.Name)
+}
+
+// packageLevelName qualifies a type, variable, constant or function name the way go/types
+// qualifies a function, as in `pkg.Run`.
+func (s *source) packageLevelName(name string) string {
+	return s.pkg.PkgPath + "." + name
+}
+
+// declaredName is a qualified name without what a receiver adds to its type's name, the pointer
+// and the type parameters, as in `(pkg.Store).Close` for `(*pkg.Store[T]).Close`. A type has one
+// method of a name however its receiver is written, and a valid build declares that name once.
+func declaredName(qualified string) string {
+	receiver, method, isMethod := strings.Cut(qualified, ").")
+	if !isMethod || !strings.HasPrefix(receiver, "(") {
+		return qualified
+	}
+	receiver, _, _ = strings.Cut(strings.TrimLeft(receiver, "(*"), "[")
+	return "(" + receiver + ")." + method
+}
+
+// declare records one top-level declaration; only a function or method with a body has an operation.
+func (e *evidence) declare(s *source, qualified string, operation string) {
+	name := declaredName(qualified)
+	e.declarationsByName[name] = append(e.declarationsByName[name], topLevelDeclaration{file: s.file, operation: operation})
+}
+
+// operationOf is the operation of the declaration that a use of function in the user file means,
+// or "" for none. go/types binds every use of a name its package declares more than once to the
+// first declaration it read, whatever the file. No valid build holds two declarations of one name,
+// so the use means the declaration in its own file, and none when that file does not hold exactly
+// one or holds a type, variable or constant of that name. declaredName alone decides which
+// declarations share a name. A use that go/types binds to a type, variable or constant is not a
+// function and never arrives here.
+func (e *evidence) operationOf(user *source, function *types.Func) string {
+	declarations := e.declarationsByName[declaredName(function.Origin().FullName())]
+	if len(declarations) == 1 {
+		return declarations[0].operation
+	}
+	own := []string{}
+	for _, declaration := range declarations {
+		if declaration.file == user.file {
+			own = append(own, declaration.operation)
+		}
+	}
+	if len(own) != 1 {
+		return ""
+	}
+	return own[0]
 }
 
 // namedLiterals names the function literals that are named operations: those assigned to a named
@@ -300,7 +363,7 @@ func (e *evidence) call(caller body, call *ast.CallExpr) {
 	}
 	target := ""
 	if function := typeutil.StaticCallee(info, call); function != nil {
-		target = e.operationByFunctionPosition[functionKey(caller.source.pkg, function.Pos())]
+		target = e.operationOf(caller.source, function)
 	}
 	if literal, ok := ast.Unparen(call.Fun).(*ast.FuncLit); ok {
 		target = e.literals[literal]
