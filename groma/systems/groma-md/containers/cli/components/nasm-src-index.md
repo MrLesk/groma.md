@@ -12,6 +12,9 @@ groma:
       file: plugins/scanners/nasm/src/evidence.ts
     - scanner: typescript
       file: plugins/scanners/nasm/src/preprocess.ts
+    - scanner: typescript
+      file: plugins/scanners/nasm/src/reserved-words.ts
+      symbol: reservedWords
   group: Language scanners
   technology: TypeScript, NASM
 description: Reads one NASM x86-64 assembly configuration.

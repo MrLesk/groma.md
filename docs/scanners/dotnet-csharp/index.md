@@ -110,6 +110,14 @@ expression tree. Implicit calls, initializers, generated operations,
 receiver/delegate value flow, dependency injection and network protocols are
 not resolved.
 
+A file that several projects compile is analyzed once, and another of those
+projects can parse it differently, for example under other `DefineConstants`.
+A call from such a project to a method it declares with a body in that file
+names its target when the analyzed file declares a member written with the same
+name at the same position, however each project binds the member's types. When
+the analyzed file declares another member there, or none, that call alone is
+reported as unresolved, without a target.
+
 Solutions and projects supply source roots and file membership. They are not
 C4 components or proof of business collaborations. Core owns curated membership
 and relationship selection; ordinary Markdown readers see the existing OKF

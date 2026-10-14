@@ -1,5 +1,6 @@
 import groma from '../../../package.json'
 import type { PluginKind } from './package.ts'
+import { readPublishedRelease } from './package-manager.ts'
 
 export interface PublishedPlugin {
   name: string
@@ -28,45 +29,49 @@ function declaration(item: PublishedPlugin, kind?: PluginKind): { id?: string; e
 }
 
 /**
+ * The stable releases of a package, newest first. One registry read returns one release, so each further release is
+ * read only when the caller reaches it: a caller that stops at the newest release costs one read.
+ */
+async function* stableReleases(name: string, registry?: string): AsyncGenerator<PublishedPlugin> {
+  const latest = await readPublishedRelease<PublishedPlugin>(name, { registry })
+  if (!latest) return
+  const newestFirst = latest.versions.filter(version => Bun.semver.satisfies(version, '*'))
+    .sort((a, b) => Bun.semver.order(b, a))
+  for (const version of newestFirst) {
+    // The first read already returned the registry's latest release, which is usually the newest stable one.
+    const release = version === latest.version ? latest : await readPublishedRelease<PublishedPlugin>(name, { version, registry })
+    if (release) yield release
+  }
+}
+
+/**
  * The newest stable release of a kind that this groma.md version and computer can run; without a kind, any plugin
  * release. Language versions never select releases; a scanner validates its projects.
  */
-export function selectPublishedPlugin(
+export async function selectPublishedPlugin(
   name: string,
-  versions: Record<string, PublishedPlugin>,
+  registry?: string,
   kind?: PluginKind,
   host = { groma: groma.version, os: process.platform as string, cpu: process.arch as string },
-): PublishedPlugin {
-  const requirement = (item: PublishedPlugin) => declaration(item, kind)?.requires
-  const releases = Object.values(versions).filter(item => {
-    const declared = declaration(item, kind)
-    return item.name === name && declared?.id && declared.entry && Bun.semver.satisfies(item.version, '*')
-  }).sort((a, b) => Bun.semver.order(b.version, a.version))
-  if (!releases.length) throw new Error(`${name}: no published stable release. Ask the plugin author to publish one, then retry.`)
-  const platform = releases.filter(item => supports(item.os, host.os) && supports(item.cpu, host.cpu))
-  if (!platform.length) throw new Error(`${name}: no published release supports ${host.os}/${host.cpu}. Ask the plugin author for a build for this computer.`)
-  const selected = platform.find(item => {
-    const required = requirement(item)
-    return !required || Bun.semver.satisfies(host.groma, required)
-  })
-  if (!selected) {
-    const required = requirement(platform[0]!)
-    throw new Error(`${name}: requires Groma ${required}; this computer has ${host.groma}. Update Groma, then retry.`)
+): Promise<PublishedPlugin> {
+  let published = false
+  let supportsComputer = false
+  let newestRequirement: string | undefined
+  for await (const release of stableReleases(name, registry)) {
+    const declared = declaration(release, kind)
+    if (!declared?.id || !declared.entry) continue
+    published = true
+    if (!supports(release.os, host.os) || !supports(release.cpu, host.cpu)) continue
+    supportsComputer = true
+    if (!declared.requires || Bun.semver.satisfies(host.groma, declared.requires)) return release
+    newestRequirement ??= declared.requires
   }
-  return selected
-}
-
-export async function readPublishedPlugins(name: string, registry = process.env.npm_config_registry ?? 'https://registry.npmjs.org'): Promise<Record<string, PublishedPlugin>> {
-  let response: Response
-  try { response = await fetch(`${registry.replace(/\/$/, '')}/${encodeURIComponent(name)}`, { headers: { accept: 'application/json' } }) }
-  catch { throw new Error(`${name}: could not reach the package registry. Check your connection and retry.`) }
-  if (response.status === 404) throw new Error(`${name}: package is not published in this registry. Check its name or ask the plugin author to publish it.`)
-  if (!response.ok) throw new Error(`${name}: package registry returned HTTP ${response.status}. Check registry access and retry.`)
-  const metadata = await response.json() as { versions?: Record<string, PublishedPlugin> }
-  return metadata.versions ?? {}
+  if (!published) throw new Error(`${name}: no published stable release. Ask the plugin author to publish one, then retry.`)
+  if (!supportsComputer) throw new Error(`${name}: no published release supports ${host.os}/${host.cpu}. Ask the plugin author for a build for this computer.`)
+  throw new Error(`${name}: requires Groma ${newestRequirement}; this computer has ${host.groma}. Update Groma, then retry.`)
 }
 
 export async function publishedPluginSource(name: string, registry?: string, kind?: PluginKind): Promise<string> {
-  const release = selectPublishedPlugin(name, await readPublishedPlugins(name, registry), kind)
-  return `${release.name}@${release.version}`
+  const release = await selectPublishedPlugin(name, registry, kind)
+  return `${name}@${release.version}`
 }

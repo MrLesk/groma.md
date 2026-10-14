@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import rustPackage from '../plugins/scanners/rust/package.json'
@@ -38,6 +38,22 @@ test.concurrent('implicit path members inherit editions only when declared and r
     ]))
     // Dev dependencies contribute workspace membership, but not calls in the library graph.
     expect(dependencies).toEqual({ app: ['service'], service: [], support: ['service'] })
+  })
+})
+
+test.concurrent('a workspace is one project when its members are listed before its manifest', async () => {
+  await fixture(async root => {
+    // Reversed, every member manifest comes before the workspace's, as in a sorted listing when a member directory
+    // is named `0-tool` or `Alpha`.
+    const files = (await rustFiles(root)).toReversed()
+    expect(await rustProjects(root, {}, files)).toEqual([path.join(root, 'Cargo.toml')])
+  })
+})
+
+test.concurrent('a workspace root that is also a package is a project', async () => {
+  await fixture(async root => {
+    await appendFile(path.join(root, 'Cargo.toml'), '[package]\nname = "root"\nversion = "0.1.0"\n')
+    expect(await rustProjects(root, {}, await rustFiles(root))).toEqual([path.join(root, 'Cargo.toml')])
   })
 })
 

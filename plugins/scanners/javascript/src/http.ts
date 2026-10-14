@@ -8,25 +8,27 @@ import type { Node } from '../../http-syntax.ts'
 import { heldAt, urlContext } from '../../http-values.ts'
 import type { FileEvidence } from './evidence.ts'
 import { httpRequest } from './http-requests.ts'
+import type { JavaScriptSource } from './sources.ts'
 
 /**
  * The compiler's own name resolution for one file, as a program holding only that file: imports and
  * the runtime's globals resolve to nothing, as everything outside the file does for this scanner.
+ * The program asks its host for the file by the parser's name, so that name is the one compared here.
  */
-export function fileChecker(source: ts.SourceFile): ts.TypeChecker {
+export function fileChecker(syntax: ts.SourceFile): ts.TypeChecker {
   const options: ts.CompilerOptions = { allowJs: true, noLib: true, noResolve: true, types: [], noEmit: true }
   const host: ts.CompilerHost = {
-    getSourceFile: name => name === source.fileName ? source : undefined,
+    getSourceFile: name => name === syntax.fileName ? syntax : undefined,
     getDefaultLibFileName: () => 'lib.d.ts',
     writeFile: () => undefined,
     getCurrentDirectory: () => '',
     getCanonicalFileName: name => name,
     useCaseSensitiveFileNames: () => true,
     getNewLine: () => '\n',
-    fileExists: name => name === source.fileName,
+    fileExists: name => name === syntax.fileName,
     readFile: () => undefined,
   }
-  return ts.createProgram([source.fileName], options, host).getTypeChecker()
+  return ts.createProgram([syntax.fileName], options, host).getTypeChecker()
 }
 
 function classic(node: Node): ts.Node {
@@ -37,8 +39,8 @@ function classic(node: Node): ts.Node {
  * The shared readers' context over this one file. The file is read alone, so a value from another file
  * is one the scan cannot see, and exporting a router hands it to files the scan never reads.
  */
-function fileContext(source: ts.SourceFile, evidence: FileEvidence): RouterContext {
-  const context = urlContext(ts as typeof ts & RouterCompiler, classicChecker(ts, fileChecker(source)), [source], true)
+function fileContext({ file, syntax }: JavaScriptSource, evidence: FileEvidence): RouterContext {
+  const context = urlContext(ts as typeof ts & RouterCompiler, classicChecker(ts, fileChecker(syntax)), [syntax], true)
   const operationAt = (node: Node): string => evidence.operationAt(classic(node))
   return {
     ...context,
@@ -49,12 +51,13 @@ function fileContext(source: ts.SourceFile, evidence: FileEvidence): RouterConte
       return typeof held === 'object' && ts.isFunctionLike(classic(held.node)) ? operationAt(held.node) : operationAt(registration)
     },
     callerOperation: operationAt,
-    file: node => node.getSourceFile().fileName,
+    // The readers see no other file, so every node they ask about is in this one.
+    file: () => file,
   }
 }
 
 /** The HTTP facts one file states, named against the operations its evidence already recorded. */
-export async function javaScriptHttpFacts(source: ts.SourceFile, evidence: FileEvidence): Promise<{
+export async function javaScriptHttpFacts(source: JavaScriptSource, evidence: FileEvidence): Promise<{
   httpEndpoints: ScanHttpEndpoint[]
   httpRequests: ScanHttpRequest[]
 }> {
@@ -64,6 +67,6 @@ export async function javaScriptHttpFacts(source: ts.SourceFile, evidence: FileE
     const request = await httpRequest(context, call)
     if (request !== undefined) httpRequests.push({ operation: evidence.operationAt(call), ...request })
   }
-  const placed = await routerEndpoints(context, [source], evidence.calls)
+  const placed = await routerEndpoints(context, [source.syntax], evidence.calls)
   return { httpEndpoints: [...withOrder(placed), ...await serveEndpoints(context, evidence.calls)], httpRequests }
 }

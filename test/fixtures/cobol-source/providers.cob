@@ -7,7 +7,9 @@
            GOBACK.
        END PROGRAM WORKER.
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. SECOND.
+       PROGRAM-ID.
+
+           SECOND.
        PROCEDURE DIVISION.
            CALL 'WORKER'
            GOBACK.

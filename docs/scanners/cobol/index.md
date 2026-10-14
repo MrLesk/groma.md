@@ -40,6 +40,9 @@ COPY searches those directories in order for a selected member, with an optional
 `.cpy` suffix and case-insensitive member matching. Two matching selected files
 in one directory are ambiguous and fail the scan. An excluded file is never
 read as hidden context. COPY and COPY REPLACING are handled by the parser.
+A second COPY that starts on the same source line as another COPY fails the
+scan with `fromIndex(N) > toIndex(M)`: the parser (2.5.1) misplaces it after
+expanding the first.
 A missing copybook or undefined data name produces a warning. Syntax errors
 fail the scan without a partial observation; Groma's normal failed-scanner
 lifecycle keeps the last saved architecture.

@@ -132,6 +132,21 @@ public class Caller {
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('each variable of one Java field declaration is its own operation and caller', async () => {
+  const { root, worker } = await fixture()
+  try {
+    await writeFile(path.join(root, 'src/main/java/Caller.java'), `package entry;
+public class Caller {
+  private static int low() { return 1; }
+  private static int high() { return 2; }
+  static int first = low(), second = high();
+}`)
+    const evidence = calls(await compilerScan(root, worker))
+    expect(evidence.find(call => call.member === 'low')).toMatchObject({ caller: expect.stringContaining('first') })
+    expect(evidence.find(call => call.member === 'high')).toMatchObject({ caller: expect.stringContaining('second') })
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('a modular Java project keeps authored local calls', async () => {
   const { root, worker } = await fixture()
   try {

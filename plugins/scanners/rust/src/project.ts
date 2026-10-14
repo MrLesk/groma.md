@@ -275,7 +275,7 @@ export async function rustSourceFiles(root: string, settings: ScannerSettings, c
 
 /**
  * The Cargo projects to scan: the manifest `settings.manifest` names when it is among the scanner's files, or else
- * each `Cargo.toml` among them that no workspace already selected covers.
+ * each `Cargo.toml` among them that no other workspace among them has as a member.
  */
 export async function rustProjects(root: string, settings: ScannerSettings, files: readonly string[]): Promise<string[]> {
   const listed = new Set(files)
@@ -283,15 +283,19 @@ export async function rustProjects(root: string, settings: ScannerSettings, file
     const manifest = manifestAt(root, settings)
     return listed.has(repositoryPath(root, manifest)) ? [manifest] : []
   }
-  const selected = new Set<string>()
-  const covered = new Set<string>()
-  for (const file of files.filter(file => path.posix.basename(file) === 'Cargo.toml')) {
-    const manifest = path.resolve(root, file)
-    if (covered.has(manifest)) continue
-    selected.add(manifest)
-    // A manifest Cargo cannot read covers no member; reading it as a project reports why.
-    const covers = await read(manifest).then(model => members(root, manifest, model, listed)).catch(() => [])
-    for (const member of covers) covered.add(member)
+  const manifests = files.filter(file => path.posix.basename(file) === 'Cargo.toml').map(file => path.resolve(root, file))
+  // Every workspace claims its members before any project is chosen, so the projects do not depend on the order of
+  // the files. A member directory such as `0-tool` or `Alpha` sorts before its workspace's `Cargo.toml`.
+  const claimed = new Set<string>()
+  for (const manifest of manifests) {
+    // Only a workspace has members. A manifest Cargo cannot read claims none; reading it as a project reports why.
+    const claims = await read(manifest)
+      .then(model => model.workspace ? members(root, manifest, model, listed) : [])
+      .catch(() => [])
+    // `members` also names the workspace's own package. A manifest does not claim itself, so that root stays a project.
+    // A workspace that another workspace claims still claims its own members, so they are in no project; Cargo
+    // rejects that layout.
+    for (const member of claims) if (member !== manifest) claimed.add(member)
   }
-  return [...selected].sort()
+  return manifests.filter(manifest => !claimed.has(manifest)).sort()
 }

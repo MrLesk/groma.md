@@ -1,6 +1,7 @@
 import { chmod, cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { readPublishedPlugins } from '../src/scanner/modules/published.ts'
+import { readPublishedRelease } from '../src/scanner/modules/package-manager.ts'
+import type { PublishedPlugin } from '../src/scanner/modules/published.ts'
 import { assembleCSharpPackages } from './package-csharp-scanner.ts'
 
 const repository = { type: 'git', url: 'https://github.com/MrLesk/groma.md.git' }
@@ -106,13 +107,13 @@ async function prepareWorkers(directory: string, relative: string, worker: strin
 
 /** Wait for the exact uploaded version; the catalog shares one deadline across its packages. */
 export async function waitForPublishedScanner(staged: { name: string; version: string }, deadline: number, registry?: string) {
-  let published = (await readPublishedPlugins(staged.name, registry))[staged.version]
+  let published = await readPublishedRelease<PublishedPlugin>(staged.name, { version: staged.version, registry })
   while (!published) {
     const remaining = deadline - Date.now()
     if (remaining <= 0) throw new Error(`Timed out waiting for npm metadata for ${staged.name}@${staged.version}`)
     console.log(`Waiting for npm metadata for ${staged.name}@${staged.version}`)
     await Bun.sleep(Math.min(10_000, remaining))
-    published = (await readPublishedPlugins(staged.name, registry))[staged.version]
+    published = await readPublishedRelease<PublishedPlugin>(staged.name, { version: staged.version, registry })
   }
   return published
 }

@@ -18,7 +18,7 @@ function verifyInventory(observation: ScanObservation): void {
   ].sort())
   expect(observation.files.find(file => file.file === 'PackageObject.scala')!.symbols!.map(item => item.name)).toEqual(['route'])
   expect(observation.operations!.filter(operation => operation.file === 'Operations.scala').map(operation => operation.name).sort())
-    .toEqual(['Demo.helper', 'Demo.noop', 'Worker.fn', 'Worker.ord', 'Worker.run', 'Worker.this'])
+    .toEqual(['Demo.helper', 'Demo.noop', 'Worker.fn', 'Worker.ord', 'Worker.run', 'Worker.this', 'Worker.twin'])
   expect(observation.operations!.some(operation => operation.file === 'Indent.scala' && operation.name === 'Orders.place')).toBeTrue()
 }
 

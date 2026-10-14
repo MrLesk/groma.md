@@ -16,6 +16,8 @@ groma:
       file: src/scanner/modules/published.ts
     - scanner: typescript
       file: src/plugin-management.ts
+    - scanner: typescript
+      file: src/scanner/modules/package-manager.ts
   group: Scanner management
 description: Selects, resolves, installs and restores project plugins by kind
 ---
@@ -26,5 +28,5 @@ Reads explicit plugin selections from plugins.json and manages their package lif
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [src/scanner/modules/published.ts](../../../../../../src/scanner/modules/published.ts) | [scanner-package-registry](../../../../../externals/scanner-package-registry.md) | Reads scanner releases | HTTP registry API |
 | [src/scanner/modules/package.ts](../../../../../../src/scanner/modules/package.ts) | [scanner-package-registry](../../../../../externals/scanner-package-registry.md) | Downloads scanner packages | Bun install and npm registry protocol |
+| [src/scanner/modules/published.ts](../../../../../../src/scanner/modules/published.ts) | [scanner-package-registry](../../../../../externals/scanner-package-registry.md) | Reads scanner releases | Bun package manager and npm registry protocol |

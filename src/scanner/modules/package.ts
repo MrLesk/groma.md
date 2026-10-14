@@ -4,6 +4,7 @@ import { homedir } from 'node:os'
 import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { stringArray } from './config.ts'
+import { installDependencies } from './package-manager.ts'
 import { isNpmPackageName, publishedPluginSource } from './published.ts'
 
 export interface NpmPluginSource {
@@ -67,7 +68,10 @@ export interface PluginResolutionOptions {
 }
 
 export interface PluginInstallOptions extends PluginResolutionOptions {
-  /** The npm registry to read releases from and install with instead of the configured one. */
+  /**
+   * Replaces only the default registry, for release lookup and download alike. A scope's registry in the user's
+   * `.npmrc` still wins for that scope, so this does not isolate a run from the user's npm settings. Only tests set it.
+   */
   registry?: string
 }
 
@@ -271,20 +275,6 @@ async function installNpmPackage(
   const resolved = await installedPackage(source, cache, kind)
   if (resolved === undefined) throw new Error(`installed plugin is missing: ${source.source}`)
   return resolved
-}
-
-async function installDependencies(directory: string, source: string, registry?: string): Promise<void> {
-  const command = [process.execPath, 'install', '--ignore-scripts']
-  if (registry !== undefined) command.push(`--registry=${registry}`)
-  const child = Bun.spawn(command, {
-    cwd: directory,
-    env: { ...process.env, BUN_BE_BUN: '1' },
-    stderr: 'pipe', stdout: 'ignore',
-  })
-  const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()])
-  if (exitCode !== 0) {
-    throw new Error(`Could not download ${source}. Check your connection and registry access, then retry.\n${stderr.trim() || `exit ${exitCode}`}`)
-  }
 }
 
 async function git(directory: string, ...args: string[]): Promise<string> {

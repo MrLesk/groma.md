@@ -18,7 +18,7 @@ async function fixture() {
   await writeFile(path.join(root, 'package.json'), JSON.stringify({ dependencies: { react: '^19.0.0' } }))
   await writeFile(path.join(root, 'Cargo.toml'), '[package]\nname="sample"\nversion="0.1.0"\n')
   // The registry packages, their tarballs and the scanner caches are test scaffolding, not project source.
-  await writeFile(path.join(root, '.gitignore'), 'packages/\ncache/\ncolleague-cache/\n*.tgz\n')
+  await writeFile(path.join(root, '.gitignore'), 'packages/\ncache/\ncolleague-cache/\nhome/\n*.tgz\n')
   await writePluginConfig(root, { scanners: [], workSources: [] })
   const version = `1.0.${randomInt(1000000, 1000000000)}`
   const manifests: Record<string, Record<string, unknown>> = {}
@@ -42,7 +42,10 @@ async function fixture() {
   }
   const unavailable = new Set<string>()
   const downloads: string[] = []
+  // Once a token is set, the registry refuses every request that does not carry it.
+  const access: { token?: string } = {}
   const server = Bun.serve({ port: 0, async fetch(request) {
+    if (access.token && request.headers.get('authorization') !== `Bearer ${access.token}`) return new Response('Token required', { status: 401 })
     const url = new URL(request.url), name = decodeURIComponent(url.pathname.slice(1))
     if (name.endsWith('.tgz')) {
       downloads.push(name)
@@ -56,8 +59,26 @@ async function fixture() {
     } } })
   } })
   const options = { registry: server.url.href, cacheRoot: path.join(root, 'cache') }
-  return { root, version, options, unavailable, downloads, async close() { await server.stop(true); await rm(root, { recursive: true, force: true }) } }
+  return { root, version, options, unavailable, downloads, access, async close() { await server.stop(true); await rm(root, { recursive: true, force: true }) } }
 }
+
+test.concurrent('a bare package name is selected and downloaded with the registry and token of the user .npmrc', async () => {
+  const f = await fixture()
+  try {
+    // Only the child process gets this home directory, and its .npmrc is the one place that names the registry.
+    const home = path.join(f.root, 'home')
+    const registry = new URL(f.options.registry)
+    f.access.token = 'fixture-token'
+    await mkdir(home)
+    await writeFile(path.join(home, '.npmrc'), `@groma:registry=${registry.href}\n//${registry.host}/:_authToken=${f.access.token}\n`)
+    const child = Bun.spawn([process.execPath, path.resolve(import.meta.dir, '../src/cli.ts'), 'scanner', 'add', '@groma/scanner-react'], {
+      cwd: f.root, env: { ...process.env, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: home }, stdout: 'ignore', stderr: 'pipe',
+    })
+    const error = await new Response(child.stderr).text()
+    expect(await child.exited, error).toBe(0)
+    expect((await readPluginConfig(f.root)).scanners.map(item => item.source)).toEqual([`@groma/scanner-react@${f.version}`])
+  } finally { await f.close() }
+})
 
 test.concurrent('bulk installation retains successful releases, retries unpublished packages and restores exact team selections', async () => {
   const f = await fixture()

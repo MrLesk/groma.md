@@ -16,16 +16,16 @@ export interface FileEvidence {
 const { executable, operationFields } = typeScriptOperations(ts)
 
 /** Every operation and call of one parsed file. Calls stay unresolved: source alone proves no target. */
-export function javaScriptEvidence(file: string, source: ts.SourceFile): FileEvidence {
+export function javaScriptEvidence(file: string, syntax: ts.SourceFile): FileEvidence {
   const operations: ScanOperation[] = []
   const invocations: ScanInvocation[] = []
   const calls: ts.CallExpression[] = []
   const owners = new Map<ts.Node, string>()
-  const lineOf = (position: number) => source.getLineAndCharacterOfPosition(position).line + 1
+  const lineOf = (position: number) => syntax.getLineAndCharacterOfPosition(position).line + 1
   let moduleCode: ScanOperation | undefined
 
   function operation(node: ts.Node): ScanOperation {
-    const position = node.getStart(source)
+    const position = node.getStart(syntax)
     const recorded = { id: `${file}#${position}`, file, position, ...operationFields(node) }
     operations.push(recorded)
     owners.set(node, recorded.id)
@@ -35,14 +35,14 @@ export function javaScriptEvidence(file: string, source: ts.SourceFile): FileEvi
   /** Code outside every function belongs to the module itself, as the reference scanner reports it. */
   function moduleOperation(): ScanOperation {
     if (moduleCode === undefined) {
-      moduleCode = { id: `${file}#module`, file, name: '(anonymous)', position: source.getStart(source) }
+      moduleCode = { id: `${file}#module`, file, name: '(anonymous)', position: syntax.getStart(syntax) }
       operations.push(moduleCode)
     }
     return moduleCode
   }
 
   function invocation(node: ts.CallExpression, owner: ScanOperation): void {
-    const position = node.getStart(source)
+    const position = node.getStart(syntax)
     invocations.push({
       source: owner.id, targets: [], unresolved: true, line: lineOf(position), position,
       ...(ts.isPropertyAccessExpression(node.expression) ? { member: node.expression.name.text } : {}),
@@ -68,9 +68,9 @@ export function javaScriptEvidence(file: string, source: ts.SourceFile): FileEvi
     return moduleOperation().id
   }
 
-  source.forEachChild(child => visit(child, undefined))
+  syntax.forEachChild(child => visit(child, undefined))
   // A Code reference names a declaration, so each name is one symbol even when the file repeats it.
-  const symbols = new Map(topLevelDeclarations(source)
+  const symbols = new Map(topLevelDeclarations(syntax)
     .map(declaration => [`${file}#${declaration.name}`, { id: `${file}#${declaration.name}`, ...declaration }] as const))
   return { symbols: [...symbols.values()], operations, invocations, calls, operationAt }
 }

@@ -164,6 +164,6 @@ func (e *evidence) handlerOperation(s *source, expression ast.Expr) (string, boo
 	if !ok {
 		return "", false
 	}
-	id, ok := e.operationByFunctionPosition[functionKey(s.pkg, function.Pos())]
-	return id, ok
+	id := e.operationOf(s, function)
+	return id, id != ""
 }

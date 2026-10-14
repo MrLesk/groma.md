@@ -28,7 +28,8 @@ test.concurrent('upgrade checks preserve scan health and offer only a newer comp
   ], notice: { tone: 'neutral', message: '' }, limits: [] }
   try {
     const checked = await withPluginUpgrades(state, server.url.href)
-    expect(requests).toHaveLength(1)
+    // Only the installed npm scanner is checked: 2.0.0 needs a newer Groma, so one more release is read, and 1.0.0 never is.
+    expect(requests).toHaveLength(2)
     expect(checked.plugins).toBe(state.plugins)
     expect(scannerWarning(checked)).toBeUndefined()
     expect(state.upgrades).toBeUndefined()
@@ -38,7 +39,7 @@ test.concurrent('upgrade checks preserve scan health and offer only a newer comp
     expect((await withPluginUpgrades({ ...state, plugins: [updated] }, server.url.href)).upgrades).toEqual({})
     unavailable = true
     const failed = await withPluginUpgrades(state, server.url.href)
-    expect(failed.upgrades?.[scanner.source]?.error).toContain('HTTP 503')
+    expect(failed.upgrades?.[scanner.source]?.error).toContain('503')
     expect(pluginUpgradeAction(scanner, failed.upgrades)).toBeUndefined()
     expect(failed.plugins).toBe(state.plugins)
     expect(scannerWarning(failed)).toBeUndefined()

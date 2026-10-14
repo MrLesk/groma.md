@@ -45,7 +45,9 @@ func (e *evidence) mountRouter(s *source, mounted ast.Expr, under mount) {
 	if call, ok := ast.Unparen(mounted).(*ast.CallExpr); ok {
 		// The routes belong to a router this call builds, so the source here cannot carry the prefix.
 		if function, ok := s.object(call.Fun).(*types.Func); ok {
-			e.silenced[e.operationByFunctionPosition[functionKey(s.pkg, function.Pos())]] = true
+			if builder := e.operationOf(s, function); builder != "" {
+				e.silenced[builder] = true
+			}
 		}
 		return
 	}
