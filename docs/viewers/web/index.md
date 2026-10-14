@@ -427,15 +427,18 @@ stored knowledge or architecture levels.
 The floating icon bar beside the hierarchy toggles Actors, Systems, Containers,
 Components, and Relationships on the map. Its element icons follow the existing
 ● ■ ▱ ▪ marks with clean geometry and gently rounded corners; an arrow represents
-relationships. All five start visible. Hover or keyboard focus shows
+relationships. All five are visible by default. Hover or keyboard focus shows
 each icon's label; pressed buttons mark visible content. Hiding Relationships
 hides all map lines, including highlighted routes, while relationships remain
 available in the details and flow readers. Showing them again restores only
 routes whose endpoints are visible. Hiding an element type hides its
 map bodies, connections with hidden endpoints, and attached task pins. Children
 of a hidden boundary remain visible when their own type is enabled. Filtering
-keeps layout, camera, hierarchy, and stored architecture unchanged. Choices stay
-active across live updates and Iso, 2D, and Layers changes until the page reloads.
+keeps layout, camera, hierarchy, and stored architecture unchanged. The browser
+saves the projection and these five filters in localStorage. They stay active
+across live updates, projection changes, and page reloads in live and published maps.
+Explicit link values take precedence over saved choices. Missing values use the
+saved choices, then Iso with all five filters visible.
 
 The hierarchy pane's boxed double-chevron retracts it to a narrow rail and
 returns it without changing tree, selection, or camera state. Its quiet branch lines keep nested
@@ -948,6 +951,12 @@ Repeated `flow=<id>` parameters name checked scenarios in selection order;
 selection, the last flow owns details. An
 architecture selection alongside it opens endpoint inspection while retaining
 the checked flows and focused step. Opening a shared selection fits its content.
+`view=iso|2d|layers` names the projection. `hide=actor,system,container,component,relationship`
+lists hidden map filters; an empty `hide=` shows all five. The browser fills in
+missing control values and writes both parameters, including defaults, so a copied
+link reproduces the controls regardless of the recipient's saved preferences.
+`web/chrome/map-view.ts` owns this configuration's shared URL and storage representation;
+the browser session applies it to map motion and the C4 filter control.
 `theme=auto|light|dark|blueprint` names an explicit theme, and `hud=off` hides
 the page chrome. A publication path ending in `/architecture/{theme}/`, with
 any repository prefix, also selects one of those themes. An explicit query
@@ -961,7 +970,9 @@ documentation site, opens another view without reloading it. It posts
 query string, and the camera moves there as it does for the same selection
 made in the map. A view that names no selection clears it and fits the whole
 sheet. The posted view sets the selection, flows and step, task, details tab,
-source `file` and `line`, and `hud`; the theme and revision stay as they are. The map posts
+source `file` and `line`, and `hud`. Explicit `view` and `hide` values also update
+the map controls; omitted control values keep their current choices. The theme
+and revision stay as they are. The map posts
 `{ gromaReady: true }` to the embedding page once it can take views. Only the
 parent window is heard, so a map opened directly ignores every message.
 An embedding page that draws its own frame opens the map with `inset=<pixels>`.
