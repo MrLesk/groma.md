@@ -1,6 +1,6 @@
 import type { Command } from 'commander'
 import { parseListWindow, printListPage, withListWindowOptions } from './list-window.ts'
-import { addPlugin, pluginPresence, removePlugin, restoreMissingPlugins, updatePlugin, type PluginSelection } from './plugin-management.ts'
+import { addPlugin, pluginPresence, removePlugin, restoreFailure, restoreMissingPlugins, updatePlugin, type PluginSelection } from './plugin-management.ts'
 
 /** Runs one command action; a failure prints its message alone and sets the exit code. The scanner commands share it. */
 export async function runPluginCommand(action: () => Promise<void>): Promise<void> {
@@ -12,7 +12,7 @@ export async function runPluginCommand(action: () => Promise<void>): Promise<voi
   }
 }
 
-/** One plugin on one line: kind, id, what config.json pins, and a status or message when there is one. */
+/** One plugin on one line, its fields separated by tabs; empty fields are left out. */
 function pluginLine(fields: string[]): string {
   return fields.filter(Boolean).join('\t')
 }
@@ -54,7 +54,8 @@ export function registerPluginCommands(program: Command): void {
     .description('Restore the plugins config.json lists that this computer lacks')
     .action(async () => {
       await runPluginCommand(async () => {
-        const restored = await restoreMissingPlugins(process.cwd())
+        const { restored, failed } = await restoreMissingPlugins(process.cwd())
+        if (failed.length) throw restoreFailure(failed)
         console.log('ok')
         console.log(`${restored.length} restored`)
       })

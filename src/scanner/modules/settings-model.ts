@@ -57,8 +57,7 @@ export function scannerNotice(scanners: readonly ScannerSetting[], limits: reado
 }
 
 export function pluginSettingLabel(plugin: PluginSetting): string {
-  if (plugin.status === 'blocked') return plugin.message
-  if (plugin.kind === 'workSource') return plugin.message
+  if (plugin.status === 'blocked' || plugin.kind === 'workSource') return plugin.message
   if (plugin.match === 'none' && plugin.status !== 'missing') return 'No matching project files'
   return { ready: '', unchecked: '', missing: 'Package missing', available: 'Not installed' }[plugin.status]
 }

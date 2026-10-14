@@ -1,5 +1,4 @@
-import { restorePlugin, type PluginPresence } from '../../../plugin-management.ts'
-import { bundledWorkSources } from '../../../work-sources.ts'
+import type { PluginPresence, RestoreState } from '../../../plugin-management.ts'
 import { escaped } from '../atoms/escape.ts'
 import { scannerName } from '../scanners/name.ts'
 
@@ -9,7 +8,7 @@ export interface RestoreRow {
   name: string
   /** What config.json pins: a scanner's exact source, or the lowest CLI version of a work source. */
   pinned: string
-  state: 'missing' | 'restoring' | 'restored' | 'failed'
+  state: 'missing' | RestoreState
   /** Why restoring failed; empty otherwise. */
   message: string
 }
@@ -17,28 +16,7 @@ export interface RestoreRow {
 export function restoreRows(missing: readonly PluginPresence[]): RestoreRow[] {
   return missing.map(plugin => plugin.kind === 'scanner'
     ? { id: plugin.id, name: `${scannerName(plugin.id)} scanner`, pinned: plugin.pinned, state: 'missing', message: '' }
-    : { id: plugin.id, name: `${bundledWorkSources[plugin.id]?.name ?? plugin.id} CLI`, pinned: `${plugin.pinned} or newer`, state: 'missing', message: '' })
-}
-
-/** Restores each row's plugin in turn, reports every change of state, and returns the rows as they ended. */
-export async function restoreEach(
-  root: string, rows: readonly RestoreRow[], report: (rows: readonly RestoreRow[]) => void,
-): Promise<RestoreRow[]> {
-  let current: RestoreRow[] = rows.map(row => ({ ...row, state: 'missing', message: '' }))
-  const update = (id: string, state: RestoreRow['state'], message = '') => {
-    current = current.map(row => row.id === id ? { ...row, state, message } : row)
-    report(current)
-  }
-  for (const { id } of rows) {
-    update(id, 'restoring')
-    try {
-      await restorePlugin(root, id)
-      update(id, 'restored')
-    } catch (error) {
-      update(id, 'failed', error instanceof Error ? error.message : String(error))
-    }
-  }
-  return current
+    : { id: plugin.id, name: `${plugin.name} CLI`, pinned: `${plugin.pinned} or newer`, state: 'missing', message: '' })
 }
 
 function restoreRow(row: RestoreRow): string {

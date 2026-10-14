@@ -16,8 +16,14 @@ export const bundledWorkSources: Readonly<Record<string, BundledWorkSource>> = {
   backlog: { name: 'Backlog.md', plugin: backlogPlugin, installTool: installBacklogCli },
 }
 
+/** The bundled work source with this id; config.json can name no other. */
+export function bundledWorkSource(id: string): BundledWorkSource {
+  const bundled = bundledWorkSources[id]
+  if (!bundled) throw new Error(`groma.md has no work source ${id}. Bundled: ${Object.keys(bundledWorkSources).join(', ')}.`)
+  return bundled
+}
+
 interface WorkSourceSelectionFields extends ConfiguredWorkSource {
-  kind: 'workSource'
   name: string
   /** The tool version on this computer, when it is installed. */
   installed?: string
@@ -36,12 +42,9 @@ export type WorkSourceSelection =
 export async function checkWorkSourceReadiness(root: string): Promise<WorkSourceSelection | undefined> {
   const selected = (await readGromaConfig(root)).workSources[0]
   if (!selected) return undefined
-  const bundled = bundledWorkSources[selected.id]
-  const base = { ...selected, kind: 'workSource' as const, name: bundled?.name ?? selected.id }
-  if (!bundled) {
-    return { ...base, status: 'blocked', message: `groma.md has no work source ${selected.id}. Bundled: ${Object.keys(bundledWorkSources).join(', ')}.` }
-  }
+  const base = { ...selected, name: bundledWorkSources[selected.id]?.name ?? selected.id }
   try {
+    const bundled = bundledWorkSource(selected.id)
     const readiness = await bundled.plugin.readiness()
     if (readiness.status === 'missing') return { ...base, status: 'missing', message: `${bundled.name} CLI is not installed.` }
     const installed = { ...base, installed: readiness.version }

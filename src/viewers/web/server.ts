@@ -6,14 +6,14 @@ import {
   type RepositoryInitDependencies,
 } from '../../init-command.ts'
 import { gromaInitialization } from '../../initialize.ts'
-import { pluginPresence } from '../../plugin-management.ts'
+import { pluginPresence, restoreMissingPlugins } from '../../plugin-management.ts'
 import { loadProjectProfile } from '../../project-profile.ts'
 import { discoverScanners, type ScannerDiscovery } from '../../scanner/modules/discovery.ts'
 import { installSelectedScanners } from '../../scanner/modules/setup.ts'
 import { createWebMapSession } from './map-session.ts'
 import { renderSetupPage } from './startup/page.ts'
 import { createStartupProgress } from './startup/progress.ts'
-import { restoreEach, restoreRows, type RestoreRow } from './startup/restore.ts'
+import { restoreRows, type RestoreRow } from './startup/restore.ts'
 
 type MapSession = Awaited<ReturnType<typeof createWebMapSession>>
 
@@ -86,6 +86,9 @@ export async function startWebViewer(
     })
   }
 
+  /** Sends the browser back to the page, which shows the next step. */
+  const home = (): Response => new Response(null, { status: 303, headers: { Location: '/' } })
+
   async function initialize(request: Request): Promise<Response> {
     try {
       const input = await request.formData()
@@ -99,7 +102,7 @@ export async function startWebViewer(
       proposal = await discoverScanners(repositoryRoot)
       error = undefined
       progress.clear()
-      return new Response(null, { status: 303, headers: { Location: '/' } })
+      return home()
     } catch (cause) {
       failed(cause)
       return setupResponse(400)
@@ -121,24 +124,30 @@ export async function startWebViewer(
       await openMap(true)
       if (error !== undefined) return setupResponse(400)
       proposal = undefined
-      return new Response(null, { status: 303, headers: { Location: '/' } })
+      return home()
     } catch (cause) {
       failed(cause)
       return setupResponse(400)
     }
   }
 
-  const home = (): Response => new Response(null, { status: 303, headers: { Location: '/' } })
   const opened = (): Response => error === undefined ? home() : setupResponse(400)
 
-  /** When every missing plugin is restored the map opens as usual; otherwise the restore view returns with the rest. */
+  /**
+   * Restores the missing plugins, reporting each row's state. When all are restored the map opens as usual; otherwise
+   * the restore view returns with the plugins still missing and why.
+   */
   async function restorePlugins(): Promise<Response> {
     if (restore === undefined) return new Response('No plugins to restore.', { status: 400 })
-    const rows = await restoreEach(repositoryRoot, restore, plugins => progress.report({ phase: 'restoring-plugins', plugins }))
+    let rows: RestoreRow[] = restore.map(row => ({ ...row, state: 'missing', message: '' }))
+    await restoreMissingPlugins(repositoryRoot, (id, state, message) => {
+      rows = rows.map(row => row.id === id ? { ...row, state, message } : row)
+      progress.report({ phase: 'restoring-plugins', plugins: rows })
+    })
     progress.clear()
-    const failed = rows.filter(row => row.state === 'failed')
-    if (failed.length) {
-      restore = failed
+    const unrestored = rows.filter(row => row.state === 'failed')
+    if (unrestored.length) {
+      restore = unrestored
       return home()
     }
     restore = undefined
@@ -180,9 +189,13 @@ export async function startWebViewer(
   const url = `http://localhost:${server.port}`
   options.onListening?.(url)
   if (initial.initialized) {
-    const missing = await pluginPresence(repositoryRoot).then(plugins => plugins.filter(plugin => !plugin.present), cause => { failed(cause); return [] })
-    if (missing.length) restore = restoreRows(missing)
-    else if (error === undefined) await openMap(options.scan === true)
+    try {
+      const missing = (await pluginPresence(repositoryRoot)).filter(plugin => !plugin.present)
+      if (missing.length) restore = restoreRows(missing)
+      else await openMap(options.scan === true)
+    } catch (cause) {
+      failed(cause)
+    }
   }
 
   return {

@@ -129,6 +129,7 @@ export async function mountPluginSettings(renderer: CliRenderer, session: Scanne
   }
   function pluginKey(key: KeyEvent, plugin: PluginSetting) {
     if (key.name === 'u' && plugin.source) input = { action: 'update', id: plugin.id, value: plugin.source }
+    if (key.name === 'u' && plugin.kind === 'workSource' && plugin.listed) void change({ action: 'update', id: plugin.id })
     if (key.name === 'x' && plugin.listed) void change({ action: 'remove', id: plugin.id })
     if (key.name === 'return') {
       const action = pluginSettingAction(plugin)

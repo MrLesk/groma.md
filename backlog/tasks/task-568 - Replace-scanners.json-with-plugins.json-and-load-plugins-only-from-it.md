@@ -7,7 +7,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-14 18:34'
+updated_date: '2026-10-14 18:46'
 labels: []
 dependencies: []
 references:
@@ -241,4 +241,14 @@ Tests (rule, wrong result caught, gap):
 - Existing tests renamed or adapted: parser tests use { id, version }, init tests inject addBacklog, restore test calls restoreMissingPlugins, settings tests set listed.
 
 Verification: bun run check exit 0 (Biome: only existing warnings after the server refactor; TypeScript; 16 Node tests; 798 Bun tests, 54 toolchain skips, 0 failures). Under heavy machine load the Python, flows and Vue overlap tests timed out on this branch and on a clean origin/main worktree alike; they pass on a quiet machine. Browser check of a demo project: restore view with a missing scanner and an outdated Backlog.md CLI; Proceed opened the read-only map (badge, no add or edit controls, no plugin settings, POST /add 403); a failing Restore showed the reason; a real Restore downloaded @groma/scanner-go@0.2.1 with a spinner and opened the normal map; Install on the Backlog.md row wrote { id: backlog, version: 1.53.0 }. Terminal welcome read through tui-test shows the missing plugins line. Not run: the Backlog.md CLI install and upgrade commands (bun add -g, npm install -g, brew), because they change the computer's global install.
+
+Reviews (2026-10-14): one cold simplicity review and one full-context complexity review, run in parallel; merged and applied once.
+
+Applied: one restore loop (restoreMissingPlugins reports each plugin's state and returns the failures; the web restore view, `groma plugin install` and the plugins screen's Install missing all use it); the welcome screen reads missing plugins from pluginPresence; PluginPresence carries the name, so the restore view no longer imports the work-source table; the work-source version rule lives only in checkWorkSourceReadiness and bundledWorkSource moved into work-sources.ts; ensureTool replaces the second function named installTool; restorePlugin leaves a current CLI alone; Install recommended adds through addPlugin; Update on a work-source row updates the tool instead of opening the source form, in the web and the terminal screen; the scanner session rescans only when scanners, exclude or useGitignore change; server.ts uses one redirect helper and a plain try/catch; an unread kind field, a redundant init guard and two aliases were removed; the restore test checks the failed state and a message instead of the exact text.
+
+Declined: deleting onPluginsChanged. Restoring the Backlog.md CLI changes no file under groma/, so the architecture watch cannot wake the work source; the hook does.
+
+For Alex, not applied: group plugin-wide code by domain (src/plugins/, the work-source files beside src/work/, plugin-settings file names) because it reshapes the architecture map; offer Backlog.md in the groma web setup wizard (main ran backlog init there whenever the CLI was installed; now web setup never lists it); how a downloaded plugin declares its kind once icon packs arrive (TASK-561). Follow-up: move scanner file matching out of src/config.ts into scanner/modules/selection.ts.
+
+Verification after the fixes: bun run check exit 0 (one existing Biome warning, 16 Node tests, 798 Bun tests, 54 toolchain skips, 0 failures).
 <!-- SECTION:NOTES:END -->

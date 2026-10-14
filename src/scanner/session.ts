@@ -10,6 +10,12 @@ export type ScannerProgress =
   | { phase: 'preparing-scanners' | 'updating-architecture' }
   | { phase: 'scanning'; scanners: readonly string[] }
 
+/** The part of config.json scanning depends on; a change elsewhere, such as a work source, needs no rescan. */
+async function scannerSignature(root: string): Promise<string> {
+  const { scanners, exclude, useGitignore } = await readGromaConfig(root)
+  return JSON.stringify({ scanners, exclude, useGitignore })
+}
+
 /** Owns scanner execution, settings state and the one source-adapter subscription for an open viewer. */
 export async function createScannerSession(root: string, options: {
   scan?: boolean
@@ -23,7 +29,7 @@ export async function createScannerSession(root: string, options: {
   let state = await readPluginSettings(root, [], options)
   let checks: ProjectReadiness[] = []
   let watcher: Awaited<ReturnType<typeof watchObservations>> | undefined
-  let config = ''
+  let scannerConfig = ''
   let closed = false
   let serial = Promise.resolve()
   const listeners = new Set<(state: PluginSettings) => void>()
@@ -60,7 +66,7 @@ export async function createScannerSession(root: string, options: {
     await watcher?.close()
     watcher = undefined
     if (closed) return
-    config = JSON.stringify(await readGromaConfig(root))
+    scannerConfig = await scannerSignature(root)
     checks = []
     publish(await readPluginSettings(root, checks, options))
     const registry = await loadScannerRegistry(root, options)
@@ -91,7 +97,7 @@ export async function createScannerSession(root: string, options: {
     async refresh() { publish(await readPluginSettings(root, checks, options)); return state },
     reconfigure() {
       return enqueue(async () => {
-        if (JSON.stringify(await readGromaConfig(root)) !== config) await start(true)
+        if (await scannerSignature(root) !== scannerConfig) await start(true)
       })
     },
     change(action: PluginSettingsAction) {

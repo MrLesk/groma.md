@@ -11,7 +11,7 @@ export function registerScannerCommands(program: Command): void {
     .command('scanner')
     .description('Set up and check the scanners of this project; groma plugin adds, updates and removes them')
 
-  scanner.command('settings').description('Open project scanner settings').action(() => runPluginCommand(async () => {
+  scanner.command('settings').description('Open the plugins screen of this project').action(() => runPluginCommand(async () => {
     if (process.stdin.isTTY && process.stdout.isTTY) await (await import('../viewers/tui/scanner-settings.ts')).startPluginSettings(process.cwd())
     else console.log(JSON.stringify(await (await import('./modules/settings.ts')).readPluginSettings(process.cwd()), null, 2))
   }))

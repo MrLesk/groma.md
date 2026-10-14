@@ -357,7 +357,7 @@ test.concurrent('a missing plugin opens the restore view, and proceeding without
     viewer = await startWebViewer(root, { port: 0, workSource: emptyWorkSource() })
     expect(await (await fetch(viewer.url)).text()).toContain('data-plugin="fixture" data-state="missing"')
     await fetch(`${viewer.url}/restore`, { method: 'POST', redirect: 'manual' })
-    expect(await (await fetch(viewer.url)).text()).toContain('Restore the local scanner directory: ./plugin')
+    expect(await (await fetch(viewer.url)).text()).toMatch(/data-plugin="fixture" data-state="failed">.*data-message>[^<]+</)
     expect((await fetch(`${viewer.url}/proceed`, { method: 'POST', redirect: 'manual' })).status).toBe(303)
     expect((await fetch(`${viewer.url}/world.json`)).ok).toBe(true)
     expect((await fetch(`${viewer.url}/add`, { method: 'POST', body: '{}' })).status).toBe(403)

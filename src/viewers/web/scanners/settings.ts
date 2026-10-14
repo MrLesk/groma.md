@@ -58,7 +58,8 @@ function rowActions(plugin: PluginSetting, upgrades: PluginSettings['upgrades'])
   const action = pluginUpgradeAction(plugin, upgrades) ?? pluginSettingAction(plugin)
   const primary = action ? button(action.action, action.action === 'update' ? 'Update' : action.action === 'retry' ? 'Retry' : 'Install') : ''
   const npm = plugin.source && isNpmPackageName(plugin.source.slice(0, plugin.source.lastIndexOf('@')))
-  const update = npm ? button('version', 'Choose version') : button('version', 'Update')
+  // A bundled work source updates its tool to the current release; a scanner asks for a version or source.
+  const update = plugin.kind === 'workSource' ? button('update', 'Update') : npm ? button('version', 'Choose version') : button('version', 'Update')
   const retry = action?.action === 'update' && plugin.status === 'blocked' ? button('retry', 'Retry scan') : ''
   const more = plugin.listed ? retry + update + button('remove', 'Remove from project') : ''
   return { primary, more }
@@ -104,11 +105,10 @@ function filterEvidence(input: HTMLInputElement): void {
 function settingGroup(group: ReturnType<typeof pluginGroups>[number], showBulk: boolean, upgrades: PluginSettings['upgrades']): string {
   const missing = group.plugins.every(plugin => plugin.status === 'missing')
   const recommended = group.plugins.every(plugin => !plugin.listed)
-  const title = group.title
   const action = missing ? 'install-missing' : recommended ? 'install-recommended' : undefined
   const installable = group.plugins.filter(plugin => plugin.status === 'missing' || plugin.installSource).length
   const bulk = showBulk && action && installable > 1 ? `<button class="chrome-button" type="button" data-group="${action}">${missing ? 'Install missing' : 'Install all'}</button>` : ''
-  return `<section class="scanner-group"><div class="scanner-group-heading"><h2>${title}<span class="scanner-count">${group.plugins.length}</span></h2>${bulk}</div>${group.plugins.map(plugin => settingRow(plugin, upgrades)).join('')}</section>`
+  return `<section class="scanner-group"><div class="scanner-group-heading"><h2>${group.title}<span class="scanner-count">${group.plugins.length}</span></h2>${bulk}</div>${group.plugins.map(plugin => settingRow(plugin, upgrades)).join('')}</section>`
 }
 
 /** Plugin management uses the live data source inside Settings. */
@@ -218,7 +218,7 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
       case 'retry': void change({ action }); break
       case 'update': {
         const plugin = state?.plugins.find(item => item.id === id)
-        const update = plugin && pluginUpgradeAction(plugin, upgrades)
+        const update = plugin?.kind === 'workSource' ? { action: 'update' as const, id } : plugin && pluginUpgradeAction(plugin, upgrades)
         if (update) void change(update)
         break
       }

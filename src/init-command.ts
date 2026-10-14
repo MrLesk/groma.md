@@ -182,8 +182,6 @@ function commandReminder(ui: InitCommandUi): void {
  */
 async function chooseBacklog(repositoryRoot: string, dependencies: InitCommandDependencies): Promise<boolean> {
   const ui = dependencies.ui
-  // config.json lists one work source at most, so a project that already lists one is not asked again.
-  if ((await readGromaConfig(repositoryRoot)).workSources.length) return false
   const wanted = await ui.confirmUseBacklog()
   if (wanted === undefined) cancelled()
   if (!wanted) return false

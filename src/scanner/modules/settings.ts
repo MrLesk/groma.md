@@ -3,11 +3,11 @@ export * from './settings-model.ts'
 import type { ScannerDiscovery } from './discovery.ts'
 import { discoverScanners } from './discovery.ts'
 import { officialScannerCatalog } from './catalog.ts'
-import { configuredScannerModules, addScanner, type ScannerInstallOptions, type ScannerModuleLocation } from './inventory.ts'
+import { configuredScannerModules, type ScannerInstallOptions, type ScannerModuleLocation } from './inventory.ts'
 import type { ProjectReadiness } from './readiness.ts'
 import { parseScannerSource } from './package.ts'
 import { selectPublishedScanner } from './published.ts'
-import { addPlugin, removePlugin, restorePlugin, updatePlugin } from '../../plugin-management.ts'
+import { addPlugin, removePlugin, restoreFailure, restoreMissingPlugins, restorePlugin, updatePlugin } from '../../plugin-management.ts'
 import { bundledWorkSources, checkWorkSourceReadiness, type WorkSourceSelection } from '../../work-sources.ts'
 
 /** Optional registry reads for an open settings dialog: newer releases of listed npm scanners. Scan readiness stays unchanged. */
@@ -122,7 +122,12 @@ export async function changePluginSettings(root: string, action: PluginSettingsA
     case 'restore': await restorePlugin(root, action.id, options); return
     case 'update': await updatePlugin(root, action.id, action.source, options); return
     case 'retry': return
-    case 'install-recommended': case 'install-missing': await installGroup(root, action.action, options); return
+    case 'install-recommended': await installRecommended(root, options); return
+    case 'install-missing': {
+      const { failed } = await restoreMissingPlugins(root, undefined, options)
+      if (failed.length) throw restoreFailure(failed)
+      return
+    }
     case 'install': {
       const item = (await readPluginSettings(root, [], options)).plugins.find(plugin => plugin.id === action.id)
       if (!item?.installSource) throw new Error('This plugin is no longer offered. Review the current plugin list.')
@@ -131,16 +136,14 @@ export async function changePluginSettings(root: string, action: PluginSettingsA
   }
 }
 
-async function installGroup(root: string, group: 'install-recommended' | 'install-missing', options: ScannerInstallOptions) {
+/** Adds every recommended scanner, keeping those that install when another fails. */
+async function installRecommended(root: string, options: ScannerInstallOptions) {
   const settings = await readPluginSettings(root, [], options)
-  const selected = settings.plugins.filter(item => group === 'install-recommended'
-    ? item.kind === 'scanner' && !item.listed && item.installSource : item.listed && item.status === 'missing')
   const errors: string[] = []
-  for (const item of selected) {
-    try {
-      if (group === 'install-recommended') await addScanner(root, item.installSource!, options)
-      else await restorePlugin(root, item.id, options)
-    } catch (error) { errors.push(`${item.id}: ${error instanceof Error ? error.message : String(error)}`) }
+  for (const item of settings.plugins) {
+    if (item.kind !== 'scanner' || item.listed || !item.installSource) continue
+    try { await addPlugin(root, item.installSource, options) }
+    catch (error) { errors.push(`${item.id}: ${error instanceof Error ? error.message : String(error)}`) }
   }
   if (errors.length) throw new Error(errors.join('\n'))
 }

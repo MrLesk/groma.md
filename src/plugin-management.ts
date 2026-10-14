@@ -7,12 +7,12 @@ import {
   updateScanner,
   type ScannerInstallOptions,
 } from './scanner/modules/inventory.ts'
-import { bundledWorkSources, checkWorkSourceReadiness, type BundledWorkSource } from './work-sources.ts'
+import { bundledWorkSource, bundledWorkSources, checkWorkSourceReadiness, type BundledWorkSource } from './work-sources.ts'
 
 /**
  * The one owner of the plugins config.json lists: whether this computer has each of them, and adding, updating,
- * removing and restoring them. Every entry point uses it: the plugin commands, groma init, the plugins screen and
- * the groma web restore view. What "present" and "restore" mean depends on the kind:
+ * removing and restoring them. Every entry point uses it: the plugin commands, groma init, the plugins screen, the
+ * welcome screen and the groma web restore view. What "present" and "restore" mean depends on the kind:
  * - scanner: the package at its exact listed source is on this computer; restoring downloads it.
  * - work source: it ships inside groma.md, and its tool is installed at the listed version or newer; restoring
  *   installs the current tool.
@@ -24,6 +24,8 @@ export type PluginKind = 'scanner' | 'workSource'
 export interface PluginPresence {
   kind: PluginKind
   id: string
+  /** The scanner id, or the work source's name such as Backlog.md. */
+  name: string
   /** What the entry pins: a scanner's exact source, or the lowest tool version of a work source. */
   pinned: string
   present: boolean
@@ -34,33 +36,27 @@ export interface PluginPresence {
 /** Every plugin config.json lists, scanners first, with whether this computer has it. */
 export async function pluginPresence(root: string, options: ScannerInstallOptions = {}): Promise<PluginPresence[]> {
   const scanners = (await configuredScannerModules(root, options)).map(module => ({
-    kind: 'scanner' as const, id: module.id, pinned: module.source, present: module.status === 'found',
+    kind: 'scanner' as const, id: module.id, name: module.id, pinned: module.source, present: module.status === 'found',
     message: module.status === 'missing' ? `Package missing: ${module.source}` : '',
   }))
   const work = await checkWorkSourceReadiness(root)
   if (!work) return scanners
-  return [...scanners, { kind: 'workSource', id: work.id, pinned: work.version, present: work.status === 'found', message: work.message }]
+  return [...scanners, {
+    kind: 'workSource', id: work.id, name: work.name, pinned: work.version, present: work.status === 'found', message: work.message,
+  }]
 }
 
-async function toolVersion(bundled: BundledWorkSource): Promise<string | undefined> {
+/**
+ * Installs the work source's tool when it is missing, or when `latest` is set brings it to the current release;
+ * returns the version installed.
+ */
+async function ensureTool(bundled: BundledWorkSource, latest: boolean): Promise<string> {
   const readiness = await bundled.plugin.readiness()
-  return readiness.status === 'found' ? readiness.version : undefined
-}
-
-/** Installs the work source's tool when it is missing, or brings it up to date when `update` is set; returns the version installed. */
-async function installTool(bundled: BundledWorkSource, update: boolean): Promise<string> {
-  const before = await toolVersion(bundled)
-  if (before !== undefined && !update) return before
-  await bundled.installTool(before !== undefined)
-  const after = await toolVersion(bundled)
-  if (after === undefined) throw new Error(`${bundled.name} CLI is still not installed.`)
-  return after
-}
-
-function bundledWorkSource(id: string): BundledWorkSource {
-  const bundled = bundledWorkSources[id]
-  if (!bundled) throw new Error(`groma.md has no work source ${id}. Bundled: ${Object.keys(bundledWorkSources).join(', ')}.`)
-  return bundled
+  if (readiness.status === 'found' && !latest) return readiness.version
+  await bundled.installTool(readiness.status === 'found')
+  const after = await bundled.plugin.readiness()
+  if (after.status === 'missing') throw new Error(`${bundled.name} CLI is still not installed.`)
+  return after.version
 }
 
 /** A plugin as a command reports it after adding or updating it. */
@@ -83,7 +79,7 @@ export async function addPlugin(root: string, input: string, options: ScannerIns
   const config = await readGromaConfig(root)
   const listed = config.workSources[0]
   if (listed) throw new Error(`config.json already lists the work source ${listed.id}; remove it before adding another`)
-  const version = await installTool(bundledWorkSource(id), false)
+  const version = await ensureTool(bundledWorkSource(id), false)
   await writeGromaConfig(root, { ...config, workSources: [{ id, version }] })
   return { kind: 'workSource', id, pinned: version }
 }
@@ -110,7 +106,7 @@ export async function updatePlugin(root: string, id: string, input?: string, opt
   }
   if (!config.workSources.some(work => work.id === id)) throw new Error(`plugin is not configured: ${id}`)
   if (input !== undefined) throw new Error(`${id} ships inside groma.md; update it without a source`)
-  const version = await installTool(bundledWorkSource(id), true)
+  const version = await ensureTool(bundledWorkSource(id), true)
   await writeGromaConfig(root, { ...config, workSources: config.workSources.map(work => work.id === id ? { id, version } : work) })
   return { kind: 'workSource', id, pinned: version }
 }
@@ -119,27 +115,42 @@ export async function updatePlugin(root: string, id: string, input?: string, opt
 export async function restorePlugin(root: string, id: string, options: ScannerInstallOptions = {}): Promise<void> {
   const config = await readGromaConfig(root)
   if (config.scanners.some(scanner => scanner.id === id)) return restoreScanner(root, id, options)
-  const listed = config.workSources.find(work => work.id === id)
-  if (!listed) throw new Error(`plugin is not configured: ${id}`)
-  const version = await installTool(bundledWorkSource(id), true)
-  if (Bun.semver.order(version, listed.version) < 0) {
-    throw new Error(`${bundledWorkSource(id).name} CLI ${version} is still older than ${listed.version}.`)
-  }
+  if (!config.workSources.some(work => work.id === id)) throw new Error(`plugin is not configured: ${id}`)
+  if ((await checkWorkSourceReadiness(root))?.status === 'found') return
+  await ensureTool(bundledWorkSource(id), true)
+  const after = await checkWorkSourceReadiness(root)
+  if (after?.status !== 'found') throw new Error(after?.message ?? `plugin is not configured: ${id}`)
 }
 
-/** Restores every plugin this computer lacks, continuing past failures, and returns the ids it restored. */
-export async function restoreMissingPlugins(root: string, options: ScannerInstallOptions = {}): Promise<string[]> {
-  const restored: string[] = []
-  const failures: string[] = []
+export type RestoreState = 'restoring' | 'restored' | 'failed'
+
+/**
+ * Restores every plugin this computer lacks, one at a time and past failures. `onChange` hears each plugin start
+ * and end, with the reason when it failed; the result lists the plugins that could not be restored.
+ */
+export async function restoreMissingPlugins(
+  root: string,
+  onChange: (id: string, state: RestoreState, message: string) => void = () => {},
+  options: ScannerInstallOptions = {},
+): Promise<{ restored: string[]; failed: { id: string; message: string }[] }> {
+  const result: Awaited<ReturnType<typeof restoreMissingPlugins>> = { restored: [], failed: [] }
   for (const plugin of await pluginPresence(root, options)) {
     if (plugin.present) continue
+    onChange(plugin.id, 'restoring', '')
     try {
       await restorePlugin(root, plugin.id, options)
-      restored.push(plugin.id)
+      result.restored.push(plugin.id)
+      onChange(plugin.id, 'restored', '')
     } catch (error) {
-      failures.push(`${plugin.id}: ${error instanceof Error ? error.message : String(error)}`)
+      const message = error instanceof Error ? error.message : String(error)
+      result.failed.push({ id: plugin.id, message })
+      onChange(plugin.id, 'failed', message)
     }
   }
-  if (failures.length) throw new Error(failures.join('\n'))
-  return restored
+  return result
+}
+
+/** The failures of a restore as one error, one line per plugin. */
+export function restoreFailure(failed: readonly { id: string; message: string }[]): Error {
+  return new Error(failed.map(({ id, message }) => `${id}: ${message}`).join('\n'))
 }

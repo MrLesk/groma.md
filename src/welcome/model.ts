@@ -4,6 +4,7 @@ import path from 'node:path'
 import packageJson from '../../package.json' with { type: 'json' }
 
 import { humanInstructionGuides } from '../instructions.ts'
+import { pluginPresence } from '../plugin-management.ts'
 import { readPluginSettings, type PluginSettings } from '../scanner/modules/settings.ts'
 
 export const documentationUrl = 'https://groma.md'
@@ -113,6 +114,8 @@ export type WelcomeActionId = typeof welcomeActions[number]['id']
 
 export interface WelcomeModel {
   pluginSettings?: PluginSettings
+  /** The names of the plugins config.json lists that this computer lacks. */
+  missingPlugins?: string[]
   project: string
   folder: string
   status: string
@@ -159,13 +162,14 @@ export async function loadWelcomeModel(repositoryRoot: string): Promise<WelcomeM
     folder: displayFolder(root),
     status: 'Architecture ready',
     pluginSettings: await readPluginSettings(root),
+    // An unreadable config.json is already reported by the plugin settings notice.
+    missingPlugins: await pluginPresence(root).then(plugins => plugins.filter(plugin => !plugin.present).map(plugin => plugin.name), () => []),
   }
 }
 
 /** The plugins config.json lists that this computer lacks and how to restore them, or nothing when it has them all. */
 export function missingPluginsSummary(model: WelcomeModel): string | undefined {
-  const missing = model.pluginSettings?.plugins.filter(plugin => plugin.listed && plugin.status === 'missing') ?? []
-  return missing.length ? `${missing.map(plugin => plugin.name).join(', ')} · groma plugin install` : undefined
+  return model.missingPlugins?.length ? `${model.missingPlugins.join(', ')} · groma plugin install` : undefined
 }
 
 export function welcomeSheet(model: WelcomeModel): WelcomeSheet {
