@@ -2,7 +2,7 @@ import type { C4Kind } from '../../../types.ts'
 import { kindLabel } from '../../atoms/kind.ts'
 import type { LayeredScene } from '../iso/projection/separation.ts'
 
-type MapFilter = C4Kind | 'relationship'
+export type MapFilter = C4Kind | 'relationship'
 
 /** The shared ● ■ ▱ ▪ element marks and a directed relationship arrow. */
 const filters: { filter: MapFilter; icon: string }[] = [
@@ -12,6 +12,12 @@ const filters: { filter: MapFilter; icon: string }[] = [
   { filter: 'component', icon: '<rect x="8" y="8" width="8" height="8" rx="1.3" fill="currentColor" stroke="none"/>' },
   { filter: 'relationship', icon: '<path d="M4 12h16m-5-5 5 5-5 5"/>' },
 ]
+
+/** URL and saved choices use the same filter names as the visible buttons. */
+export function readHiddenFilters(value: string): Set<MapFilter> {
+  const requested = value.split(',')
+  return new Set(filters.map(item => item.filter).filter(filter => requested.includes(filter)))
+}
 
 /** Visibility changes presentation only: retained geometry and camera bounds stay identical. */
 export function filterC4Scene(scene: LayeredScene, hidden: ReadonlySet<MapFilter>): LayeredScene {
@@ -39,19 +45,29 @@ export function c4FilterControl(): string {
   }).join('')}</div>`
 }
 
-/** The control owns page-local visibility; every projection uses its current selection. */
-export function bindC4Filter(host: HTMLElement, repaint: () => void): (scene: LayeredScene) => LayeredScene {
-  const hidden = new Set<MapFilter>()
+/** The control owns visibility; restored choices and clicks use the same buttons and projection. */
+export function bindC4Filter(host: HTMLElement, initial: ReadonlySet<MapFilter>, onChange: () => void) {
+  let hidden = new Set(initial)
+  function paint(): void {
+    for (const { filter } of filters) {
+      host.querySelector(`[data-filter="${filter}"]`)!.setAttribute('aria-pressed', String(!hidden.has(filter)))
+    }
+  }
   for (const { filter } of filters) {
     const button = host.querySelector<HTMLButtonElement>(`button[data-filter="${filter}"]`)!
     button.addEventListener('click', () => {
       if (hidden.has(filter)) hidden.delete(filter)
       else hidden.add(filter)
       button.setAttribute('aria-pressed', String(!hidden.has(filter)))
-      repaint()
+      onChange()
     })
   }
-  return scene => filterC4Scene(scene, hidden)
+  paint()
+  return {
+    get hidden(): ReadonlySet<MapFilter> { return hidden },
+    project: (scene: LayeredScene) => filterC4Scene(scene, hidden),
+    setHidden(next: ReadonlySet<MapFilter>): void { hidden = new Set(next); paint() },
+  }
 }
 
 export const c4FilterCss = `

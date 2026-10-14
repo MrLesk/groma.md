@@ -5,12 +5,13 @@ import type { GitRevision } from '../../history/revisions.ts'
 import type { AnnotatedElement, AnnotatedRelationship, ArchitectureGraph, C4Kind, WorkItem } from '../../types.ts'
 import type { FlowRef } from '../flows.ts'
 import { isThemeMode, type WebThemeMode } from './atoms/theme.ts'
+import { mapControlEntries, readMapControls, type MapControls } from './chrome/map-view.ts'
 import type { DetailsTab } from './organisms/details.ts'
 import { noSelection, selectTask } from './selection.ts'
 import type { Selection } from './selection.ts'
 
 /** What the page's query string carries, so a view opens again from its link. */
-export interface ViewState {
+export interface ViewState extends MapControls {
   revision?: string
   from?: string
   file?: string
@@ -128,7 +129,8 @@ function appendTab(pairs: [string, string][], state: ViewState, change: Componen
  * Reads the ordered architecture selection (repeated `<kind>=<id>` and
  * `relationship=<source id>/<target id>` entries) or `task=<id>`,
  * checked flows (repeated `flow=<id>`) and the last flow's one-based `step=<number>`,
- * `tab=how|tasks`, `theme=auto|light|dark|blueprint` and `hud=off`. A query theme overrides
+ * `tab=how|tasks`, `view=iso|2d|layers`, `hide=<comma-separated filters>`,
+ * `theme=auto|light|dark|blueprint` and `hud=off`. A query theme overrides
  * the publication path theme, then the saved default. Ids are the authored ids; anything the world
  * or the work does not know is ignored, a kind naming an element of another kind included.
  */
@@ -139,6 +141,7 @@ export function readView(
   revisions: readonly GitRevision[] = [],
   defaultTheme: WebThemeMode = 'auto',
   comparison?: Comparison,
+  defaultControls?: MapControls,
 ): ViewState {
   const params = new URLSearchParams(url.search)
   const inset = Number(params.get('inset'))
@@ -157,6 +160,7 @@ export function readView(
     : undefined
   const source = sourceState(params, selected, comparison)
   return {
+    ...readMapControls(params, defaultControls),
     ...(revision === undefined ? {} : { revision }),
     ...(Number.isInteger(inset) && inset > 0 ? { inset } : {}),
     ...source,
@@ -208,7 +212,7 @@ function appendFlow(pairs: [string, string][], flow: FlowRef | undefined, world:
   if (flow?.step !== undefined && record.steps[flow.step] !== undefined) pairs.push(['step', String(flow.step + 1)])
 }
 
-/** The query string for a view, empty when everything is at its default. */
+/** The query string includes map-control defaults so recipients open the same presentation. */
 export function writeView(state: ViewState, world: ArchitectureGraph, work: readonly WorkItem[], pathname: string, comparison?: Comparison): string {
   const elements = new Map(world.elements.map(element => [element.representationId, element]))
   const selected = state.selection.kind === 'architecture'
@@ -223,6 +227,7 @@ export function writeView(state: ViewState, world: ArchitectureGraph, work: read
   for (const flow of state.flows) {
     appendFlow(pairs, flow === state.flows.at(-1) ? flow : { id: flow.id }, world)
   }
+  pairs.push(...mapControlEntries(state))
   if (state.theme !== (pathTheme(pathname) ?? 'auto')) pairs.push(['theme', state.theme])
   if (!state.hudVisible) pairs.push(['hud', 'off'])
   if (state.inset !== undefined) pairs.push(['inset', String(state.inset)])

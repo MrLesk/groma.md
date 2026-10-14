@@ -24,4 +24,4 @@ groma:
 description: Browser toolbar, side panels and keyboard shortcuts
 ---
 
-Shows the map toolbar and side panels. Handles keyboard shortcuts, panel expansion and empty map states, and measures the frame the visible chrome leaves for the camera.
+Shows the map toolbar and side panels. Handles keyboard shortcuts, panel expansion and empty map states, and measures the frame the visible chrome leaves for the camera. The map-view control defines the projection and filter configuration shared by URLs and browser localStorage; the browser session applies it to map motion and visibility.
