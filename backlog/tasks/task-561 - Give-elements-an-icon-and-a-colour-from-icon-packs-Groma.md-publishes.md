@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-14 18:03'
+updated_date: '2026-10-14 19:44'
 labels:
   - senior
 dependencies: []
@@ -218,4 +218,6 @@ Checks: bun run typecheck passed; bunx biome lint 1 warning and 2 infos, the sam
 Orchestrator verification, 11 October 2026, stacked on the finished plugins.json branch with main merged: bun run check exit 0 (16 Node tests; 798 Bun tests passed, 52 skipped for missing optional toolchains, 0 failed). I inspected the implementer's dark-theme screenshots of accented systems, containers, components and drafts. Decisions taken in this pass, for the owner to confirm or reverse: an emoji icon is drawn as text and nothing is downloaded when the architecture loads, so cover images show pack icons only; an accented surface is the accent mixed into the theme's paper and its title the accent mixed toward the theme's ink, so every named accent reaches a contrast of 4.5 in light, dark and blueprint. The task stays In Progress on purpose: acceptance criterion 6 and Definition of Done 1 need @groma/icons-architecture on the public registry, which happens in the next release.
 
 Redesigned on 2026-10-14 with Alex: the default pack is bundled and listed in config.json, recommended in groma init, and goes through the TASK-568 plugin flow; publishing the pack is dropped. The implementation above is the starting point for the rebuild.
+
+Alex, 2026-10-14: a downloaded plugin's kind comes from the plugin itself: groma plugin add reads the package manifest and figures out the type, with no kind flag on the command. The bundled default pack, like Backlog.md, cannot be turned off during setup and sits in the setup step's top section; removing or swapping it later from the plugins screen stays possible.
 <!-- SECTION:NOTES:END -->
