@@ -13,9 +13,10 @@ AGENTS.md CLI nudge. Existing Git and
 Backlog.md projects stay unchanged. Running it again edits the current project
 name, keeps the chosen root, and refreshes groma.md's managed agent instructions.
 
-Interactive setup asks whether the project uses Backlog.md for tasks, with yes
-preselected. A yes adds Backlog.md to `config.json`, installs its CLI when it is
-missing and initializes Backlog.md. A step that fails is reported and setup
+Interactive setup adds Backlog.md for tasks when its CLI is installed, and
+otherwise offers to install it, with yes preselected. Adding it writes it to
+`config.json` and initializes Backlog.md. The browser setup shows it in its own
+Tasks section above the scanners. A step that fails is reported and setup
 continues. When the
 architecture has no observed components, it can run the first scan and open
 either viewer. The terminal setup from `groma view` and the browser setup page

@@ -2,7 +2,9 @@ import path from 'node:path'
 import type { WorkSource } from '@groma/work-source'
 
 import {
+  backlogOffer,
   initializeRepository,
+  setUpBacklog,
   type RepositoryInitDependencies,
 } from '../../init-command.ts'
 import { gromaInitialization } from '../../initialize.ts'
@@ -35,6 +37,7 @@ export async function startWebViewer(
   const progress = createStartupProgress()
   let projectName = (await loadProjectProfile(repositoryRoot))?.title ?? path.basename(repositoryRoot)
   let proposal: ScannerDiscovery | undefined
+  let tasks: { installed: boolean } | undefined
   let restore: RestoreRow[] | undefined
   let map: MapSession | undefined
   let error: string | undefined
@@ -79,6 +82,7 @@ export async function startWebViewer(
       ...gromaInitialization(repositoryRoot),
       error,
       proposal,
+      tasks,
       restore,
     }), {
       status,
@@ -99,7 +103,7 @@ export async function startWebViewer(
         directory: String(input.get('directory') ?? ''),
       }, options.initDependencies)
       progress.report({ phase: 'finding-scanners' })
-      proposal = await discoverScanners(repositoryRoot)
+      await readProposal()
       error = undefined
       progress.clear()
       return home()
@@ -109,17 +113,30 @@ export async function startWebViewer(
     }
   }
 
-  async function selectScanners(request: Request): Promise<Response> {
-    if (proposal === undefined) return new Response('No scanner proposal to review.', { status: 400 })
+  /** What the plugin step offers: the detected scanners, and Backlog.md while config.json lists no work source. */
+  async function readProposal(): Promise<void> {
+    proposal = await discoverScanners(repositoryRoot)
+    tasks = await backlogOffer(repositoryRoot, options.initDependencies)
+  }
+
+  /** Installs the chosen scanners, then sets up Backlog.md when it was chosen. */
+  async function installChosen(input: FormData, scanners: ScannerDiscovery): Promise<void> {
+    const selected = input.getAll('scanner').map(String)
+    progress.report({ phase: selected.length ? 'installing-scanners' : 'finding-scanners' })
+    await installSelectedScanners(repositoryRoot, scanners, selected)
+    if (!input.getAll('workSource').includes('backlog')) return
+    progress.report({ phase: 'setting-up-backlog' })
+    await setUpBacklog(repositoryRoot, projectName, options.initDependencies)
+  }
+
+  async function selectPlugins(request: Request): Promise<Response> {
+    if (proposal === undefined) return new Response('No plugin proposal to review.', { status: 400 })
     try {
-      const input = await request.formData()
-      const selected = input.getAll('scanner').map(String)
-      progress.report({ phase: selected.length ? 'installing-scanners' : 'finding-scanners' })
       try {
-        await installSelectedScanners(repositoryRoot, proposal, selected)
+        await installChosen(await request.formData(), proposal)
       } finally {
         progress.report({ phase: 'finding-scanners' })
-        proposal = await discoverScanners(repositoryRoot)
+        await readProposal()
       }
       await openMap(true)
       if (error !== undefined) return setupResponse(400)
@@ -164,7 +181,7 @@ export async function startWebViewer(
   /** The setup forms; each runs once however many browser windows submit it. */
   const setupActions: Record<string, (request: Request) => Promise<Response>> = {
     'POST /initialize': initialize,
-    'POST /scanners': selectScanners,
+    'POST /plugins': selectPlugins,
     'POST /restore': restorePlugins,
     'POST /proceed': proceedWithoutPlugins,
   }

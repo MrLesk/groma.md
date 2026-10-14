@@ -4,13 +4,18 @@ The web plugin shows groma.md's world in a browser. `groma web` starts it.
 If the architecture directory, index, or project record is missing, the local server
 shows browser setup for the project name and architecture folder. An existing
 folder keeps its location. Continue uses the shared initialization operation,
-then shows one selection row per scanner with detected versions and installation
-state. Detection paths stay in collapsed, searchable details; declarations without
-a version do not create a warning. Scanner problems appear before ordinary choices.
-Install & scan installs the selected additions; with no additions selected, the
+then shows **Set up plugins** with one section per kind. While `config.json`
+lists no work source, **Tasks** comes first with Backlog.md: checked and locked
+when its CLI is installed, or offered with Install, preselected, when it is
+missing. It is added to `config.json` and initialized after the scanners.
+**Scanners** has one selection row per scanner with detected versions and
+installation state. Detection paths stay in collapsed, searchable details;
+declarations without a version do not create a warning. Scanner problems appear
+before ordinary choices.
+Install & scan installs the selected additions; with nothing to install, the
 action is Scan project. Both open the map at the same address after preparation.
 Setup, first scan, and regular loading use the same card frame. Setup shows
-Project, Scanners, and Map navigation. The first scan replaces the form with
+Project, Plugins, and Map navigation. The first scan replaces the form with
 completed setup milestones, the current operation, and the pending map step.
 Opening an initialized project uses a compact card with the project name,
 version, and a left-aligned loading status, without setup navigation.

@@ -7,6 +7,7 @@ export const startupPhases = {
   'creating-project': { label: 'Creating project', milestone: 0 },
   'finding-scanners': { label: 'Finding scanners', milestone: 1 },
   'installing-scanners': { label: 'Installing scanners', milestone: 1 },
+  'setting-up-backlog': { label: 'Setting up Backlog.md', milestone: 1 },
   'restoring-plugins': { label: 'Restoring plugins', milestone: 1 },
   'preparing-viewer': { label: 'Preparing viewer', milestone: 2 },
   'loading-architecture': { label: 'Loading architecture', milestone: 2 },

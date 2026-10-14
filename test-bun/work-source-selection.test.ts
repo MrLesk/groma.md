@@ -113,12 +113,17 @@ test.concurrent('a plugin id shared by a scanner and a work source is refused wh
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-/** Runs the interactive wizard with every prompt answered. The `backlog` CLI exists and Backlog.md is not initialized unless overridden. */
-async function runWizard(root: string, overrides: Partial<InitCommandDependencies>, useBacklog = false) {
+/**
+ * Runs the interactive wizard with every prompt answered; `installBacklog` answers the Backlog.md install question.
+ * The `backlog` CLI exists and Backlog.md is not initialized unless overridden.
+ */
+async function runWizard(root: string, overrides: Partial<InitCommandDependencies>, installBacklog = false) {
   const errors: string[] = []
+  const asked: string[] = []
   const ui: InitCommandUi = {
     cancel() {}, intro() {}, note() {}, outro() {}, error: message => { errors.push(message) },
-    confirmInit: async () => true, confirmOpenWeb: async () => false, confirmScan: async () => false, confirmUseBacklog: async () => useBacklog,
+    confirmInit: async () => true, confirmOpenWeb: async () => false, confirmScan: async () => false,
+    confirmBacklogInstall: async () => { asked.push('install Backlog.md'); return installBacklog },
     directory: async () => 'groma', install: async (_message, operation) => operation(),
     projectName: async current => current, selectScanners: async () => [],
   }
@@ -126,7 +131,7 @@ async function runWizard(root: string, overrides: Partial<InitCommandDependencie
     ui, gitInitialized: async () => true, setupScanners: async () => true,
     backlogAvailable: () => true, backlogInitialized: async () => false, ...overrides,
   })
-  return { errors, outcome }
+  return { asked, errors, outcome }
 }
 
 test.concurrent('groma init reports a failed Backlog initialization when config.json already lists Backlog.md', async () => {
@@ -137,19 +142,30 @@ test.concurrent('groma init reports a failed Backlog initialization when config.
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-test.concurrent('choosing Backlog.md during groma init adds it, then initializes it', async () => {
+test.concurrent('with the Backlog.md CLI installed, groma init adds Backlog.md without asking, then initializes it', async () => {
   const root = await project()
   const steps: string[] = []
   try {
-    const { errors } = await runWizard(root, {
+    const { asked, errors } = await runWizard(root, {
       addBacklog: async () => {
         await writeGromaConfig(root, { scanners: [], workSources: [{ id: 'backlog', version: '1.0.0' }] })
         steps.push('add')
       },
       initializeBacklog: async () => { steps.push('initialize'); return true },
-    }, true)
+    })
+    expect(asked).toEqual([])
     expect(steps).toEqual(['add', 'initialize'])
     expect(errors).toEqual([])
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('without the Backlog.md CLI, groma init offers to install it and adds nothing when declined', async () => {
+  const root = await project()
+  let added = 0
+  try {
+    const { asked } = await runWizard(root, { backlogAvailable: () => false, addBacklog: async () => { added++ } }, false)
+    expect(asked).toEqual(['install Backlog.md'])
+    expect(added).toBe(0)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
@@ -160,7 +176,7 @@ test.concurrent('groma init reports a Backlog.md that cannot be added and contin
     const { errors, outcome } = await runWizard(root, {
       addBacklog: async () => { throw new Error('Could not run bun add --global backlog.md@latest.') },
       initializeBacklog: async () => { initialized++; return true },
-    }, true)
+    })
     expect(outcome).toBe('completed')
     expect(errors).toHaveLength(1)
     expect(initialized).toBe(0)

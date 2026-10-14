@@ -7,31 +7,21 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-14 18:46'
+updated_date: '2026-10-14 19:42'
 labels: []
 dependencies: []
 references:
   - package
-  - modules-readiness
-  - scanner-registry
-  - src-view-host
+  - work-sources
+  - plugin-settings
+  - tui-plugin-settings
+  - web-plugin-settings
   - web-server
-  - src-welcome
   - src-initialize
-  - scanners-settings
-  - tui-scanner-settings
-  - backlog-src-index
-  - work-source-src-index
-  - src/scanner/modules/config.ts
-  - docs/scanners/setup.md
-  - .github/workflows/architecture.yml
   - src-cli
-  - scripts/scanner-release.ts
-  - plugins/work-sources/backlog/package.json
-  - packages/work-source/package.json
-  - .github/workflows/release.yml
-  - docs/scanners/publishing.md
-  - test-bun/scanner-release.test.ts
+  - src/config.ts
+  - docs/config.md
+  - .github/workflows/architecture.yml
 modified_files:
   - .github/workflows/architecture.yml
   - CONTRIBUTING.md
@@ -74,22 +64,27 @@ modified_files:
   - groma/systems/groma-md/containers/cli/components/backlog-src-index.md
   - groma/systems/groma-md/containers/cli/components/modules-settings.md
   - groma/systems/groma-md/containers/cli/components/package.md
+  - groma/systems/groma-md/containers/cli/components/plugin-settings.md
   - groma/systems/groma-md/containers/cli/components/scanner-session.md
+  - groma/systems/groma-md/containers/cli/components/src-architecture-watch.md
   - groma/systems/groma-md/containers/cli/components/src-cli.md
+  - groma/systems/groma-md/containers/cli/components/tui-plugin-settings.md
   - groma/systems/groma-md/containers/cli/components/tui-scanner-settings.md
   - groma/systems/groma-md/containers/cli/components/web-server.md
   - groma/systems/groma-md/containers/cli/components/work-sources.md
   - groma/systems/groma-md/containers/export/components/scanners-settings.md
+  - groma/systems/groma-md/containers/export/components/web-plugin-settings.md
   - packages/work-source/src/index.ts
   - plugins/work-sources/backlog/src/index.ts
   - scripts/reproduce-scanner-boundaries.ts
-  - src/backlog-cli.ts
   - src/cli.ts
   - src/config.ts
   - src/init-command-ui.ts
   - src/init-command.ts
-  - src/plugin-cli.ts
-  - src/plugin-management.ts
+  - src/plugins/cli.ts
+  - src/plugins/management.ts
+  - src/plugins/settings-model.ts
+  - src/plugins/settings.ts
   - src/scanner/cli.ts
   - src/scanner/modules/discovery.ts
   - src/scanner/modules/inventory.ts
@@ -106,23 +101,25 @@ modified_files:
   - src/viewers/source/structure.ts
   - src/viewers/tui/model.ts
   - src/viewers/tui/panes/view.ts
-  - src/viewers/tui/scanner-settings.ts
+  - src/viewers/tui/plugin-settings.ts
   - src/viewers/tui/terminal-viewer.ts
   - src/viewers/web/data.ts
   - src/viewers/web/map-session.ts
   - src/viewers/web/page.ts
   - src/viewers/web/payload.ts
-  - src/viewers/web/scanners/settings.ts
   - src/viewers/web/server.ts
   - src/viewers/web/settings/control.ts
   - src/viewers/web/settings/model.ts
+  - src/viewers/web/settings/plugins.ts
   - src/viewers/web/startup/page.ts
+  - src/viewers/web/startup/plugins.ts
   - src/viewers/web/startup/progress.ts
   - src/viewers/web/startup/restore.ts
   - src/welcome.ts
   - src/welcome/model.ts
   - src/welcome/view.ts
-  - src/work-sources.ts
+  - src/work/backlog-cli.ts
+  - src/work/sources.ts
   - test-bun/angular-scanner.test.ts
   - test-bun/bundle-index.test.ts
   - test-bun/code-outline.test.ts
@@ -155,6 +152,9 @@ modified_files:
   - test/fixtures/mixed-scanner-outline/groma/scanners.json
   - groma/scanners.json
   - src/scanner/modules/config.ts
+  - src/viewers/tui/scanner-settings.ts
+  - src/viewers/web/scanners/settings.ts
+  - src/viewers/web/startup/scanners.ts
 type: feature
 ordinal: 645000
 ---
@@ -185,7 +185,7 @@ Product decisions by Alex on 2026-10-13 and 2026-10-14: bundled Backlog adapter 
 - [ ] #1 `<groma-root>/config.json` replaces scanners.json with `scanners` and `workSources` sections and the top-level `exclude` and `useGitignore`; plugin ids are lowercase kebab-case and unique across sections; nothing reads scanners.json; the format is documented; this repository's file and the test fixtures are converted.
 - [ ] #2 A plugin with a `source` is downloaded at that exact version; an entry without `source` names a plugin bundled with groma.md. The Backlog.md adapter is bundled and not published as a package; its entry records the minimum Backlog.md CLI version. Without that entry groma.md never runs the Backlog.md CLI, and a second work source is refused.
 - [ ] #3 One restore component reports for every listed plugin whether it is present on this computer and restores what is missing by kind: it downloads a package at the listed version, and installs the Backlog.md CLI when it is missing or older than the listed version. Every entry point in the following criteria uses it.
-- [ ] #4 `groma init` recommends Backlog.md, preselected; choosing it writes its entry and restores it through the restore component.
+- [ ] #4 `groma init` and the `groma web` setup recommend Backlog.md, preselected, and offer to install it when its CLI is missing. The terminal asks its own question; the browser shows it in its own Tasks section, apart from the scanners. Choosing it writes its entry, restores it through the restore component and initializes Backlog.md.
 - [ ] #5 The plugins screen in the web and terminal viewers lists plugins by kind. It lists the bundled plugins the project does not use yet, each with Install, besides Add plugin for a source; installing or adding one writes its entry and restores it.
 - [ ] #6 Only when a plugin of any kind that config.json lists is not present, `groma web` opens on a restore view in the style of its setup wizard. It lists the missing plugins and asks for confirmation. Restore installs them with a loading indicator per item and opens the map when all are present; a plugin it cannot restore stays on the view with its failure reason. Proceed without them opens the map read-only, the way a historical view is: no scan runs and nothing can be edited.
 - [ ] #7 The terminal welcome screen names missing plugins. `groma plugin add|update|install|list|remove` manage every kind; `groma plugin update` records the new exact version, or for Backlog.md the installed CLI version, so a colleague who pulls finds it missing. `groma scanner add|update|install|list|remove` are removed; `groma scanner settings|setup|check|discover` stay.
@@ -251,4 +251,8 @@ Declined: deleting onPluginsChanged. Restoring the Backlog.md CLI changes no fil
 For Alex, not applied: group plugin-wide code by domain (src/plugins/, the work-source files beside src/work/, plugin-settings file names) because it reshapes the architecture map; offer Backlog.md in the groma web setup wizard (main ran backlog init there whenever the CLI was installed; now web setup never lists it); how a downloaded plugin declares its kind once icon packs arrive (TASK-561). Follow-up: move scanner file matching out of src/config.ts into scanner/modules/selection.ts.
 
 Verification after the fixes: bun run check exit 0 (one existing Biome warning, 16 Node tests, 798 Bun tests, 54 toolchain skips, 0 failures).
+
+Alex's decisions later on 2026-10-14, applied: plugin-wide code grouped by domain (src/plugins/ holds management, cli, settings and the settings model; the work-source files sit in src/work/; the screens are tui/plugin-settings.ts and web/settings/plugins.ts; the architecture records were renamed plugin-settings, tui-plugin-settings and web-plugin-settings and grouped as Plugins). Both setup wizards offer Backlog.md, but not as another scanner: the terminal asks its own question, worded Install when the CLI is missing; the browser setup step is Set up plugins with a Scanners section and a separate Tasks section for Backlog.md, whose card says what it is for. The plugin kind of a downloaded package will come from its own manifest (no kind flag on groma plugin add); that matters once icon packs can be downloaded (TASK-561). Test: the web setup test now checks the Tasks section and that choosing Backlog.md adds and initializes it (criterion 4; the setup test did not cover Backlog.md). Checked by hand: the web plugin step in a scratch repository (both sections, button label follows the choices) and the terminal question with and without the CLI through tui-test.
+
+Alex, 2026-10-14: the Tasks section sits above the scanners (icons will join it in TASK-561), and Backlog.md cannot be turned off during setup when its CLI is already installed: the terminal adds it without a question and only offers to install a missing CLI; the browser shows it checked and locked and still submits it. Removing it later from the plugins screen stays possible. Tests: the terminal wizard adds Backlog.md without asking when the CLI is installed, and asks and adds nothing when a missing CLI is declined.
 <!-- SECTION:NOTES:END -->

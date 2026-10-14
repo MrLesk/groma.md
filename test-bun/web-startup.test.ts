@@ -209,10 +209,11 @@ for (const findsComponents of [true, false]) {
   })
 }
 
-test.concurrent('setup reports its real work and readiness waits for initialization before scanner selection', async () => {
+test.concurrent('setup reports its real work, waits for initialization before plugin selection and sets up a chosen Backlog.md', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-setup-progress-'))
   const creating = Promise.withResolvers<void>()
   const release = Promise.withResolvers<void>()
+  const backlog: string[] = []
   let viewer: Awaited<ReturnType<typeof startWebViewer>> | undefined
   let progress: Awaited<ReturnType<typeof startupEvents>> | undefined
   let initialize: Promise<Response> | undefined
@@ -224,7 +225,12 @@ test.concurrent('setup reports its real work and readiness waits for initializat
     viewer = await startWebViewer(root, {
       port: 0, workSource: emptyWorkSource(), initDependencies: {
         async gitInitialized() { creating.resolve(); await release.promise; return true },
-        backlogAvailable: () => false,
+        backlogAvailable: () => backlog.includes('add'),
+        async addBacklog() {
+          await writeGromaConfig(root, { scanners: [], workSources: [{ id: 'backlog', version: '1.0.0' }] })
+          backlog.push('add')
+        },
+        async initializeBacklog() { backlog.push('initialize'); return true },
       },
     })
     const watching = startupEvents(viewer.url)
@@ -243,8 +249,12 @@ test.concurrent('setup reports its real work and readiness waits for initializat
     expect((await waiting).status).toBe(204)
     await progress.waitFor('finding-scanners')
     expect((await loadProjectProfile(root))?.title).toBe('Example')
-    const scan = await fetch(`${viewer.url}/scanners`, { method: 'POST', redirect: 'manual', body: new FormData() })
+    expect(await (await fetch(viewer.url)).text()).toContain('<h2>Tasks</h2>')
+    const choice = new FormData()
+    choice.set('workSource', 'backlog')
+    const scan = await fetch(`${viewer.url}/plugins`, { method: 'POST', redirect: 'manual', body: choice })
     expect(scan.status).toBe(303)
+    expect(backlog).toEqual(['add', 'initialize'])
     await progress.waitFor('opening-map')
     expect(progress.phases).not.toContain('installing-scanners')
     expect(progress.phases).not.toContain('scanning')
@@ -297,7 +307,7 @@ test.concurrent('simultaneous scanner setup submissions share one initial scan a
     })
     expect(initialized.status).toBe(303)
     await writeGromaConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], workSources: [] })
-    submissions = [0, 1].map(() => fetch(`${viewer!.url}/scanners`, {
+    submissions = [0, 1].map(() => fetch(`${viewer!.url}/plugins`, {
       method: 'POST', redirect: 'manual', body: new FormData(),
     }))
     await scanning.promise
