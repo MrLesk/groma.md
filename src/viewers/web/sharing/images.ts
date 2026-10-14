@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs'
 import { initWasm, Resvg } from '@resvg/resvg-wasm'
 import wasm from '@resvg/resvg-wasm/index_bg.wasm' with { type: 'file' }
 import { fontBuffers } from '../atoms/fonts/index.ts'
-import { themeModes, type WebTheme } from '../atoms/theme.ts'
+import { webThemes, type WebTheme } from '../atoms/theme.ts'
 import { renderCover, type CoverPayload } from './cover.ts'
 
-export const coverThemes = themeModes.filter(theme => theme !== 'auto')
+export const coverThemes = webThemes
 export type CoverImages = Record<WebTheme, Uint8Array<ArrayBuffer>>
 
 let ready: Promise<void> | undefined

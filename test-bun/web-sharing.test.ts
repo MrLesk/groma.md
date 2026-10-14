@@ -50,7 +50,7 @@ test.concurrent('export writes the themed image referenced by its initial sharin
     assert.equal(fields.get('og:image:height'), '630')
     assert.ok(fields.get('og:image:alt'))
     assert.equal(fields.has('og:description'), false)
-    for (const theme of ['light', 'dark', 'blueprint']) {
+    for (const theme of ['light', 'dark', 'blueprint', 'sand']) {
       assertCover(await readFile(path.join(output, `cover-${theme}.png`)))
     }
   } finally {
@@ -66,7 +66,7 @@ test.concurrent('live initial metadata uses the project profile and links to a t
     const project = await loadProjectProfile(root)
     await saveProjectProfile(root, { ...project!, title: 'Shared project', description: 'Tracks submitted requests.' })
     viewer = await startWebViewer(root, { port: 0, workSource: emptyWork() })
-    for (const theme of ['light', 'dark', 'blueprint']) {
+    for (const theme of ['light', 'dark', 'blueprint', 'sand']) {
       const url: string = `${viewer.url}/?theme=${theme}`
       const fields = await headMetadata(await (await fetch(url)).text())
       assert.equal(fields.get('og:title'), 'Shared project')

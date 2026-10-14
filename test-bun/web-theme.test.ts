@@ -10,7 +10,7 @@ const fixture = path.resolve(import.meta.dir, '../test/fixtures/empty-project')
 
 test.concurrent('publication paths select a theme before the saved browser preference', async () => {
   const world = await loadAnnotatedArchitecture(fixture)
-  for (const theme of ['auto', 'light', 'dark', 'blueprint']) {
+  for (const theme of ['auto', 'light', 'dark', 'blueprint', 'sand']) {
     const url = new URL(`https://example.test/repository/architecture/${theme}/`)
     assert.equal(readView(url, world, [], [], 'light').theme, theme)
   }
@@ -37,7 +37,7 @@ test.concurrent('theme choices survive a shared URL including Auto on a Blueprin
   const world = await loadAnnotatedArchitecture(fixture)
   const url = new URL('https://example.test/repository/architecture/blueprint/')
   const opened = readView(url, world, [], [], 'dark')
-  for (const theme of ['auto', 'light', 'dark', 'blueprint'] as const) {
+  for (const theme of ['auto', 'light', 'dark', 'blueprint', 'sand'] as const) {
     url.search = writeView({ ...opened, theme }, world, [], url.pathname)
     assert.equal(readView(url, world, [], [], 'dark').theme, theme)
     assert.equal(url.searchParams.get('theme'), theme === 'blueprint' ? null : theme)

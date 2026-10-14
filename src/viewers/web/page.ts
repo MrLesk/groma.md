@@ -15,7 +15,7 @@ import { chromeCss } from './atoms/chrome.ts'
 import { escaped } from './atoms/escape.ts'
 import { anchoredPopoverCss } from './atoms/popover.ts'
 import { kindGlyph, kindLabel } from '../atoms/kind.ts'
-import { cssBlock, palettes, themeLabel, themeModes, webFontFamily, type WebThemeMode } from './atoms/theme.ts'
+import { cssBlock, palettes, themeCss, themeLabel, themeModes, webFontFamily, type WebTheme, type WebThemeMode } from './atoms/theme.ts'
 import { addDialogCss } from './chrome/add.ts'
 import { creditsControl, creditsCss } from './chrome/credits.ts'
 import { editorCss } from './editing/gestures.ts'
@@ -89,9 +89,8 @@ const style = `
     --hierarchy-inset: var(--hierarchy-column);
     --details-inset: var(--details-column);
   }
-  [data-theme="dark"] { ${cssBlock(palettes.dark)} }
+  ${themeCss()}
   [data-theme="blueprint"] {
-    ${cssBlock(palettes.blueprint)}
     --chrome-surface: color-mix(in srgb, var(--paper) 78%, transparent);
   }
   html { margin: 0; height: 100%; overflow-x: auto; overflow-y: hidden; background: var(--paper); }
@@ -396,16 +395,21 @@ function legend(): string {
   }).join('')
 }
 
-const themeIcons: Record<WebThemeMode, string> = {
-  auto: autoIcon,
+/** The original themes have their own icon; every other palette shows a dot in its highlight colour. */
+const themeIcons: Partial<Record<WebTheme, string>> = {
   light: sunIcon,
   dark: moonIcon,
   blueprint: blueprintIcon,
 }
 
+function themeMark(mode: WebThemeMode): string {
+  if (mode === 'auto') return autoIcon
+  return themeIcons[mode] ?? icon(`<circle cx="12" cy="12" r="7" fill="${palettes[mode].highlight}" stroke="none"/>`)
+}
+
 function themeControl(): string {
   const options = themeModes
-    .map(mode => `<button class="anchored-option theme-option" type="button" data-theme-mode="${mode}" aria-current="${String(mode === 'auto')}">${themeIcons[mode]}<span>${themeLabel(mode)}</span></button>`)
+    .map(mode => `<button class="anchored-option theme-option" type="button" data-theme-mode="${mode}" aria-current="${String(mode === 'auto')}">${themeMark(mode)}<span>${themeLabel(mode)}</span></button>`)
     .join('')
   return `<details id="theme" data-theme-mode="auto"><summary class="anchored-option" aria-label="Theme"><span>Theme</span><span class="label">Auto</span><span class="theme-chevron"></span></summary><div class="anchored-popover theme-menu">${options}</div></details>`
 }
