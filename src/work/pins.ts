@@ -27,8 +27,6 @@ export function monogram(assignee: string): string {
   return assignee.replace(/^@/, '').slice(0, 2).toUpperCase()
 }
 
-const taskNumber = (id: string): number => Number.parseFloat(id.replace(/^\D+/, ''))
-
 /** The elements a task touches, each once: those whose code holds one of its modified files, newest file first, then those it references. */
 export function touchedElements(item: WorkItem, world: Pick<ArchitectureGraph, 'elements'>): string[] {
   const index = sourceIndex(world.elements)
@@ -79,7 +77,9 @@ export function pinsOf(
   defaultStatus?: string,
 ): WorkPin[] {
   const pins: WorkPin[] = []
-  for (const item of [...items].sort((a, b) => taskNumber(a.id) - taskNumber(b.id))) {
+  // Numeric collation compares each run of digits as a number, so TASK-416.2 comes before TASK-416.10.
+  // The locale is fixed so that every machine gives the pins, and so their colours, the same order.
+  for (const item of [...items].sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }))) {
     const elementId = touchedElements(item, world)[0]
     if (elementId === undefined) continue
     const assignees = item.assignees.length === 0 ? [null] : item.assignees

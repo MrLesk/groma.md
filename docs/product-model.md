@@ -99,9 +99,10 @@ operation before opening a map.
    creation controls.
 2. Publish a snapshot with `groma export <directory>`. The generated static
    site contains the current project profile, architecture map and flows,
-   mapped Backlog work with task details and diffs, and architecture-owned
-   source inspection. It has no editor and never reads the repository or a
-   running groma.md server. Everything in the output directory is public data.
+   and read-only architecture-owned source inspection. It contains no
+   Backlog task data and no pins. It has no editor and never reads the
+   repository or a running groma.md server. Everything in the output
+   directory is public data.
    Export reads stored architecture without starting a scanner, writes one
    snapshot, and exits. Run it again to publish updated data. Hosting and
    access control belong to the chosen static host, outside groma.md.
@@ -360,7 +361,7 @@ the configured statuses and
 default status plus one `task list --json` summary containing every configured
 task, including terminal history. It reads `task view <id> --json` only for the
 task whose full details a developer opens. The last configured status is
-terminal. groma.md never reads or watches Backlog storage directly. Static export reads a current task snapshot. Web and terminal
+terminal. groma.md never reads or watches Backlog storage directly. Web and terminal
 share live updates from the Backlog work source: `task list --json --watch`
 provides complete replacement lists, and the plugin notifies its host after
 each complete JSON response. Closing the subscription stops the CLI process.

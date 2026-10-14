@@ -13,6 +13,29 @@ import { createWebMapSession } from './map-session.ts'
 import { renderSetupPage } from './startup/page.ts'
 import { createStartupProgress } from './startup/progress.ts'
 
+/** The host names a browser on this machine reaches the viewer by, whatever the port. */
+const loopbackHosts = new Set(['localhost', '127.0.0.1'])
+
+/**
+ * Whether the server answers this request with 403. Any site the user visits can make their
+ * browser call a local address, and the map shows private source and writes to the repository.
+ *
+ * - Every request needs a Host header that names this machine. A site that points its own name at
+ *   127.0.0.1 (DNS rebinding) would otherwise read the map as a page of its own.
+ * - A request other than GET or HEAD that carries an Origin or Referer header must name this
+ *   viewer there; a form on another site would otherwise reach the write routes. A client that is
+ *   not a browser sends neither header and passes.
+ * - A GET or HEAD sent by another site's page still runs. That page cannot read the answer, because
+ *   the server sends no CORS header. A GET route must therefore never change anything.
+ */
+function forbidden(request: Request): boolean {
+  const viewer = URL.parse(`http://${request.headers.get('host') ?? ''}`)
+  if (viewer === null || !loopbackHosts.has(viewer.hostname)) return true
+  if (request.method === 'GET' || request.method === 'HEAD') return false
+  const sender = request.headers.get('origin') ?? request.headers.get('referer')
+  return sender !== null && URL.parse(sender)?.host !== viewer.host
+}
+
 type MapSession = Awaited<ReturnType<typeof createWebMapSession>>
 
 /** One local server owns setup and the ready map; the map starts only after initialization. */
@@ -122,10 +145,13 @@ export async function startWebViewer(
   }
 
   const server = Bun.serve({
+    // The IPv4 loopback address: no other machine can connect.
+    hostname: '127.0.0.1',
     port: options.port ?? 4747,
     // The map's live event stream must stay open between changes.
     idleTimeout: 0,
     async fetch(request) {
+      if (forbidden(request)) return new Response('Forbidden', { status: 403 })
       const route = `${request.method} ${new URL(request.url).pathname}`
       if (route === 'GET /startup-events') return progress.response()
       if (route === 'GET /ready') {
@@ -143,6 +169,8 @@ export async function startWebViewer(
     },
   })
 
+  // The listener is IPv4, and `localhost` also names `::1`. On macOS, where `::1` comes first, curl, Bun's fetch
+  // and Chromium fall back to 127.0.0.1. Linux and Windows were not checked.
   const url = `http://localhost:${server.port}`
   options.onListening?.(url)
   if (initial.initialized) await openMap(options.scan === true)

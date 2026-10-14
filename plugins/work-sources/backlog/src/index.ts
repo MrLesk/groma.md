@@ -148,6 +148,14 @@ type BacklogTaskDetails = Omit<WorkItemDetails,
   comments: { body: string; createdAt: string | null; author: string | null }[]
 }
 
+/**
+ * A task id is repository content: Backlog reads it from a task file and a viewer passes it back to
+ * `backlog task view`. The Windows npm shim joins the arguments into one cmd.exe command line, so
+ * only an id made of letters, digits, `.`, `_` and `-` reaches it. The first character is a letter
+ * or digit: a leading `-` would read as an option.
+ */
+const safeTaskId = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
+
 function createBacklogSource(
   repositoryRoot: string,
   command: string,
@@ -177,6 +185,7 @@ function createBacklogSource(
       return { statuses, defaultStatus: defaultStatusText.trim(), items }
     },
     async readItem(id) {
+      if (!safeTaskId.test(id)) throw new Error(`Invalid task id: ${id}`)
       const output = await run(['task', 'view', id, '--json'])
       const { task } = JSON.parse(output) as { task: BacklogTaskDetails }
       return {

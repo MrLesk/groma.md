@@ -64,6 +64,10 @@ export interface WorkIsland {
   activate(active: readonly string[], selected: string | undefined): void
 }
 
+/**
+ * `html` is markup written in this module. Text that comes from the repository, such as a task id
+ * or a status name, is appended as text instead, so it is never parsed as HTML.
+ */
 function button(className: string, html: string, onClick: () => void): HTMLButtonElement {
   const node = document.createElement('button')
   node.type = 'button'
@@ -74,7 +78,10 @@ function button(className: string, html: string, onClick: () => void): HTMLButto
 }
 
 function chip(pin: WorkPin, finishingAt: number | undefined, onToggle: (id: string) => void, tip: Tip): HTMLButtonElement {
-  const node = button('chip', `${WORK_BADGE}<span>${pin.taskId}</span>`, () => onToggle(pin.taskId))
+  const node = button('chip', WORK_BADGE, () => onToggle(pin.taskId))
+  const label = document.createElement('span')
+  label.textContent = pin.taskId
+  node.append(label)
   node.dataset.task = pin.taskId
   node.style.setProperty('--pin', pin.colour)
   node.dataset.tip = `${pin.assignee ?? 'Unassigned'} · ${pin.title}`
@@ -117,11 +124,12 @@ export function createWorkIsland(
 
   const toggle = (status: string): HTMLButtonElement => {
     const pressed = statusFilters?.enabled.includes(status) ?? false
-    const node = button('toggle', `${EYE_MARK}${status}`, () => {
+    const node = button('toggle', EYE_MARK, () => {
       statusFilters = toggleWorkStatus(statusFilters!, status)
       onShow(statusFilters.enabled)
       rebuild()
     })
+    node.append(status)
     node.setAttribute('aria-pressed', String(pressed))
     return node
   }

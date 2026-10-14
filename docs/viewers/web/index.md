@@ -49,6 +49,14 @@ scanner names and retains the complete current update for new pages and
 event-stream subscribers. These updates describe runtime activity; they do
 not create stored OKF knowledge or C4 architecture elements.
 
+`groma web` listens on the loopback address 127.0.0.1 and prints
+`http://localhost:<port>`, so only this machine can open the map; groma.md adds
+no authentication. [`server.ts`](../../../src/viewers/web/server.ts) answers
+403 to a request whose `Host` header does not name this machine, and to a
+request other than GET or HEAD whose `Origin` or `Referer` is not this viewer.
+A GET that another site's page sends still runs, but that page cannot read the
+answer, so a GET route never changes anything.
+
 If startup reports an occupied concrete port, an interactive terminal shows
 the runtime error and asks whether to use
 the next available port. Press y to try ports one by one above the requested

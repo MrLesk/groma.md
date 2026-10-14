@@ -7,6 +7,17 @@ import {
 } from '../src/architecture-model.ts'
 import { elementDocument, withRelationships } from './architecture-model-helpers.ts'
 
+const ordersFilename = 'groma/systems/shop/containers/api/components/orders.md'
+
+/** A valid system, container and component; only the component's code reference to `file` can be wrong. */
+function componentWithCode(file: string) {
+  return [
+    elementDocument({ id: 'shop', kind: 'system', sourceFilename: 'groma/systems/shop/system.md' }),
+    elementDocument({ id: 'api', kind: 'container', parent: 'shop', sourceFilename: 'groma/systems/shop/containers/api/container.md' }),
+    elementDocument({ id: 'orders', kind: 'component', parent: 'api', sourceFilename: ordersFilename, code: [{ scanner: 'typescript', file }] }),
+  ]
+}
+
 for (const {
   name,
   documents,
@@ -120,6 +131,18 @@ for (const {
     ],
     code: 'UNKNOWN_RELATIONSHIP_TARGET',
     sourceFilename: 'groma/actors/architect.md',
+  },
+  {
+    name: 'reports a code reference that climbs out of the repository',
+    documents: componentWithCode('src/../../outside.ts'),
+    code: 'INVALID_ELEMENT',
+    sourceFilename: ordersFilename,
+  },
+  {
+    name: 'reports a code reference with an absolute file',
+    documents: componentWithCode('/outside.ts'),
+    code: 'INVALID_ELEMENT',
+    sourceFilename: ordersFilename,
   },
 ]) {
   test(name, { concurrency: true }, () => {

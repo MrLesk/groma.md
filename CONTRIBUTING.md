@@ -39,8 +39,7 @@ when making changes.
 
 `bun install` applies the checked-in Parcel Watcher patch. It makes native binding imports explicit so Bun can embed
 them in a single-file bytecode executable; development and compiled builds use the same package loader. When updating
-Parcel, review the patch against its platform packages and run `bun test test-bun/parcel-bytecode.test.ts`. This test
-receives native file events in both source mode and a compiled executable with no accompanying source or dependencies.
+Parcel, review the patch against its platform packages.
 
 ## Repository structure
 
@@ -146,9 +145,6 @@ Run the checks relevant to the change:
 ```sh
 bun run check
 ```
-
-`bun src/typescript-scanner.ts` prints the C4 candidates the scanner reads from this repository's import graph
-without writing Markdown; `--glob` replaces the files it reads and `--ignore` adds to the files it skips.
 
 For a terminal feature, finish by running its approved scenario through the real TUI in a PTY when the task requires a
 terminal walkthrough.

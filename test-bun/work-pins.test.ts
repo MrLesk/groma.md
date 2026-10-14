@@ -106,3 +106,8 @@ test.concurrent('an unassigned mapped task gets one generic task pin', () => {
   const pins = pinsOf([item('TASK-11', { assignees: [] })], world, 'Done')
   assert.deepEqual(pins.map(pin => [pin.key, pin.assignee, pin.taskId]), [['task TASK-11', null, 'TASK-11']])
 })
+
+test.concurrent('pins follow task ids with each dotted number compared as a number', () => {
+  const pins = pinsOf([item('TASK-416.10'), item('TASK-416.2'), item('TASK-416'), item('TASK-9')], pinWorld(), 'Done')
+  assert.deepEqual(pins.map(pin => pin.taskId), ['TASK-9', 'TASK-416', 'TASK-416.2', 'TASK-416.10'])
+})

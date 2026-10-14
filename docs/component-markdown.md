@@ -221,7 +221,7 @@ the existing `groma.id` identity.
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `scanner` | yes | Scanner that found the reference. |
-| `file` | yes | Exact repository-relative source file. |
+| `file` | yes | Exact repository-relative source file. An absolute path or a `..` segment is invalid. |
 | `symbol` | no | Relevant symbol or entry point; omitted when the complete file is useful. |
 
 Multiple scanners may contribute references to one element. Code references
@@ -442,5 +442,5 @@ TypeScript, NestJS, and PostgreSQL.
 
 ```
 
-The live [groma.md system](../groma/systems/groma/system.md) and
-[MVP draft](../groma/drafts/mvp.md) are a complete package example.
+The live [groma.md system](../groma/systems/groma-md/system.md) is a
+complete package example.

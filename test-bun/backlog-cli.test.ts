@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test'
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { createBacklogPlugin } from '../plugins/work-sources/backlog/src/index.ts'
 
 const adapter = path.resolve(import.meta.dir, '../plugins/work-sources/backlog/src/index.ts')
 
@@ -70,4 +71,23 @@ test.skipIf(process.platform === 'win32').concurrent('supported Backlog watch sn
   expect(result.readError).toBeUndefined()
   expect(result.updates).toBe(2)
   expect(result.work.items.map((item: { id: string }) => item.id)).toEqual(['second'])
+})
+
+test.skipIf(process.platform === 'win32').concurrent('a task id with shell characters never reaches the Backlog CLI', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-backlog-id-'))
+  try {
+    const command = path.join(root, 'backlog.js')
+    await writeFile(command, `#!${process.execPath}
+      import { appendFileSync } from 'node:fs';
+      appendFileSync('invocations.txt', process.argv.slice(2).join(' ') + '\\n');
+      console.log(JSON.stringify({ task: { id: process.argv[4], description: null, acceptanceCriteria: [], definitionOfDone: [],
+        implementationPlan: null, implementationNotes: null, comments: [] } }));
+    `)
+    await chmod(command, 0o755)
+    const source = createBacklogPlugin(() => command).create(root)
+    await expect(source.readItem('TASK-1 & calc')).rejects.toThrow()
+    expect((await source.readItem('TASK-1')).id).toBe('TASK-1')
+    // The stub records every start, so the one line also proves the refused id started nothing.
+    expect(await readFile(path.join(root, 'invocations.txt'), 'utf8')).toBe('task view TASK-1 --json\n')
+  } finally { await rm(root, { recursive: true, force: true }) }
 })

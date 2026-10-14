@@ -32,7 +32,10 @@ function stopOnSignal(close: () => Promise<void>): void {
   const stop = () => {
     process.off('SIGINT', stop)
     process.off('SIGTERM', stop)
-    void close().then(() => process.exit())
+    void close().then(() => process.exit()).catch(error => {
+      console.error(error instanceof Error ? error.message : String(error))
+      process.exit(1)
+    })
   }
   process.once('SIGINT', stop)
   process.once('SIGTERM', stop)
@@ -331,4 +334,10 @@ program
     console.log(selected)
   })
 
-await program.parseAsync()
+// A command that throws ends here: its message alone is printed and the exit code is 1.
+try {
+  await program.parseAsync()
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
+}
