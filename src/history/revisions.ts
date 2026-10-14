@@ -212,19 +212,32 @@ function extractArchive(
   })
 }
 
+async function openGitTree(repositoryRoot: string, revisionId: string, paths: string[]) {
+  const root = await mkdtemp(path.join(tmpdir(), 'groma-revision-'))
+  const close = () => rm(root, { recursive: true, force: true })
+  try {
+    await extractArchive(repositoryRoot, revisionId, root, paths)
+    return { root, close }
+  } catch (error) {
+    await close()
+    throw error
+  }
+}
+
 async function withGitTree<T>(
   repositoryRoot: string,
   revisionId: string,
   paths: string[],
   load: (snapshotRoot: string) => Promise<T>,
 ): Promise<T> {
-  const snapshotRoot = await mkdtemp(path.join(tmpdir(), 'groma-revision-'))
-  try {
-    await extractArchive(repositoryRoot, revisionId, snapshotRoot, paths)
-    return await load(snapshotRoot)
-  } finally {
-    await rm(snapshotRoot, { recursive: true, force: true })
-  }
+  const snapshot = await openGitTree(repositoryRoot, revisionId, paths)
+  try { return await load(snapshot.root) }
+  finally { await snapshot.close() }
+}
+
+/** Extracts a complete commit into a temporary folder and leaves it there; the caller must `close` it to delete the folder. */
+export function openGitRevision(repositoryRoot: string, revisionId: string) {
+  return openGitTree(repositoryRoot, revisionId, [])
 }
 
 /** Loads through a complete, temporary repository snapshot and always removes it afterwards. */

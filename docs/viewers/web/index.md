@@ -249,16 +249,20 @@ look, `.chrome-field` in `web/atoms/chrome.ts`, and one menu entrance in
 gives way: the counts, which show only above 1400 px, take just the width
 nothing else wants and leave whole when less than 150 px is left for them;
 Search narrows to 200 px; then the commit messages clip together. The project
-title never gives way. Up to 1320 px the header has no spare room for a
-comparison being started or for compare words outside a short revision field, so
-Search folds to its icon until the list closes; opening Search, by key or by
+title never gives way, so a revision box with no room left clips its fields
+rather than draw them over the buttons beside it. While Play and the speed menu
+show beside a pair, Search folds to its icon at every width, and the freed width
+goes to the two commit messages. Up to 1320 px the header has no spare room for
+a comparison being started or for compare words outside a short revision field,
+so Search folds to its icon until the list closes. Opening Search, by key or by
 clicking its icon, unfolds it. At 1080 px and below Fit, Help and Info
 show only their icons, a revision field shows its exact tag or short ID instead of its
 message, Search may narrow to 120 px, and an open revision search takes the whole
 box. At 1000 px and below Search also stays folded while a comparison is open, so
 both short IDs read whole down to the page's 900 px minimum. `page.ts` reads the
-revision box's `data-starting` attribute, where the compare words stand, and the
-body's `data-comparison` attribute for those folds.
+revision box's `data-starting` attribute, where the compare words stand, whether
+the playback controls show, and the body's `data-comparison` attribute for those
+folds.
 Iso, 2D and Layers are icon-and-label tabs in a floating bar at the top of the
 map, centered between the side panels. It shares the bottom tasks bar rounded
 surface. One selection pill slides and resizes between tabs; reduced motion
@@ -335,7 +339,8 @@ and the list disables every commit on the wrong side of the other endpoint. A li
 that names the newer commit as the start opens the same comparison, older first.
 The × ends the comparison and opens B. Ordinary browsing then opens either
 individual snapshot. The URL stores A in `from` and B in `revision` (omitted for
-the working tree).
+the working tree). In the live map, **Play** beside the fields walks the commits
+from A to B; see [Play architecture history](history-playback.md).
 `web/revision/view.ts` owns the fields, the list rows, and their motion;
 `web/revision/control.ts` owns the displayed revision or pair and which field is
 the search. Motion uses the chrome motion variables and is off under reduced

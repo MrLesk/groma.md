@@ -10,6 +10,12 @@ import type { CodeFile } from '../source/structure.ts'
 export const PUBLISHED_EVENT = 'groma:published'
 export const PUBLISHED_VERSION_EVENT = 'groma:published-version'
 
+/**
+ * The live host answers a read with this status when the current reader cannot read the architecture of a commit the
+ * request names. It is the one signal for that case: playback skips such a commit, and reports every other failure.
+ */
+export const UNREADABLE_REVISION_STATUS = 422
+
 export type WebRevision = GitRevision
 
 export interface WebMapTimings {

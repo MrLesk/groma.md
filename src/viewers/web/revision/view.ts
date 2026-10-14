@@ -12,7 +12,8 @@ export const NARROW_HEADER = '(max-width: 1080px)'
 export const revisionCss = `
   .time-machine { position: relative; display: flex; align-items: center; min-width: 0; flex: 0 1 auto; }
   .time-machine .revision-menu { right: auto; left: var(--field-left, 0px); }
-  #revision { min-width: 0; gap: 6px; padding: 0 6px 0 10px; color: var(--ink); }
+  /* The box shrinks before the buttons beside it do; fields it has no room for are clipped, never drawn over them. */
+  #revision { min-width: 0; overflow: hidden; gap: 6px; padding: 0 6px 0 10px; color: var(--ink); }
   /* One search input follows the fields in the DOM. The order property moves it into the first or second slot,
      which only works while the fields are the box's own flex items. */
   #revision .revision-fields { display: contents; }
@@ -64,6 +65,17 @@ export const revisionCss = `
 
   #end-comparison[hidden] { display: none; }
   #end-comparison { margin-left: 4px; font-size: 18px; padding: 6px 9px; animation: revision-fade-in ${motion} both; }
+  .revision-playback { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; flex: none; }
+  .revision-playback[hidden], .revision-playback-caption[hidden] { display: none; }
+  .revision-speed { position: relative; --popover-width: 72px; }
+  .revision-speed > summary { list-style: none; }
+  .revision-speed > summary::-webkit-details-marker { display: none; }
+  .revision-playback-caption {
+    position: absolute; top: calc(100% + 8px); left: 0; z-index: 10;
+    max-width: min(560px, 70vw); padding: 7px 10px; border: 1px solid var(--hairline);
+    border-radius: 6px; background: var(--paper); color: var(--ink); font-size: 11px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   @keyframes revision-spin { to { transform: rotate(360deg); } }
   @keyframes revision-fade-in { from { opacity: 0; } }
   @keyframes revision-slide-in { from { opacity: 0; transform: translateX(8px); } }
@@ -112,6 +124,13 @@ export const revisionCss = `
   }
 `
 
+const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+
+/** A commit date in the browser's locale, as the commit list and the playback caption show it. */
+export function revisionDate(date: string): string {
+  return dateFormat.format(new Date(date))
+}
+
 function revisionTitle(revision: WebRevision | null): string {
   return revision === null ? 'Current working tree' : `${revision.id} - ${revision.subject}`
 }
@@ -140,9 +159,9 @@ function revisionField(field: RevisionField, revision: WebRevision | null): stri
 const versus = '<span class="revision-vs">vs.</span>'
 
 /** One field while browsing; start and destination around "vs." while comparing. */
-export function revisionFields(payload: WebPayload): string {
-  return payload.comparison === undefined ? revisionField('revision', payload.revision)
-    : revisionField('from', payload.comparison.from) + versus + revisionField('to', payload.revision)
+export function revisionFields(destination: WebRevision | null, start?: WebRevision | null): string {
+  return start === undefined ? revisionField('revision', destination)
+    : revisionField('from', start) + versus + revisionField('to', destination)
 }
 
 /** While a start is being chosen the search holds its place; the viewed revision waits as the destination. */
@@ -157,5 +176,5 @@ export function snapshotNotice(revision: WebRevision | null): string {
 }
 
 export function revisionControl(payload: WebPayload, icons: { history: string, loader: string }): string {
-  return `<div class="time-machine"><div id="revision" class="chrome-field" role="group" aria-label="Revision">${icons.history}${icons.loader}<span class="revision-fields">${revisionFields(payload)}</span><input class="revision-search" type="search" aria-label="Find revision by commit ID or message" autocomplete="off" spellcheck="false" hidden><span class="revision-compare" hidden>or<button type="button" data-action="compare">compare 2 revisions</button></span></div><div class="anchored-popover animated revision-menu" hidden><div class="revision-error revision-notice" role="alert" hidden></div><div class="revision-results"></div></div><button id="end-comparison" class="chrome-button" type="button" aria-label="End comparison" title="End comparison" hidden>×</button></div>`
+  return `<div class="time-machine"><div id="revision" class="chrome-field" role="group" aria-label="Revision">${icons.history}${icons.loader}<span class="revision-fields">${revisionFields(payload.revision, payload.comparison?.from)}</span><input class="revision-search" type="search" aria-label="Find revision by commit ID or message" autocomplete="off" spellcheck="false" hidden><span class="revision-compare" hidden>or<button type="button" data-action="compare">compare 2 revisions</button></span></div><div class="anchored-popover animated revision-menu" hidden><div class="revision-error revision-notice" role="alert" hidden></div><div class="revision-results"></div></div><button id="end-comparison" class="chrome-button" type="button" aria-label="End comparison" title="End comparison" hidden>×</button></div>`
 }

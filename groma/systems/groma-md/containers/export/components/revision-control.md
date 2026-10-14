@@ -11,11 +11,14 @@ groma:
       symbol: createRevisionControl
     - scanner: typescript
       file: src/viewers/web/revision/view.ts
+    - scanner: typescript
+      file: src/viewers/web/revision/playback.ts
+      symbol: createRevisionPlayback
   group: Architecture panels
-description: Lists Git architecture revisions and opens a snapshot
+description: Browses, compares and plays readable Git architecture revisions
 ---
 
-Lists available Git revisions and opens the selected architecture snapshot.
+Owns the selected revision or comparison and the commit search fields. Plays a selected commit range in Git order with speed and Stop controls, skips commits the current reader cannot read, shows the current commit, preloads upcoming frames, and finishes on the full-range comparison. The chosen endpoints remain separate from the displayed playback frame, so editing either endpoint after Stop keeps the other choice. Play waits for endpoint navigation to finish. The browser keeps the selected range in its URL and uses the existing map motion for each step.
 
 ## Relationships
 

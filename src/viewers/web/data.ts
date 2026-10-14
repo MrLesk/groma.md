@@ -1,7 +1,7 @@
 import type { ScannerSettings, ScannerSettingsAction } from '../../scanner/modules/settings-model.ts'
 import type { AcceptInput, AddInput, DraftInput, EditArchitectureInput, RemoveInput } from '../../authoring.ts'
 import type { WorkItemDetails } from '../../types.ts'
-import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'
+import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT, UNREADABLE_REVISION_STATUS } from './payload.ts'
 import type { WebBootPayload, WebPayload, WebRevision, WebWorkPayload } from './payload.ts'
 import type { SourcePayload } from '../source/read.ts'
 import type { CodeFile } from '../source/structure.ts'
@@ -29,8 +29,12 @@ export interface WebDataSource {
   }): { close(): void }
 }
 
+/** A read named a commit whose architecture the current reader cannot read. */
+export class UnreadableRevisionError extends Error {}
+
 async function responseJson<T>(path: string): Promise<T> {
   const response = await fetch(path)
+  if (response.status === UNREADABLE_REVISION_STATUS) throw new UnreadableRevisionError(await response.text())
   if (!response.ok) throw new Error(await response.text())
   return response.json() as Promise<T>
 }

@@ -11,11 +11,13 @@ import { createScannerSession } from '../../scanner/session.ts'
 import { parseScannerSettingsAction, withScannerUpgrades } from '../../scanner/modules/settings.ts'
 import { pinsOf } from '../../work/pins.ts'
 import { ownedFiles } from '../../history/comparison.ts'
-import { readComparison } from '../../history/snapshots.ts'
+import { readComparison, UnreadableArchitectureError } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
-import { listGitRevisions, withGitRevision } from '../../history/revisions.ts'
+import { listGitRevisions } from '../../history/revisions.ts'
 import { renderPage } from './page.ts'
+import { UNREADABLE_REVISION_STATUS } from './payload.ts'
 import type { WebMapPayload, WebPayload, WebRevision, WebWorkPayload } from './payload.ts'
+import { createRevisionArchives } from './revision-archives.ts'
 import { bundleRenderer, loadMapRoot } from './runtime.ts'
 import { coverThemes, generateCovers, type CoverImages } from './sharing/images.ts'
 import { coverFile } from './sharing/metadata.ts'
@@ -28,9 +30,12 @@ async function structureResponse(
   repositoryRoot: string,
   selected: Pick<WebPayload, 'world' | 'revision'>,
   element: string,
+  archives: ReturnType<typeof createRevisionArchives>,
 ): Promise<Response> {
   try {
-    const structure = await readCodeStructure(repositoryRoot, selected.world, selected.revision?.id ?? null, element)
+    const structure = selected.revision === null
+      ? await readCodeStructure(repositoryRoot, selected.world, null, element)
+      : await archives.structure(selected.revision, selected.world, element)
     return structure === undefined
       ? new Response('Component not found', { status: 404 })
       : Response.json(structure)
@@ -44,10 +49,13 @@ async function sourceResponse(
   selected: Pick<WebPayload, 'world' | 'revision'>,
   element: string,
   file: string | null,
+  archives: ReturnType<typeof createRevisionArchives>,
 ): Promise<Response> {
   if (file === null) return new Response('Source selection required', { status: 400 })
   try {
-    const source = await readSource(repositoryRoot, selected.world, selected.revision?.id ?? null, element, file)
+    const source = selected.revision === null
+      ? await readSource(repositoryRoot, selected.world, null, element, file)
+      : await archives.source(selected.revision, selected.world, element, file)
     return source === undefined
       ? new Response('Source file not found', { status: 404 })
       : Response.json(source)
@@ -59,13 +67,10 @@ async function sourceResponse(
 async function loadMap(
   repositoryRoot: string,
   revisions: WebRevision[],
-  revision: WebRevision | null,
   onProgress?: (progress: StartupProgress) => void | Promise<void>,
 ): Promise<Omit<WebMapPayload, 'generation'>> {
-  const snapshot = revision === null
-    ? await loadMapRoot(repositoryRoot, phase => onProgress?.({ phase }))
-    : await withGitRevision(repositoryRoot, revision.id, loadMapRoot)
-  return { ...snapshot, revision, revisions }
+  const snapshot = await loadMapRoot(repositoryRoot, phase => onProgress?.({ phase }))
+  return { ...snapshot, revision: null, revisions }
 }
 
 /** Owns the ready map, its request handlers, and its live subscriptions. */
@@ -75,6 +80,7 @@ export async function createWebMapSession(
 ): Promise<{ fetch: (request: Request) => Promise<Response>; close: () => Promise<void> }> {
   options.onProgress?.({ phase: 'preparing-viewer' })
   const renderer = await bundleRenderer()
+  const archives = createRevisionArchives(repositoryRoot)
   const workSource = options.workSource ?? backlogPlugin.create(repositoryRoot)
   let revisions: WebRevision[] = []
   let revisionRead: Promise<WebRevision[]> | undefined
@@ -120,17 +126,18 @@ export async function createWebMapSession(
     const revision = (await readRevisions()).find(candidate => candidate.id === revisionId)
     if (revision === undefined) return new Response('Unknown Groma revision', { status: 404 })
     try {
-      const snapshot = await loadMap(repositoryRoot, revisions, revision)
-      if (snapshot.project === null) throw new Error('No Groma architecture in this commit')
+      const view = await archives.view(revision)
       return {
         generation: map.generation,
-        ...snapshot,
+        ...view,
+        revision,
+        revisions,
         workGeneration: workState.workGeneration,
         work: EMPTY_WORK_SNAPSHOT,
         pins: [],
       }
     } catch (error) {
-      return new Response(`Cannot open this revision: ${error instanceof Error ? error.message : String(error)}`, { status: 422 })
+      return revisionError('Cannot open this revision', error)
     }
   }
 
@@ -157,15 +164,22 @@ export async function createWebMapSession(
 
   /** Both revisions' architecture and the changes between them, without laying out the map. */
   async function compare(from: WebRevision | null, to: WebRevision | null) {
-    const compared = await readComparison(repositoryRoot, from, to)
+    const compared = from !== null && to !== null
+      ? await archives.compare(from, to)
+      : await readComparison(repositoryRoot, from, to)
     for (const component of Object.values(compared.comparison.components)) {
       for (const { file } of component.files) sourceFiles.add(file)
     }
     return compared
   }
 
-  function comparisonError(error: unknown): Response {
-    return new Response(`Cannot compare these revisions: ${error instanceof Error ? error.message : String(error)}`, { status: 422 })
+  /**
+   * Only an architecture the current reader cannot read answers with UNREADABLE_REVISION_STATUS, which playback skips.
+   * Every other failure, such as a Git error or a full disk, is a server error the person sees.
+   */
+  function revisionError(action: string, error: unknown): Response {
+    const status = error instanceof UnreadableArchitectureError ? UNREADABLE_REVISION_STATUS : 500
+    return new Response(`${action}: ${error instanceof Error ? error.message : String(error)}`, { status })
   }
 
   async function comparisonAt(from: WebRevision | null, to: WebRevision | null): Promise<WebPayload | Response> {
@@ -178,7 +192,7 @@ export async function createWebMapSession(
         workGeneration: workState.workGeneration, work: EMPTY_WORK_SNAPSHOT, pins: [],
         timings: { architectureLoadMilliseconds: loaded - started, ...sheet.timings, totalMilliseconds: performance.now() - started } }
     } catch (error) {
-      return comparisonError(error)
+      return revisionError('Cannot compare these revisions', error)
     }
   }
 
@@ -191,7 +205,7 @@ export async function createWebMapSession(
       const { world, comparison } = await compare(...pair)
       return { world, revision: pair[1], comparison }
     } catch (error) {
-      return comparisonError(error)
+      return revisionError('Cannot compare these revisions', error)
     }
   }
 
@@ -210,8 +224,8 @@ export async function createWebMapSession(
         : { ...item, code: [...(change.after?.code ?? []), ...(change.before?.code ?? [])] }) }
     }
     return url.pathname === '/code.json'
-      ? structureResponse(repositoryRoot, selected, element)
-      : sourceResponse(repositoryRoot, selected, element, file)
+      ? structureResponse(repositoryRoot, selected, element, archives)
+      : sourceResponse(repositoryRoot, selected, element, file, archives)
   }
 
   function worldEvent(): Uint8Array {
@@ -235,7 +249,7 @@ export async function createWebMapSession(
   let worldChain = Promise.resolve()
   async function reloadWorld(): Promise<void> {
     if (closed) return
-    const next = await loadMap(repositoryRoot, revisions, null, options.onProgress)
+    const next = await loadMap(repositoryRoot, revisions, options.onProgress)
     if (closed) return
     map = {
       generation: map.generation + 1,
@@ -275,7 +289,7 @@ export async function createWebMapSession(
   })
   await scannerSession.ready
   // Initial folds are included in this map; later folds queue behind its load.
-  worldChain = loadMap(repositoryRoot, revisions, null, options.onProgress).then(next => {
+  worldChain = loadMap(repositoryRoot, revisions, options.onProgress).then(next => {
     map = { generation: 1, ...next }
     for (const file of ownedFiles(map.world)) sourceFiles.add(file)
   })
@@ -452,6 +466,7 @@ export async function createWebMapSession(
         worldChain,
         workChain,
         revisionRead,
+        archives.close(),
         covers,
       ])
     },
