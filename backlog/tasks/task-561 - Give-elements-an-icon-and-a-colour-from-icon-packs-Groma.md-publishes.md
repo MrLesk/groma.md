@@ -1,11 +1,11 @@
 ---
 id: TASK-561
-title: 'Give elements an icon and a colour, from icon packs Groma.md publishes'
+title: Give elements an icon and an accent colour
 status: In Progress
 assignee:
-  - '@codex'
+  - '@claude'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-11 19:48'
+updated_date: '2026-10-14 18:03'
 labels:
   - senior
 dependencies: []
@@ -136,57 +136,40 @@ ordinal: 1
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-People want the map to speak their project's language: a database with a database icon, the payment components in one colour, a legend that explains the colours. Icons come from icon packs: packages that Groma.md publishes for everyone's projects, the way it publishes scanners, and that anyone else can publish too. A project installs a pack and the map draws from it. Theme palettes are a separate thing and stay untouched: an icon and an accent colour draw the same way in every theme.
+People want the map to speak their project's language: a database with a database icon, the payment components in one colour, a legend that explains the colours. Theme palettes are a separate thing and stay untouched: an icon and an accent colour draw the same way in every theme.
 
-Build on what exists. Elements carry groma.technology through src/architecture-model.ts, src/markdown-emitter.ts, groma edit and the web details form. Scanner packages declare themselves in their package.json under groma.scanner, are resolved from npm, a local folder or git by src/scanner/modules/package.ts, are recorded in groma/scanners.json and listed in the web settings dialog. Vendor marks are inline SVG in src/viewers/web/atoms/marks.ts. Buildings are painted in src/viewers/web/iso/painting/. Covers are rendered with resvg, which draws inline SVG but has no emoji font.
+Icons come from icon packs, listed in the `icons` section of `<groma-root>/config.json` and handled by the same flow as scanners and Backlog.md (TASK-568): the same restore component, the plugins screen, `groma plugin add|update|install|list|remove`, and the `groma web` restore view when a listed pack is missing.
 
-TASK-568 replaces scanners.json with one plugin file, `<groma-root>/plugins.json`, with a section per plugin kind, and adds the generic `groma plugin add|list|remove|install|update` commands. Icon packs are one of those kinds: record them in its `icons` section. If that work has not landed yet, add the `icons` section and icon support in those commands yourself, in the shape TASK-568 describes.
+- The default pack, `architecture`, ships inside groma.md. config.json lists it by id alone, so people see which pack they use; it is never published or downloaded.
+- `groma init` recommends the default pack, preselected, the same way it recommends Backlog.md.
+- A project can remove the default pack and add another by its exact source (`package@version`, `git+https://…#tag-or-commit` or a local `./path`). Such a pack is a package whose package.json declares its SVG icons under `groma.icons`, and a colleague who pulls restores it like a scanner.
+
+Build on what exists. Elements carry groma.technology through src/architecture-model.ts, src/markdown-emitter.ts, groma edit and the web details form. Buildings are painted in src/viewers/web/iso/painting/. Covers are rendered with resvg, which draws inline SVG but has no emoji font.
+
+Product decisions by Alex on 2026-10-13 and 2026-10-14: the default pack is bundled with groma.md and listed in config.json so it can be seen and swapped, recommended in the init wizard like Backlog.md, one flow and one restore component for scanners, Backlog.md and icons. Still open for Alex: accent colours on a map that otherwise uses one green, the heading contrast in the details pane, and whether an unknown icon name makes groma lint fail.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [x] #1 An element can carry an icon name and an accent colour in its groma fields, set with groma edit <id> --icon <name> --colour <name> and in the web details form, validated like the other fields, documented in docs/component-markdown.md, and preserved by scans.
-- [x] #2 An icon pack is a package whose package.json declares under groma.icons the SVG icons it ships. groma plugin add <package> installs a pack: it resolves npm, a local folder or git the way scanners are resolved and records the pack in the icons section of <groma-root>/plugins.json. groma plugin list and groma plugin remove manage it, and the web settings dialog shows the installed packs.
-- [x] #3 An icon name resolves through the installed packs or is an emoji. An unknown name leaves the building without an icon and appears in groma lint as a finding, never as a failed map.
-- [x] #4 The web map draws the icon and the accent colour on the building and its label the same way in light, dark and blueprint. The web details pane and the terminal details pane show them. The cover export includes the icon and the colour.
-- [x] #5 A legend on the map lists the accent colours in use with a count each, and hides when no element has one.
-- [ ] #6 One pack lives under plugins/icons/ with at least twelve generic architecture icons (database, queue, cache, browser, mobile app, service, scheduler, file store, mail, identity, gateway, search), built and published the same way as the scanner packages, and docs/ describes how to make and publish a pack.
+- [ ] #1 An element can carry an icon name and an accent colour in its groma fields, set with groma edit <id> --icon <name> --colour <name> and in the web details form, validated like the other fields, documented in docs/component-markdown.md, and preserved by scans.
+- [ ] #2 The `architecture` pack with twelve generic icons (database, queue, cache, browser, mobile app, service, scheduler, file store, mail, identity, gateway, search) ships inside groma.md and is not published. The `icons` section of config.json lists the packs a project uses: the bundled pack by id alone, another pack by its exact source. `groma init` recommends the bundled pack, preselected; another pack is added, updated, listed, removed and restored through the TASK-568 plugin flow. docs/ list the bundled icons and describe how to make a pack.
+- [ ] #3 An icon name resolves through the listed packs or is an emoji. An unknown name leaves the building without an icon and appears in groma lint as a finding, never as a failed map.
+- [ ] #4 The web map draws the icon and the accent colour on the building and its label the same way in light, dark and blueprint. The web details pane and the terminal details pane show them. The cover export includes the icon and the colour.
+- [ ] #5 A legend on the map lists the accent colours in use with a count each, and hides when no element has one.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [ ] #1 Acceptance criteria have objective verification evidence.
-- [x] #2 Relevant checks pass and changes remain task-scoped.
-- [x] #3 Public contracts or documentation are updated when behavior changes.
-- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [ ] #3 Public contracts or documentation are updated when behavior changes.
+- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Where the concept belongs. An icon and a colour are Groma presentation fields on an existing OKF concept (groma.icon, groma.colour). They add no C4 element, level or relationship. An ordinary Markdown or OKF reader sees two readable frontmatter values beside the unchanged title, prose and links. Groma interprets them: src/architecture-model.ts validates the colour (a name from src/element-appearance.ts or #RRGGBB), groma edit --icon --colour and the web details form write both through the existing meaning writer (src/edit.ts, src/markdown-emitter.ts), scans preserve them, a combine refuses a source that has either (src/curate.ts), and a revision comparison treats both as the component's own content (src/history/comparison.ts).
-
-2. Icon packs are the third plugin kind. plugins.json has an icons section beside scanners and workSources (ConfiguredIconPack in src/scanner/modules/config.ts): a required array, written in a fixed key order, with ids unique across all sections through requireUniqueIds. A pack is a package whose package.json declares groma.icons with an id and SVG files. src/scanner/modules/package.ts resolves it to ResolvedIconPackage, which has the SVG file of each icon and no entry, because a pack holds no code; a declared icon whose file is missing or is not an .svg file blocks the pack there. src/plugin-management.ts adds, removes, updates and restores a pack through the same functions as every other kind; nothing in src/icon-packs.ts writes plugins.json. The settings row is IconPackSetting and official packs are named by officialIconPackIds from the embedded manifest.
-
-3. Resolving an icon (src/icon-packs.ts). iconPackInventory lists the configured packs in order with what this computer has of each; a pack that cannot be used is blocked with the reason and never fails the caller. attachElementIcons, called by loadAnnotatedArchitecture, sets resolvedIcon on each element: a pack image as an SVG data URI (the first configured pack answers a bare name, pack:name picks one), the emoji itself, or nothing for an unknown name. unknownIcons gives groma lint one line per unknown name. Loading never touches the network.
-
-4. Drawing. The sheet reserves the room: one roof line above a building's title and ICON_ADVANCE font sizes before a surface name (src/sheet/measure.ts); Building.lines stays the title alone, so the terminal map and the grow animation are unaffected. The web map draws a pack icon as an image and an emoji as SVG text (iso/painting/appearance.ts, text.ts). An accent travels as the color attribute of the element's group (withAccent), because the cover renderer reads color and not var(). accentRules in iso/painting/style.ts paints the outline in the accent, the element's own surfaces as the accent mixed 22 percent into the theme's paper and its title as the accent mixed 45 percent toward the theme's ink; at that share every named accent's title has a contrast of at least 4.5 on its own surface in light, dark and blueprint. The rules sit between the rest colours and the draft rule, so selection, flow, comparison and draft states win. Covers are rendered by resvg, which reads none of :not(), :is(), var() and color-mix(): they get the same rules with explicit colours for each accent in the scene, and they hide emoji because the bundled fonts have none. The web details pane draws the pack icon and the accent in the title and names both in its meta line, the terminal details pane shows two text rows, and the legend under the hierarchy counts elements per resolved colour (chrome/colour-legend.ts).
-
-5. The official pack. plugins/icons/architecture holds twelve SVG icons and its manifest. scripts/scanner-release.ts builds and publishes it apart from the scanner builders, under a named staging directory.
-
-6. Tests, each with its rule, the wrong result it catches and the gap it closes.
-- test-bun/icon-packs.test.ts, resolving: an icon is the first configured pack that has its name, the pack it names, or the emoji itself, and an unknown name draws nothing (AC3). Catches an emoji left undrawn, an unknown name drawn, or a later pack answering a bare name. No other test resolves an icon.
-- test-bun/icon-packs.test.ts, updating: an update keeps a pack's place in the order, which is its priority for bare names (docs/icons.md, a defect reproduced in review). Catches the updated pack moving behind the others. The scanner update test cannot show it because scanners are sorted by id.
-- test-bun/work-source-selection.test.ts, ids: one id names one plugin across the sections of plugins.json (TASK-568 contract, extended to icons). Catches an icon pack that reuses a scanner's id being read or written. The test covered scanners and work sources only.
-- test-bun/web-stats.test.ts: the legend lists each colour in use once with its count (AC5). Catches a name and its hex value as separate rows. The legend count had no coverage.
-- test-bun/system-curation.test.ts: a combine never drops authored fields of an absorbed record. Catches the document of a source with an icon or a colour being deleted. No combine test covered authored metadata.
-- test-bun/revision-comparison.test.ts: a change to a component's own content marks it modified and is named as a reason, checked for icon and for colour separately. Catches either field missing from the fingerprint or from the reasons. Existing tests change title, parent and prose only.
-- test-bun/web-sharing.test.ts, cover: a cover paints every surface in its rest colour and an accented one in its accent mixed into that theme's paper (AC4 and the stylesheet's rule that covers read plain selectors and explicit colours). Catches surfaces painted black and a white-mixed surface in the dark cover. The sharing tests checked only the PNG header.
-- test-bun/web-sharing.test.ts, contrast: the title of every named accent reads on its own surface at 4.5 or more in every theme (owner decision). Catches a new accent, share or palette that makes a title unreadable. Nothing else measures it.
-- test-bun/iso-map.test.ts: a surface label stays inside its band and camera, with and without an icon (AC4, a reproduced overlap). Catches an icon outside the selectable title, and labels without an icon losing their checks.
-- test-bun/tui-source.test.ts: the terminal details pane shows the complete icon and colour at its fixed width and keeps the action cursor on its row (AC4, a reproduced truncation).
-
-7. Verification. bun run typecheck, bunx biome lint with no new warning, the focused bun tests with the repository's flags, the node tests, tui-test on a scratch project for a terminal card with an icon and for the Plugins screen, headless Chromium on an exported scratch project in light, dark and blueprint for surfaces, titles, selection, draft, flow and comparison, and the three covers. The full bun run check is run by the orchestrator. No publication, tag or push.
+To be rewritten when this branch is rebuilt on the reworked TASK-568.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -233,14 +216,6 @@ Cold review: Building.lines is the title again and the icon row is reserved in r
 Checks: bun run typecheck passed; bunx biome lint 1 warning and 2 infos, the same as before the task's remediation, none in a changed file; bun scripts/lint-web-scrollbars.ts passed; bun test --parallel=2 --max-concurrency 1 --timeout 20000 on 47 focused files, 236 passed; node tests 16 of 16. The contrast test fails with a share of 0. tui-test on a scratch project at 120x36 and 200x60: cards with a pack icon or an emoji have no empty row, the details pane shows Icon and Colour rows, and the Plugins screen lists the pack under Icon packs with remove and update. Headless Chromium in light, dark and blueprint on an exported scratch project: surfaces, lighter or darker titles, selection, hollow dashed drafts, flow and comparison; the three covers match. Not run: the full bun run check, groma scan (no source file was added, moved, renamed or deleted), the web settings dialog in a browser, hover, and any publication.
 
 Orchestrator verification, 11 October 2026, stacked on the finished plugins.json branch with main merged: bun run check exit 0 (16 Node tests; 798 Bun tests passed, 52 skipped for missing optional toolchains, 0 failed). I inspected the implementer's dark-theme screenshots of accented systems, containers, components and drafts. Decisions taken in this pass, for the owner to confirm or reverse: an emoji icon is drawn as text and nothing is downloaded when the architecture loads, so cover images show pack icons only; an accented surface is the accent mixed into the theme's paper and its title the accent mixed toward the theme's ink, so every named accent reaches a contrast of 4.5 in light, dark and blueprint. The task stays In Progress on purpose: acceptance criterion 6 and Definition of Done 1 need @groma/icons-architecture on the public registry, which happens in the next release.
+
+Redesigned on 2026-10-14 with Alex: the default pack is bundled and listed in config.json, recommended in groma init, and goes through the TASK-568 plugin flow; publishing the pack is dropped. The implementation above is the starting point for the rebuild.
 <!-- SECTION:NOTES:END -->
-
-## Final Summary
-
-<!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Elements can carry an icon and a colour. Both are groma fields on the existing concept: written by groma edit --icon --colour and the web details form, validated by the model, preserved by scans, protected by combine, and reported by revision comparisons. Icon packs are the third plugin kind in plugins.json; the generic plugin commands and settings add, remove, update and restore them, and a pack resolves to its SVG files without any code to run. An icon is a pack image, an emoji drawn as text, or an unknown name that groma lint reports; loading never touches the network. On the web map an accent draws the element's outline, tints its own surfaces with the theme's paper and darkens or lightens its title toward the theme's ink, below selection, flow, comparison and draft states, in the browser and in covers alike. The details panes and the legend show the values; the terminal map is unchanged. The official twelve-icon pack is staged and published with the scanner packages.
-
-Verified here: type check, lint without a new warning, 236 focused bun tests in 47 files and 16 node tests, tui-test for a terminal card with an icon and the Plugins screen, headless Chromium in the three themes for surfaces, titles, selection, draft, flow and comparison, and the three covers. Not verified: the full repository check (run by the orchestrator), hover over an accent, and any npm publication, so AC6 and DoD 1 stay unchecked.
-
-Known limits: a cover has no emoji font, so it hides an emoji icon and keeps its room empty; the details pane heading uses the plain accent; an icon pack is official by its id, like a work source.
-<!-- SECTION:FINAL_SUMMARY:END -->
