@@ -15,7 +15,7 @@ bun run build
 cd project
 git init
 groma init "Scanner example" --directory groma
-groma scanner add ..
+groma plugin add ..
 groma scan
 ```
 
@@ -25,9 +25,9 @@ architecture. The two source files should be inventoried without an inferred
 relationship between them: the example has not supplied call evidence.
 
 The scanner reads exactly the files its include list names, and the package's
-`groma.scanner.include` is the default that `groma scanner add` writes into the
+`groma.scanner.include` is the default that `groma plugin add` writes into the
 project. To try a change, add `src/*.mjs` to the scanner's `include` list in
-`project/groma/plugins.json`, then run `groma scan` again: the supplied
+`project/groma/config.json`, then run `groma scan` again: the supplied
 `extra.mjs` enters the map with no change to the plugin. To observe a source
 inventory change, add a `.js` file under `project/src` and rerun the scan.
 Restart an existing watch session after changing plugin implementation; source
@@ -41,7 +41,7 @@ source paths. Bundle executable imports into the entry with `bun run build`; Gro
 result from `dist/index.js`. Include that output when sharing through npm or Git.
 
 You can prepare a tarball locally with `bun pm pack`. After publication under
-your own npm name, users run `groma scanner add <package>@<exact-version>`.
+your own npm name, users run `groma plugin add <package>@<exact-version>`.
 Publishing is performed separately with your npm account. Groma does not require
 your package to appear in the official catalog before installing it.
 

@@ -7,7 +7,7 @@ import type { CodeSymbol, HttpEndpointSegment, HttpRequestSegment, ScanHttpEndpo
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import { httpRelationships } from '../src/http-relationships.ts'
 import { addScanner } from '../src/scanner/modules/inventory.ts'
-import { readPluginConfig, writePluginConfig } from '../src/scanner/modules/config.ts'
+import { readGromaConfig, writeGromaConfig } from '../src/config.ts'
 import { scannerFiles } from '../src/scanner/modules/selection.ts'
 import { loadScannerRegistry } from '../src/scanner/registry.ts'
 import { readCodeStructure } from '../src/viewers/source/structure.ts'
@@ -335,7 +335,7 @@ test.concurrent('a shared exclusion keeps invalid Python outside parsing when va
     await cp(path.join(fixtures, 'empty-project'), root, { recursive: true })
     await writeFile(path.join(root, 'bad.py'), 'def broken(:\n')
     await addScanner(root, artifact)
-    await writePluginConfig(root, { ...await readPluginConfig(root), exclude: ['/bad.py'] })
+    await writeGromaConfig(root, { ...await readGromaConfig(root), exclude: ['/bad.py'] })
     const batch = await (await loadScannerRegistry(root)).collectObservations(root)
     expect(batch.failures).toEqual([])
     expect(batch.observations[0]?.files.some(file => file.file === 'bad.py')).toBe(false)

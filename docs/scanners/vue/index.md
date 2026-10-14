@@ -14,7 +14,7 @@ bun plugins/scanners/vue/build.ts
 In the project being scanned:
 
 ```sh
-groma scanner add /absolute/path/to/groma/plugins/scanners/vue/dist/package
+groma plugin add /absolute/path/to/groma/plugins/scanners/vue/dist/package
 groma scan
 ```
 

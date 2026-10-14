@@ -29,10 +29,7 @@ import {
 import { styleText, stripVTControlCharacters } from 'node:util'
 
 import { GROMA_ACCENT, GROMA_ACCENT_ON_LIGHT } from './brand.ts'
-import type {
-  InitCommandUi,
-  PackageInstaller,
-} from './init-command.ts'
+import type { InitCommandUi } from './init-command.ts'
 import type { GromaDirectory } from './groma-filesystem.ts'
 
 const output = process.stdout
@@ -224,19 +221,10 @@ export function createClackInitUi(): InitCommandUi {
       progress.start(message)
       const installed = await operation()
       progress.clear()
-      const result = installed ? 'Backlog.md installed' : 'Backlog.md installation failed'
+      const result = installed ? 'Backlog.md added' : 'Backlog.md could not be added'
       output.write(`${installed ? accent(S_STEP_SUBMIT) : styleText('red', S_STEP_ERROR)}  ${result}\n`)
       return installed
     },
-    installer: async () => selected(await selectPrompt<PackageInstaller>(
-      'How was Groma installed?',
-      [
-        { label: 'Bun', value: 'bun' },
-        { label: 'npm', value: 'npm' },
-        { label: 'Homebrew', value: 'brew' },
-      ],
-      accent,
-    )),
     intro: async () => {
       accentHex = await detectAccent()
       output.write(`${styleText('gray', S_BAR_START)}  ${accent('Groma')} setup\n`)

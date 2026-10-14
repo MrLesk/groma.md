@@ -6,7 +6,7 @@ import type { ScanObservation } from '@groma/scanner'
 import { loadArchitecture } from '../src/architecture-reader.ts'
 import { buildArchitectureModel } from '../src/architecture-model.ts'
 import { reconcileScanObservations } from '../src/scan-reconciler.ts'
-import { writePluginConfig } from '../src/scanner/modules/config.ts'
+import { writeGromaConfig } from '../src/config.ts'
 import { loadScannerRegistry } from '../src/scanner/registry.ts'
 import type { ArchitectureElement } from '../src/types.ts'
 
@@ -51,7 +51,7 @@ async function project(output: string, name: string, packages: string): Promise<
     scanners.push({ id, source: path.join(packages, id), ...manifest.groma.scanner.exclude && { exclude: manifest.groma.scanner.exclude },
       include: manifest.groma.scanner.include })
   }
-  await writePluginConfig(root, { scanners, workSources: [] })
+  await writeGromaConfig(root, { scanners, workSources: [] })
   return root
 }
 

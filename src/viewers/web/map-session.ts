@@ -68,10 +68,13 @@ async function loadMap(
   return { ...snapshot, revision, revisions }
 }
 
-/** Owns the ready map, its request handlers, and its live subscriptions. */
+/**
+ * Owns the ready map, its request handlers, and its live subscriptions. A read-only map runs no scanner (no scan and
+ * no source watch) and refuses every write; groma web opens one when plugins config.json lists are missing.
+ */
 export async function createWebMapSession(
   repositoryRoot: string,
-  options: { workSource?: WorkSource; scan?: boolean; onProgress?: (progress: StartupProgress) => void | Promise<void> } = {},
+  options: { workSource?: WorkSource; scan?: boolean; readOnly?: boolean; onProgress?: (progress: StartupProgress) => void | Promise<void> } = {},
 ): Promise<{ fetch: (request: Request) => Promise<Response>; close: () => Promise<void> }> {
   options.onProgress?.({ phase: 'preparing-viewer' })
   const renderer = await bundleRenderer()
@@ -266,7 +269,7 @@ export async function createWebMapSession(
   }
 
   let initialScan = true
-  const scannerSession = await createScannerSession(repositoryRoot, {
+  const scannerSession = options.readOnly ? undefined : await createScannerSession(repositoryRoot, {
     onPluginsChanged: () => workSource.reconfigure(),
     scan: options.scan,
     watchesFile: file => sourceFiles.has(file),
@@ -274,7 +277,7 @@ export async function createWebMapSession(
     onFold: () => initialScan ? undefined : publishWorld(),
     onSettings: settings => broadcast(encoder.encode(`event: plugin-settings\ndata: ${JSON.stringify(settings)}\n\n`)),
   })
-  await scannerSession.ready
+  await scannerSession?.ready
   // Initial folds are included in this map; later folds queue behind its load.
   worldChain = loadMap(repositoryRoot, revisions, null, options.onProgress).then(next => {
     map = { generation: 1, ...next }
@@ -285,12 +288,12 @@ export async function createWebMapSession(
     await worldChain
   } catch (error) {
     closed = true
-    await scannerSession.close()
+    await scannerSession?.close()
     throw error
   }
   options.onProgress?.({ phase: 'opening-map' })
   const architectureWatch = await watchArchitecture(repositoryRoot, {
-    onChange: async () => { await workSource.reconfigure(); await scannerSession.reconfigure(); await publishWorld() },
+    onChange: async () => { await workSource.reconfigure(); await scannerSession?.reconfigure(); await publishWorld() },
   })
   const workWatch = workSource.watch(() => {
     void publishWork()
@@ -383,7 +386,7 @@ export async function createWebMapSession(
   async function pageResponse(url: URL): Promise<Response> {
     const selected = await payloadFor(url)
     if (selected instanceof Response) return selected
-    return new Response(renderPage({ ...selected, delivery: { kind: 'live' } }, url), {
+    return new Response(renderPage({ ...selected, delivery: { kind: 'live', readOnly: options.readOnly } }, url), {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store',
@@ -392,10 +395,6 @@ export async function createWebMapSession(
   }
 
   const routes = new Map<string, Route>([
-    ['/plugin-settings', async (_request, url) => {
-      const settings = await scannerSession.refresh()
-      return Response.json(url.searchParams.has('updates') ? await withPluginUpgrades(settings) : settings)
-    }],
     ['/render.js', rendererResponse],
     ['/revisions.json', async () => Response.json(await readRevisions())],
     ['/world.json', worldResponse],
@@ -413,19 +412,26 @@ export async function createWebMapSession(
 
   /** The shared writes at the path of their verb; each posts the input the CLI builds from its flags. */
   const writeRoutes = new Map<string, (request: Request) => Promise<Response>>([
-    ['/plugin-settings', async request => {
-      try { await scannerSession.change(parsePluginSettingsAction(await request.json())); return Response.json(scannerSession.state) }
-      catch (error) { return new Response(error instanceof Error ? error.message : String(error), { status: 400 }) }
-    }],
     ['/draft', request => writeResponse(request, writes.draft)],
     ['/add', request => writeResponse(request, writes.add)],
     ['/edit', request => writeResponse(request, writes.edit)],
     ['/remove', request => writeResponse(request, writes.remove)],
     ['/accept', request => writeResponse(request, writes.accept)],
   ])
+  if (scannerSession !== undefined) {
+    routes.set('/plugin-settings', async (_request, url) => {
+      const settings = await scannerSession.refresh()
+      return Response.json(url.searchParams.has('updates') ? await withPluginUpgrades(settings) : settings)
+    })
+    writeRoutes.set('/plugin-settings', async request => {
+      try { await scannerSession.change(parsePluginSettingsAction(await request.json())); return Response.json(scannerSession.state) }
+      catch (error) { return new Response(error instanceof Error ? error.message : String(error), { status: 400 }) }
+    })
+  }
 
   async function responseFor(request: Request): Promise<Response> {
     const url = new URL(request.url)
+    if (request.method === 'POST' && options.readOnly) return new Response('This map is read-only because plugins are missing.', { status: 403 })
     const write = request.method === 'POST' ? writeRoutes.get(url.pathname) : undefined
     if (write !== undefined) return write(request)
     const route = routes.get(url.pathname)

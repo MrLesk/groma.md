@@ -3,86 +3,51 @@ import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
 import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { stringArray } from './config.ts'
+import { exactVersion, stringArray } from '../../config.ts'
 import { installDependencies } from './package-manager.ts'
-import { isNpmPackageName, publishedPluginSource } from './published.ts'
+import { isNpmPackageName } from './published.ts'
 
-export interface NpmPluginSource {
+export interface NpmScannerSource {
   kind: 'npm'
   name: string
   source: string
   version: string
 }
 
-export interface LocalPluginSource {
+export interface LocalScannerSource {
   kind: 'local'
   packageRoot: string
   source: string
 }
 
-export interface GitPluginSource {
+export interface GitScannerSource {
   kind: 'git'
   repository: string
   revision: string
   source: string
 }
 
-export type PluginSource = NpmPluginSource | LocalPluginSource | GitPluginSource
+export type ScannerSource = NpmScannerSource | LocalScannerSource | GitScannerSource
 
-/** What every resolved plugin package has, whatever its kind. */
-interface ResolvedPackageFields {
+export interface ResolvedScannerPackage {
+  discovery?: ScannerDiscoveryMetadata
   entry: string
+  /** Git ignore patterns naming the files the scanner reads, written into its configuration when it is added. */
+  include: string[]
+  /** Default Git ignore patterns, written into the scanner's configuration when it is added. */
+  exclude?: string[]
   id: string
   name: string
   version: string
 }
 
-export interface ResolvedScannerPackage extends ResolvedPackageFields {
-  kind: 'scanner'
-  discovery?: ScannerDiscoveryMetadata
-  /** Git ignore patterns naming the files the scanner reads, written into its configuration when it is added. */
-  include: string[]
-  /** Default Git ignore patterns, written into the scanner's configuration when it is added. */
-  exclude?: string[]
+const scannerId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+export function defaultScannerCacheRoot(): string {
+  return path.join(homedir(), '.groma', 'cache', 'scanners')
 }
 
-export interface ResolvedWorkSourcePackage extends ResolvedPackageFields {
-  kind: 'workSource'
-  /** The groma.md versions the adapter's manifest says it works with. */
-  compatibility?: { groma?: string }
-}
-
-/** The resolved package of each plugin kind. A caller that asks for one kind gets that kind's package type. */
-interface ResolvedPackages {
-  scanner: ResolvedScannerPackage
-  workSource: ResolvedWorkSourcePackage
-}
-
-export type PluginKind = keyof ResolvedPackages
-
-export type ResolvedPluginPackage = ResolvedPackages[PluginKind]
-
-export interface PluginResolutionOptions {
-  /** Where npm and Git packages are kept instead of the shared ~/.groma/cache/plugins folder. */
-  cacheRoot?: string
-}
-
-export interface PluginInstallOptions extends PluginResolutionOptions {
-  /**
-   * Replaces only the default registry, for release lookup and download alike. A scope's registry in the user's
-   * `.npmrc` still wins for that scope, so this does not isolate a run from the user's npm settings. Only tests set it.
-   */
-  registry?: string
-}
-
-const exactVersion = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
-const pluginId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-
-function cacheRoot(options: PluginResolutionOptions): string {
-  return options.cacheRoot ?? path.join(homedir(), '.groma', 'cache', 'plugins')
-}
-
-function npmSource(source: string): NpmPluginSource | undefined {
+function npmSource(source: string): NpmScannerSource | undefined {
   const separator = source.lastIndexOf('@')
   if (separator <= 0) return undefined
   const name = source.slice(0, separator)
@@ -98,13 +63,13 @@ function projectLocalSource(repositoryRoot: string, absolute: string): string {
   return `./${relative.split(path.sep).join('/')}`
 }
 
-export function parsePluginSource(repositoryRoot: string, input: string): PluginSource {
+export function parseScannerSource(repositoryRoot: string, input: string): ScannerSource {
   const source = input.trim()
   if (source.startsWith('git+')) {
     const url = new URL(source.slice(4))
     const revision = url.hash.slice(1)
     if (url.protocol !== 'https:' || url.username || url.password || url.search || !revision) {
-      throw new Error('Git plugin source must be git+https://repository#tag-or-commit')
+      throw new Error('Git scanner source must be git+https://repository#tag-or-commit')
     }
     url.hash = ''
     return { kind: 'git', repository: url.href, revision, source: `git+${url.href}#${revision}` }
@@ -112,7 +77,7 @@ export function parsePluginSource(repositoryRoot: string, input: string): Plugin
   const npm = npmSource(source)
   if (npm !== undefined) return npm
   if (!source.startsWith('.') && !path.isAbsolute(source)) {
-    throw new Error('plugin source must be an exact package@version, git+https://repository#tag-or-commit, or a local ./path')
+    throw new Error('scanner source must be an exact package@version, git+https://repository#tag-or-commit, or a local ./path')
   }
   const packageRoot = path.resolve(repositoryRoot, source)
   return {
@@ -127,7 +92,7 @@ function installDirectory(cacheRoot: string, source: string): string {
   return path.join(cacheRoot, key)
 }
 
-function npmPackageRoot(cacheRoot: string, source: NpmPluginSource): string {
+function npmPackageRoot(cacheRoot: string, source: NpmScannerSource): string {
   return path.join(installDirectory(cacheRoot, source.source), 'node_modules', ...source.name.split('/'))
 }
 
@@ -138,18 +103,18 @@ function object(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-async function pluginEntry(packageRoot: string, value: unknown): Promise<string | undefined> {
+async function scannerEntry(packageRoot: string, value: unknown): Promise<string | undefined> {
   if (typeof value !== 'string' || !value.startsWith('./')) {
-    throw new Error('plugin package.json entry must be a relative ./path')
+    throw new Error('scanner package.json groma.scanner.entry must be a relative ./path')
   }
   const entry = path.resolve(packageRoot, value)
   const relativeEntry = path.relative(packageRoot, entry)
   if (relativeEntry.startsWith('..') || path.isAbsolute(relativeEntry)) {
-    throw new Error('plugin package.json entry must stay inside its package')
+    throw new Error('scanner package.json entry must stay inside its package')
   }
   try {
     if (!(await stat(entry)).isFile()) {
-      throw new Error(`plugin package entry must be a file: ${value}`)
+      throw new Error(`scanner package entry must be a file: ${value}`)
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
@@ -169,111 +134,74 @@ function scannerLists(scanner: Record<string, unknown>): { include: string[]; ex
   return { include: scanner.include, ...(scanner.exclude === undefined ? {} : { exclude: scanner.exclude }) }
 }
 
-function workSourceCompatibility(value: unknown): { groma?: string } | undefined {
-  if (value === undefined) return undefined
-  const compatibility = object(value, 'work source compatibility')
-  if (Object.keys(compatibility).some(key => key !== 'groma')
-    || (compatibility.groma !== undefined && typeof compatibility.groma !== 'string')) {
-    throw new Error('work source compatibility may contain a groma version range')
-  }
-  return compatibility as { groma?: string }
-}
-
-/** A package's manifest text, or undefined when the package is not on this computer. */
-async function manifestText(packageRoot: string): Promise<string | undefined> {
+async function scannerPackage(packageRoot: string): Promise<ResolvedScannerPackage | undefined> {
+  let source: string
   try {
-    return await readFile(path.join(packageRoot, 'package.json'), 'utf8')
+    source = await readFile(path.join(packageRoot, 'package.json'), 'utf8')
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
     throw error
   }
-}
-
-/** The kind a manifest declares, for a caller that accepts any kind. */
-function declaredKind(groma: Record<string, unknown>): PluginKind {
-  if (groma.scanner !== undefined) return 'scanner'
-  if (groma.workSource !== undefined) return 'workSource'
-  throw new Error('plugin package.json groma must contain a scanner or a workSource section')
-}
-
-/**
- * Reads a package of the given kind, or of the kind its manifest declares when the caller accepts any.
- * A package that does not declare the requested kind is refused here, which is what makes the kind-specific
- * return types of `resolvePluginPackage` and `installPluginPackage` true.
- */
-async function pluginPackage(packageRoot: string, kind?: PluginKind): Promise<ResolvedPluginPackage | undefined> {
-  const source = await manifestText(packageRoot)
-  if (source === undefined) return undefined
-  const manifest = object(JSON.parse(source), 'plugin package.json')
-  const groma = object(manifest.groma, 'plugin package.json groma')
-  kind ??= declaredKind(groma)
-  const declared = object(groma[kind], `plugin package.json groma.${kind}`)
-  const allowed = kind === 'scanner' ? ['id', 'entry', 'discovery', 'include', 'exclude'] : ['id', 'entry', 'compatibility']
-  if (Object.keys(declared).some(field => !allowed.includes(field))) {
-    throw new Error(`plugin package.json groma.${kind} may contain only ${allowed.join(', ')}`)
+  const manifest = object(JSON.parse(source), 'scanner package.json')
+  const groma = object(manifest.groma, 'scanner package.json groma')
+  const scanner = object(groma.scanner, 'scanner package.json groma.scanner')
+  if (Object.keys(scanner).some(field => !['id', 'entry', 'discovery', 'include', 'exclude'].includes(field))) {
+    throw new Error('scanner package.json groma.scanner may contain only id, entry, discovery, include and exclude')
   }
-  const details = kind === 'scanner'
-    ? { kind, ...scannerLists(declared) }
-    : { kind, compatibility: workSourceCompatibility(declared.compatibility) }
-  if (typeof declared.id !== 'string' || !pluginId.test(declared.id)) {
-    throw new Error(`plugin package.json groma.${kind}.id must be lowercase kebab-case`)
+  const lists = scannerLists(scanner)
+  if (typeof scanner.id !== 'string' || !scannerId.test(scanner.id)) {
+    throw new Error('scanner package.json groma.scanner.id must be lowercase kebab-case')
   }
   if (typeof manifest.name !== 'string' || manifest.name.trim() === '') {
-    throw new Error('plugin package.json name must be non-empty')
+    throw new Error('scanner package.json name must be non-empty')
   }
   if (typeof manifest.version !== 'string' || manifest.version.trim() === '') {
-    throw new Error('plugin package.json version must be non-empty')
+    throw new Error('scanner package.json version must be non-empty')
   }
-  const entry = await pluginEntry(packageRoot, declared.entry)
+  const entry = await scannerEntry(packageRoot, scanner.entry)
   if (entry === undefined) return undefined
-  const shared = { entry, id: declared.id, name: manifest.name, version: manifest.version }
-  if (details.kind === 'workSource') return { ...shared, ...details }
-  return { ...shared, ...details, ...(declared.discovery === undefined ? {} : { discovery: parseScannerDiscovery(declared.discovery) }) }
+  return {
+    entry,
+    id: scanner.id,
+    name: manifest.name,
+    version: manifest.version,
+    ...(scanner.discovery === undefined ? {} : { discovery: parseScannerDiscovery(scanner.discovery) }),
+    ...lists,
+  }
 }
 
-async function installedPackage(source: PluginSource, cache: string, kind?: PluginKind): Promise<ResolvedPluginPackage | undefined> {
+export async function resolveScannerPackage(
+  source: ScannerSource,
+  cacheRoot = defaultScannerCacheRoot(),
+): Promise<ResolvedScannerPackage | undefined> {
   const packageRoot = source.kind === 'local'
     ? source.packageRoot
     : source.kind === 'git'
-      ? installDirectory(cache, source.source)
-      : npmPackageRoot(cache, source)
-  const resolved = await pluginPackage(packageRoot, kind)
+      ? installDirectory(cacheRoot, source.source)
+      : npmPackageRoot(cacheRoot, source)
+  const resolved = await scannerPackage(packageRoot)
   if (resolved !== undefined && source.kind === 'npm') {
     if (resolved.name !== source.name || resolved.version !== source.version) {
-      throw new Error(`installed plugin does not match ${source.source}`)
+      throw new Error(`installed scanner does not match ${source.source}`)
     }
   }
   return resolved
 }
 
-/**
- * The package a source resolves to on this computer, or undefined when it is not installed. Nothing is downloaded
- * and no plugin code runs. The compiler does not check the kind-specific return type against the body; see `pluginPackage`.
- */
-export function resolvePluginPackage<K extends PluginKind>(
-  source: PluginSource, options: PluginResolutionOptions, kind: K,
-): Promise<ResolvedPackages[K] | undefined>
-export function resolvePluginPackage(
-  source: PluginSource, options: PluginResolutionOptions, kind: PluginKind,
-): Promise<ResolvedPluginPackage | undefined> {
-  return installedPackage(source, cacheRoot(options), kind)
-}
-
-async function installNpmPackage(
-  source: NpmPluginSource,
-  cache: string,
+async function installNpmScanner(
+  source: NpmScannerSource,
+  cacheRoot = defaultScannerCacheRoot(),
   registry?: string,
-  kind?: PluginKind,
-): Promise<ResolvedPluginPackage> {
-  const directory = installDirectory(cache, source.source)
+): Promise<ResolvedScannerPackage> {
+  const directory = installDirectory(cacheRoot, source.source)
   await mkdir(directory, { recursive: true })
   await writeFile(path.join(directory, 'package.json'), `${JSON.stringify({
     private: true,
     dependencies: { [source.name]: source.version },
   }, null, 2)}\n`)
   await installDependencies(directory, source.source, registry)
-  const resolved = await installedPackage(source, cache, kind)
-  if (resolved === undefined) throw new Error(`installed plugin is missing: ${source.source}`)
+  const resolved = await resolveScannerPackage(source, cacheRoot)
+  if (resolved === undefined) throw new Error(`installed scanner is missing: ${source.source}`)
   return resolved
 }
 
@@ -285,18 +213,17 @@ async function git(directory: string, ...args: string[]): Promise<string> {
   const [code, stdout, stderr] = await Promise.all([
     child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
   ])
-  if (code !== 0) throw new Error(`could not install Git plugin: ${stderr.trim()}`)
+  if (code !== 0) throw new Error(`could not install Git scanner: ${stderr.trim()}`)
   return stdout.trim()
 }
 
-async function installGitPackage(
-  source: GitPluginSource,
-  cache: string,
+async function installGitScanner(
+  source: GitScannerSource,
+  cacheRoot: string,
   registry?: string,
-  kind?: PluginKind,
-): Promise<{ source: string; package: ResolvedPluginPackage }> {
-  await mkdir(cache, { recursive: true })
-  const temporary = await mkdtemp(path.join(cache, 'checkout-'))
+): Promise<{ source: string; package: ResolvedScannerPackage }> {
+  await mkdir(cacheRoot, { recursive: true })
+  const temporary = await mkdtemp(path.join(cacheRoot, 'checkout-'))
   try {
     await git(temporary, 'init', '--quiet')
     const revision = /^[0-9a-f]{40}$/i.test(source.revision)
@@ -305,12 +232,12 @@ async function installGitPackage(
     const commit = await git(temporary, 'rev-parse', 'FETCH_HEAD^{commit}')
     await git(temporary, 'checkout', '--quiet', '--detach', commit)
     const pinned = { ...source, revision: commit, source: `git+${source.repository}#${commit}` }
-    const existing = await installedPackage(pinned, cache, kind)
+    const existing = await resolveScannerPackage(pinned, cacheRoot)
     if (existing !== undefined) return { source: pinned.source, package: existing }
-    const resolved = await pluginPackage(temporary, kind)
-    if (resolved === undefined) throw new Error('Git repository must contain a runnable plugin package at its root')
+    const resolved = await scannerPackage(temporary)
+    if (resolved === undefined) throw new Error('Git repository must contain a runnable scanner package at its root')
     await installDependencies(temporary, pinned.source, registry)
-    const destination = installDirectory(cache, pinned.source)
+    const destination = installDirectory(cacheRoot, pinned.source)
     await rename(temporary, destination)
     return { source: pinned.source, package: { ...resolved, entry: path.join(destination, path.relative(temporary, resolved.entry)) } }
   } finally {
@@ -318,81 +245,16 @@ async function installGitPackage(
   }
 }
 
-/**
- * Installation is explicit; registry loading only resolves already installed packages. A caller that names a kind
- * gets that kind's package; without one the manifest decides. The compiler does not check the kind-specific
- * return type against the body; see `pluginPackage`.
- */
-export function installPluginPackage<K extends PluginKind>(
-  source: PluginSource, options: PluginInstallOptions, kind: K,
-): Promise<{ source: string; package: ResolvedPackages[K] }>
-export function installPluginPackage(
-  source: PluginSource, options: PluginInstallOptions, kind?: PluginKind,
-): Promise<{ source: string; package: ResolvedPluginPackage }>
-export async function installPluginPackage(
-  source: PluginSource,
-  options: PluginInstallOptions,
-  kind?: PluginKind,
-): Promise<{ source: string; package: ResolvedPluginPackage }> {
-  const cache = cacheRoot(options)
-  if (source.kind === 'git') return installGitPackage(source, cache, options.registry, kind)
+/** Installation is explicit; registry loading only resolves already installed packages. */
+export async function installScannerPackage(
+  source: ScannerSource,
+  cacheRoot = defaultScannerCacheRoot(),
+  registry?: string,
+): Promise<{ source: string; package: ResolvedScannerPackage }> {
+  if (source.kind === 'git') return installGitScanner(source, cacheRoot, registry)
   const resolved = source.kind === 'npm'
-    ? await installNpmPackage(source, cache, options.registry, kind)
-    : await installedPackage(source, cache, kind)
-  if (resolved === undefined) throw new Error(`plugin package not found: ${source.source}`)
+    ? await installNpmScanner(source, cacheRoot, registry)
+    : await resolveScannerPackage(source, cacheRoot)
+  if (resolved === undefined) throw new Error(`scanner package not found: ${source.source}`)
   return { source: source.source, package: resolved }
-}
-
-/** The exact source an input names: a bare npm package name becomes its newest published release this computer can run. */
-export async function requestedPluginSource(
-  root: string, input: string, options: PluginInstallOptions, kind?: PluginKind,
-): Promise<PluginSource> {
-  const requested = input.trim()
-  return parsePluginSource(root, isNpmPackageName(requested)
-    ? await publishedPluginSource(requested, options.registry, kind) : requested)
-}
-
-function samePackage(current: PluginSource, replacement: PluginSource): boolean {
-  if (current.kind === 'npm' && replacement.kind === 'npm') return current.name === replacement.name
-  if (current.kind === 'git' && replacement.kind === 'git') return current.repository === replacement.repository
-  return false
-}
-
-/** Prepare an update without changing the project selection; callers own kind validation and configuration. */
-export async function preparePluginUpdate<K extends PluginKind>(
-  root: string,
-  selected: { id: string; source: string },
-  input: string | undefined,
-  options: PluginInstallOptions,
-  kind: K,
-): Promise<{ source: string; package: ResolvedPackages[K] }> {
-  const current = parsePluginSource(root, selected.source)
-  const requested = input?.trim() ?? (current.kind === 'npm' ? current.name : undefined)
-  if (!requested) throw new Error('Git updates require a tag or commit; local plugins run from their configured path')
-  const replacement = await requestedPluginSource(root, requested, options, kind)
-  if (!samePackage(current, replacement)) {
-    throw new Error('Plugin update must keep the same npm package or Git repository; local plugins run from their configured path')
-  }
-  const installed = await installPluginPackage(replacement, options, kind)
-  if (installed.package.id !== selected.id) throw new Error(`Plugin id changed: ${installed.package.id}`)
-  return installed
-}
-
-/**
- * Puts one selection's package back on this computer without changing the selection: an npm or Git source is
- * installed again, a local path only has to be there. Reports whether anything was installed.
- */
-export async function restorePluginPackage<K extends PluginKind>(
-  root: string,
-  selected: { id: string; source: string },
-  options: PluginInstallOptions,
-  kind: K,
-): Promise<{ installed: boolean; package: ResolvedPackages[K] }> {
-  const source = parsePluginSource(root, selected.source)
-  const resolved = source.kind === 'local'
-    ? await resolvePluginPackage(source, options, kind)
-    : (await installPluginPackage(source, options, kind)).package
-  if (resolved === undefined) throw new Error(`Plugin ${selected.id} is missing. Restore its local directory: ${selected.source}`)
-  if (resolved.id !== selected.id) throw new Error(`Configured plugin ${selected.id} resolves to manifest id ${resolved.id}`)
-  return { installed: source.kind !== 'local', package: resolved }
 }

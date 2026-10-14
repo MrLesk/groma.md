@@ -1,10 +1,10 @@
 import { reconcileScanObservations } from '../core.ts'
 import { loadScannerRegistry, type ScanBatch, type ScanEvent } from './registry.ts'
 import { watchObservations } from './source-watch.ts'
-import { readPluginConfig } from './modules/config.ts'
+import { readGromaConfig } from '../config.ts'
 import type { ProjectReadiness } from './modules/readiness.ts'
 import { changePluginSettings, readPluginSettings, type PluginSettings, type PluginSettingsAction } from './modules/settings.ts'
-import type { PluginInstallOptions } from './modules/package.ts'
+import type { ScannerInstallOptions } from './modules/inventory.ts'
 
 export type ScannerProgress =
   | { phase: 'preparing-scanners' | 'updating-architecture' }
@@ -18,7 +18,7 @@ export async function createScannerSession(root: string, options: {
   onPluginsChanged?: () => void | Promise<void>
   onFold?: () => void | Promise<void>
   watchesFile?: (file: string) => boolean
-} & PluginInstallOptions = {}) {
+} & ScannerInstallOptions = {}) {
   options.onProgress?.({ phase: 'preparing-scanners' })
   let state = await readPluginSettings(root, [], options)
   let checks: ProjectReadiness[] = []
@@ -60,7 +60,7 @@ export async function createScannerSession(root: string, options: {
     await watcher?.close()
     watcher = undefined
     if (closed) return
-    config = JSON.stringify(await readPluginConfig(root))
+    config = JSON.stringify(await readGromaConfig(root))
     checks = []
     publish(await readPluginSettings(root, checks, options))
     const registry = await loadScannerRegistry(root, options)
@@ -91,7 +91,7 @@ export async function createScannerSession(root: string, options: {
     async refresh() { publish(await readPluginSettings(root, checks, options)); return state },
     reconfigure() {
       return enqueue(async () => {
-        if (JSON.stringify(await readPluginConfig(root)) !== config) await start(true)
+        if (JSON.stringify(await readGromaConfig(root)) !== config) await start(true)
       })
     },
     change(action: PluginSettingsAction) {

@@ -5,7 +5,7 @@ platform. Install the scanner and scan source without a project SDK, NuGet resto
 or application build. `global.json` does not select the scanner's runtime.
 
 ```sh
-groma scanner add @groma/scanner-csharp
+groma plugin add @groma/scanner-csharp
 groma scan
 ```
 

@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT, type WorkSource } from '@groma/work-source'
-import { writePluginConfig } from '../src/scanner/modules/config.ts'
+import { writeGromaConfig } from '../src/config.ts'
 import { startWebViewer } from '../src/viewers/web/server.ts'
 import { loadProjectProfile } from '../src/project-profile.ts'
 import { createScannerSession } from '../src/scanner/session.ts'
@@ -139,7 +139,7 @@ for (const findsComponents of [true, false]) {
           return undefined
         }
       }`)
-      await writePluginConfig(root, { scanners: [
+      await writeGromaConfig(root, { scanners: [
         { id: 'fixture', source: './plugin', include: ['**/*.fixture'] }, { id: 'companion', source: './companion', include: ['**/*.companion'] },
       ], workSources: [] })
       opening = startWebViewer(root, { port: 0, scan: true, workSource: emptyWorkSource(), onListening: listening.resolve })
@@ -296,7 +296,7 @@ test.concurrent('simultaneous scanner setup submissions share one initial scan a
       method: 'POST', redirect: 'manual', body: new URLSearchParams({ projectName: 'Example', directory: 'groma' }),
     })
     expect(initialized.status).toBe(303)
-    await writePluginConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], workSources: [] })
+    await writeGromaConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], workSources: [] })
     submissions = [0, 1].map(() => fetch(`${viewer!.url}/scanners`, {
       method: 'POST', redirect: 'manual', body: new FormData(),
     }))
@@ -335,13 +335,34 @@ test.concurrent('startup does not report scanning when every selected source is 
       async scan() { throw new Error('Excluded sources must not be scanned') },
     }`)
     expect(await Bun.spawn(['git', 'init', '--quiet', root]).exited).toBe(0)
-    await writePluginConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], exclude: ['*.fixture'], workSources: [] })
+    await writeGromaConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], exclude: ['*.fixture'], workSources: [] })
     const phases: string[] = []
     session = await createScannerSession(root, { scan: true, onProgress: update => phases.push(update.phase) })
     await session.ready
     expect(phases).toEqual(['preparing-scanners'])
   } finally {
     await session?.close()
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test.concurrent('a missing plugin opens the restore view, and proceeding without it opens a map that refuses writes', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-restore-startup-'))
+  let viewer: Awaited<ReturnType<typeof startWebViewer>> | undefined
+  try {
+    await cp(path.resolve(import.meta.dir, '../test/fixtures/flows'), root, { recursive: true })
+    expect(await Bun.spawn(['git', 'init', '--quiet', root]).exited).toBe(0)
+    // The listed local scanner directory does not exist on this computer, and restoring cannot bring it back.
+    await writeGromaConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], workSources: [] })
+    viewer = await startWebViewer(root, { port: 0, workSource: emptyWorkSource() })
+    expect(await (await fetch(viewer.url)).text()).toContain('data-plugin="fixture" data-state="missing"')
+    await fetch(`${viewer.url}/restore`, { method: 'POST', redirect: 'manual' })
+    expect(await (await fetch(viewer.url)).text()).toContain('Restore the local scanner directory: ./plugin')
+    expect((await fetch(`${viewer.url}/proceed`, { method: 'POST', redirect: 'manual' })).status).toBe(303)
+    expect((await fetch(`${viewer.url}/world.json`)).ok).toBe(true)
+    expect((await fetch(`${viewer.url}/add`, { method: 'POST', body: '{}' })).status).toBe(403)
+  } finally {
+    await viewer?.close()
     await rm(root, { recursive: true, force: true })
   }
 })

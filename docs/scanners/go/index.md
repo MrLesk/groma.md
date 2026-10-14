@@ -5,7 +5,7 @@ A fresh source checkout needs no Go installation, module cache, dependency
 download or application build.
 
 ```sh
-groma scanner add @groma/scanner-go
+groma plugin add @groma/scanner-go
 groma scan
 ```
 

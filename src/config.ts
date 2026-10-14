@@ -1,7 +1,7 @@
 import path from 'node:path'
 import type { ScannerSettings } from '@groma/scanner'
 import ignore from 'ignore'
-import { GromaFileSystem } from '../../groma-filesystem.ts'
+import { GromaFileSystem } from './groma-filesystem.ts'
 
 export interface ConfiguredScanner {
   id: string
@@ -13,13 +13,19 @@ export interface ConfiguredScanner {
   exclude?: string[]
 }
 
+/** A work source ships inside groma.md, so its entry has no source. */
 export interface ConfiguredWorkSource {
+  /** The bundled work source, such as `backlog`. */
   id: string
-  source: string
+  /** The lowest version of the work source's command-line tool this project uses, raised when someone updates it. */
+  version: string
 }
 
-/** plugins.json as the application holds it: every section is present, empty when the project selects nothing of that kind. */
-export interface PluginConfig {
+/**
+ * config.json as the application holds it: the project's one groma.md configuration. Every plugin section is present,
+ * empty when the project uses nothing of that kind.
+ */
+export interface GromaConfig {
   scanners: ConfiguredScanner[]
   /** At most one in this revision. */
   workSources: ConfiguredWorkSource[]
@@ -31,13 +37,16 @@ export interface PluginConfig {
 
 const pluginId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
+/** An exact semantic version, as config.json records every plugin version. */
+export const exactVersion = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
+
 /** A JSON value holding a list of strings, such as patterns. */
 export function stringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === 'string')
 }
 
 /** A scanner's exclusions in the order they apply: the global list, then the scanner's own. */
-export function exclusionPatterns(config: PluginConfig, scanner: string): string[] {
+export function exclusionPatterns(config: GromaConfig, scanner: string): string[] {
   return [...config.exclude ?? [], ...config.scanners.find(entry => entry.id === scanner)?.exclude ?? []]
 }
 
@@ -106,16 +115,16 @@ function configuredWorkSources(value: unknown, filename: string): ConfiguredWork
   if (value.length > 1) throw new Error(`${filename} supports at most one work source; remove one before adding another`)
   return value.map(entry => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)
-      || Object.keys(entry).some(key => !['id', 'source'].includes(key))) {
-      throw new Error(`${filename} workSources entries must contain only id and source`)
+      || Object.keys(entry).some(key => !['id', 'version'].includes(key))) {
+      throw new Error(`${filename} workSources entries must contain only id and version`)
     }
     if (typeof entry.id !== 'string' || !pluginId.test(entry.id)) {
       throw new Error(`${filename} workSources id must be lowercase kebab-case`)
     }
-    if (typeof entry.source !== 'string' || !entry.source.trim()) {
-      throw new Error(`${filename} workSources source must be non-empty`)
+    if (typeof entry.version !== 'string' || !exactVersion.test(entry.version)) {
+      throw new Error(`${filename} workSources version must be an exact version such as 1.2.3`)
     }
-    return { id: entry.id, source: entry.source }
+    return { id: entry.id, version: entry.version }
   })
 }
 
@@ -142,10 +151,10 @@ function requireUniqueIds(plugins: readonly { id: string }[], sourceFilename: st
   }
 }
 
-function parsePluginConfig(
+function parseGromaConfig(
   source: string,
   sourceFilename: string,
-): PluginConfig {
+): GromaConfig {
   const value: unknown = JSON.parse(source)
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${sourceFilename} must be an object`)
@@ -171,12 +180,12 @@ function parsePluginConfig(
   }
 }
 
-export async function readPluginConfig(repositoryRoot: string): Promise<PluginConfig> {
+export async function readGromaConfig(repositoryRoot: string): Promise<GromaConfig> {
   const filesystem = GromaFileSystem.open(repositoryRoot)
   try {
-    return parsePluginConfig(
-      await filesystem.read('plugins.json'),
-      filesystem.sourceFilename('plugins.json'),
+    return parseGromaConfig(
+      await filesystem.read('config.json'),
+      filesystem.sourceFilename('config.json'),
     )
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { scanners: [], workSources: [] }
@@ -184,10 +193,10 @@ export async function readPluginConfig(repositoryRoot: string): Promise<PluginCo
   }
 }
 
-/** Saves plugins.json in one key order, and only when the parser accepts it: every rule of the file has that one owner. */
-export async function writePluginConfig(
+/** Saves config.json in one key order, and only when the parser accepts it: every rule of the file has that one owner. */
+export async function writeGromaConfig(
   repositoryRoot: string,
-  config: PluginConfig,
+  config: GromaConfig,
 ): Promise<void> {
   const filesystem = GromaFileSystem.open(repositoryRoot)
   const text = `${JSON.stringify({
@@ -196,6 +205,6 @@ export async function writePluginConfig(
     ...(config.exclude === undefined ? {} : { exclude: config.exclude }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
   }, null, 2)}\n`
-  parsePluginConfig(text, filesystem.sourceFilename('plugins.json'))
-  await filesystem.write('plugins.json', text)
+  parseGromaConfig(text, filesystem.sourceFilename('config.json'))
+  await filesystem.write('config.json', text)
 }

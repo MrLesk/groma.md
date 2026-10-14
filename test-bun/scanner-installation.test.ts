@@ -5,7 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import packageJson from '../package.json'
 import { createScannerSession } from '../src/scanner/session.ts'
-import { readPluginConfig, writePluginConfig } from '../src/scanner/modules/config.ts'
+import { readGromaConfig, writeGromaConfig } from '../src/config.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import { discoverScanners } from '../src/scanner/modules/discovery.ts'
 import { installableScanners, installSelectedScanners } from '../src/scanner/modules/setup.ts'
@@ -19,7 +19,7 @@ async function fixture() {
   await writeFile(path.join(root, 'Cargo.toml'), '[package]\nname="sample"\nversion="0.1.0"\n')
   // The registry packages, their tarballs and the scanner caches are test scaffolding, not project source.
   await writeFile(path.join(root, '.gitignore'), 'packages/\ncache/\ncolleague-cache/\nhome/\n*.tgz\n')
-  await writePluginConfig(root, { scanners: [], workSources: [] })
+  await writeGromaConfig(root, { scanners: [], workSources: [] })
   const version = `1.0.${randomInt(1000000, 1000000000)}`
   const manifests: Record<string, Record<string, unknown>> = {}
   for (const id of ['react', 'rust']) {
@@ -71,12 +71,12 @@ test.concurrent('a bare package name is selected and downloaded with the registr
     f.access.token = 'fixture-token'
     await mkdir(home)
     await writeFile(path.join(home, '.npmrc'), `@groma:registry=${registry.href}\n//${registry.host}/:_authToken=${f.access.token}\n`)
-    const child = Bun.spawn([process.execPath, path.resolve(import.meta.dir, '../src/cli.ts'), 'scanner', 'add', '@groma/scanner-react'], {
+    const child = Bun.spawn([process.execPath, path.resolve(import.meta.dir, '../src/cli.ts'), 'plugin', 'add', '@groma/scanner-react'], {
       cwd: f.root, env: { ...process.env, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: home }, stdout: 'ignore', stderr: 'pipe',
     })
     const error = await new Response(child.stderr).text()
     expect(await child.exited, error).toBe(0)
-    expect((await readPluginConfig(f.root)).scanners.map(item => item.source)).toEqual([`@groma/scanner-react@${f.version}`])
+    expect((await readGromaConfig(f.root)).scanners.map(item => item.source)).toEqual([`@groma/scanner-react@${f.version}`])
   } finally { await f.close() }
 })
 
@@ -88,22 +88,22 @@ test.concurrent('bulk installation retains successful releases, retries unpublis
     f.unavailable.add('@groma/scanner-rust')
     const before = await loadAnnotatedArchitecture(f.root)
     await expect(session.change({ action: 'install-recommended' })).rejects.toThrow('rust:')
-    const first = await readPluginConfig(f.root)
+    const first = await readGromaConfig(f.root)
     expect(first.scanners).toEqual([{ id: 'react', source: `@groma/scanner-react@${f.version}`, include: ['**/*.fixture'] }])
     expect(session.state.plugins.find(item => item.id === 'react')?.status).toBe('ready')
     f.unavailable.clear()
     await session.change({ action: 'install-recommended' })
-    const configured = await readPluginConfig(f.root)
+    const configured = await readGromaConfig(f.root)
     expect(configured.scanners.map(item => item.source)).toEqual([`@groma/scanner-react@${f.version}`, `@groma/scanner-rust@${f.version}`])
     expect(f.downloads.filter(name => name === 'react.tgz')).toHaveLength(1)
-    const selection = await readFile(path.join(f.root, 'groma/plugins.json'), 'utf8')
+    const selection = await readFile(path.join(f.root, 'groma/config.json'), 'utf8')
     await session.close()
     const colleague = await createScannerSession(f.root, { registry: f.options.registry, cacheRoot: path.join(f.root, 'colleague-cache'), scan: false })
     try {
       expect(colleague.state.plugins.filter(item => item.status === 'missing')).toHaveLength(2)
       await colleague.change({ action: 'install-missing' })
-      expect(colleague.state.plugins.every(item => item.status === 'ready')).toBe(true)
-      expect(await readFile(path.join(f.root, 'groma/plugins.json'), 'utf8')).toBe(selection)
+      expect(colleague.state.plugins.filter(item => item.listed).every(item => item.status === 'ready')).toBe(true)
+      expect(await readFile(path.join(f.root, 'groma/config.json'), 'utf8')).toBe(selection)
       expect((await loadAnnotatedArchitecture(f.root)).elements).toEqual(before.elements)
     } finally { await colleague.close() }
   } finally { await session.close(); await f.close() }
@@ -116,7 +116,7 @@ test.concurrent('setup retries a partial selection without reinstalling its succ
     const selected = ['react', 'rust']
     f.unavailable.add('@groma/scanner-rust')
     await expect(installSelectedScanners(f.root, proposal, selected, f.options)).rejects.toThrow('rust')
-    const first = await readPluginConfig(f.root)
+    const first = await readGromaConfig(f.root)
     expect(first.scanners).toEqual([{ id: 'react', source: `@groma/scanner-react@${f.version}`, include: ['**/*.fixture'] }])
     const refreshed = await discoverScanners(f.root, f.options)
     expect(refreshed.inventory).toEqual([{ id: 'react', source: first.scanners[0]!.source, status: 'found' }])
@@ -126,13 +126,13 @@ test.concurrent('setup retries a partial selection without reinstalling its succ
     f.unavailable.delete('@groma/scanner-rust')
     f.unavailable.add('@groma/scanner-react')
     await installSelectedScanners(f.root, proposal, selected, f.options)
-    const complete = await readPluginConfig(f.root)
+    const complete = await readGromaConfig(f.root)
     expect(complete.scanners).toEqual([
       ...first.scanners, { id: 'rust', source: `@groma/scanner-rust@${f.version}`, include: ['**/*.fixture'] },
     ])
     await installSelectedScanners(f.root, proposal, selected, f.options)
     await installSelectedScanners(f.root, refreshed, selected, f.options)
-    expect(await readPluginConfig(f.root)).toEqual(complete)
+    expect(await readGromaConfig(f.root)).toEqual(complete)
     expect(f.downloads.filter(name => name === 'react.tgz')).toHaveLength(1)
     expect(f.downloads.filter(name => name === 'rust.tgz')).toHaveLength(1)
   } finally { await f.close() }
@@ -145,7 +145,7 @@ test.concurrent('one Install resolves and pins a release, reports scan failure a
     await writeFile(path.join(f.root, 'tool-missing'), '')
     const before = await loadAnnotatedArchitecture(f.root)
     await session.change({ action: 'install', id: 'react' })
-    expect((await readPluginConfig(f.root)).scanners[0]?.source).toBe(`@groma/scanner-react@${f.version}`)
+    expect((await readGromaConfig(f.root)).scanners[0]?.source).toBe(`@groma/scanner-react@${f.version}`)
     expect(session.state.plugins.find(item => item.id === 'react')?.status).toBe('blocked')
     expect((await loadAnnotatedArchitecture(f.root)).elements).toEqual(before.elements)
     await rm(path.join(f.root, 'tool-missing'))

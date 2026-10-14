@@ -58,7 +58,7 @@ record.
 
 Tests, fixtures, build scripts, and other development tooling are not product
 architecture unless the human says so. Exclude them before curating: add Git
-ignore patterns to the global `exclude` array in `<groma-root>/plugins.json`,
+ignore patterns to the global `exclude` array in `<groma-root>/config.json`,
 or to one scanner entry's own `exclude` array to affect only that scanner, keep
 the existing entries, and run `groma scan`. A scanner's own list starts with the
 defaults its package declares; a `!` pattern there restores a globally excluded
@@ -70,7 +70,7 @@ Git ignores.
 "exclude": ["/scripts/", "/test/", "**/*.spec.ts"]
 ```
 
-`plugins.json` is plugin configuration, not architecture Markdown, so edit it
+`config.json` is project configuration, not architecture Markdown, so edit it
 directly. Patterns are relative to the repository root and use `/` separators;
 a leading `/` matches only at the root. Excluded files do not become new
 components. Components already stored for newly excluded files keep their Code

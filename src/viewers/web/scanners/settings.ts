@@ -60,7 +60,7 @@ function rowActions(plugin: PluginSetting, upgrades: PluginSettings['upgrades'])
   const npm = plugin.source && isNpmPackageName(plugin.source.slice(0, plugin.source.lastIndexOf('@')))
   const update = npm ? button('version', 'Choose version') : button('version', 'Update')
   const retry = action?.action === 'update' && plugin.status === 'blocked' ? button('retry', 'Retry scan') : ''
-  const more = plugin.source ? retry + update + button('remove', 'Remove from project') : ''
+  const more = plugin.listed ? retry + update + button('remove', 'Remove from project') : ''
   return { primary, more }
 }
 
@@ -88,7 +88,7 @@ function settingRow(plugin: PluginSetting, upgrades: PluginSettings['upgrades'])
   const metadata = [version, plugin.official ? 'Official' : 'Third-party'].filter(Boolean).join(' · ')
   const updateError = upgrade?.error ? `<p>Could not check for updates. ${escaped(upgrade.error)}</p>` : ''
   const details = detailLabel(plugin)
-  return `<section class="scanner-row" data-scanner-id="${escaped(plugin.id)}"><div class="scanner-header"><div class="scanner-heading"><strong>${escaped(scannerName(plugin.id))}</strong><span class="scanner-version">${escaped(metadata)}</span></div>${badge}<div class="scanner-primary">${primary}</div></div>`
+  return `<section class="scanner-row" data-scanner-id="${escaped(plugin.id)}"><div class="scanner-header"><div class="scanner-heading"><strong>${escaped(plugin.kind === 'scanner' ? scannerName(plugin.id) : plugin.name)}</strong><span class="scanner-version">${escaped(metadata)}</span></div>${badge}<div class="scanner-primary">${primary}</div></div>`
     + `<details><summary>${details}</summary><div class="scanner-body"><code class="scanner-package">${escaped(plugin.source ?? plugin.installSource ?? plugin.name)}</code>`
     + `${reason}${plugin.message ? `<p>${escaped(plugin.message)}</p>` : ''}${plugin.kind === 'scanner' ? detectionDetails(plugin) : ''}${updateError}<div class="scanner-actions">${more}</div></div></details></section>`
 }
@@ -103,7 +103,7 @@ function filterEvidence(input: HTMLInputElement): void {
 
 function settingGroup(group: ReturnType<typeof pluginGroups>[number], showBulk: boolean, upgrades: PluginSettings['upgrades']): string {
   const missing = group.plugins.every(plugin => plugin.status === 'missing')
-  const recommended = group.plugins.every(plugin => !plugin.source)
+  const recommended = group.plugins.every(plugin => !plugin.listed)
   const title = group.title
   const action = missing ? 'install-missing' : recommended ? 'install-recommended' : undefined
   const installable = group.plugins.filter(plugin => plugin.status === 'missing' || plugin.installSource).length

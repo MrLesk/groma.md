@@ -5,7 +5,7 @@ import path from 'node:path'
 
 import { parseListWindow } from '../src/list-window.ts'
 import { renderPlainRecord } from '../src/plain-world.ts'
-import { readPluginConfig, writePluginConfig } from '../src/scanner/modules/config.ts'
+import { readGromaConfig, writeGromaConfig } from '../src/config.ts'
 import { addScanner } from '../src/scanner/modules/inventory.ts'
 
 const window = parseListWindow({}, [])
@@ -58,8 +58,8 @@ test.concurrent('a target outside the repository listing is reported as such, no
 test.concurrent('an excluded file names the configured pattern that hides it', async () => {
   const root = await repository()
   try {
-    const config = await readPluginConfig(root)
-    await writePluginConfig(root, { ...config, exclude: ['**/*.md', '/scripts/'] })
+    const config = await readGromaConfig(root)
+    await writeGromaConfig(root, { ...config, exclude: ['**/*.md', '/scripts/'] })
     expect(await reason(root, 'scripts/hidden.ts')).toContain('pattern /scripts/')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
@@ -67,12 +67,12 @@ test.concurrent('an excluded file names the configured pattern that hides it', a
 test.concurrent('a pattern decides with the whole list, so a later negation restores its file, in one scanner\'s own list for that scanner alone', async () => {
   const root = await repository()
   try {
-    const config = await readPluginConfig(root)
-    await writePluginConfig(root, { ...config, exclude: ['**/*.generated.ts'] })
+    const config = await readGromaConfig(root)
+    await writeGromaConfig(root, { ...config, exclude: ['**/*.generated.ts'] })
     expect(await reason(root, 'src/keep.generated.ts')).toContain('pattern **/*.generated.ts')
-    await writePluginConfig(root, { ...config, exclude: ['**/*.generated.ts', '!src/keep.generated.ts'] })
+    await writeGromaConfig(root, { ...config, exclude: ['**/*.generated.ts', '!src/keep.generated.ts'] })
     expect(await reason(root, 'src/keep.generated.ts')).toContain('read by first, second')
-    await writePluginConfig(root, { exclude: ['/scripts/'], scanners: config.scanners.map(scanner =>
+    await writeGromaConfig(root, { exclude: ['/scripts/'], scanners: config.scanners.map(scanner =>
       scanner.id === 'first' ? { ...scanner, exclude: ['!/scripts/'] } : scanner), workSources: [] })
     const answer = await reason(root, 'scripts/hidden.ts')
     expect(answer).toContain('read by first')

@@ -15,7 +15,7 @@ bun plugins/scanners/react/build.ts
 From the project being scanned:
 
 ```sh
-groma scanner add /absolute/path/to/groma/plugins/scanners/react/dist/package
+groma plugin add /absolute/path/to/groma/plugins/scanners/react/dist/package
 groma scanner check
 groma scan
 ```

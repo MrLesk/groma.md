@@ -15,6 +15,19 @@ completed setup milestones, the current operation, and the pending map step.
 Opening an initialized project uses a compact card with the project name,
 version, and a left-aligned loading status, without setup navigation.
 
+Opening an initialized project first checks the plugins `config.json` lists.
+Only when one is missing on this computer does the card show **Restore plugins**
+instead: one row per missing plugin with what `config.json` pins, and two
+choices. **Restore** restores the rows one at a time, each with its own activity
+mark and then a check or the failure reason, and opens the map when all are
+present; otherwise the view returns with the plugins still missing. **Proceed
+without them** opens the map read-only: no scan or source watch runs, the header
+says **Read-only: plugins missing**, and the map offers no write controls or
+plugin settings, as for a historical view. The server refuses writes too.
+[`startup/restore.ts`](../../../src/viewers/web/startup/restore.ts) presents the
+rows; [`plugin-management.ts`](../../../src/plugin-management.ts) decides what is
+missing and restores it. See [Project configuration](../../config.md).
+
 Status changes follow actual work: creating the project, finding or installing
 scanners, preparing the viewer, preparing scanners, scanning, updating
 architecture, loading architecture, preparing the map, and opening the map.

@@ -1,8 +1,7 @@
 import type { ScannerRecommendation } from './catalog.ts'
-import { readPluginConfig } from './config.ts'
+import { readGromaConfig } from '../../config.ts'
 import { discoverScanners, formatDiscovery, type ScannerDiscovery } from './discovery.ts'
-import { addScanner } from './inventory.ts'
-import type { PluginInstallOptions } from './package.ts'
+import { addScanner, type ScannerInstallOptions } from './inventory.ts'
 import { checkScannerReadiness, formatReadiness } from './readiness.ts'
 
 export interface ScannerSetupUi {
@@ -19,10 +18,10 @@ export async function installSelectedScanners(
   root: string,
   proposal: ScannerDiscovery,
   selected: readonly string[],
-  options: PluginInstallOptions = {},
+  options: ScannerInstallOptions = {},
 ): Promise<void> {
   const candidates = installableScanners(proposal)
-  const configured = new Set((await readPluginConfig(root)).scanners.map(scanner => scanner.id))
+  const configured = new Set((await readGromaConfig(root)).scanners.map(scanner => scanner.id))
   const sources = [...new Set(selected)].filter(id => !configured.has(id)).map(id => {
     const candidate = candidates.find(item => item.id === id)
     if (candidate === undefined) throw new Error(`Scanner ${id} is not an installable recommendation.`)

@@ -11,9 +11,8 @@ import { repositoryListing } from '../../repository-listing.ts'
 import { officialScannerCatalog, recommendScanners } from './catalog.ts'
 import type { TechnologyFinding, ScannerRecommendation, OfficialScanner } from './catalog.ts'
 import { scannerInventory, configuredScannerModules } from './inventory.ts'
-import { exclusion, readPluginConfig, type PluginConfig } from './config.ts'
-import type { ScannerInventoryItem } from './inventory.ts'
-import type { PluginResolutionOptions } from './package.ts'
+import { exclusion, readGromaConfig, type GromaConfig } from '../../config.ts'
+import type { ScannerInventoryItem, ScannerResolutionOptions } from './inventory.ts'
 
 export interface ScannerDiscovery {
   findings: TechnologyFinding[]
@@ -93,7 +92,7 @@ async function declarationFindings(repositoryRoot: string, file: string, rules: 
  * The technologies the project's declarations report, and the declarations that could not be parsed. Discovery rules
  * belong to every scanner, installed or not, so the global exclusion list alone applies.
  */
-async function declaredFindings(repositoryRoot: string, rules: CompiledRule[], config: PluginConfig | undefined) {
+async function declaredFindings(repositoryRoot: string, rules: CompiledRule[], config: GromaConfig | undefined) {
   const findings: TechnologyFinding[] = []
   const limits: string[] = []
   const excluded = exclusion(config?.exclude ?? [])
@@ -112,7 +111,7 @@ async function declaredFindings(repositoryRoot: string, rules: CompiledRule[], c
 
 export async function discoverScanners(
   repositoryRoot: string,
-  options: PluginResolutionOptions = {},
+  options: ScannerResolutionOptions = {},
   catalog: readonly OfficialScanner[] = officialScannerCatalog,
 ): Promise<ScannerDiscovery> {
   const initialized = GromaFileSystem.find(repositoryRoot) !== undefined
@@ -125,7 +124,7 @@ export async function discoverScanners(
   const rules = catalog.flatMap(scanner => scanner.rules.map(rule => ({
     rule, matches: compileWatchPatterns(rule.files),
   })))
-  const config = initialized ? await readPluginConfig(repositoryRoot) : undefined
+  const config = initialized ? await readGromaConfig(repositoryRoot) : undefined
   const { findings, limits } = await declaredFindings(repositoryRoot, rules, config)
   const inventory = initialized ? await scannerInventory(repositoryRoot, options) : []
   const recommendations = recommendScanners(findings, inventory, catalog).map(candidate => {

@@ -1,83 +1,69 @@
-import { pathToFileURL } from 'node:url'
 import { EMPTY_WORK_SOURCE, type WorkSource, type WorkSourcePlugin } from '@groma/work-source'
-import groma from '../package.json' with { type: 'json' }
-import { readPluginConfig } from './scanner/modules/config.ts'
-import { parsePluginSource, resolvePluginPackage, type PluginResolutionOptions, type ResolvedWorkSourcePackage } from './scanner/modules/package.ts'
+import { backlogPlugin } from '@groma/work-source-backlog'
+import { installBacklogCli } from './backlog-cli.ts'
+import { readGromaConfig, type ConfiguredWorkSource } from './config.ts'
 
-interface WorkSourceSelectionFields {
-  id: string
-  source: string
-  kind: 'workSource'
-  message: string
-  /** The command the adapter's readiness names for what it lacks. */
-  install?: string
-  name?: string
-  version?: string
+/** A work source that ships inside groma.md, with the tool it reads through. */
+export interface BundledWorkSource {
+  name: string
+  plugin: WorkSourcePlugin
+  /** Installs the current tool, or updates an installed one when `upgrade` is set. */
+  installTool(upgrade: boolean): Promise<void>
 }
 
-/** The selected work source as it stands on this computer. The adapter is there exactly when it is ready to create a source. */
+/** The work sources that ship inside groma.md, by the id config.json lists them with. */
+export const bundledWorkSources: Readonly<Record<string, BundledWorkSource>> = {
+  backlog: { name: 'Backlog.md', plugin: backlogPlugin, installTool: installBacklogCli },
+}
+
+interface WorkSourceSelectionFields extends ConfiguredWorkSource {
+  kind: 'workSource'
+  name: string
+  /** The tool version on this computer, when it is installed. */
+  installed?: string
+  message: string
+}
+
+/**
+ * The work source config.json lists, as it stands on this computer. `missing` means its tool is not installed or is
+ * older than the listed version, which restoring fixes; the adapter is there exactly when the source is ready.
+ */
 export type WorkSourceSelection =
   | WorkSourceSelectionFields & { status: 'found'; plugin: WorkSourcePlugin }
   | WorkSourceSelectionFields & { status: 'missing' | 'blocked' }
 
-/**
- * Reports whether the work source that plugins.json selects can run here. Unlike `configuredScannerModules`, this
- * executes plugin code: once the package is found and accepts this groma.md version, it imports the adapter and
- * calls its `readiness()`. Without a selection nothing is imported or probed.
- */
-export async function checkWorkSourceReadiness(root: string, options: PluginResolutionOptions = {}): Promise<WorkSourceSelection | undefined> {
-  const selected = (await readPluginConfig(root)).workSources[0]
+/** Reports whether the work source config.json lists can run here. Without an entry no tool runs. */
+export async function checkWorkSourceReadiness(root: string): Promise<WorkSourceSelection | undefined> {
+  const selected = (await readGromaConfig(root)).workSources[0]
   if (!selected) return undefined
-  const base = { ...selected, kind: 'workSource' as const }
+  const bundled = bundledWorkSources[selected.id]
+  const base = { ...selected, kind: 'workSource' as const, name: bundled?.name ?? selected.id }
+  if (!bundled) {
+    return { ...base, status: 'blocked', message: `groma.md has no work source ${selected.id}. Bundled: ${Object.keys(bundledWorkSources).join(', ')}.` }
+  }
   try {
-    const source = parsePluginSource(root, selected.source)
-    const resolved = await resolvePluginPackage(source, options, 'workSource')
-    if (!resolved) return { ...base, status: 'missing', message: `Restore ${selected.source} with groma plugin install, or restore its local path.` }
-    if (resolved.id !== selected.id) throw new Error(`Configured work source ${selected.id} resolves to ${resolved.id}`)
-    const details = { ...base, name: resolved.name, version: resolved.version }
-    const incompatible = hostIncompatibility(resolved)
-    if (incompatible) return { ...details, status: 'blocked', message: incompatible }
-    return await importedWorkSource(resolved.entry, details)
+    const readiness = await bundled.plugin.readiness()
+    if (readiness.status === 'missing') return { ...base, status: 'missing', message: `${bundled.name} CLI is not installed.` }
+    const installed = { ...base, installed: readiness.version }
+    if (Bun.semver.order(readiness.version, selected.version) < 0) {
+      return { ...installed, status: 'missing', message: `${bundled.name} CLI ${readiness.version} is older than ${selected.version}.` }
+    }
+    return { ...installed, status: 'found', plugin: bundled.plugin, message: '' }
   } catch (error) {
     return { ...base, status: 'blocked', message: error instanceof Error ? error.message : String(error) }
   }
 }
 
-/** Why this groma.md version cannot load a work-source package, when the range its manifest declares excludes it. */
-export function hostIncompatibility(resolved: ResolvedWorkSourcePackage): string | undefined {
-  const required = resolved.compatibility?.groma
-  return required && !Bun.semver.satisfies(groma.version, required)
-    ? `Requires Groma ${required}; this computer has ${groma.version}. Update Groma.`
-    : undefined
-}
-
-async function importedWorkSource(
-  entry: string,
-  details: Pick<WorkSourceSelection, 'id' | 'source' | 'kind' | 'name' | 'version'>,
-): Promise<WorkSourceSelection> {
-  const module = await import(pathToFileURL(entry).href)
-  const plugin = module.default as WorkSourcePlugin | undefined
-  if (plugin?.id !== details.id || typeof plugin.create !== 'function' || typeof plugin.readiness !== 'function') {
-    throw new Error(`Work source ${details.id} must export a default WorkSourcePlugin with matching id, readiness and create`)
-  }
-  const readiness = plugin.readiness()
-  const install = readiness.install ? { install: readiness.install } : {}
-  if (readiness.status === 'found') return { ...details, ...install, plugin, status: 'found', message: 'Work source is ready.' }
-  // The contract names what an adapter lacks only through its install command, so this wording fits every adapter.
-  const message = readiness.install ? `Required tool missing. Install with ${readiness.install}.` : 'Required tool missing.'
-  return { ...details, ...install, status: 'blocked', message }
-}
-
-/** Only a ready selection creates its source, so an unselected or blocked adapter never runs its tool. */
+/** Only a ready selection creates its source, so an unlisted or missing work source never runs its tool. */
 function activeSource(root: string, selection: WorkSourceSelection | undefined): WorkSource {
   return selection?.status === 'found' ? selection.plugin.create(root) : EMPTY_WORK_SOURCE
 }
 
 function selectionSignature(selection: WorkSourceSelection | undefined): string {
-  return selection ? JSON.stringify([selection.id, selection.source, selection.status, selection.version]) : ''
+  return selection ? JSON.stringify([selection.id, selection.version, selection.status, selection.installed]) : ''
 }
 
-/** A work source that follows plugins.json for as long as a viewer is open. */
+/** A work source that follows config.json for as long as a viewer is open. */
 export interface WorkSourceSession extends WorkSource {
   /** Reads the selection again and swaps the adapter when the selection or its readiness changed. */
   reconfigure(): Promise<void>

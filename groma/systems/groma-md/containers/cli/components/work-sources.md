@@ -8,8 +8,10 @@ groma:
   code:
     - scanner: typescript
       file: src/work-sources.ts
+    - scanner: typescript
+      file: src/backlog-cli.ts
   group: Project work
-description: Loads the configured task adapter and owns its live subscription
+description: Runs the bundled work source config.json lists and owns its live subscription
 ---
 
-Reads the single work-source selection from plugins.json and resolves its package without downloading anything. In this order it checks that the package accepts this groma.md version, imports the adapter, asks the adapter for its readiness, and only then lets a ready adapter create its source. The welcome screen, the plugin settings and the plugin list read that readiness; both viewers follow the selection through one session for task reads and the watch. A project without a selection, or with one that is not ready, gets empty task state and no external CLI runs. When plugins.json or the settings change, the session closes the previous subscription before activating the current selection.
+Holds the work sources that ship inside groma.md, today Backlog.md, by the id config.json lists them with. A listed work source is ready when its tool is installed at the listed version or newer; only then does it create its source, so a project without an entry runs no external CLI and gets empty task state. backlog-cli.ts installs or updates the Backlog.md CLI and initializes Backlog.md for groma init. Both viewers follow the selection through one session for task reads and the watch; when config.json or the settings change, the session closes the previous subscription before activating the current selection.

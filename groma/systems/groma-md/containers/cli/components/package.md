@@ -11,18 +11,18 @@ groma:
     - scanner: typescript
       file: src/scanner/modules/inventory.ts
     - scanner: typescript
-      file: src/scanner/modules/config.ts
-    - scanner: typescript
       file: src/scanner/modules/published.ts
     - scanner: typescript
       file: src/plugin-management.ts
     - scanner: typescript
       file: src/scanner/modules/package-manager.ts
+    - scanner: typescript
+      file: src/config.ts
   group: Scanner management
-description: Selects, resolves, installs and restores project plugins by kind
+description: Reads config.json, owns the plugins it lists and restores them by kind
 ---
 
-Reads explicit plugin selections from plugins.json and manages their package lifecycle. Resolves npm, Git and local sources for scanners and work sources; stores pinned sources and scanner defaults. Plugin commands, scanner commands and settings share one add, remove, update and restore operation addressed by plugin id. Resolving a package never runs plugin code; work-source loading checks host compatibility before it imports the adapter and asks its readiness.
+Reads and writes config.json, the project's one groma.md configuration, and resolves, installs and restores scanner packages from exact npm, Git and local sources. plugin-management.ts is the one owner of the plugins config.json lists: it reports whether this computer has each of them and adds, updates, removes and restores them by kind, downloading a scanner package or installing the Backlog.md CLI. The plugin commands, groma init, the plugins screen and the groma web restore view all use it. Resolving a package never runs plugin code.
 
 ## Relationships
 

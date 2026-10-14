@@ -1,5 +1,5 @@
 import { repositoryListing } from '../../repository-listing.ts'
-import { exclusion, exclusionPatterns, inclusion, type PluginConfig } from './config.ts'
+import { exclusion, exclusionPatterns, inclusion, type GromaConfig } from '../../config.ts'
 
 /** Which repository files a scanner reads: those its include list names and no exclusion names. */
 export interface ScannerSelection {
@@ -13,7 +13,7 @@ export function scannerSelection(lists: { include: readonly string[]; exclude?: 
 }
 
 /** A configured scanner's selection: its include list, then the global exclusions followed by its own. */
-export function configuredSelection(config: PluginConfig, scanner: string): ScannerSelection {
+export function configuredSelection(config: GromaConfig, scanner: string): ScannerSelection {
   return scannerSelection({
     include: config.scanners.find(entry => entry.id === scanner)?.include ?? [],
     exclude: exclusionPatterns(config, scanner),

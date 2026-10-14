@@ -11,7 +11,7 @@ import {
   launcherRows,
   nestedPageIndicator,
   welcomeVersion,
-  workSourceSummary,
+  missingPluginsSummary,
 } from './model.ts'
 import type {
   WelcomeModel,
@@ -302,10 +302,10 @@ function drawMarkdownViewport(
   return { maxScroll, pageSize, scroll }
 }
 
-/** The row above the key hints; it stays empty when the project selects no work source. */
-function drawWorkSource(buffer: OptimizedBuffer, model: WelcomeModel, x: number, y: number): void {
-  const summary = workSourceSummary(model)
-  if (summary) drawParts(buffer, [{ value: 'work source: ', attributes: TextAttributes.DIM }, { value: summary }], x, y)
+/** The row above the key hints; it stays empty when this computer has every plugin config.json lists. */
+function drawMissingPlugins(buffer: OptimizedBuffer, model: WelcomeModel, x: number, y: number): void {
+  const summary = missingPluginsSummary(model)
+  if (summary) drawParts(buffer, [{ value: 'missing plugins: ', attributes: TextAttributes.DIM }, { value: summary }], x, y)
 }
 
 export function paintLauncher(
@@ -324,16 +324,16 @@ export function paintLauncher(
   }
   const tableY = shell.contentY + (notice?.message ? 2 : 0)
   drawTable(buffer, sheet, rows, arrowVisible, shell.x, tableY)
-  const workSourceY = Math.max(
+  const missingY = Math.max(
     tableY + rows.length * 2 + 1,
     buffer.height - 2,
   )
-  drawWorkSource(buffer, model, shell.x + 2, workSourceY)
+  drawMissingPlugins(buffer, model, shell.x + 2, missingY)
   text(
     buffer,
     '↑/↓ navigate  │  Enter run/open  │  Esc/Q quit',
     shell.x + 2,
-    workSourceY + 1,
+    missingY + 1,
     shell.width - 4,
     terminalForeground,
     terminalBackground,
@@ -372,11 +372,11 @@ export function paintAdvanced(
 
   const rows = advancedRows(selectedIndex)
   const tableY = shell.contentY + 3
-  const workSourceY = buffer.height - 2
+  const missingY = buffer.height - 2
   const tablePageSize = Math.min(
     5,
     rows.length,
-    Math.max(1, Math.floor((workSourceY - tableY - 5) / 2)),
+    Math.max(1, Math.floor((missingY - tableY - 5) / 2)),
   )
   const maxTableScroll = Math.max(0, rows.length - tablePageSize)
   const selectedRow = selectedIndex - 1
@@ -401,15 +401,15 @@ export function paintAdvanced(
     sheet.innerWidth - 2,
     shell.x + 2,
     descriptionY,
-    workSourceY - descriptionY,
+    missingY - descriptionY,
     requestedDescriptionScroll,
   )
-  drawWorkSource(buffer, model, shell.x + 2, workSourceY)
+  drawMissingPlugins(buffer, model, shell.x + 2, missingY)
   text(
     buffer,
     readingFooter(reading),
     shell.x + 2,
-    workSourceY + 1,
+    missingY + 1,
     shell.width - 4,
     terminalForeground,
     terminalBackground,

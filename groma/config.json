@@ -182,7 +182,7 @@
   "workSources": [
     {
       "id": "backlog",
-      "source": "./plugins/work-sources/backlog"
+      "version": "1.53.0"
     }
   ],
   "exclude": [

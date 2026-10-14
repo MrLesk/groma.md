@@ -4,7 +4,7 @@ import { scannerWarning } from '../src/viewers/web/settings/model.ts'
 
 function settings(tone: PluginSettings['notice']['tone'], statuses: ScannerSetting['status'][]): PluginSettings {
   return { notice: { tone, message: '' }, limits: [], plugins: statuses.map((status, index) => ({
-    kind: 'scanner', id: String(index), name: '', official: true, technologies: [], matches: [], match: 'matched', status, message: '',
+    kind: 'scanner', id: String(index), name: '', listed: status !== 'available', official: true, technologies: [], matches: [], match: 'matched', status, message: '',
   })) }
 }
 
@@ -16,7 +16,7 @@ test.concurrent('scanner warnings open a failed plugin before missing or recomme
 
 test.concurrent('a scanner warning opens a scanner even when a work source needs attention', () => {
   const state = settings('warning', ['available'])
-  state.plugins.unshift({ kind: 'workSource', id: 'tasks', name: '', official: false, status: 'blocked', message: '' })
+  state.plugins.unshift({ kind: 'workSource', id: 'tasks', name: '', listed: true, official: false, status: 'blocked', message: '' })
   expect(scannerWarning(state)?.scannerId).toBe('0')
 })
 

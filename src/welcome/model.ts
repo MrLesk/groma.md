@@ -40,24 +40,24 @@ export const advancedCommands = [
     content: 'Writes a static snapshot of the stored architecture to <directory>. Serve or upload the output separately. Run the command again to publish an updated snapshot.',
   },
   {
-    command: 'groma scanner add <source>',
-    description: 'exact npm/Git source or ./path',
-    content: 'Adds a scanner from an exact npm package version, Git source or local directory to this project.',
+    command: 'groma plugin add <plugin>',
+    description: 'bundled id, exact npm/Git source or ./path',
+    content: 'Adds a plugin to config.json: a bundled plugin by its id, such as backlog, or a scanner from an exact npm package version, Git source or local directory.',
   },
   {
-    command: 'groma scanner install',
-    description: 'restore configured npm/Git scanners',
-    content: 'Restores configured npm and Git scanners. Local scanners run directly from their selected path.',
+    command: 'groma plugin install',
+    description: 'restore missing plugins',
+    content: 'Restores the plugins config.json lists that this computer lacks: downloads scanner packages and installs the Backlog.md CLI.',
   },
   {
-    command: 'groma scanner list',
+    command: 'groma plugin list',
     description: 'show found/missing',
-    content: 'Lists every configured scanner and whether its package is found or missing.',
+    content: 'Lists every plugin config.json lists and whether this computer has it.',
   },
   {
-    command: 'groma scanner remove <id>',
-    description: 'disable; keep shared cache',
-    content: 'Removes a scanner from this project. Shared downloaded packages remain cached for other projects.',
+    command: 'groma plugin remove <id>',
+    description: 'remove; keep shared cache',
+    content: 'Removes a plugin from config.json. Shared downloaded packages remain cached for other projects.',
   },
   {
     command: 'groma add <thing> <name> …',
@@ -162,10 +162,10 @@ export async function loadWelcomeModel(repositoryRoot: string): Promise<WelcomeM
   }
 }
 
-/** The work source that plugins.json selects and whether it can run, or nothing when the project selects none. */
-export function workSourceSummary(model: WelcomeModel): string | undefined {
-  const workSource = model.pluginSettings?.plugins.find(plugin => plugin.kind === 'workSource')
-  return workSource && `${workSource.id}: ${workSource.status === 'ready' ? '✓ ready' : workSource.message}`
+/** The plugins config.json lists that this computer lacks and how to restore them, or nothing when it has them all. */
+export function missingPluginsSummary(model: WelcomeModel): string | undefined {
+  const missing = model.pluginSettings?.plugins.filter(plugin => plugin.listed && plugin.status === 'missing') ?? []
+  return missing.length ? `${missing.map(plugin => plugin.name).join(', ')} · groma plugin install` : undefined
 }
 
 export function welcomeSheet(model: WelcomeModel): WelcomeSheet {
@@ -191,7 +191,7 @@ export function welcomeSheet(model: WelcomeModel): WelcomeSheet {
 
 export async function renderPlainWelcome(repositoryRoot: string): Promise<string> {
   const model = await loadWelcomeModel(repositoryRoot)
-  const workSource = workSourceSummary(model)
+  const missing = missingPluginsSummary(model)
   return [
     `groma.md v${welcomeVersion}`,
     'architecture in Git',
@@ -200,7 +200,7 @@ export async function renderPlainWelcome(repositoryRoot: string): Promise<string
     `project: ${model.project}`,
     `folder: ${model.folder}`,
     `status: ${model.status}`,
-    ...(workSource ? [`work source: ${workSource}`] : []),
+    ...(missing ? [`missing plugins: ${missing}`] : []),
     '',
     ...welcomeActions.map(action => `${action.command} — ${action.description}`),
     `${instructionsAction.command} — ${instructionsAction.description}`,

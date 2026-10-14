@@ -10,8 +10,6 @@ import {
 
 type BacklogCommandResolver = () => string | null
 
-const installCommand = 'bun i -g backlog.md'
-
 function findBacklogCommand(): string | null {
   return Bun.which('backlog')
 }
@@ -213,10 +211,12 @@ export function createBacklogPlugin(
 ): WorkSourcePlugin {
   return {
     id: 'backlog',
-    readiness() {
-      return resolveCommand() === null
-        ? { status: 'missing', install: installCommand }
-        : { status: 'found' }
+    async readiness() {
+      const command = resolveCommand()
+      if (command === null) return { status: 'missing' }
+      // `backlog --version` prints the version alone, such as 1.53.0.
+      const version = (await runBacklog(command, ['--version'], process.cwd())).trim()
+      return { status: 'found', version }
     },
     create(repositoryRoot) {
       const command = resolveCommand()
@@ -227,4 +227,4 @@ export function createBacklogPlugin(
   }
 }
 
-export default createBacklogPlugin()
+export const backlogPlugin = createBacklogPlugin()

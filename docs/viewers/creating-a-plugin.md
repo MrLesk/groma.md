@@ -71,10 +71,10 @@ Work comes through the public `@groma/work-source` contract: `read()`
 resolves the configured workflow and available Backlog tasks, and
 `watch(onChange)` returns a handle whose `close()` stops notifications and may
 return a promise; hosts await it when shutting down. Both hosts load the
-work source that `plugins.json` selects, or take another source through their
-`workSource` option. Without a selection, or while the selected adapter is not
-ready, such as `@groma/work-source-backlog` without the global Backlog.md CLI,
-the host uses an empty work source so architecture remains fully available.
+bundled work source that `config.json` lists, or take another source through
+their `workSource` option. Without an entry, or while the listed work source is
+missing on this computer, such as Backlog.md without its CLI, the host uses an
+empty work source so architecture remains fully available.
 
 The Backlog plugin reads only through the CLI and does not inspect or watch
 Backlog storage. Each subscription starts `backlog task list --json --watch`.

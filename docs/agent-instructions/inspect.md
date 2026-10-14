@@ -20,7 +20,7 @@ add descriptions, actors, flows, groups, or relationship rows.
 | | a flow ID | Prints the flow record with its steps. |
 | | a draft ID | Prints the draft's outcome and the elements it touches. |
 | | an exact repository-relative source file | Prints the owning component's ID, kind, title, and parent, the file connections of map relationships split into incoming and outgoing, and the command for the owner's complete record. Rows between files of one component are not listed; `groma view <owner-id> --plain` lists relationships that name the owner element. |
-| `groma scanner list` | none | Lists the configured scanners and whether each is ready. |
+| `groma plugin list` | none | Lists the plugins `config.json` lists and whether this computer has them. |
 | `groma lint` | none | Pages possible duplicate logic from fresh scanner evidence. Findings are review questions: they are not relationships and do not merge components. |
 
 A relationship line reads `source -> target | description | technology`, with
@@ -37,8 +37,8 @@ mistyped name from a coverage gap:
 | Reason | Meaning |
 | --- | --- |
 | `unknown target: <target>; not a repository file` | Neither a stored ID nor a repository file, which is tracked or, unless `useGitignore` is false, untracked and not ignored: usually a typo. |
-| `no owner: <file>; excluded by plugins.json pattern <pattern>` | That global pattern hides the file from every scanner, and no scanner's own list restores it. |
-| `no owner: <file>; excluded for <scanner> by plugins.json pattern <pattern>` | That scanner selects the file, but that pattern in its exclusions, the global list followed by its own, hides it from that scanner. |
+| `no owner: <file>; excluded by config.json pattern <pattern>` | That global pattern hides the file from every scanner, and no scanner's own list restores it. |
+| `no owner: <file>; excluded for <scanner> by config.json pattern <pattern>` | That scanner selects the file, but that pattern in its exclusions, the global list followed by its own, hides it from that scanner. |
 | `no owner: <file>; no enabled scanner reads it` | No enabled scanner selects the file for analysis, so no scan can own it. |
 | `no owner: <file>; read by <scanners> and waiting for a scan, so run groma scan` | Those scanners select the file, their exclusions keep it, and no scan has given it an owner since it appeared or was detached. |
 | `no owner: <file>; <scanner> could not list its sources: <error>` | That scanner's listing failed, so it may or may not read the file; its error's first line follows. When other scanners read the file, it follows the waiting-for-a-scan reason. |
@@ -60,7 +60,7 @@ footer.
 
 `groma view --plain`, `groma view <id> --plain`, `groma view <draft-id>`,
 `groma view <source-file>`, `groma lint`, `groma scanner discover`, and
-`groma scanner list` page their items. A `groma view` page repeats the element,
+`groma plugin list` page their items. A `groma view` page repeats the element,
 owner, or draft it describes; consecutive pages, read in order, print the
 complete answer once. `groma scan` is not paged: its report counts
 findings and names `groma lint`. The complete Markdown record of

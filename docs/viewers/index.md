@@ -34,13 +34,14 @@ its whole-cell geometry; the TUI derives the fitted layout described above.
 A live host starts the same watch as `groma scan --watch`
 in-process and reloads the architecture and sheet after each fold. It also
 reloads them when architecture Markdown changes. `groma view` and `groma web` run one scan before opening.
-A live host asks the work source that `plugins.json` selects for active tasks and
+A live host asks the work source that `config.json` lists for active tasks and
 refreshes them when a task file
 changes: the TUI marks In Progress work on referenced elements, while the web
 stands each task's pins on the element it touched last. A work refresh projects
 onto the cached map instead of composing another sheet. A failed Backlog read
-leaves the map available. A project without a selected work source, or one whose
-work source is not ready, such as Backlog without its global CLI, shows empty work.
+leaves the map available. A project whose `config.json` lists no work source, or
+whose work source is missing on this computer, such as Backlog.md without its CLI,
+shows empty work.
 The Backlog CLI must support `task list --json --watch`. If it rejects the
 required options, groma.md reports upgrade guidance in its terminal output:
 `npm install -g backlog.md`. It does not install updates or read Backlog storage.

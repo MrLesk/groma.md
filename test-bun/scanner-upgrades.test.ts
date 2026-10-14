@@ -17,7 +17,7 @@ test.concurrent('upgrade checks preserve scan health and offer only a newer comp
     return Response.json({ versions })
   } })
   const scanner = {
-    kind: 'scanner' as const, id: 'sample', name: '@example/scanner', source: '@example/scanner@1.0.0', version: '1.0.0',
+    kind: 'scanner' as const, id: 'sample', name: '@example/scanner', listed: true, source: '@example/scanner@1.0.0', version: '1.0.0',
     official: false, technologies: ['sample'], matches: ['project.json'], match: 'matched' as const,
     status: 'ready' as const, message: 'Scan completed.',
   }

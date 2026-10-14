@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { recommendScanners, type TechnologyFinding, type OfficialScanner } from '../src/scanner/modules/catalog.ts'
 import { parseScannerDiscovery } from '@groma/scanner'
-import { selectPublishedPlugin } from '../src/scanner/modules/published.ts'
+import { selectPublishedScanner } from '../src/scanner/modules/published.ts'
 
 const catalog: OfficialScanner[] = [{
   id: 'language', package: 'example-scanner', description: '', technologies: ['language'], rules: [],
@@ -38,10 +38,10 @@ test.concurrent('installation chooses the newest published stable release for Gr
     return Response.json({ name, 'dist-tags': { latest: releases.at(-1)!.version },
       versions: Object.fromEntries(releases.map(item => [item.version, item])) })
   } })
-  const select = (name: string) => selectPublishedPlugin(name, server.url.href, 'scanner', host)
+  const select = (name: string) => selectPublishedScanner(name, server.url.href, host)
   try {
     expect((await select('example-scanner')).version).toBe('1.1.0')
-    await expect(select('prerelease-scanner')).rejects.toThrow('no published stable release')
+    await expect(select('prerelease-scanner')).rejects.toThrow('no published stable scanner release')
     await expect(select('newer-groma-scanner')).rejects.toThrow('Update Groma')
     await expect(select('other-computer-scanner')).rejects.toThrow('linux/x64')
   } finally { await server.stop(true) }

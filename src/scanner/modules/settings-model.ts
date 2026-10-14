@@ -2,8 +2,11 @@
 interface PluginSettingFields {
   id: string
   name: string
-  /** The selection saved in plugins.json. A recommendation that is not selected yet has `installSource` instead. */
+  /** Whether config.json lists the plugin. An unlisted row is a recommended scanner or a bundled plugin to add. */
+  listed: boolean
+  /** A listed scanner's exact source in config.json. */
   source?: string
+  /** What Install adds for an unlisted row: a recommended scanner's source, or a bundled plugin's id. */
   installSource?: string
   version?: string
   official: boolean
@@ -67,16 +70,16 @@ export function pluginGroups(plugins: readonly PluginSetting[], query = ''): { t
     .some(value => value.toLocaleLowerCase().includes(search)))
   const scanners = matching.filter(plugin => plugin.kind === 'scanner')
   return [
-    { title: 'Scanners · Installed', plugins: scanners.filter(scanner => scanner.source && scanner.status !== 'missing') },
-    { title: 'Scanners · Missing on this computer', plugins: scanners.filter(scanner => scanner.source && scanner.status === 'missing') },
-    { title: 'Scanners · Recommended', plugins: scanners.filter(scanner => !scanner.source) },
+    { title: 'Scanners · Installed', plugins: scanners.filter(scanner => scanner.listed && scanner.status !== 'missing') },
+    { title: 'Scanners · Missing on this computer', plugins: scanners.filter(scanner => scanner.listed && scanner.status === 'missing') },
+    { title: 'Scanners · Recommended', plugins: scanners.filter(scanner => !scanner.listed) },
     { title: 'Work sources', plugins: matching.filter(plugin => plugin.kind === 'workSource') },
   ].filter(group => group.plugins.length)
 }
 
 export function pluginSettingAction(plugin: PluginSetting): PluginSettingsAction | undefined {
-  if (plugin.source && plugin.status === 'blocked') return { action: 'retry' }
-  if (plugin.source) return plugin.status === 'missing' ? { action: 'restore', id: plugin.id } : undefined
+  if (plugin.listed && plugin.status === 'blocked') return { action: 'retry' }
+  if (plugin.listed) return plugin.status === 'missing' ? { action: 'restore', id: plugin.id } : undefined
   return plugin.installSource ? { action: 'install', id: plugin.id } : undefined
 }
 

@@ -2,8 +2,8 @@ import { expect, test } from 'bun:test'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { installScanners } from '../src/scanner/modules/inventory.ts'
-import { writePluginConfig } from '../src/scanner/modules/config.ts'
+import { restoreMissingPlugins } from '../src/plugin-management.ts'
+import { writeGromaConfig } from '../src/config.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 
 for (const present of [false, true]) {
@@ -18,12 +18,12 @@ for (const present of [false, true]) {
           groma: { scanner: { id: 'local', entry: './index.js', include: ['**/*.local'] } } }))
         await writeFile(path.join(root, source, 'index.js'), 'throw new Error("Restore must not execute the scanner")')
       }
-      await writePluginConfig(root, { scanners: [{ id: 'local', source, include: ['**/*.local'] }], workSources: [] })
-      const selection = await readFile(path.join(root, 'groma/plugins.json'), 'utf8')
+      await writeGromaConfig(root, { scanners: [{ id: 'local', source, include: ['**/*.local'] }], workSources: [] })
+      const selection = await readFile(path.join(root, 'groma/config.json'), 'utf8')
       const architecture = await loadAnnotatedArchitecture(root)
-      if (present) expect(await installScanners(root)).toBe(0)
-      else await expect(installScanners(root)).rejects.toThrow('local directory: ./plugin')
-      expect(await readFile(path.join(root, 'groma/plugins.json'), 'utf8')).toBe(selection)
+      if (present) expect(await restoreMissingPlugins(root)).toEqual([])
+      else await expect(restoreMissingPlugins(root)).rejects.toThrow('local scanner directory: ./plugin')
+      expect(await readFile(path.join(root, 'groma/config.json'), 'utf8')).toBe(selection)
       const after = await loadAnnotatedArchitecture(root)
       expect(after.elements).toEqual(architecture.elements)
       expect(after.relationships).toEqual(architecture.relationships)

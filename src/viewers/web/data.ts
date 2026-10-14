@@ -57,14 +57,24 @@ function selected(path: string, values: Record<string, string | undefined>): str
   return `${path}?${query}`
 }
 
-function liveDataSource(): WebDataSource {
+/** The writers of a live map. Without them the map offers no write controls, as for a published one. */
+const liveWriters: Pick<WebDataSource, 'readPluginSettings' | 'changePluginSettings' | 'draft' | 'add' | 'remove' | 'edit' | 'accept'> = {
+  readPluginSettings: checkUpdates => responseJson(checkUpdates ? '/plugin-settings?updates' : '/plugin-settings'),
+  async changePluginSettings(action) {
+    const response = await fetch('/plugin-settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(action) })
+    if (!response.ok) throw new Error(await response.text())
+    return response.json() as Promise<PluginSettings>
+  },
+  draft: input => send('/draft', input),
+  add: input => send('/add', input),
+  remove: input => send('/remove', input),
+  edit: input => send('/edit', input),
+  accept: input => send('/accept', input),
+}
+
+function liveDataSource(readOnly: boolean): WebDataSource {
   return {
-    readPluginSettings: checkUpdates => responseJson(checkUpdates ? '/plugin-settings?updates' : '/plugin-settings'),
-    async changePluginSettings(action) {
-      const response = await fetch('/plugin-settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(action) })
-      if (!response.ok) throw new Error(await response.text())
-      return response.json() as Promise<PluginSettings>
-    },
+    ...readOnly ? {} : liveWriters,
     readRevisions() {
       return responseJson('/revisions.json')
     },
@@ -83,11 +93,6 @@ function liveDataSource(): WebDataSource {
     readTaskDiff(id) {
       return responseJson(selected('/task-diff.json', { task: id }))
     },
-    draft: input => send('/draft', input),
-    add: input => send('/add', input),
-    remove: input => send('/remove', input),
-    edit: input => send('/edit', input),
-    accept: input => send('/accept', input),
     subscribe(handlers) {
       const events = new EventSource('/events')
       events.addEventListener('plugin-settings', event => this.onPluginSettings?.(JSON.parse(event.data) as PluginSettings))
@@ -188,5 +193,5 @@ export function openWebBoot(boot: WebBootPayload, url: Pick<Location, 'search'>)
 }
 
 export function createWebDataSource(boot: WebBootPayload): WebDataSource {
-  return boot.delivery.kind === 'live' ? liveDataSource() : publishedDataSource(boot)
+  return boot.delivery.kind === 'live' ? liveDataSource(boot.delivery.readOnly === true) : publishedDataSource(boot)
 }

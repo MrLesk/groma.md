@@ -6,15 +6,15 @@ records as a strict OKF v0.2 application profile.
 
 `groma init` starts by creating the Git repository when needed, then sets the
 project name and storage root. It uses the visible `groma/` directory by
-default or the hidden `.groma/` directory when selected. When `plugins.json`
-selects the Backlog.md work source, its CLI is available and Backlog.md is not
+default or the hidden `.groma/` directory when selected. When `config.json`
+lists Backlog.md, its CLI is available and Backlog.md is not
 yet initialized, the same command initializes Backlog.md and writes its
 AGENTS.md CLI nudge. Existing Git and
 Backlog.md projects stay unchanged. Running it again edits the current project
 name, keeps the chosen root, and refreshes groma.md's managed agent instructions.
 
-Interactive setup asks whether the project uses Backlog.md for tasks. A yes
-adds the work source to `plugins.json`, installs the Backlog.md CLI when it is
+Interactive setup asks whether the project uses Backlog.md for tasks, with yes
+preselected. A yes adds Backlog.md to `config.json`, installs its CLI when it is
 missing and initializes Backlog.md. A step that fails is reported and setup
 continues. When the
 architecture has no observed components, it can run the first scan and open
@@ -23,7 +23,7 @@ from `groma web` use the same repository initialization. The resulting
 `project.md` belongs to the project owner.
 
 Without a terminal, pass both values explicitly. This form also initializes
-Git when needed, and Backlog.md when `plugins.json` already selects it:
+Git when needed, and Backlog.md when `config.json` already lists it:
 
 ```bash
 groma init "Shop" --directory groma
@@ -41,6 +41,7 @@ On a TTY, `groma instructions` opens the local guide screen. A named guide or
 non-interactive use prints the human guide as plain text. Agent operating rules
 stay separate: `groma agent-instructions [guide]` always prints plain Markdown.
 
+- [Project configuration](config.md)
 - [Scanners](scanners/index.md)
 - [Viewers](viewers/index.md)
 - [Web viewer and live work](viewers/web/index.md)

@@ -1,8 +1,6 @@
 import type { Command } from 'commander'
 import { parseListWindow, printListPage, withListWindowOptions } from './list-window.ts'
-import { addPlugin, installPlugins, removePlugin, updatePlugin } from './plugin-management.ts'
-import { scannerInventory } from './scanner/modules/inventory.ts'
-import { checkWorkSourceReadiness } from './work-sources.ts'
+import { addPlugin, pluginPresence, removePlugin, restoreMissingPlugins, updatePlugin, type PluginSelection } from './plugin-management.ts'
 
 /** Runs one command action; a failure prints its message alone and sets the exit code. The scanner commands share it. */
 export async function runPluginCommand(action: () => Promise<void>): Promise<void> {
@@ -14,70 +12,68 @@ export async function runPluginCommand(action: () => Promise<void>): Promise<voi
   }
 }
 
-/** One selection on one line: the scanner commands' form with the kind first, and a message only when there is one. */
-function pluginLine(plugin: { kind: string; id: string; status: string; source: string; message?: string }): string {
-  return [plugin.kind, plugin.id, plugin.status, plugin.source, ...(plugin.message ? [plugin.message] : [])].join('\t')
+/** One plugin on one line: kind, id, what config.json pins, and a status or message when there is one. */
+function pluginLine(fields: string[]): string {
+  return fields.filter(Boolean).join('\t')
 }
 
-/** Every selection with what this computer has of it. Reading a work source's readiness imports its adapter. */
-async function pluginInventory(root: string) {
-  const scanners = (await scannerInventory(root)).map(scanner => ({ ...scanner, kind: 'scanner' }))
-  const workSource = await checkWorkSourceReadiness(root)
-  return [...scanners, ...(workSource ? [workSource] : [])]
+function selectionLine(plugin: PluginSelection): string {
+  return pluginLine([plugin.kind, plugin.id, plugin.pinned])
 }
 
 export function registerPluginCommands(program: Command): void {
   const plugin = program
     .command('plugin')
-    .description('Manage the plugins of every kind for this project')
+    .description('Manage the plugins config.json lists for this project')
 
   plugin
     .command('add')
-    .description('Install and select a plugin from npm, Git, or a local path')
-    .argument('<source>', 'package name, package@version, git+https://repository#tag-or-commit, or ./path')
-    .action(async (source: string) => {
+    .description('Add a bundled plugin by id, or install and add a scanner from npm, Git, or a local path')
+    .argument('<plugin>', 'bundled plugin id (backlog), package name, package@version, git+https://repository#tag-or-commit, or ./path')
+    .action(async (input: string) => {
       await runPluginCommand(async () => {
-        const added = await addPlugin(process.cwd(), source)
+        const added = await addPlugin(process.cwd(), input)
         console.log('ok')
-        console.log(pluginLine(added))
+        console.log(selectionLine(added))
       })
     })
 
   plugin
     .command('update')
-    .description('Update an npm plugin to its newest compatible release, or choose an exact source')
+    .description('Update a plugin to its newest compatible release, or a scanner to an exact source, and record it')
     .argument('<id>', 'configured plugin id')
     .argument('[source]', 'package name, package@version, or git+https://repository#tag-or-commit')
     .action(async (id: string, source?: string) => {
       await runPluginCommand(async () => {
-        console.log(pluginLine(await updatePlugin(process.cwd(), id, source)))
+        console.log(selectionLine(await updatePlugin(process.cwd(), id, source)))
       })
     })
 
   plugin
     .command('install')
-    .description('Restore configured npm and Git plugin packages')
+    .description('Restore the plugins config.json lists that this computer lacks')
     .action(async () => {
       await runPluginCommand(async () => {
-        const installed = await installPlugins(process.cwd())
+        const restored = await restoreMissingPlugins(process.cwd())
         console.log('ok')
-        console.log(`${installed} installed`)
+        console.log(`${restored.length} restored`)
       })
     })
 
   withListWindowOptions(plugin
     .command('list')
-    .description('List configured plugins and their readiness'))
+    .description('List the plugins config.json lists and whether this computer has them'))
     .action(async options => {
       await runPluginCommand(async () => {
-        const inventory = await pluginInventory(process.cwd())
-        printListPage(inventory.map(pluginLine), parseListWindow(options, process.argv.slice(2)))
+        const lines = (await pluginPresence(process.cwd())).map(item =>
+          pluginLine([item.kind, item.id, item.present ? 'found' : 'missing', item.pinned, item.message]))
+        printListPage(lines, parseListWindow(options, process.argv.slice(2)))
       })
     })
 
   plugin
     .command('remove')
-    .description('Remove a plugin from this project without deleting the shared cache')
+    .description('Remove a plugin from config.json without deleting the shared cache')
     .argument('<id>', 'plugin id')
     .action(async (id: string) => {
       await runPluginCommand(async () => {

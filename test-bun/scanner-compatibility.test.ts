@@ -5,7 +5,7 @@ import path from 'node:path'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import { loadScannerRegistry } from '../src/scanner/registry.ts'
 import { createScannerSession } from '../src/scanner/session.ts'
-import { writePluginConfig } from '../src/scanner/modules/config.ts'
+import { writeGromaConfig } from '../src/config.ts'
 import { checkScannerReadiness } from '../src/scanner/modules/readiness.ts'
 
 async function plugin(root: string, id: string, groma: string, blocked: boolean) {
@@ -34,7 +34,7 @@ test.concurrent('a Groma mismatch blocks plugin code while another selection can
       await writeFile(path.join(root, 'package.json'), JSON.stringify({ dependencies: { react: '19.0.0' } }))
       const blocked = await plugin(root, 'blocked', '>=99.0.0', true)
       const eligible = await plugin(root, 'eligible', '*', false)
-      await writePluginConfig(root, { scanners: [blocked, eligible], workSources: [] })
+      await writeGromaConfig(root, { scanners: [blocked, eligible], workSources: [] })
       const before = await loadAnnotatedArchitecture(root)
       const registry = await loadScannerRegistry(root)
       expect(registry.scannerIds).toEqual(['eligible'])

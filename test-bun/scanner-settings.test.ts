@@ -4,7 +4,7 @@ import { pluginGroups, pluginSettingAction, type ScannerSetting } from '../src/s
 import type { ScannerDiscovery } from '../src/scanner/modules/discovery.ts'
 
 function setting(id: string, status: ScannerSetting['status'], match: ScannerSetting['match'] = 'matched'): ScannerSetting {
-  return { kind: 'scanner', id, name: id, official: false, technologies: [id], matches: [], status, match, message: '' }
+  return { kind: 'scanner', id, name: id, listed: status !== 'available', official: false, technologies: [id], matches: [], status, match, message: '' }
 }
 
 test.concurrent('support notices distinguish empty, partial, ready, unknown and failed projects', () => {

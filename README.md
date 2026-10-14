@@ -60,7 +60,7 @@ Three steps. Scan your code, then review and curate the map yourself or with you
 npm i -g groma.md backlog.md
 ```
 
-Backlog.md provides the tasks shown on the map once the project selects it: answer yes in `groma init`, or run `groma plugin add @groma/work-source-backlog`. groma.md works without it. macOS requires Apple Silicon.
+Backlog.md provides the tasks shown on the map once the project's `config.json` lists it: answer yes in `groma init`, or run `groma plugin add backlog`. groma.md works without it. macOS requires Apple Silicon.
 
 ### 2. Scan
 
@@ -127,7 +127,7 @@ The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](ht
 | [Assembly (NASM x86-64, Linux ELF64)](docs/scanners/nasm/index.md) | 🧪 Experimental |
 | Your favorite language or framework | [Submit an issue with your request](https://github.com/MrLesk/Groma.md/issues) |
 
-More languages arrive as [scanner plugins](docs/scanners/creating-a-plugin.md); add your own with `groma scanner add`. Each scanner's page describes what it reads. See [which relationships groma.md detects](docs/relationship-inference.md#current-inference-rule).
+More languages arrive as [scanner plugins](docs/scanners/creating-a-plugin.md); add your own with `groma plugin add`. Each scanner's page describes what it reads. See [which relationships groma.md detects](docs/relationship-inference.md#current-inference-rule).
 
 ## FAQ
 

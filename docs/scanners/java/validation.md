@@ -45,7 +45,7 @@ coverage, not the accuracy of unreviewed runtime relationships.
 
 Compiled groma.md was built with `bun scripts/build.ts /tmp/groma-java-acceptance-bin`.
 The temporary project was initialized, the built Java package added through
-`groma scanner add`, and `groma scan` completed with Java and the TypeScript scanner.
+`groma plugin add`, and `groma scan` completed with Java and the TypeScript scanner.
 The Java portion therefore runs through the real compiled module host, without
 requiring a runtime TypeScript dependency or compiling the worker at installation.
 

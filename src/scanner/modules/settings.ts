@@ -3,24 +3,22 @@ export * from './settings-model.ts'
 import type { ScannerDiscovery } from './discovery.ts'
 import { discoverScanners } from './discovery.ts'
 import { officialScannerCatalog } from './catalog.ts'
-import { officialWorkSourceIds } from './official-catalog.ts'
-import { configuredScannerModules, addScanner } from './inventory.ts'
-import type { ScannerModuleLocation } from './inventory.ts'
+import { configuredScannerModules, addScanner, type ScannerInstallOptions, type ScannerModuleLocation } from './inventory.ts'
 import type { ProjectReadiness } from './readiness.ts'
-import { parsePluginSource, type PluginInstallOptions } from './package.ts'
-import { selectPublishedPlugin } from './published.ts'
+import { parseScannerSource } from './package.ts'
+import { selectPublishedScanner } from './published.ts'
 import { addPlugin, removePlugin, restorePlugin, updatePlugin } from '../../plugin-management.ts'
-import { checkWorkSourceReadiness, type WorkSourceSelection } from '../../work-sources.ts'
+import { bundledWorkSources, checkWorkSourceReadiness, type WorkSourceSelection } from '../../work-sources.ts'
 
-/** Optional registry reads for an open settings dialog; scan readiness stays unchanged. */
+/** Optional registry reads for an open settings dialog: newer releases of listed npm scanners. Scan readiness stays unchanged. */
 export async function withPluginUpgrades(settings: PluginSettings, registry?: string): Promise<PluginSettings> {
   const upgrades: NonNullable<PluginSettings['upgrades']> = {}
   await Promise.all(settings.plugins.map(async plugin => {
     if (!plugin.source || !plugin.version || plugin.status === 'missing') return
-    const source = parsePluginSource('.', plugin.source)
+    const source = parseScannerSource('.', plugin.source)
     if (source.kind !== 'npm') return
     try {
-      const release = await selectPublishedPlugin(source.name, registry, plugin.kind)
+      const release = await selectPublishedScanner(source.name, registry)
       if (Bun.semver.order(release.version, plugin.version) > 0) upgrades[plugin.source] = { version: release.version }
     } catch (error) {
       upgrades[plugin.source] = { error: error instanceof Error ? error.message : String(error) }
@@ -46,7 +44,7 @@ function installedSetting(module: ScannerModuleLocation, proposal: ScannerDiscov
   const matches = [...new Set(proposal.findings.filter(finding => technologies.includes(finding.technology)).map(finding => finding.file))]
   const readiness = checks.find(check => check.id === module.id)
   const base: ScannerSetting = {
-    kind: 'scanner', id: module.id, name: module.status === 'found' ? module.name : module.id,
+    kind: 'scanner', id: module.id, name: module.status === 'found' ? module.name : module.id, listed: true,
     source: module.source, version: module.status === 'found' ? module.version : undefined,
     official: official !== undefined, technologies, matches,
     match: projectMatch(technologies, matches),
@@ -77,7 +75,7 @@ export function scannerSettingsState(
     const technologies = official?.technologies ?? []
     if (technologies.length && technologies.every(technology => covered.has(technology))) continue
     scanners.push({
-      kind: 'scanner', id: candidate.id, name: candidate.package, official: official !== undefined,
+      kind: 'scanner', id: candidate.id, name: candidate.package, listed: false, official: official !== undefined,
       technologies,
       matches: [...new Set(candidate.evidence.map(finding => finding.file))],
       match: candidate.evidence.length ? 'matched' : 'none',
@@ -90,24 +88,34 @@ export function scannerSettingsState(
 
 function workSourceSetting(work: WorkSourceSelection): WorkSourceSetting {
   return {
-    kind: 'workSource', id: work.id, name: work.name ?? work.id, source: work.source, version: work.version,
-    official: officialWorkSourceIds.includes(work.id),
+    kind: 'workSource', id: work.id, name: work.name, listed: true, version: work.version, official: work.id in bundledWorkSources,
     status: work.status === 'found' ? 'ready' : work.status, message: work.message,
   }
 }
 
-export async function readPluginSettings(root: string, checks: readonly ProjectReadiness[] = [], options: PluginInstallOptions = {}): Promise<PluginSettings> {
+/** The work-source rows: the one config.json lists, or else every bundled work source, offered to add. */
+async function workSourceSettings(root: string): Promise<WorkSourceSetting[]> {
+  const work = await checkWorkSourceReadiness(root)
+  if (work) return [workSourceSetting(work)]
+  return Object.entries(bundledWorkSources).map(([id, bundled]) => ({
+    kind: 'workSource', id, name: bundled.name, listed: false, installSource: id, official: true,
+    status: 'available', message: 'Not added',
+  }))
+}
+
+export async function readPluginSettings(root: string, checks: readonly ProjectReadiness[] = [], options: ScannerInstallOptions = {}): Promise<PluginSettings> {
   try {
-    const [proposal, modules] = await Promise.all([discoverScanners(root, options), configuredScannerModules(root, options)])
+    const [proposal, modules, workSources] = await Promise.all([
+      discoverScanners(root, options), configuredScannerModules(root, options), workSourceSettings(root),
+    ])
     const state = scannerSettingsState(proposal, modules, checks)
-    const work = await checkWorkSourceReadiness(root, options)
-    return work ? { ...state, plugins: [...state.plugins, workSourceSetting(work)] } : state
+    return { ...state, plugins: [...state.plugins, ...workSources] }
   } catch (error) {
     return { plugins: [], notice: { tone: 'error', message: error instanceof Error ? error.message : String(error) }, limits: [] }
   }
 }
 
-export async function changePluginSettings(root: string, action: PluginSettingsAction, options: PluginInstallOptions = {}): Promise<void> {
+export async function changePluginSettings(root: string, action: PluginSettingsAction, options: ScannerInstallOptions = {}): Promise<void> {
   switch (action.action) {
     case 'add': await addPlugin(root, action.source, options); return
     case 'remove': await removePlugin(root, action.id); return
@@ -117,15 +125,16 @@ export async function changePluginSettings(root: string, action: PluginSettingsA
     case 'install-recommended': case 'install-missing': await installGroup(root, action.action, options); return
     case 'install': {
       const item = (await readPluginSettings(root, [], options)).plugins.find(plugin => plugin.id === action.id)
-      if (!item?.installSource) throw new Error('This scanner is no longer recommended. Review the current scanner list.')
-      await addScanner(root, item.installSource, options)
+      if (!item?.installSource) throw new Error('This plugin is no longer offered. Review the current plugin list.')
+      await addPlugin(root, item.installSource, options)
     }
   }
 }
 
-async function installGroup(root: string, group: 'install-recommended' | 'install-missing', options: PluginInstallOptions) {
+async function installGroup(root: string, group: 'install-recommended' | 'install-missing', options: ScannerInstallOptions) {
   const settings = await readPluginSettings(root, [], options)
-  const selected = settings.plugins.filter(item => group === 'install-recommended' ? !item.source && item.installSource : item.source && item.status === 'missing')
+  const selected = settings.plugins.filter(item => group === 'install-recommended'
+    ? item.kind === 'scanner' && !item.listed && item.installSource : item.listed && item.status === 'missing')
   const errors: string[] = []
   for (const item of selected) {
     try {

@@ -46,8 +46,8 @@ export async function mountPluginSettings(renderer: CliRenderer, session: Scanne
     const label = action ? (action.action === 'retry' ? '[Retry]' : '[Install]') : ''
     const nameWidth = 30, descriptionWidth = Math.max(18, frame.width - nameWidth - 26)
     const name = `${plugin.id}${plugin.version ? ` ${plugin.version}` : ''}`
-    // Only a scanner recommendation has no saved source; its row says where the project matched.
-    const description = plugin.kind === 'scanner' && !plugin.source ? scannerMatchReason(plugin) : pluginSettingLabel(plugin)
+    // An unlisted scanner is a recommendation; its row says where the project matched.
+    const description = plugin.kind === 'scanner' && !plugin.listed ? scannerMatchReason(plugin) : pluginSettingLabel(plugin)
     line(`${plugin.id === selectedId ? '> ' : '  '}${name.slice(0, nameWidth).padEnd(nameWidth)} ${description.slice(0, descriptionWidth).padEnd(descriptionWidth)} ${label}`,
       y, plugin.id === selectedId ? green : foreground)
   }
@@ -81,7 +81,7 @@ export async function mountPluginSettings(renderer: CliRenderer, session: Scanne
     if (closed || frame.isDestroyed) return
     const { contentY: y } = paintShell(frame.frameBuffer, model, sheet)
     line(`Plugins                  [a] Add plugin${failedAction ? '  [r] Retry installation' : ''}`, y, green)
-    const recommended = session.state.plugins.filter(item => !item.source && item.installSource).length
+    const recommended = session.state.plugins.filter(item => item.kind === 'scanner' && !item.listed && item.installSource).length
     const missing = session.state.plugins.filter(item => item.status === 'missing').length
     line([recommended ? `[i] Install recommended scanners (${recommended})` : '', missing ? `[m] Install missing plugins (${missing})` : ''].filter(Boolean).join('  '), y + 1)
     line(`Search: ${query}${searching ? '▌' : '  [/] Edit'}`, y + 2)
@@ -129,7 +129,7 @@ export async function mountPluginSettings(renderer: CliRenderer, session: Scanne
   }
   function pluginKey(key: KeyEvent, plugin: PluginSetting) {
     if (key.name === 'u' && plugin.source) input = { action: 'update', id: plugin.id, value: plugin.source }
-    if (key.name === 'x' && plugin.source) void change({ action: 'remove', id: plugin.id })
+    if (key.name === 'x' && plugin.listed) void change({ action: 'remove', id: plugin.id })
     if (key.name === 'return') {
       const action = pluginSettingAction(plugin)
       if (action) void change(action)
@@ -150,7 +150,7 @@ export async function mountPluginSettings(renderer: CliRenderer, session: Scanne
       case '/': searching = true; break
       case 'd': details = !details; detailScroll = 0; break
       case 'a': input = { action: 'add', value: '' }; break
-      case 'i': if (session.state.plugins.some(item => !item.source && item.installSource)) void change({ action: 'install-recommended' }); break
+      case 'i': if (session.state.plugins.some(item => item.kind === 'scanner' && !item.listed && item.installSource)) void change({ action: 'install-recommended' }); break
       case 'm': if (session.state.plugins.some(item => item.status === 'missing')) void change({ action: 'install-missing' }); break
       case 'r': if (failedAction) void change(failedAction); break
       default: {

@@ -1,7 +1,7 @@
 import { chmod, cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { readPublishedRelease } from '../src/scanner/modules/package-manager.ts'
-import type { PublishedPlugin } from '../src/scanner/modules/published.ts'
+import type { PublishedScanner } from '../src/scanner/modules/published.ts'
 import { assembleCSharpPackages } from './package-csharp-scanner.ts'
 
 const repository = { type: 'git', url: 'https://github.com/MrLesk/groma.md.git' }
@@ -27,25 +27,15 @@ async function completeTogether(operations: Promise<void>[]) {
   if (failures.length > 0) throw new AggregateError(failures, 'Scanner release operations failed')
 }
 
-async function stageSourcePackage(source: string, directory: string) {
-  await mkdir(directory, { recursive: true })
-  await cp(path.join(source, 'src'), path.join(directory, 'src'), { recursive: true })
-  await cp('LICENSE', path.join(directory, 'LICENSE'))
-  await writeManifest(directory, { ...await manifest(source), license: 'MIT', repository,
-    files: ['src', 'LICENSE'], publishConfig: { access: 'public' } })
-}
-
-/** The Backlog adapter and its contract are platform-independent release packages. */
-export async function stageWorkSourcePackages(output: string) {
-  await stageSourcePackage('packages/work-source', path.join(output, 'work-source-contract'))
-  await stageSourcePackage('plugins/work-sources/backlog', path.join(output, 'work-source-backlog'))
-}
-
 /** Stage runnable packages for this host; publishing is a separate explicit action. */
 async function stage(output: string) {
   await mkdir(output, { recursive: true })
-  await stageSourcePackage('packages/scanner', path.join(output, 'contract'))
-  await stageWorkSourcePackages(output)
+  const contract = path.join(output, 'contract')
+  await mkdir(contract, { recursive: true })
+  await cp('packages/scanner/src', path.join(contract, 'src'), { recursive: true })
+  await cp('LICENSE', path.join(contract, 'LICENSE'))
+  await writeManifest(contract, { ...await manifest('packages/scanner'), license: 'MIT', repository,
+    files: ['src', 'LICENSE'], publishConfig: { access: 'public' } })
   const builders = {
     php: (await import('../plugins/scanners/php/build.ts')).buildPackage,
     python: (await import('../plugins/scanners/python/build.ts')).buildPackage,
@@ -107,13 +97,13 @@ async function prepareWorkers(directory: string, relative: string, worker: strin
 
 /** Wait for the exact uploaded version; the catalog shares one deadline across its packages. */
 export async function waitForPublishedScanner(staged: { name: string; version: string }, deadline: number, registry?: string) {
-  let published = await readPublishedRelease<PublishedPlugin>(staged.name, { version: staged.version, registry })
+  let published = await readPublishedRelease<PublishedScanner>(staged.name, { version: staged.version, registry })
   while (!published) {
     const remaining = deadline - Date.now()
     if (remaining <= 0) throw new Error(`Timed out waiting for npm metadata for ${staged.name}@${staged.version}`)
     console.log(`Waiting for npm metadata for ${staged.name}@${staged.version}`)
     await Bun.sleep(Math.min(10_000, remaining))
-    published = await readPublishedRelease<PublishedPlugin>(staged.name, { version: staged.version, registry })
+    published = await readPublishedRelease<PublishedScanner>(staged.name, { version: staged.version, registry })
   }
   return published
 }
@@ -156,12 +146,7 @@ async function publish(input: string) {
       throw new Error(`${id}: confirm public names, versions and compatibility before publishing`)
     }
   }
-  const workSource = await manifest(path.join(input, 'work-source-backlog'))
-  if (workSource.private || !workSource.groma.workSource.compatibility.groma) {
-    throw new Error('backlog: confirm public name, version and compatibility before publishing')
-  }
-  await completeTogether(['contract', 'work-source-contract'].map(id => publishPackage(path.join(input, id))))
-  await publishPackage(path.join(input, 'work-source-backlog'))
+  await publishPackage(path.join(input, 'contract'))
   await completeTogether(scannerIds.map(id => id === 'csharp'
     ? publishCSharp(input) : publishPackage(path.join(input, id))))
 }

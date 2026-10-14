@@ -6,22 +6,10 @@ import { createClackInitUi } from '../init-command-ui.ts'
 import { setupScanners } from './modules/setup.ts'
 import { checkScannerReadiness, formatReadiness, requireScannerReadiness } from './modules/readiness.ts'
 
-import {
-  addScanner,
-  installScanners,
-  removeScanner,
-  updateScanner,
-  scannerInventory,
-} from './modules/inventory.ts'
-
-function scannerLine(scanner: { id: string; source: string; status: string }): string {
-  return `${scanner.id}\t${scanner.status}\t${scanner.source}`
-}
-
 export function registerScannerCommands(program: Command): void {
   const scanner = program
     .command('scanner')
-    .description('Manage scanner modules for this project')
+    .description('Set up and check the scanners of this project; groma plugin adds, updates and removes them')
 
   scanner.command('settings').description('Open project scanner settings').action(() => runPluginCommand(async () => {
     if (process.stdin.isTTY && process.stdout.isTTY) await (await import('../viewers/tui/scanner-settings.ts')).startPluginSettings(process.cwd())
@@ -64,62 +52,6 @@ export function registerScannerCommands(program: Command): void {
           return
         }
         printListPage(discoveryItems(result), window, [discoveryNote])
-      })
-    })
-
-  scanner
-    .command('add')
-    .description('Install and enable a scanner from npm, Git, or a local path')
-    .argument('<source>', 'package name, package@version, git+https://repository#tag-or-commit, or ./path')
-    .action(async (source: string) => {
-      await runPluginCommand(async () => {
-        const added = await addScanner(process.cwd(), source)
-        console.log('ok')
-        console.log(scannerLine(added))
-      })
-    })
-
-  scanner
-    .command('update')
-    .description('Update an npm scanner to its newest compatible release, or choose an exact source')
-    .argument('<id>', 'configured scanner id')
-    .argument('[source]', 'package name, package@version, or git+https://repository#tag-or-commit')
-    .action(async (id: string, source?: string) => {
-      await runPluginCommand(async () => {
-        console.log(scannerLine(await updateScanner(process.cwd(), id, source)))
-      })
-    })
-
-  scanner
-    .command('install')
-    .description('Restore configured npm and Git scanner packages')
-    .action(async () => {
-      await runPluginCommand(async () => {
-        const installed = await installScanners(process.cwd())
-        console.log('ok')
-        console.log(`${installed} installed`)
-      })
-    })
-
-  withListWindowOptions(scanner
-    .command('list')
-    .description('List configured scanner readiness'))
-    .action(async options => {
-      await runPluginCommand(async () => {
-        const inventory = await scannerInventory(process.cwd())
-        printListPage(inventory.map(scannerLine), parseListWindow(options, process.argv.slice(2)))
-      })
-    })
-
-  scanner
-    .command('remove')
-    .description('Disable a scanner without deleting the shared cache')
-    .argument('<id>', 'scanner id')
-    .action(async (id: string) => {
-      await runPluginCommand(async () => {
-        const removed = await removeScanner(process.cwd(), id)
-        console.log('ok')
-        console.log(removed)
       })
     })
 }
