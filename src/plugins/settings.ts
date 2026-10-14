@@ -1,14 +1,14 @@
 import { scannerNotice, type ScannerSetting, type PluginSettings, type PluginSettingsAction, type WorkSourceSetting } from './settings-model.ts'
 export * from './settings-model.ts'
-import type { ScannerDiscovery } from './discovery.ts'
-import { discoverScanners } from './discovery.ts'
-import { officialScannerCatalog } from './catalog.ts'
-import { configuredScannerModules, type ScannerInstallOptions, type ScannerModuleLocation } from './inventory.ts'
-import type { ProjectReadiness } from './readiness.ts'
-import { parseScannerSource } from './package.ts'
-import { selectPublishedScanner } from './published.ts'
-import { addPlugin, removePlugin, restoreFailure, restoreMissingPlugins, restorePlugin, updatePlugin } from '../../plugin-management.ts'
-import { bundledWorkSources, checkWorkSourceReadiness, type WorkSourceSelection } from '../../work-sources.ts'
+import type { ScannerDiscovery } from '../scanner/modules/discovery.ts'
+import { discoverScanners } from '../scanner/modules/discovery.ts'
+import { officialScannerCatalog } from '../scanner/modules/catalog.ts'
+import { configuredScannerModules, type ScannerInstallOptions, type ScannerModuleLocation } from '../scanner/modules/inventory.ts'
+import type { ProjectReadiness } from '../scanner/modules/readiness.ts'
+import { parseScannerSource } from '../scanner/modules/package.ts'
+import { selectPublishedScanner } from '../scanner/modules/published.ts'
+import { addPlugin, removePlugin, restoreFailure, restoreMissingPlugins, restorePlugin, updatePlugin } from './management.ts'
+import { bundledWorkSources, checkWorkSourceReadiness, type WorkSourceSelection } from '../work/sources.ts'
 
 /** Optional registry reads for an open settings dialog: newer releases of listed npm scanners. Scan readiness stays unchanged. */
 export async function withPluginUpgrades(settings: PluginSettings, registry?: string): Promise<PluginSettings> {

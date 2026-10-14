@@ -1,4 +1,4 @@
-import type { PluginSettings } from '../../../scanner/modules/settings-model.ts'
+import type { PluginSettings } from '../../../plugins/settings-model.ts'
 
 /** Only actionable scanner problems need a warning; recommendations alone do not. */
 export function scannerWarning(settings: PluginSettings | undefined): { scannerId?: string } | undefined {

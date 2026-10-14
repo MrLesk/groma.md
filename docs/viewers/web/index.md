@@ -25,7 +25,7 @@ without them** opens the map read-only: no scan or source watch runs, the header
 says **Read-only: plugins missing**, and the map offers no write controls or
 plugin settings, as for a historical view. The server refuses writes too.
 [`startup/restore.ts`](../../../src/viewers/web/startup/restore.ts) presents the
-rows; [`plugin-management.ts`](../../../src/plugin-management.ts) decides what is
+rows; [`plugins/management.ts`](../../../src/plugins/management.ts) decides what is
 missing and restores it. See [Project configuration](../../config.md).
 
 Status changes follow actual work: creating the project, finding or installing

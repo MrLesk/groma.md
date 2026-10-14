@@ -1,6 +1,6 @@
 import type { WebDataSource } from '../data.ts'
 import { createSettingsDialog } from '../atoms/settings-dialog.ts'
-import { bindPluginSettings } from '../scanners/settings.ts'
+import { bindPluginSettings } from './plugins.ts'
 import { bindPopover } from '../atoms/popover.ts'
 import { scannerWarning } from './model.ts'
 

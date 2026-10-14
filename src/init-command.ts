@@ -2,7 +2,7 @@ import { stat } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { loadArchitecture } from './architecture-reader.ts'
-import { backlogInitialized, initializeBacklog } from './backlog-cli.ts'
+import { backlogInitialized, initializeBacklog } from './work/backlog-cli.ts'
 import { createClackInitUi } from './init-command-ui.ts'
 import {
   initializeGroma,
@@ -14,7 +14,7 @@ import {
 import { formatScanSummary, scanRepository } from './scanner.ts'
 import { NOT_INITIALIZED, type GromaDirectory } from './groma-filesystem.ts'
 import { c4Kind } from './okf-profile.ts'
-import { addPlugin } from './plugin-management.ts'
+import { addPlugin } from './plugins/management.ts'
 import { readGromaConfig } from './config.ts'
 import { setupScanners, type ScannerSetupUi } from './scanner/modules/setup.ts'
 

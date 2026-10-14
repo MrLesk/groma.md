@@ -3,14 +3,14 @@ type: C4 Component
 title: Plugin settings panel
 status: stable
 groma:
-  id: scanners-settings
+  id: web-plugin-settings
   parent: export
   code:
     - scanner: typescript
-      file: src/viewers/web/scanners/settings.ts
-    - scanner: typescript
       file: src/viewers/web/scanners/name.ts
       symbol: scannerName
+    - scanner: typescript
+      file: src/viewers/web/settings/plugins.ts
   group: Browser controls
 description: Browser panel for project plugin installation, updates and readiness
 ---

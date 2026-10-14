@@ -3,7 +3,7 @@ import { floatingBarCss } from './atoms/floating-bar.ts'
 import { settingsControl, settingsCss } from './settings/control.ts'
 import { settingsDialogCss } from './atoms/settings-dialog.ts'
 import { duplicatesCss } from './duplicates/view.ts'
-import { pluginSettingsCss } from './scanners/settings.ts'
+import { pluginSettingsCss } from './settings/plugins.ts'
 import { projectReviewControl, projectReviewCss } from './review/control.ts'
 import { readFileSync } from 'node:fs'
 

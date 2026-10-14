@@ -27,9 +27,9 @@ async function withFakeBacklog(root: string, version: string, script: string): P
   const file = path.join(root, 'probe.ts')
   await writeFile(file, `
     import { readFile, writeFile } from 'node:fs/promises'
-    import { addPlugin, pluginPresence, removePlugin } from ${JSON.stringify(path.join(source, 'plugin-management.ts'))}
+    import { addPlugin, pluginPresence, removePlugin } from ${JSON.stringify(path.join(source, 'plugins/management.ts'))}
     import { readGromaConfig } from ${JSON.stringify(path.join(source, 'config.ts'))}
-    import { workSourceSession } from ${JSON.stringify(path.join(source, 'work-sources.ts'))}
+    import { workSourceSession } from ${JSON.stringify(path.join(source, 'work/sources.ts'))}
     const root = ${JSON.stringify(root)}
     const calls = () => readFile(root + '/calls', 'utf8').then(text => text.trim().split('\\n'), () => [])
     const result = {}

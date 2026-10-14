@@ -1,8 +1,8 @@
 import type { WebDataSource } from '../data.ts'
 import { escaped } from '../atoms/escape.ts'
-import { scannerName } from './name.ts'
+import { scannerName } from '../scanners/name.ts'
 import { isNpmPackageName } from '../../../scanner/modules/published.ts'
-import { pluginGroups, pluginSettingAction, pluginUpgradeAction, scannerMatchReason, type PluginSetting, type ScannerSetting, type PluginSettings, type PluginSettingsAction } from '../../../scanner/modules/settings-model.ts'
+import { pluginGroups, pluginSettingAction, pluginUpgradeAction, scannerMatchReason, type PluginSetting, type ScannerSetting, type PluginSettings, type PluginSettingsAction } from '../../../plugins/settings-model.ts'
 
 export const pluginSettingsCss = `
   #scanner-settings { min-height: 0; display: flex; flex-direction: column; gap: 16px; }

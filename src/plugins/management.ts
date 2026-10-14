@@ -1,4 +1,4 @@
-import { readGromaConfig, writeGromaConfig } from './config.ts'
+import { readGromaConfig, writeGromaConfig } from '../config.ts'
 import {
   addScanner,
   configuredScannerModules,
@@ -6,8 +6,8 @@ import {
   restoreScanner,
   updateScanner,
   type ScannerInstallOptions,
-} from './scanner/modules/inventory.ts'
-import { bundledWorkSource, bundledWorkSources, checkWorkSourceReadiness, type BundledWorkSource } from './work-sources.ts'
+} from '../scanner/modules/inventory.ts'
+import { bundledWorkSource, bundledWorkSources, checkWorkSourceReadiness, type BundledWorkSource } from '../work/sources.ts'
 
 /**
  * The one owner of the plugins config.json lists: whether this computer has each of them, and adding, updating,

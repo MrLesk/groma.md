@@ -1,7 +1,7 @@
 import { createCliRenderer, FrameBufferRenderable, RGBA, type CliRenderer, type KeyEvent, type PasteEvent } from '@opentui/core'
 import { watchArchitecture } from '../../architecture-watch.ts'
 import { createScannerSession, type ScannerSession } from '../../scanner/session.ts'
-import { pluginGroups, pluginSettingAction, scannerMatchReason, pluginSettingLabel, type PluginSetting, type PluginSettingsAction } from '../../scanner/modules/settings-model.ts'
+import { pluginGroups, pluginSettingAction, scannerMatchReason, pluginSettingLabel, type PluginSetting, type PluginSettingsAction } from '../../plugins/settings-model.ts'
 import { loadWelcomeModel, welcomeSheet } from '../../welcome/model.ts'
 import { paintShell } from '../../welcome/view.ts'
 import { wrap } from './panes/text.ts'

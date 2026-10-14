@@ -13,12 +13,12 @@ groma:
     - scanner: typescript
       file: src/scanner/modules/published.ts
     - scanner: typescript
-      file: src/plugin-management.ts
-    - scanner: typescript
       file: src/scanner/modules/package-manager.ts
     - scanner: typescript
       file: src/config.ts
-  group: Scanner management
+    - scanner: typescript
+      file: src/plugins/management.ts
+  group: Plugins
 description: Reads config.json, owns the plugins it lists and restores them by kind
 ---
 

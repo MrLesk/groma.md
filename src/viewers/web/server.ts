@@ -6,7 +6,7 @@ import {
   type RepositoryInitDependencies,
 } from '../../init-command.ts'
 import { gromaInitialization } from '../../initialize.ts'
-import { pluginPresence, restoreMissingPlugins } from '../../plugin-management.ts'
+import { pluginPresence, restoreMissingPlugins } from '../../plugins/management.ts'
 import { loadProjectProfile } from '../../project-profile.ts'
 import { discoverScanners, type ScannerDiscovery } from '../../scanner/modules/discovery.ts'
 import { installSelectedScanners } from '../../scanner/modules/setup.ts'

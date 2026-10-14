@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import type { ScannerSetting, PluginSettings } from '../src/scanner/modules/settings-model.ts'
+import type { ScannerSetting, PluginSettings } from '../src/plugins/settings-model.ts'
 import { scannerWarning } from '../src/viewers/web/settings/model.ts'
 
 function settings(tone: PluginSettings['notice']['tone'], statuses: ScannerSetting['status'][]): PluginSettings {

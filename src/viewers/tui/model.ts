@@ -1,4 +1,4 @@
-import type { PluginSettings } from '../../scanner/modules/settings-model.ts'
+import type { PluginSettings } from '../../plugins/settings-model.ts'
 import type { ProjectProfile } from '../../project-profile.ts'
 import type { SheetScene } from '../../sheet/types.ts'
 import type { AnnotatedArchitectureModel, WorkSnapshot } from '../../types.ts'

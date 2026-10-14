@@ -5,12 +5,12 @@ status: stable
 groma:
   id: work-sources
   parent: cli
+  group: Project work
   code:
     - scanner: typescript
-      file: src/work-sources.ts
+      file: src/work/sources.ts
     - scanner: typescript
-      file: src/backlog-cli.ts
-  group: Project work
+      file: src/work/backlog-cli.ts
 description: Runs the bundled work source config.json lists and owns its live subscription
 ---
 

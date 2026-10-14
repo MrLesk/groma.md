@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { restoreMissingPlugins } from '../src/plugin-management.ts'
+import { restoreMissingPlugins } from '../src/plugins/management.ts'
 import { writeGromaConfig } from '../src/config.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 

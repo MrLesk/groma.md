@@ -3,16 +3,18 @@ type: C4 Component
 title: Plugin settings
 status: stable
 groma:
-  id: modules-settings
+  id: plugin-settings
   parent: cli
   code:
     - scanner: typescript
       file: src/scanner/modules/settings.ts
     - scanner: typescript
-      file: src/scanner/modules/settings-model.ts
-    - scanner: typescript
       file: src/scanner/modules/setup.ts
-  group: Scanner management
+    - scanner: typescript
+      file: src/plugins/settings.ts
+    - scanner: typescript
+      file: src/plugins/settings-model.ts
+  group: Plugins
 description: Builds shared settings state and applies plugin actions by kind
 ---
 

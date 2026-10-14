@@ -1,4 +1,4 @@
-import type { PluginSettings, PluginSettingsAction } from '../../scanner/modules/settings-model.ts'
+import type { PluginSettings, PluginSettingsAction } from '../../plugins/settings-model.ts'
 import type { AcceptInput, AddInput, DraftInput, EditArchitectureInput, RemoveInput } from '../../authoring.ts'
 import type { WorkItemDetails } from '../../types.ts'
 import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'

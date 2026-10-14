@@ -1,6 +1,6 @@
 import type { Command } from 'commander'
-import { parseListWindow, printListPage, withListWindowOptions } from './list-window.ts'
-import { addPlugin, pluginPresence, removePlugin, restoreFailure, restoreMissingPlugins, updatePlugin, type PluginSelection } from './plugin-management.ts'
+import { parseListWindow, printListPage, withListWindowOptions } from '../list-window.ts'
+import { addPlugin, pluginPresence, removePlugin, restoreFailure, restoreMissingPlugins, updatePlugin, type PluginSelection } from './management.ts'
 
 /** Runs one command action; a failure prints its message alone and sets the exit code. The scanner commands share it. */
 export async function runPluginCommand(action: () => Promise<void>): Promise<void> {

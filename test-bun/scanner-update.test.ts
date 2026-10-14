@@ -6,7 +6,7 @@ import path from 'node:path'
 import packageJson from '../package.json'
 import { configuredScannerModules, updateScanner } from '../src/scanner/modules/inventory.ts'
 import { readGromaConfig, writeGromaConfig } from '../src/config.ts'
-import { changePluginSettings, parsePluginSettingsAction } from '../src/scanner/modules/settings.ts'
+import { changePluginSettings, parsePluginSettingsAction } from '../src/plugins/settings.ts'
 
 test.concurrent('npm updates resolve omitted and bare sources, pin compatible releases and preserve project settings', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-update-'))

@@ -3,7 +3,7 @@ import { loadScannerRegistry, type ScanBatch, type ScanEvent } from './registry.
 import { watchObservations } from './source-watch.ts'
 import { readGromaConfig } from '../config.ts'
 import type { ProjectReadiness } from './modules/readiness.ts'
-import { changePluginSettings, readPluginSettings, type PluginSettings, type PluginSettingsAction } from './modules/settings.ts'
+import { changePluginSettings, readPluginSettings, type PluginSettings, type PluginSettingsAction } from '../plugins/settings.ts'
 import type { ScannerInstallOptions } from './modules/inventory.ts'
 
 export type ScannerProgress =

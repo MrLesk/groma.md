@@ -13,12 +13,12 @@ import { readTaskDiff } from './viewers/source/diff.ts'
 import { readSource } from './viewers/source/read.ts'
 import { readCodeStructure } from './viewers/source/structure.ts'
 import { createScannerSession } from './scanner/session.ts'
-import { mountPluginSettings } from './viewers/tui/scanner-settings.ts'
+import { mountPluginSettings } from './viewers/tui/plugin-settings.ts'
 import { sheetScene } from './sheet/scene.ts'
 import { mountTerminalViewer } from './viewers/tui/terminal-viewer.ts'
 import type { TerminalViewer } from './viewers/tui/terminal-viewer.ts'
 import type { TerminalViewModel } from './viewers/tui/model.ts'
-import { workSourceSession } from './work-sources.ts'
+import { workSourceSession } from './work/sources.ts'
 
 interface StartViewerOptions {
   scan?: boolean

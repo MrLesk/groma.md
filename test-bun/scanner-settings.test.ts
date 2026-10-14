@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
-import { scannerNotice, scannerSettingsState } from '../src/scanner/modules/settings.ts'
-import { pluginGroups, pluginSettingAction, type ScannerSetting } from '../src/scanner/modules/settings-model.ts'
+import { scannerNotice, scannerSettingsState } from '../src/plugins/settings.ts'
+import { pluginGroups, pluginSettingAction, type ScannerSetting } from '../src/plugins/settings-model.ts'
 import type { ScannerDiscovery } from '../src/scanner/modules/discovery.ts'
 
 function setting(id: string, status: ScannerSetting['status'], match: ScannerSetting['match'] = 'matched'): ScannerSetting {

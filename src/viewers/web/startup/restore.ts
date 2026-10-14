@@ -1,4 +1,4 @@
-import type { PluginPresence, RestoreState } from '../../../plugin-management.ts'
+import type { PluginPresence, RestoreState } from '../../../plugins/management.ts'
 import { escaped } from '../atoms/escape.ts'
 import { scannerName } from '../scanners/name.ts'
 

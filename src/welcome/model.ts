@@ -4,8 +4,8 @@ import path from 'node:path'
 import packageJson from '../../package.json' with { type: 'json' }
 
 import { humanInstructionGuides } from '../instructions.ts'
-import { pluginPresence } from '../plugin-management.ts'
-import { readPluginSettings, type PluginSettings } from '../scanner/modules/settings.ts'
+import { pluginPresence } from '../plugins/management.ts'
+import { readPluginSettings, type PluginSettings } from '../plugins/settings.ts'
 
 export const documentationUrl = 'https://groma.md'
 export const welcomeVersion = packageJson.version

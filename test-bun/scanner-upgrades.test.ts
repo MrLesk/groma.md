@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import packageJson from '../package.json'
-import { withPluginUpgrades, type PluginSettings } from '../src/scanner/modules/settings.ts'
-import { pluginUpgradeAction } from '../src/scanner/modules/settings-model.ts'
+import { withPluginUpgrades, type PluginSettings } from '../src/plugins/settings.ts'
+import { pluginUpgradeAction } from '../src/plugins/settings-model.ts'
 import { scannerWarning } from '../src/viewers/web/settings/model.ts'
 
 test.concurrent('upgrade checks preserve scan health and offer only a newer compatible version for the checked source', async () => {

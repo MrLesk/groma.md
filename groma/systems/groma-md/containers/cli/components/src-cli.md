@@ -15,8 +15,7 @@ groma:
       file: src/write-commands.ts
       symbol: registerWriteCommands
     - scanner: typescript
-      file: src/plugin-cli.ts
-      symbol: registerPluginCommands
+      file: src/plugins/cli.ts
   group: Project commands
 description: Reads CLI commands and starts the requested Groma action
 ---

@@ -1,6 +1,6 @@
 import type { Command } from 'commander'
 import { parseListWindow, printListPage, withListWindowOptions, type ListWindowInput } from '../list-window.ts'
-import { runPluginCommand } from '../plugin-cli.ts'
+import { runPluginCommand } from '../plugins/cli.ts'
 import { discoverScanners, discoveryItems, discoveryNote } from './modules/discovery.ts'
 import { createClackInitUi } from '../init-command-ui.ts'
 import { setupScanners } from './modules/setup.ts'
@@ -12,8 +12,8 @@ export function registerScannerCommands(program: Command): void {
     .description('Set up and check the scanners of this project; groma plugin adds, updates and removes them')
 
   scanner.command('settings').description('Open the plugins screen of this project').action(() => runPluginCommand(async () => {
-    if (process.stdin.isTTY && process.stdout.isTTY) await (await import('../viewers/tui/scanner-settings.ts')).startPluginSettings(process.cwd())
-    else console.log(JSON.stringify(await (await import('./modules/settings.ts')).readPluginSettings(process.cwd()), null, 2))
+    if (process.stdin.isTTY && process.stdout.isTTY) await (await import('../viewers/tui/plugin-settings.ts')).startPluginSettings(process.cwd())
+    else console.log(JSON.stringify(await (await import('../plugins/settings.ts')).readPluginSettings(process.cwd()), null, 2))
   }))
 
   scanner

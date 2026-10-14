@@ -1,7 +1,7 @@
 import { EMPTY_WORK_SOURCE, type WorkSource, type WorkSourcePlugin } from '@groma/work-source'
 import { backlogPlugin } from '@groma/work-source-backlog'
 import { installBacklogCli } from './backlog-cli.ts'
-import { readGromaConfig, type ConfiguredWorkSource } from './config.ts'
+import { readGromaConfig, type ConfiguredWorkSource } from '../config.ts'
 
 /** A work source that ships inside groma.md, with the tool it reads through. */
 export interface BundledWorkSource {
