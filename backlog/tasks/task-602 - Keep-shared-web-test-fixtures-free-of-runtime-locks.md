@@ -1,11 +1,11 @@
 ---
 id: TASK-602
 title: 'Make scanner CI reliable across Windows, Linux and macOS'
-status: Done
+status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-15 19:43'
-updated_date: '2026-10-15 20:56'
+updated_date: '2026-10-15 21:11'
 labels: []
 dependencies: []
 references:
@@ -21,6 +21,8 @@ references:
   - test-bun/plain-view.test.ts
   - test-bun/web-flow-activation.test.ts
   - test-bun/web-selection-camera.test.ts
+  - test-bun/kotlin-scanner.test.ts
+  - test-bun/web-revisions.test.ts
 modified_files:
   - test-bun/web-theme.test.ts
   - test-bun/web-sharing.test.ts
@@ -37,6 +39,8 @@ modified_files:
   - test-bun/plain-view.test.ts
   - test-bun/web-flow-activation.test.ts
   - test-bun/web-selection-camera.test.ts
+  - test-bun/web-revisions.test.ts
+  - test-bun/kotlin-scanner.test.ts
 type: bug
 ordinal: 672000
 ---
@@ -71,6 +75,8 @@ Cross-platform qualification of the scanner PRs reproduced shared-fixture lock c
 1. Give every shared-fixture reader its own copy; existing concurrent sharing/theme/export/detach tests cover the result. 2. Use an optional stat for each listed path. The isolated disappearing-file regression must fail before and pass after; existing listing tests retain source/symlink rules. 3. Keep the existing exclusive-file lock and bounded wait, treating the reproduced Windows-only EPERM as contention while deletion is pending. Extend the existing protected-read test to observe the valid project profile; retain cross-process exclusion and timeout tests. 4. Build COBOL and Scala artifacts in separate CI steps and reuse the existing native-package test pattern. Run both test paths without new assertions or timeout changes. 5. Run focused checks, the complete repository check and exact-head Windows/Linux/macOS CI. These changes preserve OKF Markdown, C4 meanings and source ownership; existing filesystem and test-package owners retain responsibility. No new architecture concept or storage format is introduced.
 
 The Linux PR154 run reproduced an orphan lock in the flow fixture too. Route all five flow-fixture reader files through one temporary-copy helper in existing test helpers, including the plain-view record path. Existing flow, navigation, camera, authoring and scanner-copy tests already prove the supported outcomes; retain their assertions and use them concurrently. No new assertion or test is needed for this fixture-lifecycle correction. Verify no flow reader can create a lock in the shared source, run the focused files and the full check, then repeat CI for the updated PR stack.
+
+Investigate the latest Windows timeouts without changing test budgets. Run a temporary Windows workflow with stage timing around the existing web-history scenario and Kotlin build, alongside the Go scanner checks that overlapped the failure. Keep diagnostic instrumentation off the final PR branches. Kotlin compilation still occurs inside its timed scenario, so move that build into CI preparation using the existing supplied-package pattern; verify ordinary and prepared-package paths retain all assertions.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes

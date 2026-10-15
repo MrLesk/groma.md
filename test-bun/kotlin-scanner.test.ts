@@ -94,7 +94,9 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-kotlin-'))
   try {
     const artifact = path.join(temporary, 'scanner')
+    console.error('KOTLIN build start', performance.now())
     await buildPackage(artifact)
+    console.error('KOTLIN build end', performance.now())
     const scanner = (await import(pathToFileURL(path.join(artifact, 'src/index.js')).href)).default as ScannerPlugin
     await scanner.checkReadiness!(fixture, {}, [orders])
     const first = (await scanner.scan!(fixture, {}, [orders]))!
@@ -104,6 +106,7 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
     await verifyOutline(scanner)
     await verifyOperationScopes(scanner)
     await verifyVisibility(scanner)
+    console.error('KOTLIN basic scenarios end', performance.now())
 
     const project = path.join(temporary, 'project')
     await cp(fixture, project, { recursive: true })
