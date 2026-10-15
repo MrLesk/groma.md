@@ -1,0 +1,33 @@
+Ada grammar: https://github.com/briot/tree-sitter-ada
+Revision: a45fd9c65a791cbe7d146e85a53fbe43a6d52a61
+Groma modification: assets/gnat-fixed-lower-bound.patch adds the documented
+GNAT fixed-lower-bound syntax to array type index definitions.
+assets/tree-sitter-ada.wasm was generated with tree-sitter-cli 0.26.3:
+tree-sitter generate --abi 14; tree-sitter build --wasm (wasi-sdk 29).
+The pinned source and applied patch are recorded in the scanner repository.
+
+MIT License
+
+Copyright (c) 2023 Emmanuel Briot
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+web-tree-sitter 0.27.1: https://github.com/tree-sitter/tree-sitter
+MIT licensed JavaScript and WASM runtime. See tree-sitter.LICENSE in the
+built scanner package. Both engines are bundled; scanning downloads nothing.

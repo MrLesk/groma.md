@@ -1,0 +1,22 @@
+{
+  "name": "@groma/scanner-ada",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "description": "Experimental Ada source declarations, package units and bounded procedure-call evidence.",
+  "groma": {
+    "scanner": {
+      "id": "ada",
+      "entry": "./src/index.ts",
+      "include": ["**/*.ads", "**/*.adb"],
+      "exclude": ["/alire/", "/obj/", "tests/"],
+      "discovery": {
+        "technologies": ["ada"],
+        "rules": [{ "type": "file", "files": ["**/*.ads", "**/*.adb"], "technology": "ada", "kind": "language", "declaration": "Ada source; build configuration and entry points unverified" }],
+        "compatibility": { "groma": ">=0.6.6" }
+      }
+    }
+  },
+  "dependencies": { "@groma/scanner": "workspace:*", "web-tree-sitter": "0.27.1" }
+}

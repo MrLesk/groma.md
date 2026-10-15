@@ -126,11 +126,12 @@ jobs:
         run: |
           bun plugins/scanners/c/build.ts scanner-packages/c
           bun plugins/scanners/cpp/build.ts scanner-packages/cpp
+          bun plugins/scanners/ada/build.ts scanner-packages/ada
         shell: bash
       - name: Check experimental packages without language tools
         env:
           GROMA_TEST_PACKAGES: scanner-packages
-        run: bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts --test-name-pattern '^(c|cpp) package'
+        run: bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts --test-name-pattern '^(c|cpp|ada) package'
         shell: bash
       - parallel:
           - name: Run repository checks

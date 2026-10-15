@@ -10,6 +10,7 @@ const packageTest = packages ? test.concurrent : test.skip
 const examples = {
   c: 'c-source',
   cpp: 'cpp-source',
+  ada: 'ada-source',
   typescript: 'operation-wiring', python: 'python-project', java: 'java-maven', go: 'go-module',
   javascript: 'javascript-source',
   rust: 'rust-semantic', csharp: 'csharp-operations', angular: 'angular-output', react: 'react-callback', vue: 'vue-output', php: 'php-source',
@@ -104,7 +105,7 @@ for (const [id, fixture] of Object.entries(examples)) {
       expect(observation.files.length).toBeGreaterThan(0)
       expect(observation.operations!.length).toBeGreaterThan(0)
       expect(observation.invocations!.length).toBeGreaterThan(0)
-      if (!['c', 'cpp', 'python', 'php', 'swift', 'javascript', 'cobol', 'scala', 'kotlin', 'dart'].includes(id)) expect(observation.invocations!.some(call => !call.unresolved && call.targets.length > 0)).toBe(true)
+      if (!['c', 'cpp', 'ada', 'python', 'php', 'swift', 'javascript', 'cobol', 'scala', 'kotlin', 'dart'].includes(id)) expect(observation.invocations!.some(call => !call.unresolved && call.targets.length > 0)).toBe(true)
       expect(new Set(observation.files.map(file => file.file)).size).toBe(observation.files.length)
       expect(await snapshot(root)).toEqual(before)
     } finally { await rm(temporary, { recursive: true, force: true }) }
