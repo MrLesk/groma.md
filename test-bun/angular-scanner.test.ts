@@ -182,7 +182,7 @@ test.concurrent('the live scanner session refreshes a component when its externa
   const session = await createScannerSession(root, { onFold() { complete?.() } })
   try {
     await session.change({ action: 'add', source: artifact })
-    expect(session.state.scanners.find(scanner => scanner.id === 'angular')?.status).toBe('ready')
+    expect(session.state.plugins.find(scanner => scanner.id === 'angular')?.status).toBe('ready')
     const before = await storedArchitecture(root)
     const changed = Promise.withResolvers<void>()
     complete = () => changed.resolve()
@@ -230,7 +230,7 @@ test.concurrent('the built Angular package and the TypeScript scanner outline a 
 test.concurrent('a file Angular and TypeScript both own shows one outline', async () => {
   const { temporary, root, artifact, scanner } = await outlineSetup()
   try {
-    await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify({ scanners: [
+    await writeFile(path.join(root, 'groma/config.json'), JSON.stringify({ scanners: [
       { id: 'typescript', source: path.resolve(import.meta.dir, '../plugins/scanners/typescript'), include: typescriptManifest.groma.scanner.include },
       { id: 'angular', source: artifact, include: manifest.groma.scanner.include },
     ] }))

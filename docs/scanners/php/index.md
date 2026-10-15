@@ -13,7 +13,7 @@ bun plugins/scanners/php/build.ts
 From the project being scanned:
 
 ```sh
-groma scanner add /absolute/path/to/groma/plugins/scanners/php/dist/package
+groma plugin add /absolute/path/to/groma/plugins/scanners/php/dist/package
 groma scan
 ```
 

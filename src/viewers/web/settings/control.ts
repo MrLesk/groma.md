@@ -1,6 +1,6 @@
 import type { WebDataSource } from '../data.ts'
 import { createSettingsDialog } from '../atoms/settings-dialog.ts'
-import { bindScannerSettings } from '../scanners/settings.ts'
+import { bindPluginSettings } from './plugins.ts'
 import { bindPopover } from '../atoms/popover.ts'
 import { scannerWarning } from './model.ts'
 
@@ -52,12 +52,12 @@ export function createProjectSettings(data: WebDataSource) {
     if (theme.open) { theme.open = false; theme.querySelector('summary')!.focus() }
     else { dismiss(); toggle.focus() }
   })
-  if (!data.readScanners || !data.changeScanners) return
+  if (!data.readPluginSettings || !data.changePluginSettings) return
   const warning = document.getElementById('scanner-warning')!
   plugins.hidden = false
   let target: ReturnType<typeof scannerWarning>
   const popup = createSettingsDialog('project-settings', 'Settings', '<h2 id="plugins-title">Plugins</h2><section id="scanner-settings" aria-labelledby="plugins-title"></section>')
-  const settings = bindScannerSettings(data, popup.dialog.querySelector<HTMLElement>('#scanner-settings')!, state => {
+  const settings = bindPluginSettings(data, popup.dialog.querySelector<HTMLElement>('#scanner-settings')!, state => {
     target = scannerWarning(state)
     warning.hidden = !target
     const label = target?.scannerId ? `${target.scannerId} needs attention` : 'Scanning needs attention'

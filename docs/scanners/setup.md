@@ -1,30 +1,32 @@
-# Project scanner settings
+# Project plugin settings
 
-Open **Scanners** from the groma.md splash screen (`s`), the terminal map
+[`config.json`](../config.md) lists the project's plugins; its page explains how a colleague
+restores them. This page covers the plugins screen and scanner setup.
+
+Open **Plugins** from the groma.md splash screen (`s`), the terminal map
 (`Shift+S`), or **Settings → Plugins** in the web toolbar.
 `groma scanner settings` opens the same terminal
 screen; without a terminal it prints the shared settings snapshot as JSON.
 
-The same screen groups **Installed**, **Missing on this computer**, then
-**Recommended** scanners. Empty groups are hidden. Search filters the list by
+Within **Scanners**, the screen groups **Installed**, **Missing on this computer**,
+and **Recommended**. **Work sources** lists Backlog.md: listed, or offered with **Install**. Empty groups are hidden. Search filters the list by
 scanner name, package or technology. Web rows keep the scanner name, version,
 origin and available action together. **Matching files** expands the source
 detection evidence; **Scanner details** reveals diagnostics for failures.
-The web labels the missing group **Set up for this project** and offers bulk
-installation only when the group has multiple installable scanners. A single
+The web offers bulk installation when a group has multiple installable scanners. A single
 recommendation has one **Install** button; multiple recommendations also offer
 **Install all**. Settings is always available in live web.
 A warning appears only when scanning needs attention and opens the affected
-plugin in Settings. Potential duplicates belong to the separate Project review.
+scanner in Settings. Potential duplicates belong to the separate Project review.
 
 **Install** selects a published stable release for this groma.md version and
 computer, saves its exact version, and scans. **Install recommended scanners**
-performs that flow for all current recommendations. **Install missing scanners**
+performs that flow for all current recommendations. **Install missing plugins**
 restores the exact selections shared by the team and scans. Both actions keep
 successful installations if another package fails; Retry attempts the remaining
 work. Existing selections are never silently upgraded.
 
-**Add scanner** accepts a package name, exact npm version, Git source or local
+**Add plugin** accepts a package name, exact npm version, Git source or local
 package path. Bare names use the same published-release selection. For a missing
 local package, restore its directory. **Remove from project** keeps saved
 architecture. For npm scanners, **Update** installs the newest compatible stable
@@ -48,9 +50,9 @@ The `proxy` and `https-proxy` keys of `.npmrc` are not read, and neither is a
 The CLI uses the same release selection:
 
 ```sh
-groma scanner update typescript
-groma scanner update typescript @groma/scanner-typescript
-groma scanner update typescript @groma/scanner-typescript@0.1.2
+groma plugin update typescript
+groma plugin update typescript @groma/scanner-typescript
+groma plugin update typescript @groma/scanner-typescript@0.1.2
 ```
 
 Scanners validate project requirements when scanning. A failed scanner shows its
@@ -60,7 +62,7 @@ Full error output is available inline through Details; the web shows **Needs
 attention** on the row and keeps the full diagnostic in **Error details**. groma.md does
 not install project dependencies or development tools on the user's behalf.
 
-In the terminal, `i` installs recommended scanners, `m` installs missing scanners,
+In the terminal, `i` installs recommended scanners, `m` installs missing plugins,
 and `r` retries a failed installation. `/` edits search, Enter keeps the filter, and Escape clears it
 while editing. `d` toggles details; Page Up/Down scrolls the open details or moves
 through the list. Web details expand inside the selected row.
@@ -108,9 +110,9 @@ groma scanner setup
 ```
 
 Only selected additions are installed through the existing exact-version
-installer. `scanners.json` in the selected architecture directory records their
+installer. `config.json` in the selected architecture directory records their
 exact package versions. Disable an existing scanner explicitly with
-`groma scanner remove <id>`.
+`groma plugin remove <id>`.
 
 ## Package availability and project readiness
 
@@ -119,7 +121,7 @@ it does not run plugins or install anything. Detection offers a package name.
 Install resolves a published release for groma.md and this computer; the scanner
 then validates source inputs and language support.
 
-`groma scanner list` reports whether each configured package is found or missing without executing it. `groma scanner check` separately loads
+`groma plugin list` reports whether each listed plugin is on this computer without executing scanner code. `groma scanner check` separately loads
 enabled plugins and runs their source-readiness checks:
 
 - `ready`: the source-readiness check passed; the scan can still report a
@@ -153,20 +155,20 @@ groma scanner setup --no-interactive
 ```
 
 Install a chosen, qualified release explicitly with
-`groma scanner add <package>@<exact-version>`. Use the exact source provided by
+`groma plugin add <package>@<exact-version>`. Use the exact source provided by
 the verified release; the catalog does not invent published versions. For a
 project whose scanner configuration is already committed, CI restores and
 checks it with:
 
 ```sh
-groma scanner install
+groma plugin install
 groma scanner check
 groma scan
 ```
 
-Local scanner paths remain available for development through `scanner add`;
+Local scanner paths remain available for development through `plugin add`;
 they do not establish that an official public release exists.
-Bulk install also checks local selections and fails with the missing directory
+Restoring also checks local selections and fails with the missing directory
 when one is unavailable. To share a local scanner with colleagues, commit its
 runnable package and select a path relative to the repository.
 

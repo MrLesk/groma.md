@@ -16,12 +16,14 @@ groma:
       file: src/viewers/web/startup/page.ts
       symbol: renderSetupPage
     - scanner: typescript
-      file: src/viewers/web/startup/scanners.ts
+      file: src/viewers/web/startup/restore.ts
+    - scanner: typescript
+      file: src/viewers/web/startup/plugins.ts
   group: Browser delivery
 description: Serves the local browser map and live architecture operations
 ---
 
-Starts the local HTTP server. Serves project setup and connects the browser to architecture, scanner, task, and source operations.
+Starts the local HTTP server. Serves project setup, where the plugin step offers scanners and, in its own Tasks section, Backlog.md; asks whether to restore plugins config.json lists that this computer lacks or to open the map read-only; and connects the browser to architecture, scanner, task, and source operations.
 
 ## Relationships
 

@@ -15,7 +15,7 @@ a maximum heap of 2 GiB; source coverage and compiler analysis are unchanged.
 From an initialized project:
 
 ```sh
-groma scanner add @groma/scanner-java
+groma plugin add @groma/scanner-java
 groma scan
 ```
 

@@ -66,7 +66,7 @@ A scanner declares what it scans in its manifest, never in code:
   ecosystem.
 
 Both lists use Git ignore patterns with `/` separators. Adding the scanner to a
-project writes them into its entry in `scanners.json`, where people edit them;
+project writes them into its entry in `config.json`, where people edit them;
 an update never rewrites them. [Selecting source files](index.md#selecting-source-files)
 describes how the lists combine with the global list and `useGitignore`.
 
@@ -267,7 +267,7 @@ file as read by no enabled scanner.
 
 groma.md uses the listing to explain a file with no architecture owner. `groma view`
 on such a file exits non-zero with one reason: it is not a repository file, a
-named `scanners.json` pattern excludes it, no enabled scanner reads it, or it
+named `config.json` pattern excludes it, no enabled scanner reads it, or it
 waits for a scan by the scanners that read it, because it is new or was
 detached. A listing that throws names its scanner with the error's first line,
 beside the other scanners' answer. A plugin without the hook
@@ -346,7 +346,7 @@ remain installable by name, but groma.md has no third-party discovery index.
 
 ## Scanner settings
 
-All groma.md scanner settings belong in the single `scanners.json` inside the
+All groma.md scanner settings belong in the single `config.json` inside the
 selected `groma/` or `.groma/` directory. Put optional `settings` on the
 existing scanner entry beside `id` and `source`:
 
@@ -381,7 +381,7 @@ validation for readiness and analysis. Document supported keys and defaults,
 and make errors identify the scanner and setting to correct. Resolve project
 selection paths relative to the supplied repository root.
 
-Scanners must not read `scanners.json` themselves or introduce separate
+Scanners must not read `config.json` themselves or introduce separate
 groma.md configuration files. Keep native compiler settings in native project
 files such as `tsconfig.json`, `Cargo.toml` and `.csproj`. Pass parsed
 settings to a native worker through its existing invocation interface.
@@ -602,20 +602,20 @@ never contains `/`, a query, or a fragment. Omit empty segments. For a route
 Use an exact npm version, a Git tag or full commit, or a project-relative local package:
 
 ```sh
-groma scanner add @example/groma-scanner-python@1.0.0
-groma scanner add ./plugins/scanners/python
-groma scanner add git+https://github.com/example/python-scanner.git#v1.0.0
+groma plugin add @example/groma-scanner-python@1.0.0
+groma plugin add ./plugins/scanners/python
+groma plugin add git+https://github.com/example/python-scanner.git#v1.0.0
 ```
 
-`add` validates the installed package before writing `scanners.json` in the
+`add` validates the installed package before writing `config.json` in the
 selected `groma/` or `.groma/` directory.
-Npm and Git packages live in groma.md's shared `~/.groma/cache/scanners` cache. Local
+Npm and Git packages live in groma.md's shared `~/.groma/cache/plugins` cache. Local
 packages run directly from the configured path.
 
 ```sh
-groma scanner list
-groma scanner install
-groma scanner remove python
+groma plugin list
+groma plugin install
+groma plugin remove python
 ```
 
 `install` restores configured npm and Git packages. `remove` disables a scanner without
@@ -625,14 +625,14 @@ For a runnable example, use the [inventory teaching scanner](https://github.com/
 with its supplied project fixture and groma.md 0.3.0 or later:
 
 ```sh
-groma scanner add 'git+https://github.com/MrLesk/groma-scanner-example.git#v0.1.0'
+groma plugin add 'git+https://github.com/MrLesk/groma-scanner-example.git#v0.1.0'
 ```
 
 A Git source must use public HTTPS and contain one runnable scanner package at
 its repository root. Include bundled entry code and required worker assets in
 the selected tag or commit. groma.md installs declared dependencies with installation
 scripts disabled; it does not compile the scanner. Git must be available locally.
-groma.md resolves a tag to its full commit and records that commit in `scanners.json`.
+groma.md resolves a tag to its full commit and records that commit in `config.json`.
 Commit this project configuration so teammates restore the same scanner even
 when a tag moves. Local paths stay local; package downloads are shared, but each
 project chooses its own scanners and settings. Scan and watch never install packages, search global
@@ -645,18 +645,18 @@ compatible stable release. You can also choose an exact version of the same npm
 package, or a tag or commit in the same Git repository:
 
 ```sh
-groma scanner update python
-groma scanner update python @example/groma-scanner-python
-groma scanner update python @example/groma-scanner-python@1.1.0
-groma scanner update python git+https://github.com/example/python-scanner.git#v1.1.0
+groma plugin update python
+groma plugin update python @example/groma-scanner-python
+groma plugin update python @example/groma-scanner-python@1.1.0
+groma plugin update python git+https://github.com/example/python-scanner.git#v1.1.0
 ```
 
 groma.md installs and validates the replacement before recording its exact source.
 The scanner ID must remain the same. A failed or rejected replacement leaves
 project configuration unchanged. Scanner settings, project exclusions and
 other scanner selections are preserved. Other projects keep their own versions.
-Use `groma scanner list` and `groma scanner check` to inspect the result;
-`groma scanner install` restores the recorded version or commit.
+Use `groma plugin list` and `groma scanner check` to inspect the result;
+`groma plugin install` restores the recorded version or commit.
 
 Updates are explicit. Scanning, starting a viewer or upgrading groma.md does not
 select a newer scanner. Local plugins continue to run from their configured

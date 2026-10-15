@@ -7,7 +7,7 @@ import manifest from '../plugins/scanners/go/package.json'
 import { readGoCodeStructure, run, scanGoSource } from '../plugins/scanners/go/src/adapter.ts'
 import plugin from '../plugins/scanners/go/src/index.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
-import { readScannerConfig, writeScannerConfig } from '../src/scanner/modules/config.ts'
+import { readGromaConfig, writeGromaConfig } from '../src/config.ts'
 import { addScanner } from '../src/scanner/modules/inventory.ts'
 import { scannerFiles } from '../src/scanner/modules/selection.ts'
 import { readCodeStructure } from '../src/viewers/source/structure.ts'
@@ -262,8 +262,8 @@ goTest('groma lint reports identical and near-duplicate Go bodies across renamed
     const git = Bun.spawn(['git', 'init', '--quiet', root], { stdout: 'ignore', stderr: 'pipe' })
     expect(await git.exited).toBe(0)
     await addScanner(root, path.resolve(import.meta.dir, '../plugins/scanners/go'))
-    const config = await readScannerConfig(root)
-    await writeScannerConfig(root, { ...config, scanners: config.scanners.map(scanner => ({ ...scanner, settings: { worker } })) })
+    const config = await readGromaConfig(root)
+    await writeGromaConfig(root, { ...config, scanners: config.scanners.map(scanner => ({ ...scanner, settings: { worker } })) })
     const lint = Bun.spawn([process.execPath, path.resolve(import.meta.dir, '../src/cli.ts'), 'lint'],
       { cwd: root, stdout: 'pipe', stderr: 'pipe' })
     const [code, out, error] = await Promise.all([lint.exited, new Response(lint.stdout).text(), new Response(lint.stderr).text()])
@@ -327,8 +327,8 @@ goTest('a component with Go and TypeScript files outlines every file in Code ord
     await buildWorker(worker, go)
     await addScanner(root, path.resolve(import.meta.dir, '../plugins/scanners/go'))
     await addScanner(root, path.resolve(import.meta.dir, '../plugins/scanners/typescript'))
-    const config = await readScannerConfig(root)
-    await writeScannerConfig(root, {
+    const config = await readGromaConfig(root)
+    await writeGromaConfig(root, {
       ...config, scanners: config.scanners.map(scanner => scanner.id === 'go' ? { ...scanner, settings: { worker } } : scanner),
     })
     const world = await loadAnnotatedArchitecture(root)

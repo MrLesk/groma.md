@@ -55,7 +55,8 @@ export interface PublishedView {
 }
 
 export type WebDelivery =
-  | { kind: 'live' }
+  /** A read-only live map follows the files but offers no writes: groma web opens one when plugins are missing. */
+  | { kind: 'live'; readOnly?: boolean }
   | { kind: 'published'; views: PublishedView[] }
 
 /** Initial page data plus the one delivery boundary the browser must use. */

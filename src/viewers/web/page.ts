@@ -3,7 +3,7 @@ import { floatingBarCss } from './atoms/floating-bar.ts'
 import { settingsControl, settingsCss } from './settings/control.ts'
 import { settingsDialogCss } from './atoms/settings-dialog.ts'
 import { duplicatesCss } from './duplicates/view.ts'
-import { scannerSettingsCss } from './scanners/settings.ts'
+import { pluginSettingsCss } from './settings/plugins.ts'
 import { projectReviewControl, projectReviewCss } from './review/control.ts'
 import { readFileSync } from 'node:fs'
 
@@ -74,7 +74,7 @@ const legendKinds: C4Kind[][] = [
 
 const style = `
   ${fontCss}
-  ${scannerSettingsCss}${duplicatesCss}${projectReviewCss}${settingsCss}${settingsDialogCss}
+  ${pluginSettingsCss}${duplicatesCss}${projectReviewCss}${settingsCss}${settingsDialogCss}
   :root {
     ${cssBlock(palettes.light)}
     --backlog-mark-image: url("data:image/png;base64,${backlogMark}");
@@ -117,6 +117,7 @@ const style = `
   body.hierarchy-collapsed { --hierarchy-inset: 44px; }
   body.details-hidden { --details-inset: 0px; }
   body[data-delivery="published"] .project-edit { display: none; }
+  #read-only { flex-shrink: 0; padding: 2px 8px; border: 1px solid var(--hairline); border-radius: 5px; color: var(--muted); font-size: 11px; white-space: nowrap; }
   body.hud-hidden { min-width: 0; display: block; padding: 0; }
   body.hud-hidden #header,
   body.hud-hidden #hierarchy,
@@ -454,14 +455,17 @@ function chromeInset(url: URL | undefined): string {
 
 export function renderPage(payload: WebBootPayload, url?: URL): string {
   const json = JSON.stringify(payload).replace(/</g, '\\u003c')
+  const writable = payload.delivery.kind === 'live' && !payload.delivery.readOnly
+  const readOnly = payload.delivery.kind === 'live' && payload.delivery.readOnly
+    ? '<span id="read-only" title="Run groma web again to restore the missing plugins.">Read-only: plugins missing</span>' : ''
   return `<!doctype html><html><head><meta charset="utf-8"><title>${escaped(payload.project?.title ?? 'Groma')}</title>`
     + sharingMetadata(payload.project, url)
     + `<style>${style}</style></head><body data-delivery="${payload.delivery.kind}"${chromeInset(url)}>`
-    + `<header id="header"><div class="header-context">${lockup}<span id="stats"></span>${revisionControl(payload, { history: historyIcon, loader: revisionLoader })}</div>`
+    + `<header id="header"><div class="header-context">${lockup}<span id="stats"></span>${readOnly}${revisionControl(payload, { history: historyIcon, loader: revisionLoader })}</div>`
     + searchControl({ search: searchIcon, close: closeIcon })
     + `<div class="header-actions">${projectReviewControl}<div id="map-controls" class="controls" aria-label="Map controls"><button id="fit" aria-label="Fit map">${fitIcon}<span>Fit</span></button><button id="zoom-out" aria-label="Zoom out"><span class="control-glyph">−</span></button><span id="zoom" aria-live="polite"></span><button id="zoom-in" aria-label="Zoom in"><span class="control-glyph">+</span></button></div><div class="header-utilities">${settingsControl(themeControl())}${helpControl()}${creditsControl(infoIcon, lockup)}</div></div>`
     + '</header>'
-    + `<nav id="hierarchy" aria-label="Hierarchy"><div id="hierarchy-title"><span class="pane-label">Hierarchy</span>${payload.delivery.kind === 'live' ? '<button id="add" type="button" aria-label="Add">+</button>' : ''}<button id="hierarchy-toggle" type="button" aria-controls="hierarchy-content">${hierarchyIcon}</button></div><div id="hierarchy-content"><div id="flows"></div><div id="tree"></div><div id="legend">${legend()}</div></div></nav>`
+    + `<nav id="hierarchy" aria-label="Hierarchy"><div id="hierarchy-title"><span class="pane-label">Hierarchy</span>${writable ? '<button id="add" type="button" aria-label="Add">+</button>' : ''}<button id="hierarchy-toggle" type="button" aria-controls="hierarchy-content">${hierarchyIcon}</button></div><div id="hierarchy-content"><div id="flows"></div><div id="tree"></div><div id="legend">${legend()}</div></div></nav>`
     + `<div id="map" role="tabpanel" aria-label="Architecture map"></div>${mapViewControl()}${c4FilterControl()}`
     + emptyState(payload)
     + `<div id="details-dock"><aside id="details" aria-label="Details"><div class="details-controls"><button id="details-expand" aria-label="Expand details" title="Expand details" aria-expanded="false">${expandIcon}${collapseIcon}</button><button id="details-close" aria-label="Close details">${closeIcon}</button></div><p class="meta"></p><h1></h1><nav class="controls tabs"></nav><div class="body"></div></aside></div>`

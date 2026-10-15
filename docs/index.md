@@ -6,20 +6,25 @@ records as a strict OKF v0.2 application profile.
 
 `groma init` starts by creating the Git repository when needed, then sets the
 project name and storage root. It uses the visible `groma/` directory by
-default or the hidden `.groma/` directory when selected. When the Backlog.md
-CLI is available and the project is not yet initialized, the same command
-initializes Backlog.md and writes its AGENTS.md CLI nudge. Existing Git and
+default or the hidden `.groma/` directory when selected. When `config.json`
+lists Backlog.md, its CLI is available and Backlog.md is not
+yet initialized, the same command initializes Backlog.md and writes its
+AGENTS.md CLI nudge. Existing Git and
 Backlog.md projects stay unchanged. Running it again edits the current project
 name, keeps the chosen root, and refreshes groma.md's managed agent instructions.
 
-Interactive setup can install Backlog.md when it is missing. When the
+Interactive setup adds Backlog.md for tasks when its CLI is installed, and
+otherwise offers to install it, with yes preselected. Adding it writes it to
+`config.json` and initializes Backlog.md. The browser setup shows it in its own
+Tasks section above the scanners. A step that fails is reported and setup
+continues. When the
 architecture has no observed components, it can run the first scan and open
 either viewer. The terminal setup from `groma view` and the browser setup page
 from `groma web` use the same repository initialization. The resulting
 `project.md` belongs to the project owner.
 
 Without a terminal, pass both values explicitly. This form also initializes
-Git and Backlog.md when needed:
+Git when needed, and Backlog.md when `config.json` already lists it:
 
 ```bash
 groma init "Shop" --directory groma
@@ -37,6 +42,7 @@ On a TTY, `groma instructions` opens the local guide screen. A named guide or
 non-interactive use prints the human guide as plain text. Agent operating rules
 stay separate: `groma agent-instructions [guide]` always prints plain Markdown.
 
+- [Project configuration](config.md)
 - [Scanners](scanners/index.md)
 - [Viewers](viewers/index.md)
 - [Web viewer and live work](viewers/web/index.md)

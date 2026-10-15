@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/pr
 import os from 'node:os'
 import path from 'node:path'
 import { addScanner } from '../src/scanner/modules/inventory.ts'
-import { writeScannerConfig } from '../src/scanner/modules/config.ts'
+import { writeGromaConfig } from '../src/config.ts'
 
 const cli = path.resolve(import.meta.dir, '../src/cli.ts')
 const fixtures = path.resolve(import.meta.dir, '../test/fixtures')
@@ -58,7 +58,7 @@ test.concurrent('lint checks fresh scanner evidence and reports failures without
     expect(failed.error).toContain('lint-fixture-failure')
     expect(await snapshot(path.join(root, 'groma'))).toEqual(withFailure)
 
-    await writeScannerConfig(root, { scanners: [] })
+    await writeGromaConfig(root, { scanners: [], workSources: [] })
     const empty = await snapshot(path.join(root, 'groma'))
     expect((await command(root, 'lint')).code).toBe(0)
     expect((await command(root, 'duplicates')).code).toBe(1)

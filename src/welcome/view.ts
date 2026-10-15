@@ -10,8 +10,8 @@ import {
   instructionViews,
   launcherRows,
   nestedPageIndicator,
-  pluginSummary,
   welcomeVersion,
+  missingPluginsSummary,
 } from './model.ts'
 import type {
   WelcomeModel,
@@ -302,6 +302,12 @@ function drawMarkdownViewport(
   return { maxScroll, pageSize, scroll }
 }
 
+/** The row above the key hints; it stays empty when this computer has every plugin config.json lists. */
+function drawMissingPlugins(buffer: OptimizedBuffer, model: WelcomeModel, x: number, y: number): void {
+  const summary = missingPluginsSummary(model)
+  if (summary) drawParts(buffer, [{ value: 'missing plugins: ', attributes: TextAttributes.DIM }, { value: summary }], x, y)
+}
+
 export function paintLauncher(
   buffer: OptimizedBuffer,
   model: WelcomeModel,
@@ -311,26 +317,23 @@ export function paintLauncher(
 ): void {
   const shell = paintShell(buffer, model, sheet)
   const rows = launcherRows(selectedIndex)
-  const notice = model.scanners?.notice
+  const notice = model.pluginSettings?.notice
   if (notice?.message) {
     text(buffer, `[s] Scanners · ${notice.message}`, shell.x + 2, shell.contentY, shell.width - 4,
       RGBA.fromHex(notice.tone === 'hint' ? '#7AAFC5' : '#D8A652'), terminalBackground)
   }
   const tableY = shell.contentY + (notice?.message ? 2 : 0)
   drawTable(buffer, sheet, rows, arrowVisible, shell.x, tableY)
-  const pluginsY = Math.max(
+  const missingY = Math.max(
     tableY + rows.length * 2 + 1,
     buffer.height - 2,
   )
-  drawParts(buffer, [
-    { value: 'plugins: ', attributes: TextAttributes.DIM },
-    { value: pluginSummary(model.plugins) },
-  ], shell.x + 2, pluginsY)
+  drawMissingPlugins(buffer, model, shell.x + 2, missingY)
   text(
     buffer,
     '↑/↓ navigate  │  Enter run/open  │  Esc/Q quit',
     shell.x + 2,
-    pluginsY + 1,
+    missingY + 1,
     shell.width - 4,
     terminalForeground,
     terminalBackground,
@@ -369,11 +372,11 @@ export function paintAdvanced(
 
   const rows = advancedRows(selectedIndex)
   const tableY = shell.contentY + 3
-  const pluginsY = buffer.height - 2
+  const missingY = buffer.height - 2
   const tablePageSize = Math.min(
     5,
     rows.length,
-    Math.max(1, Math.floor((pluginsY - tableY - 5) / 2)),
+    Math.max(1, Math.floor((missingY - tableY - 5) / 2)),
   )
   const maxTableScroll = Math.max(0, rows.length - tablePageSize)
   const selectedRow = selectedIndex - 1
@@ -398,18 +401,15 @@ export function paintAdvanced(
     sheet.innerWidth - 2,
     shell.x + 2,
     descriptionY,
-    pluginsY - descriptionY,
+    missingY - descriptionY,
     requestedDescriptionScroll,
   )
-  drawParts(buffer, [
-    { value: 'plugins: ', attributes: TextAttributes.DIM },
-    { value: pluginSummary(model.plugins) },
-  ], shell.x + 2, pluginsY)
+  drawMissingPlugins(buffer, model, shell.x + 2, missingY)
   text(
     buffer,
     readingFooter(reading),
     shell.x + 2,
-    pluginsY + 1,
+    missingY + 1,
     shell.width - 4,
     terminalForeground,
     terminalBackground,

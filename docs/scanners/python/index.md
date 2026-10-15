@@ -12,7 +12,7 @@ import project modules, execute source, install dependencies, or evaluate
 For a published release:
 
 ```sh
-groma scanner add @groma/scanner-python
+groma plugin add @groma/scanner-python
 groma scanner check
 groma scan
 ```
@@ -23,7 +23,7 @@ copy that package into the consumer repository, and add its relative path:
 ```sh
 bun plugins/scanners/python/build.ts /tmp/python-scanner
 # In the consumer repository, after copying the folder to tools/python-scanner:
-groma scanner add ./tools/python-scanner
+groma plugin add ./tools/python-scanner
 groma scanner check
 groma scan
 ```

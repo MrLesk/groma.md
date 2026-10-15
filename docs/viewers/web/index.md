@@ -4,16 +4,34 @@ The web plugin shows groma.md's world in a browser. `groma web` starts it.
 If the architecture directory, index, or project record is missing, the local server
 shows browser setup for the project name and architecture folder. An existing
 folder keeps its location. Continue uses the shared initialization operation,
-then shows one selection row per scanner with detected versions and installation
-state. Detection paths stay in collapsed, searchable details; declarations without
-a version do not create a warning. Scanner problems appear before ordinary choices.
-Install & scan installs the selected additions; with no additions selected, the
+then shows **Set up plugins** with one section per kind. While `config.json`
+lists no work source, **Tasks** comes first with Backlog.md: checked and locked
+when its CLI is installed, or offered with Install, preselected, when it is
+missing. It is added to `config.json` and initialized after the scanners.
+**Scanners** has one selection row per scanner with detected versions and
+installation state. Detection paths stay in collapsed, searchable details;
+declarations without a version do not create a warning. Scanner problems appear
+before ordinary choices.
+Install & scan installs the selected additions; with nothing to install, the
 action is Scan project. Both open the map at the same address after preparation.
 Setup, first scan, and regular loading use the same card frame. Setup shows
-Project, Scanners, and Map navigation. The first scan replaces the form with
+Project, Plugins, and Map navigation. The first scan replaces the form with
 completed setup milestones, the current operation, and the pending map step.
 Opening an initialized project uses a compact card with the project name,
 version, and a left-aligned loading status, without setup navigation.
+
+Opening an initialized project first checks the plugins `config.json` lists.
+Only when one is missing on this computer does the card show **Restore plugins**
+instead: one row per missing plugin with what `config.json` pins, and two
+choices. **Restore** restores the rows one at a time, each with its own activity
+mark and then a check or the failure reason, and opens the map when all are
+present; otherwise the view returns with the plugins still missing. **Proceed
+without them** opens the map read-only: no scan or source watch runs, the header
+says **Read-only: plugins missing**, and the map offers no write controls or
+plugin settings, as for a historical view. The server refuses writes too.
+[`startup/restore.ts`](../../../src/viewers/web/startup/restore.ts) presents the
+rows; [`plugins/management.ts`](../../../src/plugins/management.ts) decides what is
+missing and restores it. See [Project configuration](../../config.md).
 
 Status changes follow actual work: creating the project, finding or installing
 scanners, preparing the viewer, preparing scanners, scanning, updating

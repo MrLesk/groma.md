@@ -8,7 +8,7 @@ project dependencies, build, or network access.
 From an initialized project:
 
 ```sh
-groma scanner add @groma/scanner-kotlin
+groma plugin add @groma/scanner-kotlin
 groma scan
 ```
 

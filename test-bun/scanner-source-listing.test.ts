@@ -17,7 +17,7 @@ import swift from '../plugins/scanners/swift/src/index.ts'
 import typescript from '../plugins/scanners/typescript/src/index.ts'
 import vue from '../plugins/scanners/vue/src/index.ts'
 import { repositoryListing } from '../src/repository-listing.ts'
-import { inclusion } from '../src/scanner/modules/config.ts'
+import { inclusion } from '../src/config.ts'
 
 /** The files a scanner's package include list names in a repository, before exclusions: the listing's candidates. */
 async function candidates(root: string, scanner: ScannerPlugin): Promise<string[]> {

@@ -7,7 +7,7 @@ need no installed Java, Scala, sbt, project dependencies, build, or network acce
 From an initialized project:
 
 ```sh
-groma scanner add @groma/scanner-scala
+groma plugin add @groma/scanner-scala
 groma scan
 ```
 

@@ -2,7 +2,7 @@ import { repositoryListing } from '../../repository-listing.ts'
 import { configuredScannerModules, type FoundScannerModule, type ScannerResolutionOptions } from './inventory.ts'
 import { allExcluded, configuredPlugin } from '../registry.ts'
 import { discoverScanners } from './discovery.ts'
-import { readScannerConfig, type ScannerConfig } from './config.ts'
+import { readGromaConfig, type GromaConfig } from '../../config.ts'
 import { selectedFiles } from './selection.ts'
 
 export interface ProjectReadiness {
@@ -13,7 +13,7 @@ export interface ProjectReadiness {
 }
 
 async function sourceReadiness(
-  root: string, module: FoundScannerModule, config: ScannerConfig, listing: readonly string[],
+  root: string, module: FoundScannerModule, config: GromaConfig, listing: readonly string[],
 ): Promise<Pick<ProjectReadiness, 'project' | 'message'>> {
   const scanner = await configuredPlugin(module, config)
   if (scanner.plugin.checkReadiness === undefined) return { project: 'unchecked',
@@ -31,7 +31,7 @@ export async function checkScannerReadiness(
   options: ScannerResolutionOptions = {},
 ): Promise<ProjectReadiness[]> {
   const results: ProjectReadiness[] = []
-  const config = await readScannerConfig(root)
+  const config = await readGromaConfig(root)
   const modules = await configuredScannerModules(root, options)
   const listing = modules.length ? await repositoryListing(root, config.useGitignore ?? true) : []
   const proposal = modules.some(module => module.status === 'found' && module.discovery?.compatibility)
@@ -39,7 +39,7 @@ export async function checkScannerReadiness(
   for (const module of modules) {
     if (module.status === 'missing') {
       results.push({ id: module.id, package: 'missing', project: 'blocked',
-        message: `Restore ${module.source} with groma scanner install, or restore its local path.` })
+        message: `Restore ${module.source} with groma plugin install, or restore its local path.` })
       continue
     }
     const compatibility = proposal?.recommendations.find(item => item.id === module.id && item.status === 'incompatible')

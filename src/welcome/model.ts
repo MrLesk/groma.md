@@ -1,13 +1,11 @@
 import { homedir } from 'node:os'
 import path from 'node:path'
 
-import type { WorkSourcePlugin } from '@groma/work-source'
-import { backlogPlugin } from '@groma/work-source-backlog'
 import packageJson from '../../package.json' with { type: 'json' }
 
 import { humanInstructionGuides } from '../instructions.ts'
-import { readScannerSettings, type ScannerSettings } from '../scanner/modules/settings.ts'
-import type { ScannerReadiness } from '../scanner/modules/inventory.ts'
+import { pluginPresence } from '../plugins/management.ts'
+import { readPluginSettings, type PluginSettings } from '../plugins/settings.ts'
 
 export const documentationUrl = 'https://groma.md'
 export const welcomeVersion = packageJson.version
@@ -23,7 +21,7 @@ export const welcomeActions = [
     command: 'groma scan',
     description: 'refresh architecture from source',
   },
-  { id: 'scanners', command: 'Scanners ›', description: 'Manage project scanners' },
+  { id: 'plugins', command: 'Plugins ›', description: 'Manage project plugins' },
 ] as const
 
 export const instructionsAction = {
@@ -43,24 +41,24 @@ export const advancedCommands = [
     content: 'Writes a static snapshot of the stored architecture to <directory>. Serve or upload the output separately. Run the command again to publish an updated snapshot.',
   },
   {
-    command: 'groma scanner add <source>',
-    description: 'exact npm/Git source or ./path',
-    content: 'Adds a scanner from an exact npm package version, Git source or local directory to this project.',
+    command: 'groma plugin add <plugin>',
+    description: 'bundled id, exact npm/Git source or ./path',
+    content: 'Adds a plugin to config.json: a bundled plugin by its id, such as backlog, or a scanner from an exact npm package version, Git source or local directory.',
   },
   {
-    command: 'groma scanner install',
-    description: 'restore configured npm/Git scanners',
-    content: 'Restores configured npm and Git scanners. Local scanners run directly from their selected path.',
+    command: 'groma plugin install',
+    description: 'restore missing plugins',
+    content: 'Restores the plugins config.json lists that this computer lacks: downloads scanner packages and installs the Backlog.md CLI.',
   },
   {
-    command: 'groma scanner list',
+    command: 'groma plugin list',
     description: 'show found/missing',
-    content: 'Lists every configured scanner and whether its package is found or missing.',
+    content: 'Lists every plugin config.json lists and whether this computer has it.',
   },
   {
-    command: 'groma scanner remove <id>',
-    description: 'disable; keep shared cache',
-    content: 'Removes a scanner from this project. Shared downloaded packages remain cached for other projects.',
+    command: 'groma plugin remove <id>',
+    description: 'remove; keep shared cache',
+    content: 'Removes a plugin from config.json. Shared downloaded packages remain cached for other projects.',
   },
   {
     command: 'groma add <thing> <name> …',
@@ -114,18 +112,13 @@ export const nestedPageIndicator = ' ›'
 
 export type WelcomeActionId = typeof welcomeActions[number]['id']
 
-export interface WelcomePlugin {
-  id: string
-  status: ScannerReadiness
-  install?: string
-}
-
 export interface WelcomeModel {
-  scanners?: ScannerSettings
+  pluginSettings?: PluginSettings
+  /** The names of the plugins config.json lists that this computer lacks. */
+  missingPlugins?: string[]
   project: string
   folder: string
   status: string
-  plugins: readonly WelcomePlugin[]
 }
 
 export interface WelcomeSheet {
@@ -162,31 +155,21 @@ function displayFolder(repositoryRoot: string): string {
     : root
 }
 
-export async function loadWelcomeModel(
-  repositoryRoot: string,
-  workSourcePlugin: WorkSourcePlugin = backlogPlugin,
-): Promise<WelcomeModel> {
+export async function loadWelcomeModel(repositoryRoot: string): Promise<WelcomeModel> {
   const root = path.resolve(repositoryRoot)
-  const scanners = await readScannerSettings(root)
-  const workSource = workSourcePlugin.readiness()
   return {
     project: path.basename(root),
     folder: displayFolder(root),
     status: 'Architecture ready',
-    scanners,
-    plugins: [
-      { id: workSourcePlugin.id, ...workSource },
-
-    ],
+    pluginSettings: await readPluginSettings(root),
+    // An unreadable config.json is already reported by the plugin settings notice.
+    missingPlugins: await pluginPresence(root).then(plugins => plugins.filter(plugin => !plugin.present).map(plugin => plugin.name), () => []),
   }
 }
 
-export function pluginSummary(plugins: readonly WelcomePlugin[]): string {
-  return plugins.map(plugin => {
-    const install = plugin.install === undefined ? '' : ` (${plugin.install})`
-    const status = plugin.status === 'found' ? '✓ ready' : plugin.status
-    return `${plugin.id}: ${status}${install}`
-  }).join(' │ ')
+/** The plugins config.json lists that this computer lacks and how to restore them, or nothing when it has them all. */
+export function missingPluginsSummary(model: WelcomeModel): string | undefined {
+  return model.missingPlugins?.length ? `${model.missingPlugins.join(', ')} · groma plugin install` : undefined
 }
 
 export function welcomeSheet(model: WelcomeModel): WelcomeSheet {
@@ -210,11 +193,9 @@ export function welcomeSheet(model: WelcomeModel): WelcomeSheet {
   }
 }
 
-export async function renderPlainWelcome(
-  repositoryRoot: string,
-  workSourcePlugin: WorkSourcePlugin = backlogPlugin,
-): Promise<string> {
-  const model = await loadWelcomeModel(repositoryRoot, workSourcePlugin)
+export async function renderPlainWelcome(repositoryRoot: string): Promise<string> {
+  const model = await loadWelcomeModel(repositoryRoot)
+  const missing = missingPluginsSummary(model)
   return [
     `groma.md v${welcomeVersion}`,
     'architecture in Git',
@@ -223,7 +204,7 @@ export async function renderPlainWelcome(
     `project: ${model.project}`,
     `folder: ${model.folder}`,
     `status: ${model.status}`,
-    `plugins: ${pluginSummary(model.plugins)}`,
+    ...(missing ? [`missing plugins: ${missing}`] : []),
     '',
     ...welcomeActions.map(action => `${action.command} — ${action.description}`),
     `${instructionsAction.command} — ${instructionsAction.description}`,

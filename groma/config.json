@@ -179,6 +179,12 @@
       ]
     }
   ],
+  "workSources": [
+    {
+      "id": "backlog",
+      "version": "1.53.0"
+    }
+  ],
   "exclude": [
     "/scripts/",
     "/test/",

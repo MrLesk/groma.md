@@ -206,7 +206,7 @@ test.concurrent('PHP source edits and new files refresh through the installed li
   const session = await createScannerSession(root, { onFold() { completed?.() } })
   try {
     await session.change({ action: 'add', source: artifact })
-    expect(session.state.scanners.find(scanner => scanner.id === 'php')?.status).toBe('ready')
+    expect(session.state.plugins.find(scanner => scanner.id === 'php')?.status).toBe('ready')
     const before = await loadAnnotatedArchitecture(root)
     const id = before.elements.find(element => element.code.some(code => code.file === 'plugin.php'))!.id
     for (const file of ['plugin.php', 'new.php']) {

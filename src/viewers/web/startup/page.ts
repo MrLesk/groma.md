@@ -2,7 +2,8 @@ import lockup from '../atoms/lockup.svg' with { type: 'text' }
 import packageJson from '../../../../package.json' with { type: 'json' }
 
 import type { ScannerDiscovery } from '../../../scanner/modules/discovery.ts'
-import { scannerSelection, scannerSelectionScript } from './scanners.ts'
+import { pluginSelection, pluginSelectionScript } from './plugins.ts'
+import { restoreContent, restoreCss, restoreScript, type RestoreRow } from './restore.ts'
 
 import type { GromaInitResult } from '../../../initialize.ts'
 import { escaped } from '../atoms/escape.ts'
@@ -20,6 +21,10 @@ interface SetupPage {
   progress?: StartupProgress
   error?: string
   proposal?: ScannerDiscovery
+  /** What setup offers about Backlog.md; absent when config.json already lists a work source. */
+  tasks?: { installed: boolean }
+  /** The plugins config.json lists that this computer lacks, when groma web asks whether to restore them. */
+  restore?: readonly RestoreRow[]
 }
 
 const style = `
@@ -103,7 +108,9 @@ const style = `
     color: var(--on-colour); background: var(--accent); font: inherit; font-weight: 600; cursor: pointer;
   }
   button:hover { background: color-mix(in srgb, var(--accent) 88%, var(--ink)); }
-  #scanner-selection > button { min-height: 46px; font-weight: 600; }
+  #plugin-selection > button { min-height: 46px; font-weight: 600; }
+  .plugin-section { display: grid; gap: 12px; min-width: 0; }
+  .plugin-section h2 { margin: 0; font-size: 13px; font-weight: 500; color: var(--muted); }
   button:disabled { cursor: progress; opacity: 0.65; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   .error { margin: 0 0 24px; overflow-wrap: anywhere; white-space: pre-wrap; color: var(--diff-removed); }
@@ -150,11 +157,13 @@ const style = `
     details summary span { float: none; display: block; margin: 4px 0 0 14px; }
     .evidence-body { padding: 4px 14px 14px; }
   }
+  ${restoreCss}
   ${chromeCss}
 `
 
 const script = `
-  ${scannerSelectionScript}
+  ${pluginSelectionScript}
+  ${restoreScript}
   const theme = localStorage.getItem('groma.theme');
   if (['light', 'dark', 'blueprint'].includes(theme)) document.documentElement.dataset.theme = theme;
   const main = document.querySelector('main');
@@ -194,7 +203,11 @@ const script = `
   }
   function connectProgress() {
     events = new EventSource('/startup-events');
-    events.onmessage = event => showPhase(JSON.parse(event.data));
+    events.onmessage = event => {
+      const update = JSON.parse(event.data);
+      if (update.phase === 'restoring-plugins') showRestore(update);
+      else showPhase(update);
+    };
   }
   function failed(error) {
     events?.close();
@@ -212,11 +225,13 @@ const script = `
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    form.querySelector('button[type="submit"]').disabled = true;
+    form.querySelectorAll('button[type="submit"]').forEach(button => { button.disabled = true; });
     if (data.has('projectName')) document.querySelector('.header-project').textContent = data.get('projectName');
     connectProgress();
     try {
-      await fetch(form.action, { method: 'POST', body: data });
+      // A button without its own formaction reports the page address as formAction, so only an explicit one counts.
+      const action = event.submitter?.hasAttribute('formaction') ? event.submitter.formAction : form.action;
+      await fetch(action, { method: 'POST', body: data });
       events.close();
       location.reload();
     } catch (error) { failed(error); }
@@ -236,9 +251,10 @@ function directoryField(directory: GromaDirectory | undefined): string {
 
 function setupContent(input: SetupPage): string {
   const error = input.error === undefined ? '' : `<p class="error" role="alert">${escaped(input.error)}</p>`
+  if (input.restore !== undefined) return restoreContent(input.restore, error)
   if (input.proposal !== undefined) {
-    return `<h1>Set up scanners</h1>${error}`
-      + scannerSelection(input.proposal)
+    return `<h1>Set up plugins</h1>${error}`
+      + pluginSelection(input.proposal, input.tasks)
   }
   if (!input.initialized) {
     return `<h1>Initialize Groma</h1>${error}<form method="post" action="/initialize">`
@@ -259,7 +275,7 @@ function progressContent(progress: StartupProgress): string {
   const scanners = scannerRows(update.scannerNames)
   const milestones = [
     ['Create project', 'Project created'],
-    ['Set up scanners', 'Scanner setup complete'],
+    ['Set up plugins', 'Plugin setup complete'],
     ['Prepare architecture', 'Architecture ready'],
     ['Open map', 'Map ready'],
   ]
@@ -278,6 +294,7 @@ function progressContent(progress: StartupProgress): string {
 function pageView(input: SetupPage): string {
   if (input.error === undefined && input.progress !== undefined) return input.firstRun ? 'first-scan' : 'loading'
   if (input.proposal !== undefined) return 'scanners'
+  if (input.restore !== undefined) return 'restore'
   if (!input.initialized) return 'setup'
   if (input.error !== undefined) return 'error'
   return input.firstRun ? 'first-scan' : 'loading'
@@ -289,7 +306,7 @@ export function renderSetupPage(input: SetupPage): string {
   const loading = view === 'loading' || view === 'first-scan'
   const steps = '<nav class="steps" aria-label="Setup progress">'
     + `<span${input.initialized ? '' : ' aria-current="step"'}>1 Project</span>`
-    + `<span${input.initialized ? ' aria-current="step"' : ''}>2 Scanners</span><span>3 Map</span></nav>`
+    + `<span${input.initialized ? ' aria-current="step"' : ''}>2 Plugins</span><span>3 Map</span></nav>`
   return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
     + `<title>${loading ? 'Opening Groma' : 'Groma setup'}</title><style>${style}</style></head><body>`
     + `<main data-view="${view}" data-first-run="${input.firstRun}"${loading ? ' aria-busy="true"' : ''}><header>`

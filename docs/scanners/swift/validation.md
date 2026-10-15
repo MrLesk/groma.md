@@ -65,7 +65,7 @@ A fresh npm installation passed all four Swift integration tests (47 assertions)
 The published groma.md 0.3.3 CLI also installed the scanner by its exact npm version
 in a disposable project containing the Swift fixture. Readiness passed and two
 scans produced byte-identical architecture Markdown without changing source bytes.
-A second project restored the copied scanner selection through `groma scanner install`
+A second project restored the copied scanner selection through `groma plugin install`
 and passed the same readiness and repeat-scan checks. This consumer check ran on
 macOS arm64; the five native CI jobs above qualify the other packaged workers.
 
@@ -158,7 +158,7 @@ bun scripts/benchmark-swift-scanner.ts /tmp/firefox-ios /tmp/scanner-swift
 
 For the mixed-language flow, build the Python package with its documented
 builder, then run `groma init` in the clone and add both local package paths
-using `groma scanner add`. Run `groma scan` twice. Compare the sorted paths and
+using `groma plugin add`. Run `groma scan` twice. Compare the sorted paths and
 contents of generated `.groma/**/*.md` files and inspect `git diff` to separate
 initialization changes from source changes.
 
@@ -192,7 +192,7 @@ pinned Firefox clone with an empty home and scanner cache:
 
 ```sh
 groma init 'Firefox Swift npm benchmark' --directory .groma
-groma scanner add @groma/scanner-swift
+groma plugin add @groma/scanner-swift
 groma scanner check
 groma scan
 groma scan
@@ -206,7 +206,7 @@ development-checkout measurements above. groma.md 0.3.3 accepts the package by
 name; automatic Swift recommendations require the updated official catalog.
 
 A second clone with another empty home and cache received only the shared
-`.groma/scanners.json` selection. `groma scanner install` restored the exact
+`.groma/config.json` selection. `groma plugin install` restored the exact
 npm version and `groma scanner check` passed. Two scans again covered all
 3,182 Swift files, produced identical Markdown within that checkout, and
 preserved tracked source bytes. Full CLI scan times were 32.854/41.249 seconds

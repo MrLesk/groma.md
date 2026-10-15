@@ -1,9 +1,9 @@
 import { isNpmPackageName, publishedScannerSource } from './published.ts'
 import {
-  readScannerConfig,
-  writeScannerConfig,
-} from './config.ts'
-import type { ConfiguredScanner } from './config.ts'
+  readGromaConfig,
+  writeGromaConfig,
+} from '../../config.ts'
+import type { ConfiguredScanner } from '../../config.ts'
 import {
   defaultScannerCacheRoot,
   installScannerPackage,
@@ -80,7 +80,7 @@ export async function configuredScannerModules(
   repositoryRoot: string,
   options: ScannerResolutionOptions = {},
 ): Promise<ScannerModuleLocation[]> {
-  const config = await readScannerConfig(repositoryRoot)
+  const config = await readGromaConfig(repositoryRoot)
   const configured = config.scanners
   return Promise.all(configured.map(scanner => {
     return moduleLocation(repositoryRoot, scanner, options)
@@ -103,7 +103,7 @@ export async function addScanner(
   const selected = input.trim()
   const source = parseScannerSource(repositoryRoot, isNpmPackageName(selected)
     ? await publishedScannerSource(selected, options.registry) : selected)
-  const config = await readScannerConfig(repositoryRoot)
+  const config = await readGromaConfig(repositoryRoot)
   const configured = config.scanners
   if (configured.some(scanner => scanner.source === source.source)) {
     throw new Error(`scanner source is already configured: ${source.source}`)
@@ -116,44 +116,20 @@ export async function addScanner(
   // The package's include globs and default exclusions become this project's lists, which people then edit.
   const scanner = { id: resolved.id, source: installed.source, include: resolved.include,
     ...(resolved.exclude?.length ? { exclude: resolved.exclude } : {}) }
-  await writeScannerConfig(repositoryRoot, { ...config, scanners: [...configured, scanner] })
+  await writeGromaConfig(repositoryRoot, { ...config, scanners: [...configured, scanner] })
   return { id: scanner.id, source: scanner.source, status: 'found' }
-}
-
-export async function installScanners(
-  repositoryRoot: string,
-  options: ScannerInstallOptions = {},
-): Promise<number> {
-  const config = await readScannerConfig(repositoryRoot)
-  const configured = config.scanners
-  let installed = 0
-  for (const scanner of configured) {
-    const source = parseScannerSource(repositoryRoot, scanner.source)
-    if (source.kind === 'local') {
-      if (await resolveScannerPackage(source, cacheRoot(options)) === undefined) {
-        throw new Error(`Scanner ${scanner.id} is missing. Restore the local scanner directory: ${scanner.source}`)
-      }
-      continue
-    }
-    const { package: resolved } = await installScannerPackage(source, cacheRoot(options), options.registry)
-    if (resolved.id !== scanner.id) {
-      throw new Error(`configured scanner ${scanner.id} resolves to manifest id ${resolved.id}`)
-    }
-    installed += 1
-  }
-  return installed
 }
 
 export async function removeScanner(
   repositoryRoot: string,
   id: string,
 ): Promise<string> {
-  const config = await readScannerConfig(repositoryRoot)
+  const config = await readGromaConfig(repositoryRoot)
   const configured = config.scanners
   if (!configured.some(scanner => scanner.id === id)) {
     throw new Error(`scanner is not configured: ${id}`)
   }
-  await writeScannerConfig(
+  await writeGromaConfig(
     repositoryRoot,
     { ...config, scanners: configured.filter(scanner => scanner.id !== id) },
   )
@@ -172,7 +148,7 @@ export async function updateScanner(
   input?: string,
   options: ScannerInstallOptions = {},
 ): Promise<ScannerInventoryItem> {
-  const config = await readScannerConfig(repositoryRoot)
+  const config = await readGromaConfig(repositoryRoot)
   const selected = config.scanners.find(scanner => scanner.id === id)
   if (selected === undefined) throw new Error(`scanner is not configured: ${id}`)
   const current = parseScannerSource(repositoryRoot, selected.source)
@@ -188,7 +164,7 @@ export async function updateScanner(
     throw new Error(`replacement scanner id ${installed.package.id} does not match ${id}`)
   }
   const updated = { ...selected, source: installed.source }
-  await writeScannerConfig(repositoryRoot, {
+  await writeGromaConfig(repositoryRoot, {
     ...config, scanners: config.scanners.map(scanner => scanner.id === id ? updated : scanner),
   })
   return { id, source: updated.source, status: 'found' }
@@ -196,7 +172,7 @@ export async function updateScanner(
 
 /** Restore one project selection without installing unrelated configured packages. */
 export async function restoreScanner(repositoryRoot: string, id: string, options: ScannerInstallOptions = {}): Promise<void> {
-  const configured = (await readScannerConfig(repositoryRoot)).scanners.find(scanner => scanner.id === id)
+  const configured = (await readGromaConfig(repositoryRoot)).scanners.find(scanner => scanner.id === id)
   if (!configured) throw new Error(`scanner is not configured: ${id}`)
   const source = parseScannerSource(repositoryRoot, configured.source)
   if (source.kind === 'local') throw new Error(`Restore the local scanner directory: ${configured.source}`)

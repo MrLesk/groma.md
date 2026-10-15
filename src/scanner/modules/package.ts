@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
 import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { stringArray } from './config.ts'
+import { exactVersion, stringArray } from '../../config.ts'
 import { installDependencies } from './package-manager.ts'
 import { isNpmPackageName } from './published.ts'
 
@@ -41,7 +41,6 @@ export interface ResolvedScannerPackage {
   version: string
 }
 
-const exactVersion = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
 const scannerId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export function defaultScannerCacheRoot(): string {
