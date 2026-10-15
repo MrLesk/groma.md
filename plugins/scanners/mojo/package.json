@@ -1,0 +1,25 @@
+{
+  "name": "@groma/scanner-mojo",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "description": "Experimental Mojo source declarations, outlines and unresolved call evidence.",
+  "groma": {
+    "scanner": {
+      "id": "mojo",
+      "entry": "./src/index.ts",
+      "include": ["**/*.mojo", "**/*.🔥"],
+      "exclude": [".pixi/", "build/", "tests/", "test/", "test_*.mojo", "test_*.🔥"],
+      "discovery": {
+        "technologies": ["mojo"],
+        "rules": [{ "type": "file", "files": ["**/*.mojo", "**/*.🔥"], "technology": "mojo", "kind": "language", "declaration": "Mojo source files" }],
+        "compatibility": { "groma": ">=0.6.6" }
+      }
+    }
+  },
+  "dependencies": {
+    "@groma/scanner": "workspace:*",
+    "web-tree-sitter": "0.27.1"
+  }
+}
