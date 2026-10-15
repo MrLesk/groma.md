@@ -17,6 +17,8 @@ import {
 import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 
+import { renderBundleIndex } from './okf-profile.ts'
+
 const access = new AsyncLocalStorage<ReadonlySet<string>>()
 const LOCK_TIMEOUT_MS = 5000
 const LOCK_FILENAME = '.groma.lock'
@@ -200,13 +202,7 @@ export class GromaFileSystem {
     const entries = (await this.list(''))
       .filter(entry => entry.isDirectory() || (entry.isFile() && entry.name.endsWith('.md') && entry.name !== 'index.md'))
       .map(entry => `${entry.name}${entry.isDirectory() ? '/' : ''}`)
-      .sort()
-    const links = entries.map(name => {
-      const label = name.replace(/[\\[\]]/g, '\\$&')
-      const href = name.split('/').map(encodeURIComponent).join('/')
-      return `- [${label}](<${href}>)`
-    })
-    const source = `---\nokf_version: "0.2"\n---\n\n# Contents\n\n${links.join('\n')}\n`
+    const source = renderBundleIndex(entries)
     if (this.exists('index.md') && await this.read('index.md') === source) return
     await this.write('index.md', source)
   }

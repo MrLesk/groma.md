@@ -4,6 +4,7 @@ import { writes } from './authoring.ts'
 import type { AddInput, RemoveInput } from './authoring.ts'
 import type { StructuralResult } from './curate.ts'
 import { isGroupAddress } from './naming.ts'
+import { exportPlan, importPlan } from './plan.ts'
 import { scanRepository } from './scanner.ts'
 
 function printWriteResult(result: string | StructuralResult): void {
@@ -50,14 +51,36 @@ function addedIds(thing: string, ids: string[]): Pick<AddInput, 'relation' | 'me
   return {}
 }
 
-/** The commands that change architecture Markdown: draft, add, remove, edit, and accept. */
+/** The commands that change architecture Markdown: draft, add, remove, edit, accept, and plan import. Plan export only reads it. */
 export function registerWriteCommands(program: Command): void {
+  const plan = program.command('plan')
+    .description('Share an architecture fragment as draft OKF Markdown')
+    .action(() => {
+      console.log('A plan is an architecture fragment: elements, their relationships and flows, without code or layout.')
+      console.log('groma plan export <ids...> --to <directory>')
+      console.log('groma plan import <directory> [--parent <id>]')
+    })
+  plan.command('export <ids...>')
+    .description('Write selected elements as a plan bundle in a new directory')
+    .requiredOption('--to <directory>', 'new plan directory; its name becomes the plan title')
+    .action(async (ids: string[], options: { to: string }) => {
+      try { printWriteResult(await exportPlan(process.cwd(), { ids, to: options.to })) }
+      catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1 }
+    })
+  plan.command('import <path>')
+    .description('Import a plan under one draft: software as ghosts, people and external systems as declarations')
+    .option('--parent <id>', 'use this existing parent for the selected fragment roots')
+    .action(async (path: string, options: { parent?: string }) => {
+      try { printWriteResult(await importPlan(process.cwd(), { path, parent: options.parent })) }
+      catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1 }
+    })
+
   program
     .command('draft')
     .description('Draft software or a directed relationship')
     .argument('<kind>', 'system, container, component, or relation')
     .argument('<name>', 'element name')
-    .argument('[target]', 'target file or concept ID when drafting a relation')
+    .argument('[target]', 'when drafting a relation: the target file, or the ID of a person or external system')
     .option('--overview <markdown>', 'full explanation in Markdown')
     .option('--description <text>', 'optional short summary')
     .option('--parent <id>', 'parent element id')

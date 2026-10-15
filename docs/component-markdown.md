@@ -286,7 +286,10 @@ system IDs as endpoints. This includes interactions without imports, such as
 an HTTP client and its endpoint. An actor or external-system declaration may
 use C4 concept links. Each ordered endpoint pair has one authored row.
 `Description` states the interaction; `Technology` states its mechanism or a
-required constraint. Both cells are required and non-empty. A stored row may
+required constraint. Both cells are required and non-empty. Groma stores each
+on one line and puts a backslash before characters Markdown would read as
+syntax, such as `*`, `_` or `|`, so the text reads back as written. A stored
+row may
 name a file that currently has no component owner, for example after a detach:
 the row stays in its previous document and stays off the map. Once a scan gives
 that file an owner, it transfers the row into the new owner document and the
@@ -444,3 +447,65 @@ TypeScript, NestJS, and PostgreSQL.
 
 The live [groma.md system](../groma/systems/groma/system.md) and
 [MVP draft](../groma/drafts/mvp.md) are a complete package example.
+
+
+## Plan bundles
+
+A plan is an OKF 0.2 bundle containing a selected architecture fragment. Its
+root `index.md` uses the normal `okf_version: "0.2"` declaration and Markdown
+links. The supporting `plan.md` record has `type: Groma Plan`, a standard
+`title` and outcome prose. The record has no C4 identity, containment level,
+or box on the map. It is a Groma application-profile record, not a type
+required by OKF or C4. Import copies its title and outcome into a draft record.
+
+A selected C4 document is carried with its Markdown body as written: the
+overview, its formatting and links, and every authored section. A plan replaces
+two things only. In the front matter, a system, container or component gets
+`status: draft`, while a person or an external system stays a `stable`
+declaration, because those are declared and never drafted. `groma.code`,
+`groma.group` and an earlier `groma.draft` tag are left out. Every other field
+stays, including the ID, type, title, description, technology and parent ID.
+In the body, the relationship sections are rebuilt as described below. Only
+selected elements are copied. A parent that is not selected appears by ID only,
+in the `groma.parent` of its children, and the parent IDs remain authoritative.
+Documents use the normal C4 paths relative to the bundle.
+
+Relationships within the selection become authored rows under
+`## Draft relationships`, using links to the selected concept documents. No
+other relationship row of a document is carried. Unlike current code
+relationships, planned relationships may link internal software concepts
+without source files. Only `groma plan import` writes such rows:
+`groma draft relation` still requires source files, or a person or an external
+system at one end. They remain draft rows when scanning or accepting an
+element. This permits architecture outcomes to be described before
+implementation exists. Existing edit and remove controls accept these
+concept IDs. Accepting a planned internal relationship uses the unique current
+source-file connection between its component owners, transfers the planned text
+to that exact pair, and removes the concept draft. If no unique current pair
+exists, acceptance leaves the draft unchanged and explains the missing or
+ambiguous evidence. Scanning does not invent evidence from planned intent.
+The existing exact-file rules for current code relationships are unchanged.
+
+Flows are included only when every step's endpoints are selected. A flow is
+written again from its title, description, overview text and steps, so its
+ordinary linked Steps table retains order and actions while formatting inside
+its overview is not carried. A plan carries no implementation steps: a flow
+describes an architecture scenario.
+
+`groma plan export <ids...> --to <directory>` creates a new bundle directory;
+its basename supplies the plan title. The directory must not exist yet and
+must lie outside the Groma directory, where every Markdown file is read as
+architecture. `groma plan import <directory> [--parent <id>]` imports into an
+initialized architecture. Without `--parent`, all referenced parents must
+already exist. With it, external parent references are replaced by that
+existing destination parent. Import validates the complete result before
+writing, including ID collisions and normal containment rules. It preserves IDs
+and bodies, writes each document at its canonical destination path with the
+status described above, and tags every imported element with a new draft record
+named after the plan. A self-contained selection including its system and
+containers can be imported into an empty initialized architecture. Existing
+scanner matching and element acceptance remain in use.
+
+Ordinary Markdown readers can browse the bundle and read outcomes and linked
+collaborations. Groma interprets parent resolution, draft lifecycle and the
+plan record. See [Share architecture plans](plans.md) for an example.

@@ -2,9 +2,10 @@ import path from 'node:path'
 import { parseMarkdown, parseFrontmatter } from 'comark'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { sourceIndex } from './source-index.ts'
+import { escapeTableCell } from './architecture-markdown.ts'
 import { readDocument, writeDocument } from './markdown-emitter.ts'
 import type { StoredRelationship } from './relationship-markdown.ts'
-import type { ArchitectureDocument, CodeReference } from './types.ts'
+import type { ArchitectureDocument, CodeReference, RelationshipConnection } from './types.ts'
 
 interface Owner {
   id: string
@@ -71,7 +72,7 @@ export function changedRelationshipDocuments(
 export function withStoredRelationships(
   source: string,
   filename: string,
-  rows: readonly StoredRelationship[],
+  rows: readonly RelationshipConnection[],
   concepts: ReadonlyMap<string, string>,
 ): string {
   const href = (endpoint: string) => path.posix.relative(path.posix.dirname(filename), concepts.get(endpoint) ?? endpoint)
@@ -79,7 +80,7 @@ export function withStoredRelationships(
   for (const row of rows) {
     const heading = row.authored ? (row.status === 'draft' ? '## Draft relationships' : '## Relationships') : '## Derived relationships'
     const lines = sections.get(heading) ?? []
-    lines.push(`| [${row.source}](${href(row.source)}) | [${row.target}](${href(row.target)}) | ${row.description} | ${row.technology} |`)
+    lines.push(`| [${row.source}](${href(row.source)}) | [${row.target}](${href(row.target)}) | ${escapeTableCell(row.description)} | ${escapeTableCell(row.technology)} |`)
     sections.set(heading, lines)
   }
   const tables = [...sections].map(([heading, lines]) =>

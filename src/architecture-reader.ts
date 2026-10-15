@@ -96,7 +96,7 @@ async function listMarkdownFiles(
 /** The two root documents describe the bundle and the project, never an element. */
 const rootDocuments = new Set(['index.md', 'project.md'])
 
-async function parseDocument(
+async function readArchitectureDocument(
   filesystem: GromaFileSystem,
   relativeFilename: string,
   onFilesystemAccess?: FilesystemAccessHandler,
@@ -115,6 +115,14 @@ async function parseDocument(
     throw new ArchitectureReadError(sourceFilename, 'read', error)
   }
 
+  return parseArchitectureDocument(sourceFilename, source)
+}
+
+/** The record every architecture rule reads, made from Markdown text that need not be a stored file yet. */
+export async function parseArchitectureDocument(
+  sourceFilename: string,
+  source: string,
+): Promise<ArchitectureDocument> {
   let tree: Awaited<ReturnType<typeof parseMarkdown>>
   try {
     tree = await parseMarkdown(source)
@@ -139,9 +147,9 @@ async function requireGromaPackage(
   filesystem: GromaFileSystem,
   onFilesystemAccess?: FilesystemAccessHandler,
 ): Promise<void> {
-  const index = await parseDocument(filesystem, 'index.md', onFilesystemAccess)
+  const index = await readArchitectureDocument(filesystem, 'index.md', onFilesystemAccess)
   requireBundleIndex(index.frontmatter, index.sourceFilename)
-  const project = await parseDocument(filesystem, 'project.md', onFilesystemAccess)
+  const project = await readArchitectureDocument(filesystem, 'project.md', onFilesystemAccess)
   requireProjectMetadata(project.frontmatter, project.sourceFilename)
   requireProjectOverview(project.nodes, project.body, project.sourceFilename)
 }
@@ -168,7 +176,7 @@ async function readArchitecture(
     .filter(filename => !rootDocuments.has(filename) && !isReservedDocument(filename))
   const parsed = await Promise.all(filenames.map(async filename => [
     filename,
-    await parseDocument(filesystem, filename, onFilesystemAccess),
+    await readArchitectureDocument(filesystem, filename, onFilesystemAccess),
   ] as const))
   for (const [filename, document] of parsed) {
     if (filename.startsWith('drafts/')) {

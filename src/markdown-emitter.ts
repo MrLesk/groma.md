@@ -4,7 +4,7 @@ import { renderFrontmatter } from 'comark/render'
 import { GromaFileSystem } from './groma-filesystem.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { requireText } from './naming.ts'
-import { DRAFT_TYPE, c4Type, requireGromaMapping } from './okf-profile.ts'
+import { DRAFT_TYPE, FLOW_TYPE, c4Type, requireGromaMapping } from './okf-profile.ts'
 import type { ArchitectureDocument, C4Kind, CodeReference, ElementStatus } from './types.ts'
 
 /** Save must pass the same semantic validation as the next read before changing the file. */
@@ -36,7 +36,8 @@ function normalizeNewlines(source: string): string {
   return source.replaceAll('\r\n', '\n')
 }
 
-function sourceWithFrontmatter(
+/** A document from its front matter and everything after the closing fence, which starts with a blank line. */
+export function sourceWithFrontmatter(
   frontmatter: Record<string, unknown>,
   content: string,
 ): string {
@@ -168,6 +169,23 @@ export function renderDraftDocument(input: {
     title: input.title,
     groma: { id: input.id },
   }, `\n\n${input.outcome.trim()}\n`)
+}
+
+export function renderFlowDocument(input: {
+  id: string
+  title: string
+  description?: string
+  /** Markdown prose. */
+  overview: string
+  /** The complete From | To | Action Markdown table, including any link definitions. */
+  steps: string
+}): string {
+  return sourceWithFrontmatter({
+    type: FLOW_TYPE,
+    title: input.title,
+    ...(input.description === undefined ? {} : { description: input.description }),
+    groma: { id: input.id },
+  }, `\n\n${input.overview}\n\n## Steps\n\n${input.steps}\n`)
 }
 
 export async function upsertCode(
