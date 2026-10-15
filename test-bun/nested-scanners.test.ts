@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import { rejects } from 'node:assert/strict'
 import { cp, mkdir, mkdtemp, readdir, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -231,7 +232,7 @@ test.concurrent('TypeScript configs with no inputs or an absent base keep valid 
     expect(graph.operations.some(operation => operation.file === 'app/entry.ts' && operation.name === 'run')).toBe(true)
     expect(graph.diagnostics.map(item => [item.severity, item.file])).toEqual([['warning', 'app/tsconfig.json'], ['warning', 'app/tsconfig.json']])
     await writeFile(emptyConfig, JSON.stringify({ compilerOptions: { target: 'invalid' }, include: ['*.tsx'] }))
-    await expect(buildImportGraph(root, await includedFiles(root))).rejects.toThrow('target')
+    await rejects(buildImportGraph(root, await includedFiles(root)), /target/)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
