@@ -36,7 +36,9 @@ async function acquire(filename: string, timeoutMs: number): Promise<() => Promi
   for (;;) {
     try {
       const lock = await open(filename, 'wx')
-      return async () => { await lock.close(); await unlink(filename) }
+      // The file owns the lock; an open handle can block another exclusive open on Windows.
+      await lock.close()
+      return () => unlink(filename)
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
       const remaining = deadline - performance.now()
