@@ -14,11 +14,14 @@ export async function repositoryListing(repositoryRoot: string, useGitignore = t
     child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
   ])
   if (code !== 0) throw new Error(stderr.trim() || `git ls-files exited ${code}`)
-  const files = new Set(stdout.split('\0').filter(file => file && existsSync(path.join(repositoryRoot, file))))
+  const files = new Set(stdout.split('\0').filter(Boolean))
   const physicalRoot = realpathSync(repositoryRoot)
   return [...files].filter(file => {
     const location = path.join(repositoryRoot, file)
-    return !lstatSync(location).isSymbolicLink()
-      || !files.has(path.relative(physicalRoot, realpathSync(location)).split(path.sep).join('/'))
+    // A listed temporary file can disappear while Git's output is being read.
+    const entry = lstatSync(location, { throwIfNoEntry: false })
+    if (!entry) return false
+    return !entry.isSymbolicLink()
+      || (existsSync(location) && !files.has(path.relative(physicalRoot, realpathSync(location)).split(path.sep).join('/')))
   }).sort()
 }
