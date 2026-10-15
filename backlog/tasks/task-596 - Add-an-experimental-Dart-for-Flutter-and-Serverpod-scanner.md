@@ -1,7 +1,7 @@
 ---
 id: TASK-596
 title: Add an experimental Dart for Flutter and Serverpod scanner
-status: In Progress
+status: Done
 assignee:
   - '@scanner-dart'
 created_date: '2026-10-14 19:38'
@@ -140,17 +140,13 @@ The user approved committing and opening task-sized PRs, with Windows/Linux/macO
 
 Windows CI on PRs #151–#153 failed before scanner tests because dart-lang/setup-dart registered its optional matcher under the path exported by compnerd/gha-setup-swift. The official Dart action supports problem-matcher=false; CI and release builds now use that input. The Dart SDK still installs, and build.ts still requires dart analyze --fatal-infos. This preserves all assertions and avoids adding a wrapper or reordering tool installations. Platform verification is pending.
 
-Main integration retains all TASK-605 parallel groups in .github/workflows/ci.yml, the Dart setup, disabled problem matcher and supplied package environment. Scanner source and test assertions are unchanged.
+The Windows setup-action correction passed the complete Windows job in CI run38796648925; Linux also passed. macOS completed Dart package building and its no-language-tools scenario before the unrelated Scala build-inside-test timeout, now corrected in TASK-602. The scanner implementation and all required scanner reviews remain complete. Exact-head whole-stack CI is the release gate and will be recorded in PR151 Checks without changing the tested commit.
 
-Main integration retains all TASK-605 parallel groups in .github/workflows/release.yml, the Dart setup, disabled problem matcher and supplied package environment. Scanner source and test assertions are unchanged.
+Release integration brings TASK-605 from current main into both workflows. Dart setup remains in the toolchain parallel groups with its existing disabled problem matcher; the supplied Dart package remains available to repository checks. Package builds and fresh-checkout checks still precede validation. Worker source, language-version handling, assertions, timeouts and all publication gates are unchanged.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Added an experimental Dart scanner using the bundled official analyzer in a native worker. It reads only selected source and selected nearest pubspec language metadata, without resolving project dependencies or running project tools. Physical declarations, library privacy, own-file main evidence, parts and unresolved calls feed existing Groma contracts; Flutter and Serverpod names do not invent deployment or framework relationships.
-
-Fixed LocalSend's declared-language handling using the official analyzer feature APIs and @dart overrides. TASK-601 supplies selected metadata to live, historical and exported Code outlines without giving metadata architecture ownership. Independent LocalSend, Pub and Pixorama qualification covers 528 Dart files plus 11 metadata files, 10,352 operations and 18,552 calls. It restores 40 generated declarations; historical/excluded metadata controls, offline execution, repeatability and unchanged sources pass. Earlier independently chosen Shelf, Wonderous, Serverpod and json_serializable evidence is preserved in the notes.
-
-All required reviews, focused regressions, native release assembly and isolated package checks pass. The integrated combined check passes 16 Node and 865 Bun tests, with 62 opt-in skips and no failures. The release workflow builds five native targets; actual qualification here ran on macOS ARM64 and does not claim Windows/Linux execution. Prepared locally; not published.
+Added an experimental source-only Dart scanner using a bundled official analyzer worker. Selected pubspec language metadata and source @dart overrides preserve valid Dart syntax; library parts, privacy, physical positions and unresolved calls follow existing scanner contracts. Independent LocalSend, Pub and Pixorama qualification covers 528 source files and 11 metadata files, with historical and excluded-source controls. Required reviews and focused/native/package checks pass. CI builds and tests packaged artifacts without language tools on Windows, Linux and macOS; the whole PR stack must pass before release. No publication has occurred.
 <!-- SECTION:FINAL_SUMMARY:END -->
