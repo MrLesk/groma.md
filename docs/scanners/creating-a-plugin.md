@@ -163,7 +163,7 @@ and are not listed.
 - `kind: 'program'` is a top-level named program, such as COBOL `PROGRAM-ID`.
   It has no `members` list. Programs are Code declarations, not C4 containers;
   nested programs are omitted.
-- `kind: 'type'` is a top-level class, interface, struct, record, enum, trait,
+- `kind: 'type'` is a top-level class, interface, struct, union, record, enum, trait,
   or protocol, a Scala or Kotlin object, or a Go defined type such as `type X struct{}` or `type X int`.
   A named type whose form is a function, such as a C# `delegate` or a Go
   `type X func(...)`, is a type with an empty `members` list. Type aliases are
@@ -220,6 +220,7 @@ follows; a dash means the language has no such case.
 | Java | `public`; interface members without a modifier | `protected` | No modifier elsewhere (package access) | `private` |
 | Scala | No access modifier | `protected`, `protected[scope]` | `private[scope]` | `private`, `private[this]` |
 | Kotlin | `public`; default except constructors and inherited overrides | `protected`; sealed constructors by default | `internal` | `private`; enum constructors by default |
+| C | External source linkage and named file-scope type definitions | - | - | Static function linkage, including inherited same-file linkage |
 | C# | `public`; interface members without a modifier | `protected`, `protected internal`, `private protected` | `internal`; top-level types without a modifier | `private`; other members without a modifier |
 | Go | Names starting with an upper-case letter | - | Other names | - |
 | Rust | `pub`. Methods in a trait definition take the trait's visibility, and methods in a trait `impl` are `public` | - | `pub(crate)`, `pub(super)`, `pub(in path)` | No `pub`, `pub(self)` |

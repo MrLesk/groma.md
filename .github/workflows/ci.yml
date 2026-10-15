@@ -122,6 +122,15 @@ jobs:
       - name: Build Kotlin test package
         run: bun plugins/scanners/kotlin/build.ts
         shell: bash
+      - name: Build experimental scanner packages
+        run: |
+          bun plugins/scanners/c/build.ts scanner-packages/c
+        shell: bash
+      - name: Check experimental packages without language tools
+        env:
+          GROMA_TEST_PACKAGES: scanner-packages
+        run: bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts --test-name-pattern '^(c) package'
+        shell: bash
       - parallel:
           - name: Run repository checks
             env:
