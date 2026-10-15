@@ -66,6 +66,17 @@
         "@groma/scanner": "workspace:*",
       },
     },
+    "plugins/scanners/cpp": {
+      "name": "@groma/scanner-cpp",
+      "version": "0.1.0",
+      "dependencies": {
+        "@groma/scanner": "workspace:*",
+        "web-tree-sitter": "0.27.1",
+      },
+      "devDependencies": {
+        "tree-sitter-cpp": "0.23.4",
+      },
+    },
     "plugins/scanners/csharp": {
       "name": "@groma/scanner-csharp",
       "version": "0.2.1",
@@ -289,6 +300,8 @@
     "@groma/scanner-c": ["@groma/scanner-c@workspace:plugins/scanners/c"],
 
     "@groma/scanner-cobol": ["@groma/scanner-cobol@workspace:plugins/scanners/cobol"],
+
+    "@groma/scanner-cpp": ["@groma/scanner-cpp@workspace:plugins/scanners/cpp"],
 
     "@groma/scanner-csharp": ["@groma/scanner-csharp@workspace:plugins/scanners/csharp"],
 
@@ -552,6 +565,8 @@
 
     "tree-sitter-c": ["tree-sitter-c@0.24.1", "", { "dependencies": { "node-addon-api": "^8.3.1", "node-gyp-build": "^4.8.4" }, "peerDependencies": { "tree-sitter": "^0.22.4" }, "optionalPeers": ["tree-sitter"] }, "sha512-lkYwWN3SRecpvaeqmFKkuPNR3ZbtnvHU+4XAEEkJdrp3JfSp2pBrhXOtvfsENUneye76g889Y0ddF2DM0gEDpA=="],
 
+    "tree-sitter-cpp": ["tree-sitter-cpp@0.23.4", "", { "dependencies": { "node-addon-api": "^8.2.1", "node-gyp-build": "^4.8.2", "tree-sitter-c": "^0.23.1" }, "peerDependencies": { "tree-sitter": "^0.21.1" }, "optionalPeers": ["tree-sitter"] }, "sha512-qR5qUDyhZ5jJ6V8/umiBxokRbe89bCGmcq/dk94wI4kN86qfdV8k0GHIUEKaqWgcu42wKal5E97LKpLeVW8sKw=="],
+
     "tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
     "tsx": ["tsx@4.23.15", "", { "dependencies": { "esbuild": "~0.28.0" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "bin": { "tsx": "dist/cli.mjs" } }, "sha512-Yiex1Ovn8z2xPpOWckIiysV1SSyRMY9BkLF++q0yKiDxCqRhosKfMg3janKkiLBwZ5c/YryloKwGZcrEmtwxKw=="],
@@ -589,6 +604,10 @@
     "string-width/strip-ansi": ["strip-ansi@7.2.0", "", { "dependencies": { "ansi-regex": "^6.2.2" } }, "sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w=="],
 
     "tree-sitter-c/node-addon-api": ["node-addon-api@8.9.2", "", {}, "sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg=="],
+
+    "tree-sitter-cpp/node-addon-api": ["node-addon-api@8.9.2", "", {}, "sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg=="],
+
+    "tree-sitter-cpp/tree-sitter-c": ["tree-sitter-c@0.23.6", "", { "dependencies": { "node-addon-api": "^8.3.0", "node-gyp-build": "^4.8.4" }, "peerDependencies": { "tree-sitter": "^0.22.1" }, "optionalPeers": ["tree-sitter"] }, "sha512-0dxXKznVyUA0s6PjNolJNs2yF87O5aL538A/eR6njA5oqX3C3vH4vnx3QdOKwuUdpKEcFdHuiDpRKLLCA/tjvQ=="],
 
     "@groma/scanner-typescript/typescript/@typescript/typescript-darwin-arm64": ["@typescript/typescript-darwin-arm64@7.1.0-dev.20260924.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-XV2Ta2aNvS2lB0qYoeCMp5y9XhZeTxA8Wwk0jy5/fJKaWfJRxOvzDrxelNx4Q8AgF9p3RlwEfCGRMKWtLDrFMA=="],
 

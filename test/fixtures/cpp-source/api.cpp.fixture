@@ -1,0 +1,24 @@
+#include "api.hpp"
+// An astral character before declarations: 😀
+app::Service::Service() : counter(makeCounter()) { ready(); }
+app::Service::~Service() { cleanup(); }
+void app::Service::run(int value) {
+  emit(value);
+  auto deferred = [] { notOuter(); };
+  auto captured = [value = captureValue()] { notOuterEither(value); };
+  struct Local { void own() { localCall(); } };
+  app::Record record;
+  record.save();
+  sizeof(unevaluated());
+}
+void app::Service::stop() { close(); }
+void app::Service::secret() { secretCall(); }
+namespace {
+void fileOnly() { hiddenCall(); }
+}
+auto topLambda = [] { topCall(); };
+#if FEATURE
+void feature() { enabledCall(); }
+#else
+void alternate() { disabledCall(); }
+#endif

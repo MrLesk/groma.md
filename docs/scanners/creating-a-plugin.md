@@ -221,6 +221,7 @@ follows; a dash means the language has no such case.
 | Scala | No access modifier | `protected`, `protected[scope]` | `private[scope]` | `private`, `private[this]` |
 | Kotlin | `public`; default except constructors and inherited overrides | `protected`; sealed constructors by default | `internal` | `private`; enum constructors by default |
 | C | External source linkage and named file-scope type definitions | - | - | Static function linkage, including inherited same-file linkage |
+| C++ | Namespace-level names without file-local linkage; `public`; struct/union members by default | `protected` | - | `static` namespace-level functions, unnamed namespaces; `private`; class members by default |
 | C# | `public`; interface members without a modifier | `protected`, `protected internal`, `private protected` | `internal`; top-level types without a modifier | `private`; other members without a modifier |
 | Go | Names starting with an upper-case letter | - | Other names | - |
 | Rust | `pub`. Methods in a trait definition take the trait's visibility, and methods in a trait `impl` are `public` | - | `pub(crate)`, `pub(super)`, `pub(in path)` | No `pub`, `pub(self)` |
