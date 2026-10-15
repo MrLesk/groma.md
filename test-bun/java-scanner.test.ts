@@ -190,7 +190,8 @@ test.concurrent('Java reads no build script or source outside its files, while a
   try {
     const root = path.join(temporary, 'project')
     const artifact = path.join(temporary, 'scanner')
-    await buildPackage(artifact)
+    if (process.env.GROMA_TEST_JAVA_PACKAGE) await cp(process.env.GROMA_TEST_JAVA_PACKAGE, artifact, { recursive: true })
+    else await buildPackage(artifact)
     const files: Record<string, string> = {
       'build.gradle': "sourceSets.main.java.srcDirs = ['src/main/java', 'build/generated/java']\n",
       'src/main/java/shop/Orders.java': 'package shop; public class Orders {}\n',

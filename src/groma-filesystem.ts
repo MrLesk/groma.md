@@ -38,7 +38,9 @@ async function acquire(filename: string, timeoutMs: number): Promise<() => Promi
       const lock = await open(filename, 'wx')
       return async () => { await lock.close(); await unlink(filename) }
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+      const code = (error as NodeJS.ErrnoException).code
+      // Windows can deny creation while the previous lock is pending deletion.
+      if (code !== 'EEXIST' && !(process.platform === 'win32' && code === 'EPERM')) throw error
       const remaining = deadline - performance.now()
       if (remaining <= 0) throw new GromaBusyError(timeoutMs)
       await delay(Math.min(25, remaining))

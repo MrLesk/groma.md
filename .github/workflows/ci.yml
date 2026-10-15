@@ -110,10 +110,26 @@ jobs:
             if: steps.rust-package.outputs.cache-hit != 'true'
             run: RUSTUP_TOOLCHAIN="$RUST_VERSION" bun plugins/scanners/rust/build.ts
             shell: bash
+      - name: Build COBOL test package
+        run: bun plugins/scanners/cobol/build.ts scanner-packages/cobol
+        shell: bash
+      - name: Build Scala test package
+        run: bun plugins/scanners/scala/build.ts
+        shell: bash
+      - name: Build Java test package
+        run: bun plugins/scanners/java/build.ts
+        shell: bash
+      - name: Build Kotlin test package
+        run: bun plugins/scanners/kotlin/build.ts
+        shell: bash
       - parallel:
           - name: Run repository checks
             env:
               GROMA_TEST_SWIFT_PACKAGE: scanner-packages/swift
+              GROMA_TEST_COBOL_PACKAGE: scanner-packages/cobol
+              GROMA_TEST_SCALA_PACKAGE: plugins/scanners/scala/dist/package
+              GROMA_TEST_KOTLIN_PACKAGE: plugins/scanners/kotlin/dist/package
+              GROMA_TEST_JAVA_PACKAGE: plugins/scanners/java/dist/package
               GROMA_TEST_CSHARP_PACKAGE: ${{ github.workspace }}/scanner-packages/csharp
               GROMA_TEST_GO: go
             # The Rust build names the worker's folder after Bun's platform and architecture.
