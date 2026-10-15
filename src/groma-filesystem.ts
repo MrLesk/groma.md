@@ -6,11 +6,11 @@ import { existsSync } from 'node:fs'
 import type { Dirent } from 'node:fs'
 import {
   mkdir,
-  open,
   readdir,
   readFile,
   realpath,
   rename,
+  rmdir,
   unlink,
   writeFile,
 } from 'node:fs/promises'
@@ -35,10 +35,9 @@ async function acquire(filename: string, timeoutMs: number): Promise<() => Promi
   const deadline = performance.now() + timeoutMs
   for (;;) {
     try {
-      const lock = await open(filename, 'wx')
-      // The file owns the lock; an open handle can block another exclusive open on Windows.
-      await lock.close()
-      return () => unlink(filename)
+      // Directory creation is atomic and avoids Windows file-open/delete sharing races.
+      await mkdir(filename)
+      return () => rmdir(filename)
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
       const remaining = deadline - performance.now()
@@ -152,8 +151,9 @@ export class GromaFileSystem {
     return existsSync(this.absolute(relative))
   }
 
-  list(relative: string): Promise<Dirent[]> {
-    return readdir(this.absolute(relative), { withFileTypes: true })
+  async list(relative: string): Promise<Dirent[]> {
+    const entries = await readdir(this.absolute(relative), { withFileTypes: true })
+    return relative === '' ? entries.filter(entry => entry.name !== LOCK_FILENAME) : entries
   }
 
   read(relative: string): Promise<string> {

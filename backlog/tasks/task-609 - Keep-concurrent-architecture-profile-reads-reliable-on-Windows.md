@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-15 20:21'
-updated_date: '2026-10-15 20:23'
+updated_date: '2026-10-15 20:25'
 labels: []
 dependencies: []
 references:
@@ -43,13 +43,13 @@ Current Windows CI failed the existing working-tree export test with No Groma ar
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-Use a temporary manual Windows CI diagnostic to expose the error currently caught by loadProjectProfile and repeat the existing loadMapRoot flow on a private fixture. Do not infer the cause from the generic export message. Once reproduced, fix only the responsible flow and extend existing coverage when the exact failure and coverage gap are known. Preserve OKF project metadata and C4 meanings; this task concerns reading existing data, not adding architecture concepts.
-
-The real Windows diagnostic failed at iteration 12 with EPERM from open(groma/.groma.lock, wx), hidden by loadProjectProfile. The lock is owned by exclusive file creation and deletion, not an OS-held advisory lock. Test the smallest correction: close its file handle immediately after exclusive creation and leave the file present until release. Existing separate-process exclusion, timeout and protected-write tests verify ownership. The same 1000-iteration Windows diagnostic will establish whether this resolves the observed error before finalizing it.
+Use atomic creation/removal of the existing .groma.lock path as a directory. The Windows file-open primitive reproduced EPERM; closing its handle still reproduced EPERM and ENOENT on release. Keep the existing bounded lock wait, nested access and timeout behavior. GromaFileSystem.list hides the root lock directory, so architecture traversal and generated OKF index links continue to see only architecture data. Existing cross-process exclusion, protected-write and index tests verify those invariants; replay the 1000-iteration Windows profile reproduction. Add a focused concurrent profile/architecture read scenario only if existing coverage leaves that supported result unobserved. No new metadata, C4 concept, recovery behavior or compatibility path.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
 Before-fix Windows reproduction: https://github.com/MrLesk/groma.md/actions/runs/38801290449 . Log /tmp/groma-profile-diagnostic-windows.log records EPERM from acquire at iteration 12. No production behavior has been changed based only on the generic export error.
+
+Closing the lock handle immediately did not resolve the Windows failure: https://github.com/MrLesk/groma.md/actions/runs/38801607492 reproduced both EPERM during acquisition and ENOENT on release. Replacing the file primitive with atomic directory creation is now under test; do not treat the failed handle-only candidate as the final fix.
 <!-- SECTION:NOTES:END -->
