@@ -27,6 +27,11 @@ jobs:
       - uses: actions/checkout@v7
       - parallel:
           - uses: ./.github/actions/setup-swift
+          - uses: dart-lang/setup-dart@v1
+            with:
+              sdk: '3.13.5'
+              # Swift's Windows setup exports its own action path; Dart analysis still runs below.
+              problem-matcher: false
           - uses: actions/setup-java@v6
             with:
               distribution: temurin
@@ -86,6 +91,11 @@ jobs:
           - uses: oven-sh/setup-bun@v2
             with:
               bun-version: ${{ env.BUN_VERSION }}
+          - uses: dart-lang/setup-dart@v1
+            with:
+              sdk: '3.13.5'
+              # Swift's Windows setup exports its own action path; Dart analysis still runs below.
+              problem-matcher: false
           - uses: actions/setup-java@v6
             with:
               distribution: ${{ matrix.platform == 'win32-arm64' && 'microsoft' || 'temurin' }}

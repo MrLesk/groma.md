@@ -72,6 +72,11 @@ jobs:
                   'plugins/scanners/swift/Package.swift') }}
           - uses: ./.github/actions/setup-swift
             if: steps.swift-package.outputs.cache-hit != 'true'
+          - uses: dart-lang/setup-dart@v1
+            with:
+              sdk: '3.13.5'
+              # Swift's Windows setup exports its own action path; Dart analysis still runs below.
+              problem-matcher: false
           - uses: actions/setup-java@v6
             with:
               distribution: temurin
@@ -127,11 +132,12 @@ jobs:
           bun plugins/scanners/c/build.ts scanner-packages/c
           bun plugins/scanners/cpp/build.ts scanner-packages/cpp
           bun plugins/scanners/ada/build.ts scanner-packages/ada
+          bun plugins/scanners/dart/build.ts scanner-packages/dart
         shell: bash
       - name: Check experimental packages without language tools
         env:
           GROMA_TEST_PACKAGES: scanner-packages
-        run: bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts --test-name-pattern '^(c|cpp|ada) package'
+        run: bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts --test-name-pattern '^(c|cpp|ada|dart) package'
         shell: bash
       - parallel:
           - name: Run repository checks
@@ -143,6 +149,7 @@ jobs:
               GROMA_TEST_JAVA_PACKAGE: plugins/scanners/java/dist/package
               GROMA_TEST_CSHARP_PACKAGE: ${{ github.workspace }}/scanner-packages/csharp
               GROMA_TEST_GO: go
+              GROMA_TEST_DART_PACKAGE: scanner-packages/dart
             # The Rust build names the worker's folder after Bun's platform and architecture.
             run: |
               platform=$(bun -e 'process.stdout.write(`${process.platform}-${process.arch}`)')
