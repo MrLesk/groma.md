@@ -5,7 +5,7 @@ import type { PublishedScanner } from '../src/scanner/modules/published.ts'
 import { assembleCSharpPackages } from './package-csharp-scanner.ts'
 
 const repository = { type: 'git', url: 'https://github.com/MrLesk/groma.md.git' }
-const scannerIds = ['c', 'cpp', 'ada', 'nasm', 'cobol', 'java', 'scala', 'kotlin', 'dart', 'go', 'rust', 'csharp', 'angular', 'vue', 'react', 'typescript', 'python', 'php', 'swift', 'javascript']
+const scannerIds = ['c', 'cpp', 'ada', 'mql5', 'nasm', 'cobol', 'java', 'scala', 'kotlin', 'dart', 'go', 'rust', 'csharp', 'angular', 'vue', 'react', 'typescript', 'python', 'php', 'swift', 'javascript']
 
 async function manifest(directory: string) {
   return JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'))
@@ -40,6 +40,7 @@ async function stage(output: string) {
     c: (await import('../plugins/scanners/c/build.ts')).buildPackage,
     cpp: (await import('../plugins/scanners/cpp/build.ts')).buildPackage,
     ada: (await import('../plugins/scanners/ada/build.ts')).buildPackage,
+    mql5: (await import('../plugins/scanners/mql5/build.ts')).buildPackage,
     php: (await import('../plugins/scanners/php/build.ts')).buildPackage,
     python: (await import('../plugins/scanners/python/build.ts')).buildPackage,
     typescript: (await import('../plugins/scanners/typescript/build.ts')).buildPackage,
