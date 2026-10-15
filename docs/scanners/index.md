@@ -223,6 +223,7 @@ authored relationships remain intact.
 - [C](c/index.md)
 - [C++](cpp/index.md)
 - [Ada](ada/index.md)
+- [Dart](dart/index.md)
 - [C#/.NET](dotnet-csharp/index.md)
 - [Shared contract](creating-a-plugin.md)
 

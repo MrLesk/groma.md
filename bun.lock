@@ -92,6 +92,13 @@
         "@groma/scanner": "workspace:*",
       },
     },
+    "plugins/scanners/dart": {
+      "name": "@groma/scanner-dart",
+      "version": "0.1.0",
+      "dependencies": {
+        "@groma/scanner": "workspace:*",
+      },
+    },
     "plugins/scanners/go": {
       "name": "@groma/scanner-go",
       "version": "0.2.1",
@@ -314,6 +321,8 @@
     "@groma/scanner-cpp": ["@groma/scanner-cpp@workspace:plugins/scanners/cpp"],
 
     "@groma/scanner-csharp": ["@groma/scanner-csharp@workspace:plugins/scanners/csharp"],
+
+    "@groma/scanner-dart": ["@groma/scanner-dart@workspace:plugins/scanners/dart"],
 
     "@groma/scanner-go": ["@groma/scanner-go@workspace:plugins/scanners/go"],
 

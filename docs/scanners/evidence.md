@@ -82,6 +82,7 @@ The official producers currently recognize these source forms:
 | Python | Module execution guard, `__main__.py`, or `project.scripts` | Resolved local imports within the declared project |
 | JavaScript, TypeScript, React, Vue, Angular | Source-backed package commands/bins, HTML script entries, Angular CLI and Nx build targets, and readable Bun browser/compiled build entries | Resolved local modules within the declared package; the polyfills and environment replacements a build target names; framework companion files join their source unit |
 | PHP | Source-backed Composer bins and literal PHP script commands | Explicitly included local sources within that Composer package |
+| Dart | A top-level `main` function with a body | Its physical file and explicit selected library parts; no import or framework closure |
 | Swift | `@main`, `@UIApplicationMain` or `@NSApplicationMain` type, or `main.swift` top-level code | Its source file; project target membership is not analyzed |
 
 These are declared extraction limits, not separate C4 policies. Dynamic build

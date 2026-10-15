@@ -195,7 +195,9 @@ name), `visibility`, and `entry`. `entry` is true when the reference's `symbols`
 name the symbol in the spelling that scanner's Code links use: a member
 qualified by its type, or its bare name. Members are `Type.member` in Java, C#,
 and Python, and `Namespace\Type::method` in PHP, beside a top-level
-`Namespace\name`; every other scanner matches bare names. A link naming a type
+`Namespace\name`. Dart constructors match `Type.name` or `Type.new` for an unnamed
+constructor; see [Dart outlines](dart/index.md#inputs-and-source-structure). Other
+members and scanners match bare names. A link naming a type
 never marks its members.
 
 `visibility` states who may use the name:
@@ -219,6 +221,7 @@ follows; a dash means the language has no such case.
 | Vue | As TypeScript in `<script>` | As TypeScript | - | As TypeScript; every `<script setup>` top-level declaration |
 | Java | `public`; interface members without a modifier | `protected` | No modifier elsewhere (package access) | `private` |
 | Scala | No access modifier | `protected`, `protected[scope]` | `private[scope]` | `private`, `private[this]` |
+| Dart | Names without a leading `_` | - | - | Names beginning with `_`, restricted to their library and its parts |
 | Kotlin | `public`; default except constructors and inherited overrides | `protected`; sealed constructors by default | `internal` | `private`; enum constructors by default |
 | C | External source linkage and named file-scope type definitions | - | - | Static function linkage, including inherited same-file linkage |
 | C++ | Namespace-level names without file-local linkage; `public`; struct/union members by default | `protected` | - | `static` namespace-level functions, unnamed namespaces; `private`; class members by default |
