@@ -107,12 +107,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: oven-sh/setup-bun@v2.2.0
-        with:
-          bun-version: '1.4.3'
+      - parallel:
+          - uses: oven-sh/setup-bun@v2.2.0
+            with:
+              bun-version: '1.4.3'
 
-      - uses: actions/configure-pages@v6.0.0
-        id: pages
+          - uses: actions/configure-pages@v6.0.0
+            id: pages
 
       - name: Install dependencies
         run: |
@@ -133,18 +134,19 @@ jobs:
           '
           bun run cli plugin install
 
-      - name: Export the committed architecture
-        env:
-          PAGE_URL: ${{ steps.pages.outputs.base_url }}
-        run: bun run cli export "./site/architecture/$GROMA_THEME" --url "${PAGE_URL%/}/architecture/$GROMA_THEME/"
+      - parallel:
+          - name: Export the committed architecture
+            env:
+              PAGE_URL: ${{ steps.pages.outputs.base_url }}
+            run: bun run cli export "./site/architecture/$GROMA_THEME" --url "${PAGE_URL%/}/architecture/$GROMA_THEME/"
 
-      - name: Add the pull request comparisons
-        if: needs.compare.result == 'success' || needs.compare.result == 'failure'
-        uses: actions/download-artifact@v4
-        with:
-          pattern: groma-comparison-*
-          merge-multiple: true
-          path: ./site
+          - name: Add the pull request comparisons
+            if: needs.compare.result == 'success' || needs.compare.result == 'failure'
+            uses: actions/download-artifact@v4
+            with:
+              pattern: groma-comparison-*
+              merge-multiple: true
+              path: ./site
 
       - uses: actions/upload-pages-artifact@v5.0.0
         with:

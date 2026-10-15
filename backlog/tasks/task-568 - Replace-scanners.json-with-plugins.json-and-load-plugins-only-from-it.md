@@ -3,11 +3,11 @@ id: TASK-568
 title: >-
   Replace scanners.json with config.json and restore its plugins on another
   computer
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-14 19:42'
+updated_date: '2026-10-15 22:18'
 labels: []
 dependencies: []
 references:
@@ -182,22 +182,22 @@ Product decisions by Alex on 2026-10-13 and 2026-10-14: bundled Backlog adapter 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 `<groma-root>/config.json` replaces scanners.json with `scanners` and `workSources` sections and the top-level `exclude` and `useGitignore`; plugin ids are lowercase kebab-case and unique across sections; nothing reads scanners.json; the format is documented; this repository's file and the test fixtures are converted.
-- [ ] #2 A plugin with a `source` is downloaded at that exact version; an entry without `source` names a plugin bundled with groma.md. The Backlog.md adapter is bundled and not published as a package; its entry records the minimum Backlog.md CLI version. Without that entry groma.md never runs the Backlog.md CLI, and a second work source is refused.
-- [ ] #3 One restore component reports for every listed plugin whether it is present on this computer and restores what is missing by kind: it downloads a package at the listed version, and installs the Backlog.md CLI when it is missing or older than the listed version. Every entry point in the following criteria uses it.
-- [ ] #4 `groma init` and the `groma web` setup recommend Backlog.md, preselected, and offer to install it when its CLI is missing. The terminal asks its own question; the browser shows it in its own Tasks section, apart from the scanners. Choosing it writes its entry, restores it through the restore component and initializes Backlog.md.
-- [ ] #5 The plugins screen in the web and terminal viewers lists plugins by kind. It lists the bundled plugins the project does not use yet, each with Install, besides Add plugin for a source; installing or adding one writes its entry and restores it.
-- [ ] #6 Only when a plugin of any kind that config.json lists is not present, `groma web` opens on a restore view in the style of its setup wizard. It lists the missing plugins and asks for confirmation. Restore installs them with a loading indicator per item and opens the map when all are present; a plugin it cannot restore stays on the view with its failure reason. Proceed without them opens the map read-only, the way a historical view is: no scan runs and nothing can be edited.
-- [ ] #7 The terminal welcome screen names missing plugins. `groma plugin add|update|install|list|remove` manage every kind; `groma plugin update` records the new exact version, or for Backlog.md the installed CLI version, so a colleague who pulls finds it missing. `groma scanner add|update|install|list|remove` are removed; `groma scanner settings|setup|check|discover` stay.
-- [ ] #8 Docs, agent guides and .github/workflows/architecture.yml refer to config.json.
+- [x] #1 `<groma-root>/config.json` replaces scanners.json with `scanners` and `workSources` sections and the top-level `exclude` and `useGitignore`; plugin ids are lowercase kebab-case and unique across sections; nothing reads scanners.json; the format is documented; this repository's file and the test fixtures are converted.
+- [x] #2 A plugin with a `source` is downloaded at that exact version; an entry without `source` names a plugin bundled with groma.md. The Backlog.md adapter is bundled and not published as a package; its entry records the minimum Backlog.md CLI version. Without that entry groma.md never runs the Backlog.md CLI, and a second work source is refused.
+- [x] #3 One restore component reports for every listed plugin whether it is present on this computer and restores what is missing by kind: it downloads a package at the listed version, and installs the Backlog.md CLI when it is missing or older than the listed version. Every entry point in the following criteria uses it.
+- [x] #4 `groma init` and the `groma web` setup recommend Backlog.md, preselected, and offer to install it when its CLI is missing. The terminal asks its own question; the browser shows it in its own Tasks section, apart from the scanners. Choosing it writes its entry, restores it through the restore component and initializes Backlog.md.
+- [x] #5 The plugins screen in the web and terminal viewers lists plugins by kind. It lists the bundled plugins the project does not use yet, each with Install, besides Add plugin for a source; installing or adding one writes its entry and restores it.
+- [x] #6 Only when a plugin of any kind that config.json lists is not present, `groma web` opens on a restore view in the style of its setup wizard. It lists the missing plugins and asks for confirmation. Restore installs them with a loading indicator per item and opens the map when all are present; a plugin it cannot restore stays on the view with its failure reason. Proceed without them opens the map read-only, the way a historical view is: no scan runs and nothing can be edited.
+- [x] #7 The terminal welcome screen names missing plugins. `groma plugin add|update|install|list|remove` manage every kind; `groma plugin update` records the new exact version, or for Backlog.md the installed CLI version, so a colleague who pulls finds it missing. `groma scanner add|update|install|list|remove` are removed; `groma scanner settings|setup|check|discover` stay.
+- [x] #8 Docs, agent guides and .github/workflows/architecture.yml refer to config.json.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -255,4 +255,12 @@ Verification after the fixes: bun run check exit 0 (one existing Biome warning, 
 Alex's decisions later on 2026-10-14, applied: plugin-wide code grouped by domain (src/plugins/ holds management, cli, settings and the settings model; the work-source files sit in src/work/; the screens are tui/plugin-settings.ts and web/settings/plugins.ts; the architecture records were renamed plugin-settings, tui-plugin-settings and web-plugin-settings and grouped as Plugins). Both setup wizards offer Backlog.md, but not as another scanner: the terminal asks its own question, worded Install when the CLI is missing; the browser setup step is Set up plugins with a Scanners section and a separate Tasks section for Backlog.md, whose card says what it is for. The plugin kind of a downloaded package will come from its own manifest (no kind flag on groma plugin add); that matters once icon packs can be downloaded (TASK-561). Test: the web setup test now checks the Tasks section and that choosing Backlog.md adds and initializes it (criterion 4; the setup test did not cover Backlog.md). Checked by hand: the web plugin step in a scratch repository (both sections, button label follows the choices) and the terminal question with and without the CLI through tui-test.
 
 Alex, 2026-10-14: the Tasks section sits above the scanners (icons will join it in TASK-561), and Backlog.md cannot be turned off during setup when its CLI is already installed: the terminal adds it without a question and only offers to install a missing CLI; the browser shows it checked and locked and still submits it. Removing it later from the plugins screen stays possible. Tests: the terminal wizard adds Backlog.md without asking when the CLI is installed, and asks and adds nothing when a missing CLI is declined.
+
+Release integration review: the original PR records manual browser restore, failed restore, read-only map, adding Backlog.md, setup and terminal checks. Existing config, work-source selection, installation/restore and web-startup suites cover exact selections, unique ids, tool readiness, task gating, setup and refused writes. The complete integrated scanner branch passes lint/typecheck, 16 Node and 874 Bun tests, 62 optional skips, zero failures and 3558 assertions (/tmp/groma-main605-integrated-check.log). Current main TASK-605 is merged without changing plugin behavior. Own specification review maps these checks and the existing manual record to all eight criteria. Own quality review follows config parsing -> plugin management/presence/restore -> CLI and viewer entry points -> configured scanner/work source; responsibilities remain in src/config.ts, src/plugins/ and src/work/. Configuration is operational delivery data, not an OKF/C4 architecture concept. No new behavior, migration, fallback or tests are added for this integration. The original global CLI installer commands remain an explicitly recorded manual-check limit. Updated PR commit CI remains required before merging.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Projects record scanners and bundled work sources in config.json, restore missing plugins through one shared owner, and manage them through groma plugin commands. Backlog tasks run only when configured; missing plugins have an explicit restore view and read-only way forward. The original manual checks and the integrated repository suite pass. Current main workflow scheduling is preserved, and final platform CI is required before merge.
+<!-- SECTION:FINAL_SUMMARY:END -->
