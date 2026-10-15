@@ -1,7 +1,7 @@
 {
   "name": "@groma/scanner-c",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "license": "MIT",
   "description": "Experimental C source declarations, outlines and unresolved call evidence.",
