@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 import path from 'node:path'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
+import { withFixture } from './helpers.ts'
 import { flowFocus, flowHighlight, flowReturn, flowSelection, retainFlows, toggleFlowActivation } from '../src/viewers/web/flow/state.ts'
 
 test.concurrent('flows toggle independently and the last checked flow owns the reader', () => {
@@ -36,7 +37,7 @@ test.concurrent('a file reader occupies the details Back slot during a flow visi
 })
 
 test.concurrent('step focus retains the complete Web path and omits unrelated collaborations', async () => {
-  const world = await loadAnnotatedArchitecture(path.resolve(import.meta.dir, '../test/fixtures/flows'))
+  const world = await withFixture(path.resolve(import.meta.dir, '../test/fixtures/flows'), loadAnnotatedArchitecture)
   const original = structuredClone(world)
   const flow = world.flows[0]!
   const whole = flowHighlight([{ id: flow.id }], world)
@@ -55,7 +56,7 @@ test.concurrent('step focus retains the complete Web path and omits unrelated co
 })
 
 test.concurrent('checked flows combine explicit paths and survive world updates without stale steps', async () => {
-  const world = await loadAnnotatedArchitecture(path.resolve(import.meta.dir, '../test/fixtures/flows'))
+  const world = await withFixture(path.resolve(import.meta.dir, '../test/fixtures/flows'), loadAnnotatedArchitecture)
   const first = world.flows[0]!
   const other = world.relationships.find(relationship => relationship.target === 'journal')!
   world.flows.push({ ...first, id: 'other', steps: [{ ...other, relationshipId: other.id, action: 'Record' }] })

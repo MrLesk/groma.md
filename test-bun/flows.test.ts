@@ -11,11 +11,12 @@ import { elementOnPath, flowRouteIds, flowsThrough } from '../src/viewers/flows.
 import { inspectDetails } from '../src/viewers/web/organisms/details.ts'
 import { sheetScene } from '../src/sheet/scene.ts'
 import type { MarkdownNode } from '../src/types.ts'
+import { withFixture } from './helpers.ts'
 
 const fixture = path.resolve(import.meta.dir, '../test/fixtures/flows')
 
 test.concurrent('Markdown links resolve ordered steps, including a callback and repeated relationship', async () => {
-  const records = await loadArchitecture(fixture)
+  const records = await withFixture(fixture, loadArchitecture)
   const model = annotateArchitecture(records)
   const flow = model.flows[0]!
   const byId = new Map(model.relationships.map(relationship => [relationship.id, relationship]))
@@ -32,7 +33,7 @@ test.concurrent('Markdown links resolve ordered steps, including a callback and 
 })
 
 test.concurrent('membership omits outgoing connections not authored in the scenario and a step selects one route', async () => {
-  const model = await loadAnnotatedArchitecture(fixture)
+  const model = await withFixture(fixture, loadAnnotatedArchitecture)
   const flow = model.flows[0]!
   const all = flowRouteIds({ id: flow.id }, model)
   const omitted = model.relationships.find(relationship => relationship.target === 'journal')!
@@ -50,13 +51,13 @@ test.concurrent('membership omits outgoing connections not authored in the scena
 })
 
 test.concurrent('flow records preserve the shared sheet', async () => {
-  const model = await loadAnnotatedArchitecture(fixture)
+  const model = await withFixture(fixture, loadAnnotatedArchitecture)
   const sheet = sheetScene(model)
   expect(sheetScene({ ...model, flows: [] })).toEqual(sheet)
 })
 
 test.concurrent('a flow rejects a missing directed relationship', async () => {
-  const records = await loadArchitecture(fixture)
+  const records = await withFixture(fixture, loadArchitecture)
   const flow = records.flows[0]!
   const body = flow.body.replace('[Requester](../actors/requester.md) | [Entry][entry]', '[Requester](../actors/requester.md) | [Worker][worker]')
   const changed = { ...flow, body, nodes: (await parseMarkdown(body)).nodes as MarkdownNode[] }
@@ -64,7 +65,7 @@ test.concurrent('a flow rejects a missing directed relationship', async () => {
 })
 
 test.concurrent('duplicate file declarations fail before flow resolution', async () => {
-  const records = await loadArchitecture(fixture)
+  const records = await withFixture(fixture, loadArchitecture)
   const document = records.documents.find(document => document.sourceFilename.endsWith('/components/entry.md'))!
   const row = '| [Entry](../../../../../../src/entry.ts) | [Worker](../../../../../../src/worker.ts) | Also dispatches | Function call |'
   const body = `${document.body.trimEnd()}\n${row}\n`

@@ -16,7 +16,8 @@ async function setup() {
   const artifact = path.join(temporary, 'scanner')
   try {
     await cp(fixture, root, { recursive: true })
-    await buildPackage(artifact)
+    if (process.env.GROMA_TEST_COBOL_PACKAGE) await cp(process.env.GROMA_TEST_COBOL_PACKAGE, artifact, { recursive: true })
+    else await buildPackage(artifact)
     const scanner: ScannerPlugin = (await import(pathToFileURL(path.join(artifact, 'src/index.js')).href)).default
     return { temporary, root, scanner }
   } catch (error) { await rm(temporary, { recursive: true, force: true }); throw error }
