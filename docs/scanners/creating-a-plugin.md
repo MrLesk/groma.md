@@ -130,12 +130,14 @@ keep every other scanner's outline. The outline is read-only source detail, neve
 architecture record. Build it by parsing source only: no project dependencies,
 builds, or project tools.
 
-The optional fourth argument supplies known Code files from the loaded
-architecture, filtered by the scanner's configured include/exclude rules.
-Use it when outlining a file requires source owned by another component, such
-as NASM macros and includes. Read these paths from `repositoryRoot`, which may
-be a historical source snapshot without Git metadata. Return declarations only
-for the requested references; context files do not change their ownership.
+The optional fourth argument supplies the scanner's selected source inputs,
+including metadata without Code ownership, filtered by configured include/exclude
+rules. Live inputs also respect the configured Git-ignore policy; historical
+inputs come from the requested Git tree. Use this context for declarations in
+other components, such as NASM macros, or package language versions. Read these
+paths from `repositoryRoot`, which may be a historical source snapshot without
+Git metadata. Return declarations only for the requested references; context
+files do not change their ownership or become architecture elements.
 
 Each reference holds one owned `file` and the `symbols` its Code links name.
 When a file has Code links from several configured scanners, the one with the

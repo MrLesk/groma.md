@@ -6,7 +6,7 @@ import { compareArchitecture, ownedFiles, type SourceTexts } from '../../history
 import { olderFirst, readGitRevision, type GitRevision } from '../../history/revisions.ts'
 import { atRevision, readSourceTexts } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
-import { readSnapshotCodeStructure } from '../source/structure.ts'
+import { outlineSourceFiles, readSnapshotCodeStructure } from '../source/structure.ts'
 import { renderPage } from './page.ts'
 import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'
 import type { PublishedView, WebBootPayload } from './payload.ts'
@@ -35,10 +35,11 @@ async function snapshotView(repositoryRoot: string, root: string, revision: GitR
   generation: number, map: Awaited<ReturnType<typeof loadMapRoot>>, files: string[]): Promise<PublishedView> {
   if (map.project === null) throw new Error('No Groma architecture in this snapshot')
   const code: PublishedView['reads']['code'] = []
+  const sourceFiles = await outlineSourceFiles(repositoryRoot, revision?.id ?? null)
   for (const element of map.world.elements) {
     if (element.kind !== 'component') continue
     code.push({ element: element.representationId,
-      files: await readSnapshotCodeStructure(repositoryRoot, root, map.world, element.representationId) ?? [] })
+      files: await readSnapshotCodeStructure(repositoryRoot, root, map.world, element.representationId, sourceFiles) ?? [] })
   }
   const texts = await readSourceTexts(root, files)
   return {
