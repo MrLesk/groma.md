@@ -1,7 +1,8 @@
-import { spawn } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { execFile, spawn } from 'node:child_process'
+import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { promisify } from 'node:util'
 
 import { loadArchitecture } from '../architecture-reader.ts'
 import { annotateArchitecture } from '../core.ts'
@@ -163,67 +164,26 @@ export async function listGromaRevisions(repositoryRoot: string): Promise<GromaR
   return result
 }
 
-function extractArchive(
-  repositoryRoot: string,
-  revisionId: string,
-  destination: string,
-  paths: string[],
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const archive = spawn('git', [
-      '-c', 'core.autocrlf=false',
-      'archive', '--format=tar', revisionId, ...paths,
-    ], {
-      cwd: repositoryRoot,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-    // tar runs in the destination: Git for Windows' GNU tar cannot open a drive path such as C:\... given to -C.
-    const extract = spawn('tar', ['-x'], {
-      cwd: destination,
-      stdio: ['pipe', 'ignore', 'pipe'],
-    })
-    let stderr = ''
-    archive.stderr.setEncoding('utf8')
-    extract.stderr.setEncoding('utf8')
-    archive.stderr.on('data', chunk => {
-      stderr += chunk
-    })
-    extract.stderr.on('data', chunk => {
-      stderr += chunk
-    })
-    archive.stdout.pipe(extract.stdin)
-    let archiveCode: number | null | undefined
-    let extractCode: number | null | undefined
-    const settle = () => {
-      if (archiveCode === undefined || extractCode === undefined) return
-      if (archiveCode === 0 && extractCode === 0) resolve()
-      else reject(new Error(stderr.trim() || 'Could not read Git revision'))
-    }
-    archive.on('error', reject)
-    extract.on('error', reject)
-    archive.on('close', code => {
-      archiveCode = code
-      settle()
-    })
-    extract.on('close', code => {
-      extractCode = code
-      settle()
-    })
-  })
-}
-
 async function withGitTree<T>(
   repositoryRoot: string,
   revisionId: string,
   paths: string[],
   load: (snapshotRoot: string) => Promise<T>,
 ): Promise<T> {
-  const snapshotRoot = await mkdtemp(path.join(tmpdir(), 'groma-revision-'))
+  const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'groma-revision-'))
+  const snapshotRoot = path.join(temporaryRoot, 'tree')
   try {
-    await extractArchive(repositoryRoot, revisionId, snapshotRoot, paths)
+    await mkdir(snapshotRoot)
+    await runGit([
+      '-c', 'core.autocrlf=false', 'archive', '--format=tar',
+      '--output', path.join(temporaryRoot, 'archive.tar'), revisionId, ...paths,
+    ], repositoryRoot)
+    // A complete file avoids a broken pipe when tar stops reading archive padding.
+    // Keep tar's path relative: GNU tar treats Windows drive letters as remote hosts.
+    await promisify(execFile)('tar', ['-xf', '../archive.tar'], { cwd: snapshotRoot })
     return await load(snapshotRoot)
   } finally {
-    await rm(snapshotRoot, { recursive: true, force: true })
+    await rm(temporaryRoot, { recursive: true, force: true })
   }
 }
 

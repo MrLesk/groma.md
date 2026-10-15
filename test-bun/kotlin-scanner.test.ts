@@ -94,7 +94,8 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-kotlin-'))
   try {
     const artifact = path.join(temporary, 'scanner')
-    await buildPackage(artifact)
+    if (process.env.GROMA_TEST_KOTLIN_PACKAGE) await cp(process.env.GROMA_TEST_KOTLIN_PACKAGE, artifact, { recursive: true })
+    else await buildPackage(artifact)
     const scanner = (await import(pathToFileURL(path.join(artifact, 'src/index.js')).href)).default as ScannerPlugin
     await scanner.checkReadiness!(fixture, {}, [orders])
     const first = (await scanner.scan!(fixture, {}, [orders]))!
