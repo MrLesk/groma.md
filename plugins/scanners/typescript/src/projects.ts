@@ -52,7 +52,9 @@ export async function typescriptProjects(api: API, root: string, sources: string
   const relative = (file: string) => path.relative(root, file).split(path.sep).join('/')
   async function read(file: string): Promise<void> {
     if (configurations.has(file)) return
+    console.error("CONFIG_DIAG", process.pid, performance.now(), file, "parse start")
     const config = await api.parseConfigFile(file)
+    console.error("CONFIG_DIAG", process.pid, performance.now(), file, "parse end")
     // An empty input set contributes no source, and a fresh checkout without installed packages or
     // generated files still has the config's own settings; other config errors block scanning.
     const errors = config.errors.filter(error => error.code !== 18003 && !absentBase.has(error.code))

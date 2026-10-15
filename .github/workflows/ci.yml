@@ -1,4 +1,4 @@
-name: CI
+name: Full Windows TypeScript configuration diagnostics
 
 on:
   workflow_dispatch:
@@ -19,8 +19,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-latest, windows-latest]
+        os: [windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
       - parallel:

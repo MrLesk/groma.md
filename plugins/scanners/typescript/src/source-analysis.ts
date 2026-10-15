@@ -70,9 +70,12 @@ function mergedEvidence(programs: readonly ProjectEvidence[]): ProjectEvidence {
  */
 export async function analyzeSourceFiles(repositoryRoot: string, paths: string[], files: readonly string[]): Promise<SourceEvidence> {
   if (paths.length === 0) return { ...mergedEvidence([]), diagnostics: [], buildOutputs: [] }
+  console.error("TS_DIAG", process.pid, performance.now(), repositoryRoot, "api create")
   const api = new API({ cwd: repositoryRoot })
   try {
+    console.error("TS_DIAG", process.pid, performance.now(), repositoryRoot, "parse projects start")
     const { projects, diagnostics } = await typescriptProjects(api, repositoryRoot, paths, files)
+    console.error("TS_DIAG", process.pid, performance.now(), repositoryRoot, "parse projects end")
     const outputs = buildOutputs(repositoryRoot, projects)
     const workspacePaths = await packagePaths(repositoryRoot, outputs, files)
     // A file's imports come from its own config's program, whose aliases it is written for; a file no config owns
@@ -85,11 +88,15 @@ export async function analyzeSourceFiles(repositoryRoot: string, paths: string[]
         project.files = project.files.filter(file => !analyzed.has(file))
         if (!project.files.length) continue
       }
+      console.error("TS_DIAG", process.pid, performance.now(), repositoryRoot, "analyze project start", project.key)
       programs.push(await analyzeProject(api, repositoryRoot, paths, project, workspacePaths, configured))
+      console.error("TS_DIAG", process.pid, performance.now(), repositoryRoot, "analyze project end", project.key)
     }
     return { ...mergedEvidence(programs), diagnostics, buildOutputs: outputs }
   } finally {
+    console.error("TS_DIAG", process.pid, performance.now(), repositoryRoot, "api close start")
     await api.close()
+    console.error("TS_DIAG", process.pid, performance.now(), repositoryRoot, "api close end")
   }
 }
 

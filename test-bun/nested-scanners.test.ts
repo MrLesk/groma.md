@@ -209,8 +209,11 @@ test.concurrent('the config whose directory contains a file owns it, not a deepe
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-test.concurrent('TypeScript configs with no inputs or an absent base keep valid source, but invalid options block it', async () => {
+for (let diagnosticCase = 1; diagnosticCase <= 100; diagnosticCase++) {
+test.concurrent(`TypeScript configs with no inputs or an absent base keep valid source, but invalid options block it [diagnostic ${diagnosticCase}]`, async () => {
+  console.error("CASE_DIAG", performance.now(), "repository start")
   const root = await repository()
+  console.error("CASE_DIAG", performance.now(), root, "repository ready")
   try {
     await writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ files: [], references: [{ path: './app' }] }))
     await mkdir(path.join(root, 'app'))
@@ -225,15 +228,29 @@ test.concurrent('TypeScript configs with no inputs or an absent base keep valid 
     const emptyConfig = path.join(root, 'test/fixture/tsconfig.json')
     await writeFile(emptyConfig, JSON.stringify({ include: ['*.tsx'] }))
     await writeFile(path.join(root, 'test/fixture/view.tsx.fixture'), 'export const view = <div />')
-    const graph = await buildImportGraph(root, await includedFiles(root))
+    console.error("CASE_DIAG", performance.now(), root, "valid selection start")
+    const files = await includedFiles(root)
+    console.error("CASE_DIAG", performance.now(), root, "valid selection end")
+    const graph = await buildImportGraph(root, files)
+    console.error("CASE_DIAG", performance.now(), root, "valid graph end")
     expect(graph.files.map(file => file.file).sort()).toEqual(['app/entry.ts', 'app/target.ts'])
     expect(graph.files.find(file => file.file === 'app/entry.ts')!.imports).toEqual(['app/target.ts'])
     expect(graph.operations.some(operation => operation.file === 'app/entry.ts' && operation.name === 'run')).toBe(true)
     expect(graph.diagnostics.map(item => [item.severity, item.file])).toEqual([['warning', 'app/tsconfig.json'], ['warning', 'app/tsconfig.json']])
     await writeFile(emptyConfig, JSON.stringify({ compilerOptions: { target: 'invalid' }, include: ['*.tsx'] }))
-    await expect(buildImportGraph(root, await includedFiles(root))).rejects.toThrow('target')
-  } finally { await rm(root, { recursive: true, force: true }) }
+    console.error("CASE_DIAG", performance.now(), root, "invalid selection start")
+    const invalidFiles = await includedFiles(root)
+    console.error("CASE_DIAG", performance.now(), root, "invalid selection end")
+    await expect(buildImportGraph(root, invalidFiles)).rejects.toThrow('target')
+    console.error("CASE_DIAG", performance.now(), root, "invalid graph rejected")
+  } finally {
+    console.error("CASE_DIAG", performance.now(), root, "cleanup start")
+    await rm(root, { recursive: true, force: true })
+    console.error("CASE_DIAG", performance.now(), root, "cleanup end")
+  }
 })
+}
+
 
 test.concurrent('a TypeScript scan keeps source when a referenced generated config is absent', async () => {
   const root = await repository()
