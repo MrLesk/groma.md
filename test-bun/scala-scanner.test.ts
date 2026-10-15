@@ -103,7 +103,8 @@ test.concurrent('packaged Scala scanner reads selected source, bounded calls and
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-scala-'))
   try {
     const artifact = path.join(temporary, 'scanner')
-    await buildPackage(artifact)
+    if (process.env.GROMA_TEST_SCALA_PACKAGE) await cp(process.env.GROMA_TEST_SCALA_PACKAGE, artifact, { recursive: true })
+    else await buildPackage(artifact)
     const scanner = (await import(pathToFileURL(path.join(artifact, 'src/index.js')).href)).default as ScannerPlugin
     const root = path.join(fixtures, 'scala-parse')
     const files = ['Inventory.scala', 'PackageObject.scala', 'Indent.scala', 'Operations.scala', 'Rules.scala',
