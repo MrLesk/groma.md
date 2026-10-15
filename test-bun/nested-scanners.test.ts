@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import { rejects } from 'node:assert/strict'
 import { cp, mkdir, mkdtemp, readdir, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -241,7 +242,7 @@ test.concurrent(`TypeScript configs with no inputs or an absent base keep valid 
     console.error("CASE_DIAG", performance.now(), root, "invalid selection start")
     const invalidFiles = await includedFiles(root)
     console.error("CASE_DIAG", performance.now(), root, "invalid selection end")
-    await expect(buildImportGraph(root, invalidFiles)).rejects.toThrow('target')
+    await rejects(buildImportGraph(root, invalidFiles), /target/)
     console.error("CASE_DIAG", performance.now(), root, "invalid graph rejected")
   } finally {
     console.error("CASE_DIAG", performance.now(), root, "cleanup start")

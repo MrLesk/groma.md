@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-15 22:34'
-updated_date: '2026-10-15 22:46'
+updated_date: '2026-10-15 23:23'
 labels: []
 dependencies: []
 references:
@@ -48,6 +48,8 @@ Current-main scanner qualification failed on Windows in the existing no-input/mi
 On a temporary diagnostic branch based on the failed MQL5 commit, add stage timestamps to the exact existing test and native compiler owner. Replace only that branch CI workflow with a Windows manual job that runs the whole file once and then stops on the first failing case in a bounded repetition. Keep every assertion and the 20-second limit. No diagnostic logs or workflow enter the release. Use the result to choose the smallest confirmed correction; no new fallback, retry, timeout or edge-case behavior is approved.
 
 Both initial diagnostics pass the whole original file and 100 isolated cases, including the normal --parallel=2 file-isolation mode. Reproduce the remaining difference: the full repository suite and repeated cases in one file process. Keep all existing tests, register the same instrumented scenario 100 times with private fixtures, retain each 20-second deadline and add diagnostic-only stop-on-first-failure. Restore the exact failed CI workflow with only its Windows matrix and manual trigger. No production scheduling change is justified: the failed-job timestamps show C# tests and standalone compilation finished minutes before the timeout.
+
+The full-suite diagnostic reproduced the exact timeout in cases 18-20 and later. Only the second scan, inside expect(promise).rejects, stalls in SDK parseConfigFile; ordinary awaits are fast and cleanup is fast. Bun 1.4.3 upstream issue #45020 describes this nested event-loop wait over setImmediate, matching the SDK request batcher. Test the same promise with node:assert/strict rejects, which awaits normally and preserves rejection/message requirements, with every graph assertion, 20-second deadline, isolation and 100 private repetitions unchanged. No product code, timeout, retry or scheduling change.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -56,4 +58,6 @@ Both initial diagnostics pass the whole original file and 100 isolated cases, in
 The diagnostic retains the repository runner mode too: --parallel=2 controls isolation between files and --max-concurrency 1 controls tests within each file. Repetitions stop at the first failure and preserve the 20-second limit; this is diagnostic sampling, not a retry policy or acceptance run.
 
 The first diagnostic passed 100 cases plus the original file; maximum observed case time was 3681.79 ms. Run 38818239615 also passed in the repository file-isolation mode. Original Windows timings: repository checks 22:21:01-22:25:20 UTC; C# worker tests finished 22:21:33 and standalone compilation 22:21:04. These do not support blaming concurrent compilation for the timeout at 22:25:20.
+
+Full-context diagnostic run 38819360712 reproduced 20-second stalls, then reached its diagnostic-only 35-minute job limit. Timestamp probes place the delay inside configuration requests during the rejects matcher; valid scans and API cleanup stay fast. Upstream primary report: https://github.com/oven-sh/bun/issues/45020 (Bun 1.4.3, same installed revision c6da4a4d3). This is a diagnosis hypothesis until the controlled node:assert rejection check passes the same suite.
 <!-- SECTION:NOTES:END -->
