@@ -84,6 +84,7 @@ The official producers currently recognize these source forms:
 | PHP | Source-backed Composer bins and literal PHP script commands | Explicitly included local sources within that Composer package |
 | Dart | A top-level `main` function with a body | Its physical file and explicit selected library parts; no import or framework closure |
 | MQL5 | Direct `.mq5` `void OnTick()` or `void`/`int OnStart()` definitions outside macro/conditional configuration, library and indicator sources | The declaring source file only; includes remain unexpanded |
+| Mojo | A top-level, non-parameterized `def main()` with no arguments | Its source file; imported compilation membership is not analyzed |
 | Swift | `@main`, `@UIApplicationMain` or `@NSApplicationMain` type, or `main.swift` top-level code | Its source file; project target membership is not analyzed |
 
 These are declared extraction limits, not separate C4 policies. Dynamic build

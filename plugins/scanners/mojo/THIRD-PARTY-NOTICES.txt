@@ -1,0 +1,33 @@
+The Mojo scanner bundles these MIT-licensed components:
+
+- tree-sitter-mojo by Max Brunsfeld and contributors, including Lukas Hermann.
+  https://github.com/lsh/tree-sitter-mojo/tree/e5905c480b9ebbeb4195032805781a5e535547f7
+  Built from that revision with Groma's small syntax patch; provenance and patch:
+  plugins/scanners/mojo/grammar/ in the Groma source repository.
+  Bundled WebAssembly SHA-256:
+  2e68572a0c0beed3d76322c146fdf5702f5c525d5c50e3bad54d3fd1eb3908b2
+  Copyright (c) 2016 Max Brunsfeld
+
+- web-tree-sitter 0.27.1, Tree-sitter's JavaScript and WebAssembly runtime.
+  https://github.com/tree-sitter/tree-sitter/tree/v0.27.1
+  Copyright (c) 2018 Max Brunsfeld
+
+The MIT License (MIT)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

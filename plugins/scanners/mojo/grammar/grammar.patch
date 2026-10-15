@@ -1,0 +1,38 @@
+--- a/grammar.js
++++ b/grammar.js
+@@ -281,7 +281,7 @@
+     _import_list: ($) =>
+       seq(
+         commaSep1(field('name', choice(
+-          $.dotted_name,
++          alias($.module_path, $.dotted_name),
+           // A relative import using `import`, e.g. `import .warp`.
+           $.relative_import,
+           $.aliased_import,
+@@ -290,7 +290,7 @@
+       ),
+ 
+     aliased_import: ($) =>
+-      seq(field('name', $.dotted_name), 'as', field('comptime', $.identifier)),
++      seq(field('name', alias($.module_path, $.dotted_name)), 'as', field('comptime', $.identifier)),
+ 
+     wildcard_import: (_) => '*',
+ 
+@@ -573,7 +573,7 @@
+       'def',
+       // A backtick-quoted raw identifier (lexed as a string) may name a
+       // definition, e.g. ``def `import`():``.
+-      field('name', choice($.identifier, $.string)),
++      field('name', choice($.identifier, $.string, alias('from', $.identifier))),
+       field('type_parameters', optional($.type_parameter)),
+       field('parameters', $.parameters),
+       optional($._function_effects),
+@@ -1140,7 +1140,7 @@
+         $._ref_convention,
+       ),
+ 
+-    where_clause: ($) => seq('where', $.expression),
++    where_clause: ($) => prec.right(seq('where', $.expression, optional(seq('else', $.expression)))),
+ 
+     self_parameter: ($) =>
+       prec.right(seq(

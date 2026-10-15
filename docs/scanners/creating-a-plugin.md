@@ -227,6 +227,7 @@ follows; a dash means the language has no such case.
 | C++ | Namespace-level names without file-local linkage; `public`; struct/union members by default | `protected` | - | `static` namespace-level functions, unnamed namespaces; `private`; class members by default |
 | Ada | Visible package declarations and library subprograms | - | Package private parts and private child units | Package-body-only declarations |
 | MQL5 | Top-level declarations; structure/interface members without an access label; `public` | `protected` | - | Class members without an access label; `private` |
+| Mojo | Every declared function, struct, trait and method; underscore prefixes are naming conventions | - | - | - |
 | C# | `public`; interface members without a modifier | `protected`, `protected internal`, `private protected` | `internal`; top-level types without a modifier | `private`; other members without a modifier |
 | Go | Names starting with an upper-case letter | - | Other names | - |
 | Rust | `pub`. Methods in a trait definition take the trait's visibility, and methods in a trait `impl` are `public` | - | `pub(crate)`, `pub(super)`, `pub(in path)` | No `pub`, `pub(self)` |

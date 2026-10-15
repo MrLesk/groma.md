@@ -225,6 +225,7 @@ authored relationships remain intact.
 - [Ada](ada/index.md)
 - [Dart](dart/index.md)
 - [MQL5](mql5/index.md)
+- [Mojo](mojo/index.md)
 - [C#/.NET](dotnet-csharp/index.md)
 - [Shared contract](creating-a-plugin.md)
 
