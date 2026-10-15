@@ -1,0 +1,12 @@
+diff --git a/grammar.js b/grammar.js
+index 19d9a4d..e98790f 100644
+--- a/grammar.js
++++ b/grammar.js
+@@ -961,6 +961,7 @@ module.exports = grammar({
+       index_subtype_definition: $ => seq(             // ARM 3.6
+          field('subtype_mark', $._name),
+          reservedWord('range'),
++         optional(seq($._simple_expression, '..')), // GNAT fixed lower bound
+          '<>',
+       ),
+       enumeration_type_definition: $ => seq(

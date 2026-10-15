@@ -1,0 +1,6 @@
+with Engine;
+-- 😀 keeps source offsets in UTF-16 units
+procedure Main is
+begin
+   Engine.Run (2);
+end Main;

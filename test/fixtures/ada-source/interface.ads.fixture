@@ -1,0 +1,8 @@
+package Engine is
+   type State is private;
+   procedure Run (Count : Integer := 1);
+   function Value return Integer;
+private
+   type State is new Integer;
+   procedure Hidden;
+end Engine;

@@ -36,6 +36,14 @@
       "name": "@groma/work-source",
       "version": "0.1.0",
     },
+    "plugins/scanners/ada": {
+      "name": "@groma/scanner-ada",
+      "version": "0.1.0",
+      "dependencies": {
+        "@groma/scanner": "workspace:*",
+        "web-tree-sitter": "0.27.1",
+      },
+    },
     "plugins/scanners/angular": {
       "name": "@groma/scanner-angular",
       "version": "0.2.2",
@@ -294,6 +302,8 @@
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.2", "", { "os": "win32", "cpu": "x64" }, "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g=="],
 
     "@groma/scanner": ["@groma/scanner@workspace:packages/scanner"],
+
+    "@groma/scanner-ada": ["@groma/scanner-ada@workspace:plugins/scanners/ada"],
 
     "@groma/scanner-angular": ["@groma/scanner-angular@workspace:plugins/scanners/angular"],
 

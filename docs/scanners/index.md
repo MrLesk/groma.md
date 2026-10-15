@@ -222,6 +222,7 @@ authored relationships remain intact.
 - [NASM assembly](nasm/index.md)
 - [C](c/index.md)
 - [C++](cpp/index.md)
+- [Ada](ada/index.md)
 - [C#/.NET](dotnet-csharp/index.md)
 - [Shared contract](creating-a-plugin.md)
 

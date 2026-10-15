@@ -1,0 +1,23 @@
+package body ENGINE is
+   procedure Helper is
+   begin
+      Foreign;
+   end Helper;
+
+   procedure Run (Count : Integer) is
+      procedure Nested is
+      begin
+         Deep_Call;
+      end Nested;
+      Number : Integer := Value;
+   begin
+      Helper;
+      Nested;
+      Hidden;
+   end Run;
+
+   function Value return Integer is (1);
+   procedure Hidden is null;
+begin
+   Startup;
+end ENGINE;
