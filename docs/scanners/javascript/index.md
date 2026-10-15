@@ -78,7 +78,8 @@ assignments or `cross-env` may come before the runtime, and runtime options and
 a `run` or `watch` subcommand before the script; the first remaining word must
 name the script, so a preloaded module or `bun build` supplies none. An HTML
 page's script supplies one too, named after the page, or after its folder for
-an `index.html`.
+an `index.html`. A `package.json`, `angular.json` or `project.json` that is not
+valid JSON supplies none: the scan continues and reports a warning for that file.
 
 ## Source outline
 
