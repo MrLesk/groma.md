@@ -114,6 +114,7 @@ The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](ht
 | [Angular](docs/scanners/angular/index.md) | ✅ Available |
 | [React](docs/scanners/react/index.md) | ✅ Available |
 | [Vue](docs/scanners/vue/index.md) | ✅ Available |
+| [C](docs/scanners/c/index.md) | 🧪 Experimental |
 | [C#/.NET](docs/scanners/dotnet-csharp/index.md) | ✅ Available |
 | [Go](docs/scanners/go/index.md) | ✅ Available |
 | [Java (Maven, Gradle)](docs/scanners/java/index.md) | ✅ Available |
@@ -155,7 +156,7 @@ Nothing breaks. The architecture stays in your repository as ordinary Markdown i
 
 > ### Which languages does it support?
 
-TypeScript, JavaScript, Angular, React, Vue, C#/.NET, Go, Java, Scala 3, Kotlin, Python, Rust, PHP, Swift, COBOL, and NASM assembly, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
+TypeScript, JavaScript, Angular, React, Vue, C, C#/.NET, Go, Java, Scala 3, Kotlin, Python, Rust, PHP, Swift, COBOL, and NASM assembly, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
 
 ## Experimental
 

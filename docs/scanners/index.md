@@ -220,6 +220,7 @@ authored relationships remain intact.
 - [Kotlin](kotlin/index.md)
 - [COBOL](cobol/index.md)
 - [NASM assembly](nasm/index.md)
+- [C](c/index.md)
 - [C#/.NET](dotnet-csharp/index.md)
 - [Shared contract](creating-a-plugin.md)
 
