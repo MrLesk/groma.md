@@ -164,7 +164,7 @@ export interface ScannerPlugin {
   id: string
   /** Check the source inputs among `files` and scanner-owned tools; project dependency installation or builds must not be prerequisites. */
   checkReadiness?(repositoryRoot: string, settings: ScannerSettings, files: readonly string[]): Promise<void>
-  /** Source outline for Code references. sourceFiles supplies known Code context filtered by configured include/exclude lists. */
+  /** Source outline for Code references. sourceFiles supplies selected source inputs, including parsing metadata without Code ownership. */
   readCodeStructure?(repositoryRoot: string, references: readonly SourceReference[], settings?: ScannerSettings,
     sourceFiles?: readonly string[]): Promise<CodeFile[]>
   /**

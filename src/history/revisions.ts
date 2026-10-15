@@ -69,6 +69,11 @@ export async function findGitCommitBySubject(
   return undefined
 }
 
+/** The tracked source paths at an exact revision, including metadata without an architecture owner. */
+export async function listGitRevisionFiles(repositoryRoot: string, revisionId: string): Promise<string[]> {
+  return (await runGit(['ls-tree', '-r', '--name-only', '-z', revisionId], repositoryRoot)).split('\0').filter(Boolean)
+}
+
 /** Reads one text file at an exact Git revision, or reports that it did not exist. */
 export async function readGitText(
   repositoryRoot: string,
