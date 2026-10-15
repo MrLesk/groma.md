@@ -48,6 +48,9 @@ async function resolveDependencyVersion(
   // Bun's require.resolve can use its global cache. Read only normal installed-package paths.
   for (const directory of require.resolve.paths(packageName) ?? []) {
     const filename = path.join(directory, packageName, 'package.json')
+    const file = path.relative(repositoryRoot, filename)
+    // The search climbs past the repository; a package installed above it is not one this project installed.
+    if (file.startsWith('..') || path.isAbsolute(file)) continue
     let source: string
     try {
       source = await readFile(filename, 'utf8')
@@ -59,7 +62,7 @@ async function resolveDependencyVersion(
     if (typeof manifest?.version === 'string') {
       finding.resolvedVersion = {
         version: manifest.version,
-        file: path.relative(repositoryRoot, filename).split(path.sep).join('/'),
+        file: file.split(path.sep).join('/'),
       }
     }
     return
