@@ -3,11 +3,12 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import type { CodeSymbol, ScannerPlugin, ScanObservation } from '@groma/scanner'
+import type { CodeSymbol, HttpEndpointSegment, ScannerPlugin, ScanObservation } from '@groma/scanner'
 import { buildPackage } from '../plugins/scanners/kotlin/build.ts'
 import { scannerFiles } from '../src/scanner/modules/selection.ts'
 
 const fixture = path.resolve(import.meta.dir, '../test/fixtures/kotlin-source')
+const spring = path.resolve(import.meta.dir, '../test/fixtures/kotlin-spring')
 const orders = 'src/main/kotlin/shop/Orders.kt'
 const broken = 'src/test/kotlin/shop/Broken.kt'
 const symbol = ({ name, line, visibility, entry }: CodeSymbol) => [name, line, visibility, entry]
@@ -90,6 +91,40 @@ async function verifyVisibility(scanner: ScannerPlugin): Promise<void> {
   expect(observation.files[0]!.symbols!.some(item => item.name === 'Unknown')).toBeTrue()
 }
 
+async function verifyEntriesAndEndpoints(scanner: ScannerPlugin): Promise<void> {
+  const application = 'src/main/kotlin/shop/Application.kt'
+  const controller = 'src/main/kotlin/shop/OrderController.kt'
+  const invoices = ['src/main/kotlin/shop/InvoiceApi.kt', 'src/main/kotlin/shop/InvoiceController.kt']
+  const observation = (await scanner.scan(spring, {}, [
+    'pom.xml', application, controller, ...invoices, 'worker/build.gradle.kts', 'worker/src/main/kotlin/jobs/Job.kt',
+  ]))!
+  // The nested Gradle unit keeps its own file and declares no entry: its only main is private, which the JVM cannot start.
+  expect(observation.entryPoints).toEqual([{ file: application, declaration: application, name: 'Application', files: [application, ...invoices, controller] }])
+  expect(observation.diagnostics).toEqual([])
+  // Without its build declaration nothing bounds the main's unit, and the scan says why no entry is reported.
+  const unbounded = (await scanner.scan(spring, {}, [application]))!
+  expect(unbounded.entryPoints).toEqual([])
+  expect(unbounded.diagnostics).toMatchObject([{ code: 'kotlin-main-without-build-declaration', file: application }])
+  const segment = (part: HttpEndpointSegment) => part.kind === 'literal' ? part.value
+    : `${part.kind === 'catch-all' ? '*' : ':'}${part.name}${part.optional ? '?' : ''}${part.constrained ? '!' : ''}`
+  const handler = (id: string) => observation.operations!.find(operation => operation.id === id)!.name
+  // An unmapped function and a client interface report nothing. A computed route, a route held in a constant and an
+  // unreadable method are blockers: the readable prefix, then a constrained optional catch-all.
+  expect(observation.httpEndpoints!.map(endpoint => `${endpoint.method} ${handler(endpoint.operation)} /${endpoint.path.map(segment).join('/')}`)).toEqual([
+    'GET OrderController.list /api/orders',
+    'GET OrderController.find /api/orders/:id',
+    'PUT OrderController.replace /api/orders/:id!/lines/:line!',
+    'POST OrderController.search /api/orders/search',
+    'GET OrderController.search /api/orders/search',
+    'DELETE OrderController.remove /api/orders/files/*path?!',
+    'POST OrderController.computed /api/orders/**?!',
+    '* OrderController.constant /api/orders/**?!',
+    '* OrderController.export /api/orders/export/**?!',
+    // The class-level mapping is declared by an interface in another file.
+    'GET InvoiceController.find /api/invoices/:id',
+  ])
+}
+
 test.concurrent('packaged Kotlin scanner reads selected source, bounded calls and outlines without a build model', async () => {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-kotlin-'))
   try {
@@ -104,6 +139,7 @@ test.concurrent('packaged Kotlin scanner reads selected source, bounded calls an
     await verifyOutline(scanner)
     await verifyOperationScopes(scanner)
     await verifyVisibility(scanner)
+    await verifyEntriesAndEndpoints(scanner)
 
     const project = path.join(temporary, 'project')
     await cp(fixture, project, { recursive: true })

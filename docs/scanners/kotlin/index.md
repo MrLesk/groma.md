@@ -24,7 +24,11 @@ such as `src/main/kotlin/shop/build/`. They also exclude, in every module,
 as `src/testDebug/`, `src/androidTestDebug/` and `src/testFixtures/`.
 Adjust those lists to scan test code or a custom source layout.
 
-It does not evaluate Gradle or Maven builds, discover modules or source sets,
+The lists also select `pom.xml`, `build.gradle` and `build.gradle.kts`. The
+scanner never opens them: the path of such a build declaration only marks where
+a build unit lives, for [execution entries](#execution-entries).
+
+It does not evaluate Gradle or Maven builds, discover source sets,
 inspect dependencies, or read generated source. Kotlin scripts (`.kts`) are not
 read. A `.kt` file is a discovery clue; it does not prove a compiler version.
 Files are parsed with the parser of `kotlin-compiler-embeddable` 2.4.21. Syntax
@@ -32,8 +36,8 @@ newer than that parser supports is not promised.
 
 ## Evidence and outlines
 
-The TypeScript entry point (`src/index.ts`) filters the selected paths and
-`src/adapter.ts` starts the bundled worker (`worker/md/groma/scanner`). Running
+The TypeScript entry point (`src/index.ts`) hands the selected paths to
+`src/adapter.ts`, which starts the bundled worker (`worker/md/groma/scanner`). Running
 a worker on the bundled Java runtime and turning its outline into Code entries
 is shared with the Scala scanner in `plugins/scanners/jvm-worker.ts`. The
 worker parses each file without analyzing it and reports:
@@ -61,8 +65,7 @@ worker parses each file without analyzing it and reports:
   `1 to 2`, and property accessors are not reported. Initializer blocks do not
   become separate operations.
 
-The scanner supplies no body fingerprints for duplicate-code findings and no
-HTTP facts. A parse or read failure rejects the whole observation and names the
+The scanner supplies no body fingerprints for duplicate-code findings. A parse or read failure rejects the whole observation and names the
 source file, with the line of a syntax error. The worker runs with a 512 MB stack for long generated
 expressions; a file nested deeper than that fails the same way. There is no successful partial scan. In a file with CRLF
 line endings or a leading byte order mark, positions and lines still refer to the file on disk.
@@ -80,7 +83,8 @@ Explicit visibility is preserved. Without a modifier, constructors are
 to `public`, except overrides that inherit their access.
 
 `Visibility.kt` finds inherited access in the requested files and the selected
-source context supplied by Groma. It follows enclosing types, same-package
+source context supplied by Groma. `Types.kt` finds the declaration a supertype
+name refers to: it follows enclosing types, same-package
 names, explicit imports (including aliases) and qualified type names. It does
 not resolve wildcard imports or type aliases. Overloads are compared by name,
 parameter count and presence of an extension receiver; all plausible declarations
@@ -93,11 +97,123 @@ requiring project dependencies. See Kotlin's [visibility rules](https://kotlinla
 Source listing filters the supplied candidates by `.kt` without parsing
 files or starting the worker.
 
+## Execution entries
+
+`Entries.kt` reports the [execution entries](../evidence.md#execution-entries-and-container-placement)
+from which core places a C4 container. A file is an entry when it declares a
+top-level `fun main` with a body, no receiver, no type parameters, and either
+no parameter, one `Array<String>` parameter or one `vararg String` parameter. A
+`private` main is an ordinary function. This is the
+function the JVM starts, such as the `main` that calls `runApplication` in a
+Spring Boot application. The entry is named after its file, `Application` for
+`Application.kt`, and the file is its own declaration.
+
+The entry's files are the selected `.kt` files of its build unit. A unit is a
+directory that holds a `pom.xml`, `build.gradle` or `build.gradle.kts`, and a
+file belongs to the nearest such directory above it. A module nested in another
+unit therefore keeps its own files, and a `main` in the parent does not claim
+them.
+
+Not reported:
+
+- a `main` under no selected build declaration, because nothing bounds the
+  files that run with it. The scan reports the warning
+  `kotlin-main-without-build-declaration` on that file. A project whose include
+  list selects only `**/*.kt` gets this warning for every `main`; add the build
+  declarations to the list;
+- a `main` declared in an object or companion object, including `@JvmStatic`;
+- a launch a build configures, such as a main class named only in a plugin
+  setting.
+
+Only the paths of build declarations are used. Source directories, modules,
+packaging and dependencies they declare are not read, so a POM-only aggregator
+is a unit like any other and a Gradle subproject without its own build script
+belongs to the unit above it. A library module with its own build declaration
+is a separate unit even when the application depends on it: the
+[entry contract](../evidence.md#execution-entries-and-container-placement)
+excludes dependency units, so its components stay under the system. When one
+unit holds several `main` functions, each entry reports the same files, and
+core leaves files shared by several entries under the system; only the files
+that declare a `main` join a container. Files of another language in the same unit come
+from that language's scanner. Spring Modulith modules are packages inside one
+application, not separate units: they stay in the application's container, and
+grouping them is authored curation.
+
+## HTTP endpoints
+
+`Endpoints.kt` reports the [HTTP endpoints](../evidence.md#http-endpoints-and-requests)
+that core joins with the requests of other scanners into derived
+relationships. It reports no requests.
+
+Endpoints come from Spring MVC and WebFlux annotated controllers: a class
+annotated `@RestController` or `@Controller`, for each function with a body
+annotated `@GetMapping`, `@PostMapping`, `@PutMapping`, `@DeleteMapping`,
+`@PatchMapping` or `@RequestMapping`. The endpoint names that function's
+operation. Its path is the class's own `@RequestMapping` path followed by the
+function's. A mapping with several paths or methods reports one endpoint for
+each combination. `@RequestMapping` takes its methods from `method =`; without
+one it serves every method. A class-level `method` joins each function's own,
+as Spring serves both.
+
+A controller without its own class-level `@RequestMapping` takes the one a
+supertype declares, as Spring does: its interfaces first, then its superclass,
+each through its own supertypes. Supertypes are found among the scanned files
+by `Types.kt`; one outside them, or reached only through a wildcard import, is
+taken to declare none.
+
+The parser resolves no names, so annotations are matched by their simple name
+and a route is read only where the source text states it:
+
+- A path is a string without interpolation, passed positionally or as `value =`
+  or `path =`, alone or inside `[...]` or `arrayOf(...)`.
+- A method is a `RequestMethod` constant read by its own name: `RequestMethod.GET`,
+  the fully qualified form, or an imported `GET`.
+
+Any other path or method is a route the scanner sees but cannot read, and is
+reported as a blocker rather than dropped or guessed. A path keeps its literal
+text up to the unreadable part, such as the interpolation in
+`"/api/$version/orders"`, and ends there with a constrained optional
+catch-all; a path held in a constant is unreadable from its start. A method the
+scanner cannot read, such as a constant imported under another name, reports
+method `*` with the same catch-all after its path. An unreadable class-level
+mapping makes every route of the class a blocker. Core reaches a blocker only
+possibly, so it never proves a row by itself and can keep a request under its
+prefix from being matched to another route; the
+[HTTP request rule](../../relationship-inference.md#http-requests) decides.
+
+Not reported: a mapping on an interface, which may be a declarative
+client; a function mapping inherited from a supertype;
+a function without a body; functional WebFlux routes, Ktor routes and JAX-RS
+resources; filters, interceptors and security matchers. A mapping's `params`,
+`headers`, `consumes` and `produces` conditions are not part of the fact.
+
+The [producer checklist](../evidence.md#producer-checklist) for Kotlin:
+
+1. **Which prefixes belong in the path.** The `@RequestMapping` paths on the
+   controller class, or on the first supertype in the scanned files that
+   declares one. `@RequestMapping("/api")` with
+   `@GetMapping("/talks")` reports `/api/talks`. A prefix that is not literal
+   reports a blocker in place of each route.
+2. **Whether the construct is an endpoint.** Only a mapped function of a
+   controller class is. An interface never serves.
+3. **Dynamic or unknown.** The scanner reports no requests.
+4. **The local helper.** The scanner reports no requests.
+5. **The base.** The scanner reports no requests.
+6. **Which operation a file-location route names.** Spring declares no routes
+   by file location.
+7. **Which segments are constrained.** `{id}` and `*` are parameters.
+   `{id:\d+}` and a segment mixing text with a placeholder or wildcard, such
+   as `v{version}` or `*.json`, are constrained parameters. `{*path}`, `**`, a
+   `${...}` configuration placeholder, unreadable text and a segment outside
+   URL path characters end the route with a constrained optional catch-all.
+8. **Registration order.** Spring prefers the most specific route, so
+   endpoints carry no `order`.
+
 ## Architecture ownership
 
 The worker's single source root groups evidence for this scan. A Kotlin
 package, object, file, Gradle module, or source set does not imply a C4 system
-or container. Groma core owns architecture boundaries and interprets operation
+or container; only an execution entry lets core place one. Groma core owns architecture boundaries and interprets operation
 evidence through the [shared scanner contract](../creating-a-plugin.md).
 
 Architecture remains ordinary OKF Markdown with Code links. Other Markdown
@@ -136,7 +252,7 @@ includes the `java.desktop` module. That makes each host runtime about 77 MB
 (24 MB compressed), beside about 60 MB of compiler jars shared by all hosts.
 
 The Kotlin test builds an isolated package and checks selection, declarations,
-calls, positions, parse failure, and outlines. The shared fresh-checkout test
+calls, positions, parse failure, outlines, execution entries and HTTP endpoints. The shared fresh-checkout test
 also runs the relocated package with an empty home and no language tools on
 `PATH`, checks repeatability, and checks that the checkout stays unchanged.
 

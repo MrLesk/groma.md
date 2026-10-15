@@ -5,16 +5,30 @@ import org.jetbrains.kotlin.config.KotlinCompilerVersion
 object Scan {
     private const val ROOT = "scan"
 
-    /** One complete observation for the selected files; a file that fails to parse fails the whole scan. */
-    fun scanRoot(parser: Parser, relatives: List<String>): Map<String, Any?> {
+    /**
+     * One complete observation for the selected paths; a file that fails to parse fails the whole scan. Kotlin files
+     * are parsed. The build declarations among the paths are not read: they only bound the unit of an execution entry.
+     * Any other path a configured include list selects is ignored.
+     */
+    fun scanRoot(parser: Parser, selected: List<String>): Map<String, Any?> {
+        val declarations = selected.filter(Entries::isBuildDeclaration)
+        val relatives = selected.filter { it.endsWith(".kt") }
         val files = mutableListOf<Map<String, Any?>>()
+        val mains = mutableListOf<String>()
         val operations = mutableListOf<Map<String, Any?>>()
         val invocations = mutableListOf<Map<String, Any?>>()
-        for (relative in relatives) withinStack(relative) {
-            val source = parser.read(relative)
+        val endpoints = mutableListOf<Map<String, Any?>>()
+        // Every file is parsed before any is reported, because a controller's class-level mapping may sit on a supertype in another file.
+        val sources = relatives.map { relative -> withinStack(relative) { parser.read(relative) } }
+        val types = Types(sources)
+        for (source in sources) withinStack(source.relative) {
+            val relative = source.relative
+            if (Entries.declaresMain(source)) mains += relative
             val symbols = Symbols.fromSource(source).map { mapOf("id" to it.id, "name" to it.name, "kind" to it.kind) }
             files += mapOf("file" to relative, "roots" to listOf(ROOT), "symbols" to symbols)
-            for (operation in Operations.fromSource(source)) {
+            val declared = Operations.fromSource(source)
+            endpoints += Endpoints.fromSource(source, declared, types)
+            for (operation in declared) {
                 operations += mapOf("id" to operation.id, "file" to operation.file, "name" to operation.name, "position" to operation.position)
                 for (call in Calls.fromOperation(operation)) {
                     invocations += mapOf("source" to call.source, "targets" to emptyList<String>(), "position" to call.position,
@@ -23,15 +37,18 @@ object Scan {
                 }
             }
         }
+        val entries = Entries.of(mains, relatives, declarations)
         return mapOf(
             "schemaVersion" to 1,
             "scanner" to mapOf("id" to "kotlin", "technology" to "kotlin",
                 "engine" to "kotlin-compiler-embeddable", "engineVersion" to KotlinCompilerVersion.VERSION),
             "roots" to listOf(mapOf("id" to ROOT, "kind" to "source", "name" to "Kotlin source")),
             "files" to files,
+            "entryPoints" to entries,
             "operations" to operations,
             "invocations" to invocations,
-            "diagnostics" to emptyList<Any>(),
+            "httpEndpoints" to endpoints,
+            "diagnostics" to Entries.withoutUnit(mains, entries),
         )
     }
 

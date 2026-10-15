@@ -4,15 +4,13 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtConstructor
-import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtModifierListOwner
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtUserType
 
 /** Resolves access from the selected source only. Null means the source does not prove one visibility. */
 class Visibility(sources: List<Source>) {
-    private val types = sources.flatMap { typesIn(it.file.declarations) }
-        .filter { it.fqName != null }.groupBy { it.fqName!!.asString() }
+    private val types = Types(sources)
 
     fun of(declaration: KtModifierListOwner): String? {
         explicit(declaration)?.let { return it }
@@ -47,7 +45,7 @@ class Visibility(sources: List<Source>) {
         if (owner in parents) return listOf(null)
         return owner.superTypeListEntries.flatMap { entry ->
             val type = entry.typeReference?.typeElement as? KtUserType
-            val base = type?.let { resolve(it, owner) }
+            val base = type?.let { types.resolve(it, owner) }
             if (base == null) listOf(null)
             else members(base, function, parents + owner)
         }
@@ -68,23 +66,4 @@ class Visibility(sources: List<Source>) {
         }
         return declared + inherited(owner, function, parents)
     }
-
-    private fun resolve(type: KtUserType, owner: KtClassOrObject): KtClassOrObject? {
-        val name = generateSequence(type) { it.qualifier }.mapNotNull { it.referencedName }.toList().reversed().joinToString(".")
-        val file = owner.containingKtFile
-        for (scope in generateSequence(owner.parent) { it.parent }.filterIsInstance<KtClassOrObject>()) {
-            types["${scope.fqName?.asString()}.$name"]?.let { return it.singleOrNull() }
-        }
-        val first = name.substringBefore('.')
-        val imports = file.importDirectives.filter { !it.isAllUnder && it.importedName?.asString() == first }
-        if (imports.isNotEmpty()) {
-            return imports.flatMap { types[it.importedFqName!!.asString() + name.removePrefix(first)].orEmpty() }.singleOrNull()
-        }
-        val local = listOf(file.packageFqName.asString(), name).filter { it.isNotEmpty() }.joinToString(".")
-        types[local]?.let { return it.singleOrNull() }
-        return if ('.' in name) types[name]?.singleOrNull() else null
-    }
-
-    private fun typesIn(declarations: List<KtDeclaration>): List<KtClassOrObject> =
-        declarations.filterIsInstance<KtClassOrObject>().flatMap { listOf(it) + typesIn(it.declarations) }
 }
