@@ -1,6 +1,7 @@
 import { comparisonDefaultTab } from './comparison/details.ts'
 import { createComparisonControl } from './comparison/control.ts'
 import { createProjectSettings } from './settings/control.ts'
+import { createMetricsControl } from './metrics/control.ts'
 import { createProjectReview } from './review/control.ts'
 import type { ProjectProfile } from '../../project-profile.ts'
 import type { AnnotatedElement, AnnotatedRelationship, WorkItem } from '../../types.ts'
@@ -28,7 +29,7 @@ import { bindMapPointer } from './iso/camera/pointer.ts'
 import { createCameraSession } from './iso/camera/session.ts'
 import { presentScene, createMapAnimator, createMapMotion } from './iso/view-motion/presentation.ts'
 import { paintRelationship } from './organisms/relationship-details.ts'
-import { detailsTabAfterSelection, detailsTabAfterWork, type DetailsTab, inspectSelection, paintDetails } from './organisms/details.ts'
+import { detailsTabAfterSelection, detailsTabAfterWork, type DetailsTab, type Inspected, inspectSelection, paintDetails } from './organisms/details.ts'
 import { createHierarchy } from './organisms/hierarchy.ts'
 import { createPins } from './work/pins.ts'
 import { createTip } from './organisms/tip.ts'
@@ -113,6 +114,10 @@ const source = createSourceControl({
 createProjectSettings(data)
 const review = createProjectReview({ world: () => world, revision: () => revisionControl.selected, readSource: data.readSource,
   navigate(id, file, line) { select(id); if (file !== undefined) source.open(file, line) },
+})
+const metrics = data.readCodeHistory === undefined ? undefined : createMetricsControl({
+  world: () => world, generation: () => mapMeta.generation, live: () => revisionControl.live,
+  readCodeHistory: data.readCodeHistory, repaint: () => paintViewState(false), select,
 })
 const taskDiff = createTaskDiffControl({
   host: detailsHost, world: () => world, readDetails: data.readTask, readDiff: data.readTaskDiff,
@@ -216,24 +221,27 @@ function paintDetailsState(task: WorkItem | undefined): void {
   }
   if (relationship !== undefined) {
     paintRelationship(detailsHost, relationship, world, select, authoring.relationWrites)
-  } else if (inspected !== undefined) {
-    paintDetails(detailsHost, inspected, {
-      world, comparison: revisionControl.comparison,
-      onSelect: select,
-      onToggleFlow: flow => toggleFlow(flow, selected?.representationId),
-      activeFlows,
-      tab: detailsTab,
-      onTab: tab => {
-        detailsTab = tab
-        paintViewState()
-      },
-      code: detailsTab === 'how' && revisionControl.comparison === undefined ? source.code() : [],
-      onSource: source.open,
-      workGroups: selected?.kind === 'component' ? elementWorkGroups(work, selected.representationId, world) : [],
-      onTask: toggleTask,
-      ...(selected === undefined ? {} : authoring.paneWrites(selected.id, selectedArchitecture(selection))),
-    })
-  }
+  } else if (inspected !== undefined) paintInspectedDetails(inspected, selected)
+}
+
+function paintInspectedDetails(inspected: Inspected, selected: AnnotatedElement | undefined): void {
+  paintDetails(detailsHost, inspected, {
+    world, comparison: revisionControl.comparison,
+    onSelect: select,
+    onToggleFlow: flow => toggleFlow(flow, selected?.representationId),
+    activeFlows,
+    tab: detailsTab,
+    onTab: tab => {
+      detailsTab = tab
+      paintViewState()
+    },
+    code: detailsTab === 'how' && revisionControl.comparison === undefined ? source.code() : [],
+    onSource: source.open,
+    workGroups: selected?.kind === 'component' ? elementWorkGroups(work, selected.representationId, world) : [],
+    onTask: toggleTask,
+    ...(selected === undefined ? {} : authoring.paneWrites(selected.id, selectedArchitecture(selection))),
+  })
+  if (selected !== undefined && detailsTab !== 'tasks') metrics?.details(detailsHost, selected.id)
 }
 
 function select(id: string, additive = false, origin: 'panel' | 'map' = 'panel'): void {
@@ -390,6 +398,9 @@ function repaintScene(fit: boolean): void {
   const after = sceneCentre(scene.bounds)
   paintMapView(mapMotion.view)
   const rehighlight = debug.paint(() => map.paint(scene))
+  // Tints and outlier marks sit on nodes a map paint may replace (see patch in iso/painting/svg.ts), so the metrics
+  // paint follows every map paint, here and in paintWorld.
+  metrics?.paint()
   pins.paint(currentPins.filter(pin => map.anchorOf(pin.elementId) !== undefined))
   const fitted = camera.refitTo(frame)
   if (fit && (mapMotion.morphing || following)) {
@@ -476,6 +487,7 @@ function applyWork(payload: WebWorkPayload): void {
 function paintWorld(): void {
   review.refresh()
   debug.paint(() => map.paint(scene))
+  metrics?.refresh()
   revisionControl.paintProjectEdit(map.svg)
   authoring.refresh()
   pins.paint(currentPins.filter(pin => map.anchorOf(pin.elementId) !== undefined))

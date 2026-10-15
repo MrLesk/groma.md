@@ -2,7 +2,7 @@ import type { ScannerSettings, ScannerSettingsAction } from '../../scanner/modul
 import type { AcceptInput, AddInput, DraftInput, EditArchitectureInput, RemoveInput } from '../../authoring.ts'
 import type { WorkItemDetails } from '../../types.ts'
 import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'
-import type { WebBootPayload, WebPayload, WebRevision, WebWorkPayload } from './payload.ts'
+import type { WebBootPayload, WebCodeHistoryPayload, WebPayload, WebRevision, WebWorkPayload } from './payload.ts'
 import type { SourcePayload } from '../source/read.ts'
 import type { CodeFile } from '../source/structure.ts'
 import type { TaskDiffPayload } from '../source/diff.ts'
@@ -17,6 +17,8 @@ export interface WebDataSource {
   readSource(element: string, file: string, revision?: string, from?: string): Promise<SourcePayload>
   readTask(id: string): Promise<WorkItemDetails>
   readTaskDiff(id: string): Promise<TaskDiffPayload>
+  /** Git counts for the components of the live map, absent in the published delivery, which has no repository. */
+  readCodeHistory?(window: number): Promise<WebCodeHistoryPayload>
   /** The writers, absent in the published delivery, which has none. */
   draft?(input: DraftInput): Promise<void>
   add?(input: AddInput): Promise<void>
@@ -82,6 +84,9 @@ function liveDataSource(): WebDataSource {
     },
     readTaskDiff(id) {
       return responseJson(selected('/task-diff.json', { task: id }))
+    },
+    readCodeHistory(window) {
+      return responseJson(selected('/code-history.json', { window: String(window) }))
     },
     draft: input => send('/draft', input),
     add: input => send('/add', input),

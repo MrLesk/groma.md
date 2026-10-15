@@ -1,6 +1,7 @@
 import { TextAttributes } from '@opentui/core'
 
 import { copiesOfSymbol, type OperationCopies } from '../../../architecture-findings.ts'
+import { componentMetrics, outlierLine } from '../../../component-metrics.ts'
 import { pairDescriptions, type RelationshipPair } from '../../relationship-text.ts'
 import { kindLabel } from '../../atoms/kind.ts'
 import type { ProjectProfile } from '../../../project-profile.ts'
@@ -225,9 +226,11 @@ export function detailsLines(
     : tab === 'how'
     ? howLines(theme, element, world, width, actionCursor, structure)
     : whatLines(theme, element, world, byId, width, pickedId, actionCursor)
+  const outlier = outlierLine(componentMetrics(world).get(element.id))
+  const metricLines: Line[] = outlier === undefined ? [] : wrap(outlier, width).map(line => [plain(theme, line)])
   return {
-    lines: [head, ...body.lines],
-    ...(body.cursor === undefined ? {} : { cursor: body.cursor + 1 }),
+    lines: [head, ...metricLines, ...body.lines],
+    ...(body.cursor === undefined ? {} : { cursor: body.cursor + 1 + metricLines.length }),
   }
 }
 

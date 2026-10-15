@@ -16,8 +16,10 @@ groma:
     - scanner: typescript
       file: src/source-coverage.ts
       symbol: missingOwnerReason
+    - scanner: typescript
+      file: src/component-metrics.ts
   group: Architecture records
 description: Prepares element details and display order for the viewers
 ---
 
-Prepares element details, file sizes, and relationships for the viewers. Supplies the plain text view and shared display order.
+Prepares element details, file sizes, and relationships for the viewers. Supplies the plain text view and shared display order. Shared runtime measurements calculate component instability and identify file, line, or connection outliers relative to their container.
