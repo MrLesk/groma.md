@@ -1,0 +1,29 @@
+#pragma once
+namespace app {
+enum class Mode { live, dry };
+class Service {
+public:
+  Service();
+  virtual ~Service();
+  void run(int value);
+  void run(double value);
+protected:
+  void stop();
+private:
+  int counter;
+  void secret();
+  class Nested { public: void hidden() { nestedCall(); } };
+};
+struct Record {
+  void save();
+private:
+  void lock();
+};
+template<typename T> struct Box {
+  T get() { return create<T>(); }
+};
+static void helper() { ping(); }
+void forward();
+void (*callback)(int);
+using Alias = Record;
+}

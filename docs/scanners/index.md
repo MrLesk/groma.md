@@ -221,6 +221,7 @@ authored relationships remain intact.
 - [COBOL](cobol/index.md)
 - [NASM assembly](nasm/index.md)
 - [C](c/index.md)
+- [C++](cpp/index.md)
 - [C#/.NET](dotnet-csharp/index.md)
 - [Shared contract](creating-a-plugin.md)
 
