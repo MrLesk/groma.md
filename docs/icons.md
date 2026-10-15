@@ -79,9 +79,13 @@ Settings lists installed icon packs alongside scanners and work sources.
 Publish a third-party pack using `npm publish --access public` after choosing
 its package name, version and licence. Include every declared SVG in `files`.
 
-The official pack is `plugins/icons/architecture`. It supplies database, queue,
-cache, browser, mobile-app, service, scheduler, file-store, mail, identity,
-gateway and search. Its build function copies the manifest, SVGs and project
+The official pack is `plugins/icons/architecture`. It supplies server, vm,
+function, container, package, block-storage, database, cache, queue, document,
+scheduler, mail, load-balancer, router, switch, dns, firewall, lock, cloud,
+user, desktop, laptop, mobile and image. Its isometric artwork is MIT licensed,
+with the notice in `icons/LICENSE`. Every shape carries a role class (`gi-t`
+top face, `gi-s` side face, `gi-d` shaded face, `gi-l` line fill, `gi-k` line
+stroke), and each file's own style gives the roles grey defaults. Its build function copies the manifest, SVGs and project
 licence; the existing scanner release workflow stages it as `icons-architecture`
 on each host, carries it through assembly and publishes it with the scanner
 packages. It needs no platform-specific build. Follow the existing

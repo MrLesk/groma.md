@@ -19,18 +19,30 @@
     "icons": {
       "id": "architecture",
       "icons": {
+        "server": "./icons/server.svg",
+        "vm": "./icons/vm.svg",
+        "function": "./icons/function.svg",
+        "container": "./icons/container.svg",
+        "package": "./icons/package.svg",
+        "block-storage": "./icons/block-storage.svg",
         "database": "./icons/database.svg",
-        "queue": "./icons/queue.svg",
         "cache": "./icons/cache.svg",
-        "browser": "./icons/browser.svg",
-        "mobile-app": "./icons/mobile-app.svg",
-        "service": "./icons/service.svg",
+        "queue": "./icons/queue.svg",
+        "document": "./icons/document.svg",
         "scheduler": "./icons/scheduler.svg",
-        "file-store": "./icons/file-store.svg",
         "mail": "./icons/mail.svg",
-        "identity": "./icons/identity.svg",
-        "gateway": "./icons/gateway.svg",
-        "search": "./icons/search.svg"
+        "load-balancer": "./icons/load-balancer.svg",
+        "router": "./icons/router.svg",
+        "switch": "./icons/switch.svg",
+        "dns": "./icons/dns.svg",
+        "firewall": "./icons/firewall.svg",
+        "lock": "./icons/lock.svg",
+        "cloud": "./icons/cloud.svg",
+        "user": "./icons/user.svg",
+        "desktop": "./icons/desktop.svg",
+        "laptop": "./icons/laptop.svg",
+        "mobile": "./icons/mobile.svg",
+        "image": "./icons/image.svg"
       }
     }
   }

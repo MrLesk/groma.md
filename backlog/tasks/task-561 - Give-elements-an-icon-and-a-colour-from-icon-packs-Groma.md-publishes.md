@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-14 19:44'
+updated_date: '2026-10-15 19:30'
 labels:
   - senior
 dependencies: []
@@ -129,6 +129,26 @@ modified_files:
   - test-bun/viewer-scanner-availability.test.ts
   - test-bun/web-startup.test.ts
   - test-bun/work-source-selection.test.ts
+  - plugins/icons/architecture/icons/LICENSE
+  - plugins/icons/architecture/icons/server.svg
+  - plugins/icons/architecture/icons/vm.svg
+  - plugins/icons/architecture/icons/function.svg
+  - plugins/icons/architecture/icons/container.svg
+  - plugins/icons/architecture/icons/package.svg
+  - plugins/icons/architecture/icons/block-storage.svg
+  - plugins/icons/architecture/icons/document.svg
+  - plugins/icons/architecture/icons/load-balancer.svg
+  - plugins/icons/architecture/icons/router.svg
+  - plugins/icons/architecture/icons/switch.svg
+  - plugins/icons/architecture/icons/dns.svg
+  - plugins/icons/architecture/icons/firewall.svg
+  - plugins/icons/architecture/icons/lock.svg
+  - plugins/icons/architecture/icons/cloud.svg
+  - plugins/icons/architecture/icons/user.svg
+  - plugins/icons/architecture/icons/desktop.svg
+  - plugins/icons/architecture/icons/laptop.svg
+  - plugins/icons/architecture/icons/mobile.svg
+  - plugins/icons/architecture/icons/image.svg
 type: feature
 ordinal: 1
 ---
@@ -152,7 +172,7 @@ Product decisions by Alex on 2026-10-13 and 2026-10-14: the default pack is bund
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 An element can carry an icon name and an accent colour in its groma fields, set with groma edit <id> --icon <name> --colour <name> and in the web details form, validated like the other fields, documented in docs/component-markdown.md, and preserved by scans.
-- [ ] #2 The `architecture` pack with twelve generic icons (database, queue, cache, browser, mobile app, service, scheduler, file store, mail, identity, gateway, search) ships inside groma.md and is not published. The `icons` section of config.json lists the packs a project uses: the bundled pack by id alone, another pack by its exact source. `groma init` recommends the bundled pack, preselected; another pack is added, updated, listed, removed and restored through the TASK-568 plugin flow. docs/ list the bundled icons and describe how to make a pack.
+- [ ] #2 The `architecture` pack with 24 generic isometric icons (server, vm, function, container, package, block storage, database, cache, queue, document, scheduler, mail, load balancer, router, switch, dns, firewall, lock, cloud, user, desktop, laptop, mobile, image), MIT artwork recoloured so CSS can set its faces and lines, ships inside groma.md and is not published. The `icons` section of config.json lists the packs a project uses: the bundled pack by id alone, another pack by its exact source. `groma init` recommends the bundled pack, preselected; another pack is added, updated, listed, removed and restored through the TASK-568 plugin flow. docs/ list the bundled icons and describe how to make a pack.
 - [ ] #3 An icon name resolves through the listed packs or is an emoji. An unknown name leaves the building without an icon and appears in groma lint as a finding, never as a failed map.
 - [ ] #4 The web map draws the icon and the accent colour on the building and its label the same way in light, dark and blueprint. The web details pane and the terminal details pane show them. The cover export includes the icon and the colour.
 - [ ] #5 A legend on the map lists the accent colours in use with a count each, and hides when no element has one.
@@ -220,4 +240,6 @@ Orchestrator verification, 11 October 2026, stacked on the finished plugins.json
 Redesigned on 2026-10-14 with Alex: the default pack is bundled and listed in config.json, recommended in groma init, and goes through the TASK-568 plugin flow; publishing the pack is dropped. The implementation above is the starting point for the rebuild.
 
 Alex, 2026-10-14: a downloaded plugin's kind comes from the plugin itself: groma plugin add reads the package manifest and figures out the type, with no kind flag on the command. The bundled default pack, like Backlog.md, cannot be turned off during setup and sits in the setup step's top section; removing or swapping it later from the plugins screen stays possible.
+
+Default pack artwork, 2026-10-15: the twelve hand-drawn line icons are replaced by 24 MIT isometric architecture icons (copyright notice in plugins/icons/architecture/icons/LICENSE), recoloured so every shape carries a role class (gi-t top face, gi-s side face, gi-d shaded face, gi-l line fill, gi-k line stroke). Each file has its own style with grey defaults, so the current map, which draws a pack icon as an image, and resvg covers show it without black fills. 2D versions and the map placement on every C4 level are still to be designed and built.
 <!-- SECTION:NOTES:END -->
