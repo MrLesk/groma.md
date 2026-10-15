@@ -5,6 +5,7 @@ import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { loadArchitecture } from '../src/architecture-reader.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
+import { loadProjectProfile } from '../src/project-profile.ts'
 import { GromaFileSystem } from '../src/groma-filesystem.ts'
 import { writes } from '../src/authoring.ts'
 
@@ -84,11 +85,12 @@ test.concurrent('architecture reads wait until a multi-document change finishes'
       await filesystem.removeSource(filesystem.sourceFilename('systems/shop/containers/api/components/duplicate.md'))
     })
     await entered.promise
-    const reading = loadArchitecture(root)
+    const reading = Promise.all([loadArchitecture(root), loadProjectProfile(root)])
     expect(await Promise.race([reading.then(() => 'read'), delay(30, 'waiting')])).toBe('waiting')
     release.resolve()
     await holding
-    const records = await reading
+    const [records, profile] = await reading
+    expect(profile).toBeDefined()
     expect(records.documents.filter(document => document.sourceFilename.endsWith('/stock.md'))).toHaveLength(1)
     expect(records.documents.some(document => document.sourceFilename.endsWith('/duplicate.md'))).toBe(false)
   } finally {
