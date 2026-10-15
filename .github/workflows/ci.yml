@@ -133,11 +133,12 @@ jobs:
           bun plugins/scanners/cpp/build.ts scanner-packages/cpp
           bun plugins/scanners/ada/build.ts scanner-packages/ada
           bun plugins/scanners/dart/build.ts scanner-packages/dart
+          bun plugins/scanners/mql5/build.ts scanner-packages/mql5
         shell: bash
       - name: Check experimental packages without language tools
         env:
           GROMA_TEST_PACKAGES: scanner-packages
-        run: bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts --test-name-pattern '^(c|cpp|ada|dart) package'
+        run: bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts --test-name-pattern '^(c|cpp|ada|dart|mql5) package'
         shell: bash
       - parallel:
           - name: Run repository checks

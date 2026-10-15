@@ -1,0 +1,22 @@
+#property strict
+#property copyright "example"
+#include <Trade/Trade.mqh>
+input group "Controls"
+input int Length = 10;
+sinput color Tint = C'10,20,30';
+datetime Epoch = D'2024.01.01';
+interface ILogger { void Write(string message); };
+class CStrategy {
+  void Hidden() { Print("hidden"); }
+protected:
+  void Probe();
+public:
+  CStrategy() { Print("constructed"); }
+  ~CStrategy() {}
+  int Compute(int value) { return value + 1; }
+};
+void CStrategy::Probe() { Print("probe"); }
+struct State { void Reset() { Print("reset"); } };
+enum Mode { Fast, Slow };
+int Helper(int x) { return x; }
+void OnTick() { Helper(Length); }
