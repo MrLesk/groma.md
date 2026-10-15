@@ -1,0 +1,41 @@
+{
+  "name": "@groma/scanner-mql5",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "description": "Experimental MQL5 source declarations, outlines and unresolved call evidence.",
+  "groma": {
+    "scanner": {
+      "id": "mql5",
+      "entry": "./src/index.ts",
+      "include": [
+        "**/*.mq5",
+        "**/*.mqh", "**/*.h"
+      ],
+      "discovery": {
+        "technologies": [
+          "mql5"
+        ],
+        "rules": [
+          {
+            "type": "file",
+            "files": [
+              "**/*.mq5"
+            ],
+            "technology": "mql5",
+            "kind": "language",
+            "declaration": "MQL5 source; preprocessor configuration unverified"
+          }
+        ],
+        "compatibility": {
+          "groma": ">=0.6.6"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@groma/scanner": "workspace:*",
+    "web-tree-sitter": "0.27.1"
+  }
+}

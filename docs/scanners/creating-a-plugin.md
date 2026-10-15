@@ -194,7 +194,7 @@ Every declaration and member has `name`, `line` (the 1-based line of the
 name), `visibility`, and `entry`. `entry` is true when the reference's `symbols`
 name the symbol in the spelling that scanner's Code links use: a member
 qualified by its type, or its bare name. Members are `Type.member` in Java, C#,
-and Python, and `Namespace\Type::method` in PHP, beside a top-level
+and Python, `Type::method` in MQL5, and `Namespace\Type::method` in PHP, beside a top-level
 `Namespace\name`. Dart constructors match `Type.name` or `Type.new` for an unnamed
 constructor; see [Dart outlines](dart/index.md#inputs-and-source-structure). Other
 members and scanners match bare names. A link naming a type
@@ -226,6 +226,7 @@ follows; a dash means the language has no such case.
 | C | External source linkage and named file-scope type definitions | - | - | Static function linkage, including inherited same-file linkage |
 | C++ | Namespace-level names without file-local linkage; `public`; struct/union members by default | `protected` | - | `static` namespace-level functions, unnamed namespaces; `private`; class members by default |
 | Ada | Visible package declarations and library subprograms | - | Package private parts and private child units | Package-body-only declarations |
+| MQL5 | Top-level declarations; structure/interface members without an access label; `public` | `protected` | - | Class members without an access label; `private` |
 | C# | `public`; interface members without a modifier | `protected`, `protected internal`, `private protected` | `internal`; top-level types without a modifier | `private`; other members without a modifier |
 | Go | Names starting with an upper-case letter | - | Other names | - |
 | Rust | `pub`. Methods in a trait definition take the trait's visibility, and methods in a trait `impl` are `public` | - | `pub(crate)`, `pub(super)`, `pub(in path)` | No `pub`, `pub(self)` |

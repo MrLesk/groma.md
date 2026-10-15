@@ -129,6 +129,14 @@
         "@groma/scanner": "workspace:*",
       },
     },
+    "plugins/scanners/mql5": {
+      "name": "@groma/scanner-mql5",
+      "version": "0.1.0",
+      "dependencies": {
+        "@groma/scanner": "workspace:*",
+        "web-tree-sitter": "0.27.1",
+      },
+    },
     "plugins/scanners/nasm": {
       "name": "@groma/scanner-nasm",
       "version": "0.1.0",
@@ -331,6 +339,8 @@
     "@groma/scanner-javascript": ["@groma/scanner-javascript@workspace:plugins/scanners/javascript"],
 
     "@groma/scanner-kotlin": ["@groma/scanner-kotlin@workspace:plugins/scanners/kotlin"],
+
+    "@groma/scanner-mql5": ["@groma/scanner-mql5@workspace:plugins/scanners/mql5"],
 
     "@groma/scanner-nasm": ["@groma/scanner-nasm@workspace:plugins/scanners/nasm"],
 
