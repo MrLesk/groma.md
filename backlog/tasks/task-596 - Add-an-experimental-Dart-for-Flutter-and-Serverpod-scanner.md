@@ -1,7 +1,7 @@
 ---
 id: TASK-596
 title: Add an experimental Dart for Flutter and Serverpod scanner
-status: Done
+status: In Progress
 assignee:
   - '@scanner-dart'
 created_date: '2026-10-14 19:38'
@@ -84,6 +84,8 @@ GitHub issue #132 requests Dart for Flutter and Serverpod support so a developer
 4. Use the existing TypeScript adapter, native package staging/assembly, scanner catalog and experimental documentation. Assemble all five release worker targets with executable permissions; no shared runtime library is needed for the self-contained Dart binary.
 5. Verify scanner-contract behavior through the existing compact fixtures: private names must not become public, nested calls must not leak, excluded parts must not be read, a type Code link must not mark its unnamed constructor, syntax recovery must not become facts, and positions/entry/part ownership must be exact. The reproduced LocalSend gap needs the declared-language regression: valid pre-3.13 final parameters, selected nearest metadata, @dart override, metadata exclusion and scan/outline agreement. The existing assembly fixture verifies that no native worker is dropped.
 6. Exercise actual package installation, scan and live/historical Code flows against unchanged pinned independent selections, with no project tools/network and unchanged source hashes. Preserve before-fail evidence and completed simplicity, implementer and final complexity reviews. Run focused/native/package checks and the parent combined repository check; distinguish macOS qualification from native Windows/Linux CI.
+
+Cross-platform CI reproduced an upstream setup-action conflict: Windows Swift setup exports its GITHUB_ACTION_PATH, and the Dart action uses that value to locate its optional annotation matcher. Use setup-dart’s documented problem-matcher=false input in CI and release workflows. Dart SDK installation, fatal Dart analysis and scanner tests remain required. Existing real Windows jobs provide the regression; no source-text workflow test is added.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -136,9 +138,11 @@ Integration verification on 2026-10-15: bun run check passed lint/typecheck, 16 
 
 The user approved committing and opening task-sized PRs, with Windows/Linux/macOS CI green before release. The CI matrix now builds this scanner package and runs the existing fresh-checkout test with language tools removed from PATH and network access rejected. This reuses the verified package-flow coverage; no new behavior or test abstraction is added. Dart tests reuse the package already built by the job. Cross-platform results will be recorded after CI completes.
 
-Release integration resolves .github/workflows/ci.yml against TASK-605 by retaining its parallel setup/validation groups and adding the same Dart toolchain and package variables. Dart worker code, fresh-checkout assertions and job publication gates remain unchanged.
+Windows CI on PRs #151–#153 failed before scanner tests because dart-lang/setup-dart registered its optional matcher under the path exported by compnerd/gha-setup-swift. The official Dart action supports problem-matcher=false; CI and release builds now use that input. The Dart SDK still installs, and build.ts still requires dart analyze --fatal-infos. This preserves all assertions and avoids adding a wrapper or reordering tool installations. Platform verification is pending.
 
-Release integration resolves .github/workflows/release.yml against TASK-605 by retaining its parallel setup/validation groups and adding the same Dart toolchain and package variables. Dart worker code, fresh-checkout assertions and job publication gates remain unchanged.
+Main integration retains all TASK-605 parallel groups in .github/workflows/ci.yml, the Dart setup, disabled problem matcher and supplied package environment. Scanner source and test assertions are unchanged.
+
+Main integration retains all TASK-605 parallel groups in .github/workflows/release.yml, the Dart setup, disabled problem matcher and supplied package environment. Scanner source and test assertions are unchanged.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
