@@ -9,3 +9,8 @@ export function scannerWarning(settings: PluginSettings | undefined): { scannerI
     ?? scanners.find(item => item.match === 'matched' && item.status === 'available')
   return { scannerId: scanner?.id }
 }
+
+/** Recommendations are matching scanners outside the project's configured selection. */
+export function scannerRecommendationCount(settings: PluginSettings | undefined): number {
+  return settings?.plugins.filter(plugin => plugin.kind === 'scanner' && !plugin.listed && plugin.match === 'matched').length ?? 0
+}
