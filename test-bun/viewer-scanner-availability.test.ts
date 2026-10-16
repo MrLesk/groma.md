@@ -95,7 +95,6 @@ test.concurrent('watch startup rejects an invalid project config', async () => {
       return started
     })
     await expect(starting).rejects.toThrow()
-    expect(errors).toHaveLength(1)
-    expect(errors[0]).toBeInstanceOf(Error)
+    expect(errors).toHaveLength(0)
   } finally { await watcher?.close(); await rm(root, { recursive: true, force: true }) }
 })

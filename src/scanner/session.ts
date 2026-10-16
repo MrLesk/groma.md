@@ -22,6 +22,7 @@ export async function createScannerSession(root: string, options: {
   scan?: boolean
   onProgress?: (progress: ScannerProgress) => void
   onSettings?: (settings: PluginSettings) => void
+  /** Reports asynchronous errors; startup and change failures reject their promises. */
   onError?: (error: unknown) => void
   onPluginsChanged?: () => void | Promise<void>
   onFold?: (summary: ScanSummary) => void | Promise<void>
@@ -50,11 +51,11 @@ export async function createScannerSession(root: string, options: {
     options.onSettings?.(state)
     for (const listener of listeners) listener(state)
   }
-  async function report(error: unknown) {
+  async function report(error: unknown, notifyError = true) {
     const message = error instanceof Error ? error.message : String(error)
     const next = await readPluginSettings(root, checks, options)
     publish({ ...next, notice: { tone: 'error', message } })
-    options.onError?.(error)
+    if (notifyError) options.onError?.(error)
   }
   async function fold({ observations, failures }: ScanBatch, files: string[]) {
     if (observations.length) options.onProgress?.({ phase: 'updating-architecture' })
@@ -83,7 +84,7 @@ export async function createScannerSession(root: string, options: {
   }
   function enqueue(action: () => Promise<void>, propagate = false): Promise<void> {
     const next = serial.then(async () => { if (!closed) await action() }).catch(async error => {
-      await report(error)
+      await report(error, !propagate)
       if (propagate) throw error
     })
     serial = next.catch(() => {})
