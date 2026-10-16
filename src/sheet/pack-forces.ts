@@ -1,5 +1,5 @@
 import { ENTRY_DRIFT, GAP, PARTNER_ALIGN, PARTNER_PULL, SIBLING_PUSH, SIBLING_SPREAD, SURFACE_GRAVITY } from './forces.ts'
-import { shelfAround, type Partnered, type Shelf } from './pack.ts'
+import { shelfAround, type Partnered, type PartnerLink, type Shelf } from './pack.ts'
 
 /** Rounds of the force balance. */
 const ROUNDS = 240
@@ -21,8 +21,8 @@ interface Body {
   fy: number
 }
 
-/** Two partners and the number of relationships between them. */
-type Spring = [Body, Body, number]
+/** Two sibling envelopes and the actual endpoints they connect. */
+type Spring = [Body, Body, readonly PartnerLink[]]
 
 /** Centres farther than these neighbouring cells cannot exert a short-range sibling force. */
 class NearbyBodies {
@@ -134,13 +134,14 @@ function push(bodies: readonly Body[]): void {
   })
 }
 
-/** Partners pull toward the sibling gap across and toward facing each other along it. */
+/** Partners close the gap and align their connected contents along it. */
 function pull(springs: readonly Spring[]): void {
-  for (const [a, b, count] of springs) {
+  for (const [a, b, links] of springs) {
     const { gap, alongX, sign } = gapBetween(a, b)
-    if (gap > GAP) forcePair(a, b, alongX, -sign * PARTNER_PULL * count * (gap - GAP))
-    const offset = alongX ? b.y - a.y : b.x - a.x
-    forcePair(a, b, !alongX, -PARTNER_ALIGN * count * offset)
+    if (gap > GAP) forcePair(a, b, alongX, -sign * PARTNER_PULL * links.length * (gap - GAP))
+    const axis = alongX ? 'y' : 'x'
+    const offset = links.reduce((sum, link) => sum + b[axis] + link.other[axis] - a[axis] - link.own[axis], 0)
+    forcePair(a, b, !alongX, -PARTNER_ALIGN * offset)
   }
 }
 
@@ -221,9 +222,9 @@ export function balance(items: readonly Partnered[], start: Shelf): Shelf {
     return { x: at.gx + item.w / 2, y: at.gy + item.d / 2, w: item.w, d: item.d, entry: item.entry, fx: 0, fy: 0 }
   })
   const index = new Map(items.map((item, at) => [item.key, at]))
-  const springs = items.flatMap((item, i) => [...item.partners].flatMap(([key, count]): Spring[] => {
+  const springs = items.flatMap((item, i) => [...item.partners].flatMap(([key, links]): Spring[] => {
     const j = index.get(key)
-    return j !== undefined && j > i ? [[bodies[i]!, bodies[j]!, count]] : []
+    return j !== undefined && j > i ? [[bodies[i]!, bodies[j]!, links]] : []
   }))
   // Without partners nothing pulls, and the growth placement stays.
   if (springs.length === 0) return start
