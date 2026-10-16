@@ -4,6 +4,7 @@ import {
   writeGromaConfig,
 } from '../../config.ts'
 import type { ConfiguredScanner } from '../../config.ts'
+import { GromaFileSystem } from '../../groma-filesystem.ts'
 import {
   defaultScannerCacheRoot,
   installScannerPackage,
@@ -199,18 +200,20 @@ export async function updateNpmScanners(root: string, options: ScannerInstallOpt
     }
   }
   if (!updates.size || options.signal?.aborted) return false
-  // Settings may have changed while the registry was busy. Keep them and any replacement selected by the user.
-  const config = await readGromaConfig(root)
-  let changed = false
-  const scanners = config.scanners.map(scanner => {
-    const update = updates.get(scanner.id)
-    if (!update || scanner.source !== update.previous) return scanner
-    changed = true
-    return { ...scanner, source: update.source }
+  // Commit against the current config under its existing lock, after all network work has finished.
+  return GromaFileSystem.open(root).withAccess(async () => {
+    const config = await readGromaConfig(root)
+    let changed = false
+    const scanners = config.scanners.map(scanner => {
+      const update = updates.get(scanner.id)
+      if (!update || scanner.source !== update.previous) return scanner
+      changed = true
+      return { ...scanner, source: update.source }
+    })
+    if (!changed || config.automaticUpdates === false || options.signal?.aborted) return false
+    await writeGromaConfig(root, { ...config, scanners })
+    return true
   })
-  if (!changed || config.automaticUpdates === false || options.signal?.aborted) return false
-  await writeGromaConfig(root, { ...config, scanners })
-  return true
 }
 
 /** Restore one configured scanner; npm uses the newest compatible release. */

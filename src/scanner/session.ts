@@ -94,14 +94,14 @@ export async function createScannerSession(root: string, options: {
       if (await scannerSignature(root) !== scannerConfig) await start(true)
     })
   }
-  const ready = enqueue(() => start(options.scan !== false))
+  const ready = enqueue(() => start(options.scan !== false), true)
   // Registry work never joins the startup/close queue. Completed updates use the existing rescan path.
   void ready.then(async () => {
     if (!closed && await updateNpmScanners(root, { ...options, signal: updates.signal })) await reconfigure()
-  }).catch(error => { if (!closed) return report(error) })
+  }, () => {}).catch(error => { if (!closed) return report(error) })
 
   return {
-    /** Resolves after the initial scan, including its architecture update and failure reporting. */
+    /** Resolves after the initial scan and failure reporting; rejects when session setup fails. */
     ready,
     get state() { return state },
     subscribe(listener: (state: PluginSettings) => void) {

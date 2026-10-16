@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-16 19:01'
-updated_date: '2026-10-16 19:23'
+updated_date: '2026-10-16 19:34'
 labels: []
 dependencies: []
 references:
@@ -21,6 +21,7 @@ references:
   - src/cli.ts
   - src/config.ts
   - test-bun/work-source-selection.test.ts
+  - scanner-source-watch
 documentation:
   - docs/config.md
   - docs/scanners/setup.md
@@ -40,6 +41,37 @@ modified_files:
   - docs/scanners/setup.md
   - src/config.ts
   - test-bun/work-source-selection.test.ts
+  - test-bun/viewer-scanner-availability.test.ts
+  - groma/systems/groma-md/containers/cli/components/scanner-source-watch.md
+  - groma/systems/groma-md/containers/cli/components/src-scanner.md
+  - groma/systems/groma-md/components/c-generate-parser.md
+  - groma/systems/groma-md/components/c-src-index.md
+  - groma/systems/groma-md/components/c-src-macros.md
+  - groma/systems/groma-md/components/c-src-parser.md
+  - groma/systems/groma-md/components/c-src-source.md
+  - groma/systems/groma-md/components/cpp-generate-parser.md
+  - groma/systems/groma-md/components/cpp-src-declarations.md
+  - groma/systems/groma-md/components/cpp-src-index.md
+  - groma/systems/groma-md/components/cpp-src-macros.md
+  - groma/systems/groma-md/components/cpp-src-syntax.md
+  - groma/systems/groma-md/components/dart-src-index.md
+  - groma/systems/groma-md/components/mojo-src-index.md
+  - groma/systems/groma-md/components/mojo-src-parser.md
+  - groma/systems/groma-md/components/mojo-src-source.md
+  - groma/systems/groma-md/components/mql5-src-declarations.md
+  - groma/systems/groma-md/components/mql5-src-evidence.md
+  - groma/systems/groma-md/components/mql5-src-index.md
+  - groma/systems/groma-md/components/mql5-src-syntax.md
+  - groma/systems/groma-md/components/outline.md
+  - groma/systems/groma-md/components/parts.md
+  - groma/systems/groma-md/components/preprocessing.md
+  - groma/systems/groma-md/components/worker.md
+  - groma/systems/groma-md/containers/cli/components/ada-src-declarations.md
+  - groma/systems/groma-md/containers/cli/components/ada-src-evidence.md
+  - groma/systems/groma-md/containers/cli/components/ada-src-index.md
+  - groma/systems/groma-md/containers/cli/components/ada-src-syntax.md
+  - groma/systems/groma-md/containers/cli/components/background-updates.md
+  - groma/systems/groma-md/containers/cli/components/src-cli.md
 type: bug
 ordinal: 684000
 ---
@@ -71,6 +103,8 @@ Automatic npm updates currently run before the installed registry loads. A disco
 
 <!-- SECTION:PLAN:BEGIN -->
 1. Keep automaticUpdates in src/config.ts as an optional validated boolean, enabled when absent. The automatic updater checks it before registry work and again before saving changes. false disables background checks/apply/rescan only; explicit plugin update and restoration keep their behavior. 2. Scan installed packages immediately. Live sessions start registry work outside their startup/close queue, then use the existing reconfigure/scan path after completed changes. Watch mode shares that session, including scan summaries and error callbacks. Closing a live session aborts its package-manager work without a timeout. 3. Inventory owns replacement validation and selection. It prepares compatible updates for installed npm scanners, keeps current packages when background work fails, rereads current config, and saves successful sources together only where the original selection still matches. Current settings, include/exclude lists and global choices are preserved. Git/local sources and the explicit missing-plugin install/restore flow keep their existing owners. 4. The one-shot CLI owns its independent unreferenced worker so process exit does not wait for the registry. Its hidden scanner command completes updates and calls the normal installed-scanner scan only when sources changed. Source and standalone builds share this command. Existing scan/architecture watching updates the map; there is no separate map event, retry policy, cache index or startup timer. 5. Supported test rules come from Alex: cached offline use, immediate startup without a timeout, normal post-update rescan, and default-enabled configuration control. Extend the existing isolated registry fixture to observe actual executed versions and held metadata requests. Catch startup or exit waiting for a held response, a new version being written while the current flag is false, settings lost during a check, and failure to execute the updated scanner. Preserve explicit update/restore coverage, round-trip and validate the boolean in existing config tests, and reuse the held CLI case against a temporary standalone build. 6. This flag and package state are operational configuration, not new OKF knowledge or a C4 element. Ordinary architecture Markdown stays unchanged. Existing scanner inventory, package process and lifecycle components own the meaning; configuration/setup guides explain immediate installed-version use, background updates, normal rescans and the switch. 7. Require focused tests, bun run check, one cold simplicity review, own specification/quality reviews and one final full-context complexity review. Commit one task-scoped PR, handle appropriate Codex feedback, and require Windows/Linux/macOS CI before merge. Release publication remains paused.
+
+Codex follow-up is limited to three concrete findings: make initial ready reject setup errors so watchScan preserves its previous failure contract; place the final config read/source-and-flag checks/write inside the existing GromaFileSystem.withAccess boundary, outside network work; scan the new updater and combine its code into its existing CLI responsibility. Add one invalid-config watch-start regression because current availability coverage only exercises successful and missing selections; it must catch a fulfilled watcher startup instead of a rejected error. Reuse held-registry settings/disable coverage and existing cross-process filesystem access tests for the config commit; avoid global mocks or timing-dependent race tests. Rerun focused and full checks, then hosted all-platform CI and targeted review.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -95,4 +129,12 @@ The disable-during-check regression reproduces the AC5 failure before the fix (u
 Targeted own specification/quality re-review passes after the reproduced AC5 fix. The current automaticUpdates flag is checked with cancellation and actual changes immediately before the configuration write; the new regression now passes, settings edited during checks remain preserved, and explicit update/restore tests still pass. Focused integration now passes 27 tests with 156 assertions; git diff --check passes and changed-code lint reports no warnings. All five acceptance criteria have implementation/behavior evidence locally; the final full repository check is running and hosted three-platform CI/Codex review remain pending. No further code or architecture change is planned. Run the final full-context complexity review next.
 
 Final qualification passes: bun run check completed lint/types, 16 Node tests and 890 Bun tests with 62 optional skips, zero failures and 3645 Bun assertions. Focused integration passes 27 tests with 155 assertions (correcting the earlier 156-count typo). The exact final standalone build passes the held-registry CLI exit smoke. Cold simplicity review passed and its one accepted test deletion was applied; own specification/quality review and targeted re-review pass; final full-context complexity review passes with no findings or material simplification. Current source/test files are within 500 lines and changed-code lint has no complexity warning. AC4 remains open only for hosted platform CI and Codex feedback. Preparing the PR now; publication remains paused.
+
+Hosted CI run 38954621682: Windows stopped before repository tests while the unchanged Scala maintainer build could not download sbt 1.11.7 from Maven Central. The exact POM URL now returns HTTP 200; Linux and macOS have already built Scala and reached repository checks. Requested one Windows-job rerun for this external dependency failure, without changing code or test timeouts. Architecture comparison run 38954621808 passed. Codex reviews remain pending.
+
+Codex code review produced three actionable findings; security review was clean. The invalid-config watch-start regression failed before the fix (startup fulfilled) and now passes. Initial session readiness propagates setup failure and its updater continuation does not report that same failure twice. The final config reread, source/flag/cancellation guards and write now share the existing project access lock, held only after network work. Focused lifecycle/config/filesystem checks pass: 36 tests, 192 assertions, zero failures. Linux and macOS implementation CI passed; the initial Windows job failed only on the external Scala sbt download before tests. The reviewed code changes will receive a fresh all-platform run, superseding that old job. Architecture scan and final full check are running.
+
+The normal repository scan generated the new background-updates record and removed obsolete watch callback rows from Scan results/Source watching. It also generated 26 unrelated scanner records from already-merged source; those newly generated, previously absent records were discarded with exact-path Git cleanup to keep this PR limited to TASK-617. No pre-existing architecture record or other agent change was discarded. The transient scan paths remain in the task trace; only updater ownership and task-caused relationship changes will be committed.
+
+Reviewed fixes are qualified locally: bun run check passes lint/types, 16 Node tests and 891 Bun tests, 62 optional skips, zero failures, 3649 Bun assertions. The focused five-file suite passes 36 tests with 192 assertions. The rebuilt standalone CLI passes its held-registry exit smoke. Groma scan and combine recorded src/scanner/background-updates.ts on src-cli (Command interface); groma view of that source confirms its owner. Scan-caused obsolete direct watch callback rows were removed. Targeted implementer specification/quality review confirms startup failure is reported once and rejected, failed startup starts no updater, and final config read/check/write share one existing access boundary after network work. No new timer, transaction abstraction or architecture concept was added. Preparing the reviewed commit and fresh hosted CI; publication remains paused.
 <!-- SECTION:NOTES:END -->

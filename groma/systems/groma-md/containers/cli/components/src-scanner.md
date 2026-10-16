@@ -32,9 +32,3 @@ Updates architecture records from successful scanner results. Preserves authored
 | [src/scan-reconciler.ts](../../../../../../src/scan-reconciler.ts) | [src/markdown-emitter.ts](../../../../../../src/markdown-emitter.ts) | Writes architecture records | Function call |
 | [src/scan-reconciler.ts](../../../../../../src/scan-reconciler.ts) | [src/relationship-inference.ts](../../../../../../src/relationship-inference.ts) | Derives relationships | Function call |
 | [src/scan-reconciler.ts](../../../../../../src/scan-reconciler.ts) | [src/architecture-findings.ts](../../../../../../src/architecture-findings.ts) | Finds possible duplicates | Function call |
-
-## Derived relationships
-
-| Source | Target | Description | Technology |
-| --- | --- | --- | --- |
-| [src/scanner.ts](../../../../../../src/scanner.ts) | [src/cli.ts](../../../../../../src/cli.ts) | Invokes supplied callback: onFold | typescript |
