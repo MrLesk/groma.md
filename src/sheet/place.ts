@@ -19,7 +19,7 @@ import {
 } from './measure.ts'
 import { grow, shelf } from './pack.ts'
 import { balance } from './pack-forces.ts'
-import type { Partnered } from './pack.ts'
+import type { Partnered, PartnerLink } from './pack.ts'
 import { flowRanks } from './rank.ts'
 import { mapRelationships } from './route/relationships.ts'
 import { connectionCounts, portSideCells, routeReach } from './route/space.ts'
@@ -116,18 +116,21 @@ interface Lifted {
   entries: Set<string>
   /** Directed edges between siblings, in relationship order. */
   edges: Map<string, string[]>
-  /** Every sibling's partners with the number of relationships between them. */
-  partners: Map<string, Map<string, number>>
+  /** Actual endpoint offsets from the centres of sibling packing envelopes. */
+  partners: Map<string, Map<string, PartnerLink[]>>
 }
 
 function lifted(siblings: readonly Node[], relationships: readonly Pick<AnnotatedRelationship, 'source' | 'target'>[]): Lifted {
-  /** The sibling each node inside the surface stands in. */
-  const holder = new Map<string, string>()
-  const claim = (node: Node, sibling: string): void => {
-    holder.set(node.key, sibling)
-    for (const inner of node.children) claim(inner.node, sibling)
+  const holder = new Map<string, { key: string; point: { x: number; y: number } }>()
+  const claim = (node: Node, sibling: Node, gx: number, gy: number): void => {
+    const shadow = sibling.paint.kind === 'building' ? shadeOf(sibling.paint.heightUnits) / 2 : 0
+    holder.set(node.key, {
+      key: sibling.key,
+      point: { x: gx + (node.w - sibling.w) / 2 + shadow, y: gy + (node.d - sibling.d) / 2 + shadow },
+    })
+    for (const inner of node.children) claim(inner.node, sibling, gx + inner.gx, gy + inner.gy)
   }
-  for (const sibling of siblings) claim(sibling, sibling.key)
+  for (const sibling of siblings) claim(sibling, sibling, 0, 0)
   const result: Lifted = {
     entries: new Set(),
     edges: new Map(),
@@ -136,11 +139,13 @@ function lifted(siblings: readonly Node[], relationships: readonly Pick<Annotate
   for (const { source, target } of relationships) {
     const a = holder.get(source)
     const b = holder.get(target)
-    if (a === undefined && b !== undefined) result.entries.add(b)
-    if (a === undefined || b === undefined || a === b) continue
-    result.edges.set(a, [...(result.edges.get(a) ?? []), b])
-    result.partners.get(a)!.set(b, (result.partners.get(a)!.get(b) ?? 0) + 1)
-    result.partners.get(b)!.set(a, (result.partners.get(b)!.get(a) ?? 0) + 1)
+    if (a === undefined && b !== undefined) result.entries.add(b.key)
+    if (a === undefined || b === undefined || a.key === b.key) continue
+    result.edges.set(a.key, [...(result.edges.get(a.key) ?? []), b.key])
+    const forward = result.partners.get(a.key)!
+    const reverse = result.partners.get(b.key)!
+    forward.set(b.key, [...(forward.get(b.key) ?? []), { own: a.point, other: b.point }])
+    reverse.set(a.key, [...(reverse.get(a.key) ?? []), { own: b.point, other: a.point }])
   }
   return result
 }

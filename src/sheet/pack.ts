@@ -43,37 +43,67 @@ export function shelf(
   return { w: widest + PAD, d: gy - GAP + PAD, at }
 }
 
+/** Relationship endpoints relative to the centres of their sibling packing envelopes. */
+export interface PartnerLink {
+  own: { x: number; y: number }
+  other: { x: number; y: number }
+}
+
 export interface Partnered extends ShelfItem {
   /** True when something outside the surface feeds the item; entries stand in the west column. */
   entry: boolean
-  /** Sibling keys the item has relationships with, each with the number of relationships. */
-  partners: ReadonlyMap<string, number>
+  /** Sibling keys and the actual connections to their contents. */
+  partners: ReadonlyMap<string, readonly PartnerLink[]>
 }
 
 interface Partner {
   rect: CellRect
-  count: number
+  links: readonly PartnerLink[]
 }
 
 const centre = (rect: CellRect): { x: number; y: number } => ({ x: rect.gx + rect.w / 2, y: rect.gy + rect.d / 2 })
 const longer = (rect: CellRect): number => Math.max(rect.w, rect.d)
-/** The spots a child may take: beside each placed partner, centred on it, then beside everything placed so far, centred on the partners' weighted centre. */
-function spots(item: ShelfItem, partners: readonly Partner[], all: CellRect): { gx: number; gy: number }[] {
-  const beside = (rect: CellRect, on: { x: number; y: number }) => [
-    { gx: rect.gx + rect.w + GAP, gy: Math.round(on.y - item.d / 2) },
-    { gx: Math.round(on.x - item.w / 2), gy: rect.gy - GAP - item.d },
-    { gx: Math.round(on.x - item.w / 2), gy: rect.gy + rect.d + GAP },
-    { gx: rect.gx - GAP - item.w, gy: Math.round(on.y - item.d / 2) },
-  ]
-  const weight = partners.reduce((sum, partner) => sum + partner.count, 0)
-  const middle = {
-    x: partners.reduce((sum, partner) => sum + partner.count * centre(partner.rect).x, 0) / weight,
-    y: partners.reduce((sum, partner) => sum + partner.count * centre(partner.rect).y, 0) / weight,
+/** The item centre that aligns its endpoints with this partner's endpoints. */
+function alignment(partner: Partner): { x: number; y: number } {
+  const on = centre(partner.rect)
+  return {
+    x: on.x + partner.links.reduce((sum, link) => sum + link.other.x - link.own.x, 0) / partner.links.length,
+    y: on.y + partner.links.reduce((sum, link) => sum + link.other.y - link.own.y, 0) / partner.links.length,
   }
-  return [...partners.flatMap(partner => beside(partner.rect, centre(partner.rect))), ...beside(all, middle)]
 }
 
-const weightOf = (item: Partnered): number => [...item.partners.values()].reduce((sum, count) => sum + count, 0)
+/** Slide along a partner's edge to fit beside an already placed neighbour. */
+function slides(item: ShelfItem, spot: { gx: number; gy: number }, occupied: readonly CellRect[], alongX: boolean): { gx: number; gy: number }[] {
+  return occupied.flatMap(rect => {
+    if (alongX) {
+      if (spot.gy >= rect.gy + rect.d + GAP || spot.gy + item.d + GAP <= rect.gy) return []
+      return [{ ...spot, gx: rect.gx - GAP - item.w }, { ...spot, gx: rect.gx + rect.w + GAP }]
+    }
+    if (spot.gx >= rect.gx + rect.w + GAP || spot.gx + item.w + GAP <= rect.gx) return []
+    return [{ ...spot, gy: rect.gy - GAP - item.d }, { ...spot, gy: rect.gy + rect.d + GAP }]
+  })
+}
+
+/** Candidate edges follow the actual endpoints; occupied slots can slide along the same edge. */
+function spots(item: ShelfItem, partners: readonly Partner[], all: CellRect, occupied: readonly CellRect[]): { gx: number; gy: number }[] {
+  const beside = (rect: CellRect, on: { x: number; y: number }) => {
+    const edges = [
+      { gx: rect.gx + rect.w + GAP, gy: Math.round(on.y - item.d / 2) },
+      { gx: Math.round(on.x - item.w / 2), gy: rect.gy - GAP - item.d },
+      { gx: Math.round(on.x - item.w / 2), gy: rect.gy + rect.d + GAP },
+      { gx: rect.gx - GAP - item.w, gy: Math.round(on.y - item.d / 2) },
+    ]
+    return [...edges, ...edges.flatMap((spot, index) => slides(item, spot, occupied, index === 1 || index === 2))]
+  }
+  const weight = partners.reduce((sum, partner) => sum + partner.links.length, 0)
+  const middle = {
+    x: partners.reduce((sum, partner) => sum + partner.links.length * alignment(partner).x, 0) / weight,
+    y: partners.reduce((sum, partner) => sum + partner.links.length * alignment(partner).y, 0) / weight,
+  }
+  return [...partners.flatMap(partner => beside(partner.rect, alignment(partner))), ...beside(all, middle)]
+}
+
+const weightOf = (item: Partnered): number => [...item.partners.values()].reduce((sum, links) => sum + links.length, 0)
 
 interface PackingState {
   rects: Map<string, CellRect>
@@ -89,16 +119,16 @@ function eastOfAll(rects: ReadonlyMap<string, CellRect>): { gx: number; gy: numb
 function chooseSpot(item: Partnered, state: PackingState): { gx: number; gy: number } {
   const partners: Partner[] = [...item.partners]
     .filter(([key]) => state.rects.has(key))
-    .map(([key, count]) => ({ rect: state.rects.get(key)!, count }))
+    .map(([key, links]) => ({ rect: state.rects.get(key)!, links }))
   let best = eastOfAll(state.rects)
   if (partners.length === 0) return best
   const all = unionRects([...state.rects.values()])!
   let bestCost = Infinity
-  for (const spot of spots(item, partners, all)) {
+  for (const spot of spots(item, partners, all, [...state.rects.values()])) {
     const rect = { gx: Math.max(spot.gx, state.westEdge), gy: spot.gy, w: item.w, d: item.d }
     if (!state.paths.apart(rect)) continue
     const growth = longer(unionRects([all, rect])!) - longer(all)
-    const cost = partners.reduce((sum, partner) => sum + partner.count * state.paths.arrowCost(rect, partner.rect), growth)
+    const cost = partners.reduce((sum, partner) => sum + state.paths.arrowCost(rect, partner.rect, partner.links), growth)
       + state.paths.placementCost(rect)
     if (cost < bestCost) {
       best = { gx: rect.gx, gy: rect.gy }
