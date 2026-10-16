@@ -4,28 +4,36 @@ import type { Partnered, PartnerLink } from './pack.ts'
 import type { CellRect } from './types.ts'
 
 interface StripEntry { rect: CellRect }
+interface BucketEntry<T> { entry: T; x: number; y: number }
 
-/** A query may encounter an entry in several buckets; consumers stop or combine its identity. */
+/** Entries spanning several buckets are yielded once, at the first shared bucket. */
 class Buckets<T extends StripEntry> {
-  private cells = new Map<string, T[]>()
+  private cells = new Map<number, Map<number, BucketEntry<T>[]>>()
   private size = 16
 
   add(entry: T): void {
-    for (let x = Math.floor(entry.rect.gx / this.size); x <= Math.floor((entry.rect.gx + entry.rect.w) / this.size); x += 1) {
-      for (let y = Math.floor(entry.rect.gy / this.size); y <= Math.floor((entry.rect.gy + entry.rect.d) / this.size); y += 1) {
-        const key = `${x},${y}`
-        const bucket = this.cells.get(key) ?? []
-        bucket.push(entry)
-        this.cells.set(key, bucket)
+    const stored = { entry, x: Math.floor(entry.rect.gx / this.size), y: Math.floor(entry.rect.gy / this.size) }
+    for (let x = stored.x; x <= Math.floor((entry.rect.gx + entry.rect.w) / this.size); x += 1) {
+      const column = this.cells.get(x) ?? new Map<number, BucketEntry<T>[]>()
+      this.cells.set(x, column)
+      for (let y = stored.y; y <= Math.floor((entry.rect.gy + entry.rect.d) / this.size); y += 1) {
+        const bucket = column.get(y) ?? []
+        bucket.push(stored)
+        column.set(y, bucket)
       }
     }
   }
 
   *query(rect: CellRect): Generator<T> {
-    for (let x = Math.floor(rect.gx / this.size); x <= Math.floor((rect.gx + rect.w) / this.size); x += 1) {
-      for (let y = Math.floor(rect.gy / this.size); y <= Math.floor((rect.gy + rect.d) / this.size); y += 1) {
-        for (const entry of this.cells.get(`${x},${y}`) ?? []) {
-          if (overlaps(entry.rect, rect)) yield entry
+    const x0 = Math.floor(rect.gx / this.size)
+    const y0 = Math.floor(rect.gy / this.size)
+    for (let x = x0; x <= Math.floor((rect.gx + rect.w) / this.size); x += 1) {
+      const column = this.cells.get(x)
+      if (!column) continue
+      for (let y = y0; y <= Math.floor((rect.gy + rect.d) / this.size); y += 1) {
+        for (const stored of column.get(y) ?? []) {
+          if (x === Math.max(x0, stored.x) && y === Math.max(y0, stored.y)
+            && overlaps(stored.entry.rect, rect)) yield stored.entry
         }
       }
     }

@@ -116,6 +116,16 @@ function eastOfAll(rects: ReadonlyMap<string, CellRect>): { gx: number; gy: numb
   return all === null ? { gx: PAD, gy: PAD } : { gx: all.gx + all.w + GAP, gy: all.gy }
 }
 
+/** Stop pricing once nonnegative remaining costs cannot improve the first best candidate. */
+function spotCost(rect: CellRect, partners: readonly Partner[], paths: PackingPaths, growth: number, bestCost: number): number {
+  let cost = growth
+  for (const partner of partners) {
+    cost += paths.arrowCost(rect, partner.rect, partner.links)
+    if (cost >= bestCost) return cost
+  }
+  return cost + paths.placementCost(rect)
+}
+
 function chooseSpot(item: Partnered, state: PackingState): { gx: number; gy: number } {
   const partners: Partner[] = [...item.partners]
     .filter(([key]) => state.rects.has(key))
@@ -124,12 +134,16 @@ function chooseSpot(item: Partnered, state: PackingState): { gx: number; gy: num
   if (partners.length === 0) return best
   const all = unionRects([...state.rects.values()])!
   let bestCost = Infinity
+  const seen = new Map<number, Set<number>>()
   for (const spot of spots(item, partners, all, [...state.rects.values()])) {
     const rect = { gx: Math.max(spot.gx, state.westEdge), gy: spot.gy, w: item.w, d: item.d }
+    const row = seen.get(rect.gx) ?? new Set<number>()
+    if (row.has(rect.gy)) continue
+    row.add(rect.gy)
+    seen.set(rect.gx, row)
     if (!state.paths.apart(rect)) continue
     const growth = longer(unionRects([all, rect])!) - longer(all)
-    const cost = partners.reduce((sum, partner) => sum + state.paths.arrowCost(rect, partner.rect, partner.links), growth)
-      + state.paths.placementCost(rect)
+    const cost = spotCost(rect, partners, state.paths, growth, bestCost)
     if (cost < bestCost) {
       best = { gx: rect.gx, gy: rect.gy }
       bestCost = cost
