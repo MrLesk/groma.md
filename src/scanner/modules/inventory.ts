@@ -40,6 +40,8 @@ export interface ScannerResolutionOptions {
 }
 
 export interface ScannerInstallOptions extends ScannerResolutionOptions {
+  /** Cancel background package work when its live session closes. */
+  signal?: AbortSignal
   /**
    * Replaces only the default registry, for release lookup and download alike. A scope's registry in the user's
    * `.npmrc` still wins for that scope, so this does not isolate a run from the user's npm settings. Only tests set it.
@@ -142,6 +144,28 @@ function samePackage(current: ScannerSource, replacement: ScannerSource): boolea
   return false
 }
 
+/** Validate and install a replacement without changing this project's configuration. */
+async function scannerReplacement(
+  repositoryRoot: string,
+  selected: ConfiguredScanner,
+  input: string | undefined,
+  options: ScannerInstallOptions,
+): Promise<string> {
+  const current = parseScannerSource(repositoryRoot, selected.source)
+  const requested = input?.trim() ?? (current.kind === 'npm' ? current.name : undefined)
+  if (requested === undefined) throw new Error('Git updates require a tag or commit; local plugins run from their configured path')
+  const replacement = parseScannerSource(repositoryRoot, isNpmPackageName(requested)
+    ? await publishedScannerSource(requested, options.registry, options.signal) : requested)
+  if (!samePackage(current, replacement)) {
+    throw new Error('scanner update must keep the same npm package or Git repository; local plugins run from their configured path')
+  }
+  const installed = await installScannerPackage(replacement, cacheRoot(options), options.registry, options.signal)
+  if (installed.package.id !== selected.id) {
+    throw new Error(`replacement scanner id ${installed.package.id} does not match ${selected.id}`)
+  }
+  return installed.source
+}
+
 export async function updateScanner(
   repositoryRoot: string,
   id: string,
@@ -151,31 +175,42 @@ export async function updateScanner(
   const config = await readGromaConfig(repositoryRoot)
   const selected = config.scanners.find(scanner => scanner.id === id)
   if (selected === undefined) throw new Error(`scanner is not configured: ${id}`)
-  const current = parseScannerSource(repositoryRoot, selected.source)
-  const requested = input?.trim() ?? (current.kind === 'npm' ? current.name : undefined)
-  if (requested === undefined) throw new Error('Git updates require a tag or commit; local plugins run from their configured path')
-  const replacement = parseScannerSource(repositoryRoot, isNpmPackageName(requested)
-    ? await publishedScannerSource(requested, options.registry) : requested)
-  if (!samePackage(current, replacement)) {
-    throw new Error('scanner update must keep the same npm package or Git repository; local plugins run from their configured path')
+  const source = await scannerReplacement(repositoryRoot, selected, input, options)
+  if (selected.source !== source) {
+    await writeGromaConfig(repositoryRoot, {
+      ...config, scanners: config.scanners.map(scanner => scanner.id === id ? { ...scanner, source } : scanner),
+    })
   }
-  const installed = await installScannerPackage(replacement, cacheRoot(options), options.registry)
-  if (installed.package.id !== id) {
-    throw new Error(`replacement scanner id ${installed.package.id} does not match ${id}`)
-  }
-  if (selected.source === installed.source) return { id, source: selected.source, status: 'found' }
-  const updated = { ...selected, source: installed.source }
-  await writeGromaConfig(repositoryRoot, {
-    ...config, scanners: config.scanners.map(scanner => scanner.id === id ? updated : scanner),
-  })
-  return { id, source: updated.source, status: 'found' }
+  return { id, source, status: 'found' }
 }
 
-/** Refresh configured npm scanners before a scan session; Git and local selections stay as declared. */
-export async function updateNpmScanners(root: string, options: ScannerInstallOptions = {}): Promise<void> {
-  for (const scanner of (await readGromaConfig(root)).scanners) {
-    if (parseScannerSource(root, scanner.source).kind === 'npm') await updateScanner(root, scanner.id, undefined, options)
+/** Prepare installed npm updates in the background, then publish their completed selection together. */
+export async function updateNpmScanners(root: string, options: ScannerInstallOptions = {}): Promise<boolean> {
+  if ((await readGromaConfig(root)).automaticUpdates === false) return false
+  const updates = new Map<string, { previous: string; source: string }>()
+  for (const scanner of await configuredScannerModules(root, options)) {
+    if (options.signal?.aborted) return false
+    if (scanner.status !== 'found' || parseScannerSource(root, scanner.source).kind !== 'npm') continue
+    try {
+      const source = await scannerReplacement(root, scanner, undefined, options)
+      if (source !== scanner.source) updates.set(scanner.id, { previous: scanner.source, source })
+    } catch {
+      // An automatic check must not prevent using an already installed scanner.
+    }
   }
+  if (!updates.size || options.signal?.aborted) return false
+  // Settings may have changed while the registry was busy. Keep them and any replacement selected by the user.
+  const config = await readGromaConfig(root)
+  let changed = false
+  const scanners = config.scanners.map(scanner => {
+    const update = updates.get(scanner.id)
+    if (!update || scanner.source !== update.previous) return scanner
+    changed = true
+    return { ...scanner, source: update.source }
+  })
+  if (!changed || config.automaticUpdates === false || options.signal?.aborted) return false
+  await writeGromaConfig(root, { ...config, scanners })
+  return true
 }
 
 /** Restore one configured scanner; npm uses the newest compatible release. */

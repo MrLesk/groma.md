@@ -1,8 +1,8 @@
 import { architectureFindingsFor } from './architecture-findings.ts'
 import { reconcileScanObservations } from './core.ts'
 import { loadScannerRegistry, type ScanBatch } from './scanner/registry.ts'
-import { watchObservations } from './scanner/source-watch.ts'
-import { updateNpmScanners, type ScannerInstallOptions } from './scanner/modules/inventory.ts'
+import { createScannerSession } from './scanner/session.ts'
+import type { ScannerInstallOptions, ScannerResolutionOptions } from './scanner/modules/inventory.ts'
 import type { ScanSummary } from './types.ts'
 
 export function formatScanSummary(summary: ScanSummary): string {
@@ -49,9 +49,8 @@ async function reconcileBatch(root: string, { observations, failures }: ScanBatc
 
 export async function scanRepository(
   repositoryRoot: string,
-  options: ScannerInstallOptions = {},
+  options: ScannerResolutionOptions = {},
 ): Promise<ScanSummary> {
-  await updateNpmScanners(repositoryRoot, options)
   const registry = await loadScannerRegistry(repositoryRoot, options)
   return reconcileBatch(repositoryRoot, await registry.collectObservations(repositoryRoot))
 }
@@ -63,14 +62,7 @@ export async function watchScan(
     onError?: (error: unknown) => void
   } & ScannerInstallOptions = {},
 ): Promise<{ close(): Promise<void> }> {
-  await updateNpmScanners(repositoryRoot, options)
-  const registry = await loadScannerRegistry(repositoryRoot, options)
-  if (!registry.scannerIds.length) return { async close() {} }
-  return watchObservations(repositoryRoot, registry, {
-    async onObservations(batch) {
-      const summary = await reconcileBatch(repositoryRoot, batch)
-      await options.onFold?.(summary)
-    },
-    onError: options.onError,
-  })
+  const session = await createScannerSession(repositoryRoot, { ...options, scan: false })
+  await session.ready
+  return { close: () => session.close() }
 }

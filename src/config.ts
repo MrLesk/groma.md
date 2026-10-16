@@ -34,6 +34,8 @@ export interface GromaConfig {
   exclude?: string[]
   /** Whether files Git ignores stay out of every scan; true unless set to false. */
   useGitignore?: boolean
+  /** Check for npm scanner updates in the background; true unless set to false. */
+  automaticUpdates?: boolean
 }
 
 const pluginId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -152,6 +154,12 @@ function requireUniqueIds(plugins: readonly { id: string }[], sourceFilename: st
   }
 }
 
+/** Optional project switches keep their defaults when absent. */
+function configuredBoolean(value: unknown, filename: string, field: string): boolean | undefined {
+  if (value !== undefined && typeof value !== 'boolean') throw new Error(`${filename} ${field} must be true or false`)
+  return value
+}
+
 function parseGromaConfig(
   source: string,
   sourceFilename: string,
@@ -161,15 +169,14 @@ function parseGromaConfig(
     throw new Error(`${sourceFilename} must be an object`)
   }
   const config = value as Record<string, unknown>
-  if (Object.keys(config).some(key => !['scanners', 'workSources', 'exclude', 'useGitignore'].includes(key)) || !Array.isArray(config.scanners)) {
-    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, an exclude array and useGitignore`)
+  if (Object.keys(config).some(key => !['scanners', 'workSources', 'exclude', 'useGitignore', 'automaticUpdates'].includes(key)) || !Array.isArray(config.scanners)) {
+    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, an exclude array, useGitignore and automaticUpdates`)
   }
   if (config.exclude !== undefined && !stringArray(config.exclude)) {
     throw new Error(`${sourceFilename} exclude must be an array of strings`)
   }
-  if (config.useGitignore !== undefined && typeof config.useGitignore !== 'boolean') {
-    throw new Error(`${sourceFilename} useGitignore must be true or false`)
-  }
+  const useGitignore = configuredBoolean(config.useGitignore, sourceFilename, 'useGitignore')
+  const automaticUpdates = configuredBoolean(config.automaticUpdates, sourceFilename, 'automaticUpdates')
   const workSources = configuredWorkSources(config.workSources, sourceFilename)
   const scanners = configuredScanners(config.scanners, sourceFilename)
   requireUniqueIds([...scanners, ...workSources], sourceFilename)
@@ -177,7 +184,8 @@ function parseGromaConfig(
     scanners,
     workSources,
     ...(config.exclude === undefined ? {} : { exclude: config.exclude as string[] }),
-    ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
+    ...(useGitignore === undefined ? {} : { useGitignore }),
+    ...(automaticUpdates === undefined ? {} : { automaticUpdates }),
   }
 }
 
@@ -212,6 +220,7 @@ export async function writeGromaConfig(
     workSources: config.workSources,
     ...(config.exclude === undefined ? {} : { exclude: config.exclude }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
+    ...(config.automaticUpdates === undefined ? {} : { automaticUpdates: config.automaticUpdates }),
   }, null, 2)}\n`
   parseGromaConfig(text, filesystem.sourceFilename('config.json'))
   await filesystem.write('config.json', text)

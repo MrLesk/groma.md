@@ -12,7 +12,8 @@ colleagues who pull the project get the same selected plugins and project settin
     { "id": "backlog", "version": "1.53.0" }
   ],
   "exclude": ["/test/"],
-  "useGitignore": true
+  "useGitignore": true,
+  "automaticUpdates": true
 }
 ```
 
@@ -51,15 +52,21 @@ version. The Backlog.md work source reads tasks through the Backlog.md CLI; its
 
 ## Automatic scanner updates
 
-Before `groma scan`, `groma scan --watch`, or a live terminal or web map starts,
-groma.md selects the newest stable release of each configured npm scanner that
-supports this computer and Groma version. It downloads a new release when needed
-and records it in `config.json`. Scanner settings and include/exclude lists stay
-as the project set them. Already installed releases are reused.
+`automaticUpdates` defaults to `true`. Set it to `false` to disable background
+updates and their follow-up scan. Explicit plugin update commands still work.
 
-An open session keeps its loaded scanner version for file edits. Starting it
-again selects any newer release. Git and local scanners keep their declared
-sources.
+Scans and live terminal or web maps start with the scanner versions already on
+this computer. They check for newer compatible stable npm releases in the
+background, without waiting for registry access or a startup timeout. Offline
+scans keep using the installed versions.
+
+After the updates finish, groma.md records the completed selections in
+`config.json` and runs the normal scan again. An open map refreshes from that
+scan through its ordinary architecture watcher. Scanner settings and
+include/exclude lists stay as the project set them. Already installed releases
+are reused, and Git and local scanners keep their declared sources.
+
+Missing packages still need the normal plugin installation or restoration flow.
 
 ## Restoring plugins on another computer
 
@@ -99,8 +106,8 @@ groma plugin remove backlog
 the newest compatible stable release and records its exact version. `update`
 moves a scanner to its newest compatible release, or to the exact source given,
 and updates the Backlog.md CLI to its current release; both record the new
-version. An explicit npm version is refreshed at the next scan or live-session
-startup. `remove` keeps downloaded packages in the shared cache.
+version. An explicit npm version is eligible for automatic background updates unless
+`automaticUpdates` is false. `remove` keeps downloaded packages in the shared cache.
 
 The plugins screen, **Settings → Plugins** in `groma web` or `s` on the welcome
 screen, offers the same operations and lists the bundled plugins the project

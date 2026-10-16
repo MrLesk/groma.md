@@ -2,6 +2,7 @@ import { reconcileScanObservations } from '../core.ts'
 import { loadScannerRegistry, type ScanBatch, type ScanEvent } from './registry.ts'
 import { watchObservations } from './source-watch.ts'
 import { readGromaConfig } from '../config.ts'
+import type { ScanSummary } from '../types.ts'
 import type { ProjectReadiness } from './modules/readiness.ts'
 import { changePluginSettings, readPluginSettings, type PluginSettings, type PluginSettingsAction } from '../plugins/settings.ts'
 import { updateNpmScanners, type ScannerInstallOptions } from './modules/inventory.ts'
@@ -21,8 +22,9 @@ export async function createScannerSession(root: string, options: {
   scan?: boolean
   onProgress?: (progress: ScannerProgress) => void
   onSettings?: (settings: PluginSettings) => void
+  onError?: (error: unknown) => void
   onPluginsChanged?: () => void | Promise<void>
-  onFold?: () => void | Promise<void>
+  onFold?: (summary: ScanSummary) => void | Promise<void>
   watchesFile?: (file: string) => boolean
 } & ScannerInstallOptions = {}) {
   options.onProgress?.({ phase: 'preparing-scanners' })
@@ -31,6 +33,7 @@ export async function createScannerSession(root: string, options: {
   let watcher: Awaited<ReturnType<typeof watchObservations>> | undefined
   let scannerConfig = ''
   let closed = false
+  const updates = new AbortController()
   let serial = Promise.resolve()
   const listeners = new Set<(state: PluginSettings) => void>()
   const activeScanners = new Set<string>()
@@ -51,16 +54,18 @@ export async function createScannerSession(root: string, options: {
     const message = error instanceof Error ? error.message : String(error)
     const next = await readPluginSettings(root, checks, options)
     publish({ ...next, notice: { tone: 'error', message } })
+    options.onError?.(error)
   }
   async function fold({ observations, failures }: ScanBatch, files: string[]) {
     if (observations.length) options.onProgress?.({ phase: 'updating-architecture' })
-    await reconcileScanObservations(root, observations)
+    const summary = await reconcileScanObservations(root, observations)
+    if (failures.length) summary.scannerFailures = failures.map(({ scanner, message }) => ({ scanner, message }))
     checks = [
       ...observations.map((observation): ProjectReadiness => ({ id: observation.scanner.id, package: 'found', project: 'ready', message: 'Scan completed.' })),
       ...failures.map((failure): ProjectReadiness => ({ id: failure.scanner, package: 'found', project: 'blocked', message: failure.message })),
     ]
     publish(await readPluginSettings(root, checks, options))
-    if (observations.length || files.some(file => options.watchesFile?.(file))) await options.onFold?.()
+    if (observations.length || failures.length || files.some(file => options.watchesFile?.(file))) await options.onFold?.(summary)
   }
   async function start(scan: boolean) {
     await watcher?.close()
@@ -84,10 +89,16 @@ export async function createScannerSession(root: string, options: {
     serial = next.catch(() => {})
     return next
   }
-  const ready = enqueue(async () => {
-    await updateNpmScanners(root, options)
-    await start(options.scan !== false)
-  })
+  function reconfigure() {
+    return enqueue(async () => {
+      if (await scannerSignature(root) !== scannerConfig) await start(true)
+    })
+  }
+  const ready = enqueue(() => start(options.scan !== false))
+  // Registry work never joins the startup/close queue. Completed updates use the existing rescan path.
+  void ready.then(async () => {
+    if (!closed && await updateNpmScanners(root, { ...options, signal: updates.signal })) await reconfigure()
+  }).catch(error => { if (!closed) return report(error) })
 
   return {
     /** Resolves after the initial scan, including its architecture update and failure reporting. */
@@ -98,11 +109,7 @@ export async function createScannerSession(root: string, options: {
       return () => { listeners.delete(listener) }
     },
     async refresh() { publish(await readPluginSettings(root, checks, options)); return state },
-    reconfigure() {
-      return enqueue(async () => {
-        if (await scannerSignature(root) !== scannerConfig) await start(true)
-      })
-    },
+    reconfigure,
     change(action: PluginSettingsAction) {
       return enqueue(async () => {
         // Stop in-flight evidence before a new selection can own source updates.
@@ -115,6 +122,7 @@ export async function createScannerSession(root: string, options: {
     },
     async close() {
       closed = true
+      updates.abort()
       await serial
       await watcher?.close()
     },
