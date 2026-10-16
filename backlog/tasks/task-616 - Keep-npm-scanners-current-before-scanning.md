@@ -1,11 +1,11 @@
 ---
 id: TASK-616
 title: Keep npm scanners current before scanning
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-16 16:09'
-updated_date: '2026-10-16 16:36'
+updated_date: '2026-10-16 16:44'
 labels: []
 dependencies: []
 references:
@@ -47,15 +47,15 @@ Alex wants people to receive scanner improvements automatically instead of remai
 - [x] #1 Starting a scan or a live viewer selects and installs the newest stable compatible release of each configured npm scanner before the initial scan, without a manual update command; file-edit rescans keep that session’s selected version.
 - [x] #2 Automatic updates preserve scanner identity, project settings, include/exclude lists and global flags; config.json records the selected release but no longer holds npm scanners on an older version. Git and local sources keep their declared selection.
 - [x] #3 Restoring a configured npm scanner obtains the newest stable compatible release. A current release reuses its cached package and leaves the configuration unchanged.
-- [ ] #4 Focused behavior tests and bun run check pass, documentation explains the automatic update policy, and Windows/Linux/macOS CI and Codex feedback are clear before merge.
+- [x] #4 Focused behavior tests and bun run check pass, documentation explains the automatic update policy, and Windows/Linux/macOS CI and Codex feedback are clear before merge.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -81,4 +81,14 @@ Focused integration now passes all21configuration, installation and update tests
 Final local validation passes: bun run check completed lint and type checking, 16 Node tests, and 884 Bun tests with 62 optional skips and zero failures. Focused update/installation/work-source integration passes 21 tests with 111 assertions. git diff --check passes and groma/ has no changes. The cold simplicity review passed with no findings or material simplifications. Implementer specification review confirms AC1–3: all scan/live startup paths refresh npm through the existing compatible-release selector; terminal and web share createScannerSession; file-edit rescans keep their loaded registry; restoration shares updateScanner; settings, identities and non-npm sources retain their existing owners. Implementer quality review traced startup through inventory, selection, exact-package cache, config write and registry execution. No new schema, dependency, pin mode, retry or offline fallback was introduced. Tests observe executed versions and downloads using isolated concurrent fixtures; the startup regression failed before the fix, and the stale-manifest failure was reproduced before the single-install metadata correction. Existing changed source files retain their architecture owners. Hosted Windows/Linux/macOS CI and latest-head Codex feedback remain pending, so AC4 and final verification stay open. Final full-context complexity review follows now. Release publication remains paused.
 
 The final full-context complexity review passes with no material findings. It confirms the normal flow stays small: entry points choose startup timing, inventory owns selection/configuration, and the existing installer owns exact-package reuse and download. Supported usage is clear in the guides, with no new architecture concept or fallback policy. Preparing the task-scoped commit and PR now; Windows/Linux/macOS CI and latest-head Codex feedback remain the final merge gate.
+
+Latest-head Codex code review for 3839917a completed with no findings. Its security review posted advisory https://github.com/MrLesk/groma.md/pull/163#discussion_r4296996033, recommending retaining exact pins or requiring opt-in updates because future npm package code is trusted. This describes the inherent trust decision in the explicitly requested automatic-update policy, rather than an unmet acceptance criterion or reproduced defect in the supported flow. Reintroducing permanent pins or an opt-in policy would undo Alex’s stated result. Treat the advisory as non-blocking and keep the approved default; no extra pin mode, verification infrastructure or speculative hardening is added. Architecture comparison run38933281850 passed. Linux CI has passed; Windows/macOS are still running.
+
+Implementation qualification is complete for 3839917a34641421136e7e575f52834aa16245fc: CI run38933281862 passed check-ubuntu-24.04, check-macos-latest and check-windows-latest; architecture run38933281850 passed, including Compare PR #163. Latest-head Codex code review has no findings. The security advisory remains visible: automatic approval review rejected resolving its P1 thread without explicit user permission, so it has not been dismissed. No code change is appropriate because its suggested permanent pins or opt-in updates conflict with the requested default; the inherent trust in new releases is documented in this task and the PR. This advisory is non-blocking under the project rule that review findings block only unmet acceptance criteria/Definition of Done or reproduced supported-flow defects. The remaining commit records task completion only; no code, tests, configuration or architecture files change. Final-head hosted checks will be observed before any merge. Publication remains paused.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Configured npm scanners now select the newest stable compatible release before a scan or live viewer loads them. One open session retains its loaded version for file edits. The existing selector, installer and exact-package cache own the flow; unchanged versions leave config.json untouched, and scanner settings/global flags stay intact. npm restoration uses the same operation. Git and local sources retain their declared selection. Configuration/setup guides and version wording describe the new default. Verified by 21 focused tests, the full repository check (16 Node and 884 Bun passes, 62 optional skips), Windows/Linux/macOS CI run38933281862, architecture run38933281850, and the required simplicity/specification/quality/complexity reviews. Codex code review has no findings. Its advisory about trusting future npm releases remains open and documented; no permanent-pin, opt-in, offline or retry policy was added. Release publication remains paused.
+<!-- SECTION:FINAL_SUMMARY:END -->
