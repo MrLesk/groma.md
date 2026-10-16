@@ -192,6 +192,7 @@ async function installNpmScanner(
   source: NpmScannerSource,
   cacheRoot = defaultScannerCacheRoot(),
   registry?: string,
+  signal?: AbortSignal,
 ): Promise<ResolvedScannerPackage> {
   const directory = installDirectory(cacheRoot, source.source)
   await mkdir(directory, { recursive: true })
@@ -199,7 +200,7 @@ async function installNpmScanner(
     private: true,
     dependencies: { [source.name]: source.version },
   }, null, 2)}\n`)
-  await installDependencies(directory, source.source, registry)
+  await installDependencies(directory, source.source, registry, signal)
   const resolved = await resolveScannerPackage(source, cacheRoot)
   if (resolved === undefined) throw new Error(`installed scanner is missing: ${source.source}`)
   return resolved
@@ -250,10 +251,11 @@ export async function installScannerPackage(
   source: ScannerSource,
   cacheRoot = defaultScannerCacheRoot(),
   registry?: string,
+  signal?: AbortSignal,
 ): Promise<{ source: string; package: ResolvedScannerPackage }> {
   if (source.kind === 'git') return installGitScanner(source, cacheRoot, registry)
   const resolved = await resolveScannerPackage(source, cacheRoot)
-    ?? (source.kind === 'npm' ? await installNpmScanner(source, cacheRoot, registry) : undefined)
+    ?? (source.kind === 'npm' ? await installNpmScanner(source, cacheRoot, registry, signal) : undefined)
   if (resolved === undefined) throw new Error(`scanner package not found: ${source.source}`)
   return { source: source.source, package: resolved }
 }

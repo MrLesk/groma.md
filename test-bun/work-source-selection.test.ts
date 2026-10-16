@@ -97,6 +97,18 @@ async function handWritten(root: string, config: unknown): Promise<void> {
   await writeFile(path.join(root, 'groma/config.json'), JSON.stringify(config))
 }
 
+test.concurrent('automaticUpdates accepts booleans, preserves the project choice and rejects a non-boolean', async () => {
+  const root = await project()
+  try {
+    for (const automaticUpdates of [true, false]) {
+      await writeGromaConfig(root, { scanners: [], workSources: [], automaticUpdates })
+      expect((await readGromaConfig(root)).automaticUpdates).toBe(automaticUpdates)
+    }
+    await handWritten(root, { scanners: [], automaticUpdates: 'false' })
+    await expect(readGromaConfig(root)).rejects.toThrow('automaticUpdates')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('a config.json with a second work-source entry is refused when read and when written', async () => {
   const root = await project()
   const workSources = [{ id: 'backlog', version: '1.0.0' }, { id: 'other', version: '1.0.0' }]

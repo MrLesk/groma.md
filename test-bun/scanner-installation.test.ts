@@ -101,7 +101,9 @@ test.concurrent('bulk installation retains successful releases, retries unpublis
     const colleague = await createScannerSession(f.root, { registry: f.options.registry, cacheRoot: path.join(f.root, 'colleague-cache'), scan: false })
     try {
       await colleague.ready
-      expect(colleague.state.plugins.filter(item => item.listed).map(item => item.version)).toEqual([f.version, f.version])
+      expect(colleague.state.plugins.filter(item => item.status === 'missing')).toHaveLength(2)
+      await colleague.change({ action: 'install-missing' })
+      expect(colleague.state.plugins.filter(item => item.listed).every(item => item.status === 'ready')).toBe(true)
       expect(await readFile(path.join(f.root, 'groma/config.json'), 'utf8')).toBe(selection)
       expect((await loadAnnotatedArchitecture(f.root)).elements).toEqual(before.elements)
     } finally { await colleague.close() }

@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import packageJson from '../package.json'
-import { configuredScannerModules, updateScanner } from '../src/scanner/modules/inventory.ts'
+import { configuredScannerModules, updateNpmScanners, updateScanner } from '../src/scanner/modules/inventory.ts'
 import { readGromaConfig, writeGromaConfig } from '../src/config.ts'
 import { changePluginSettings, parsePluginSettingsAction } from '../src/plugins/settings.ts'
 import { restorePlugin } from '../src/plugins/management.ts'
@@ -19,22 +20,22 @@ async function fixture() {
   let unavailable = false
   let metadataReads = 0
   const downloads: string[] = []
-  const scans: string[] = []
-  const server = Bun.serve({ port: 0, fetch(request) {
+  let held: ReturnType<typeof Promise.withResolvers<void>> | undefined
+  let requested = Promise.withResolvers<void>()
+  const scanLog = path.join(root, 'scans.log')
+  const server = Bun.serve({ port: 0, async fetch(request) {
     const url = new URL(request.url)
-    if (url.pathname.startsWith('/scanned/')) {
-      scans.push(url.pathname.slice('/scanned/'.length))
-      return new Response('ok')
-    }
     if (url.pathname.endsWith('.tgz')) {
       downloads.push(path.basename(url.pathname))
       return new Response(Bun.file(path.join(root, path.basename(url.pathname))))
     }
     metadataReads++
+    if (held) { requested.resolve(); await held.promise }
     if (unavailable) return new Response('Unavailable', { status: 503 })
     return Response.json({ name, versions, 'dist-tags': { latest: '2.0.0' } })
   } })
-  const close = async () => { await server.stop(true); await rm(root, { recursive: true, force: true }) }
+  const release = () => { held?.resolve(); held = undefined }
+  const close = async () => { release(); await server.stop(true); await rm(root, { recursive: true, force: true }) }
   try {
     await cp(path.resolve(import.meta.dir, '../test/fixtures/flows'), root, { recursive: true })
     const pkg = path.join(root, 'package')
@@ -44,8 +45,9 @@ async function fixture() {
         technologies: ['sample'], rules: [], compatibility: { groma: version === '2.0.0' ? '^9.0.0' : packageJson.version },
       } } } }
       await writeFile(path.join(pkg, 'package.json'), JSON.stringify(manifest))
-      await writeFile(path.join(pkg, 'index.js'), `export default { id: 'sample', async scan() {
-        await fetch('${server.url.origin}/scanned/${version}', { method: 'POST' });
+      await writeFile(path.join(pkg, 'index.js'), `import { appendFile } from 'node:fs/promises';
+      export default { id: 'sample', async scan() {
+        await appendFile(${JSON.stringify(scanLog)}, '${version}\\n');
         return { scanner: { id: 'sample', technology: 'sample', engine: 'fixture', engineVersion: '${version}' }, roots: [], files: [], diagnostics: [] };
       } }`)
       const pack = Bun.spawn(['tar', '-czf', `${version}.tgz`, 'package'], { cwd: root, stdout: 'ignore', stderr: 'pipe' })
@@ -62,7 +64,13 @@ async function fixture() {
       { id: 'sample', source: `${name}@1.0.0`, settings: { mode: 'strict' }, include: ['src/**/*.sample'], exclude: ['**/*.gen.ts'] },
     ] }
     await writeGromaConfig(root, config)
-    return { root, name, config, scans, downloads,
+    return { root, name, config, downloads,
+      get scans() {
+        try { return readFileSync(scanLog, 'utf8').trim().split('\n') }
+        catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []; throw error }
+      },
+      holdRegistry: () => { held = Promise.withResolvers<void>(); requested = Promise.withResolvers<void>(); return { requested: requested.promise, release } },
+      goOffline: () => server.stop(true),
       options: { registry: server.url.href, cacheRoot: path.join(root, 'cache') },
       metadataReads: () => metadataReads,
       publishNewer: () => { versions['1.2.0'] = releases['1.2.0'] },
@@ -95,48 +103,138 @@ test.concurrent('explicit npm updates select compatible releases and preserve pr
   } finally { await f.close() }
 })
 
-test.concurrent('live sessions update before scanning and retain their loaded version until the next startup', async () => {
+test.concurrent('automaticUpdates false skips registry checks while installed scans and explicit updates still work', async () => {
   const f = await fixture()
-  const edited = Promise.withResolvers<void>()
-  let folds = 0
   let session: Awaited<ReturnType<typeof createScannerSession>> | undefined
   try {
     await updateScanner(f.root, 'sample', `${f.name}@1.0.0`, f.options)
-    session = await createScannerSession(f.root, { ...f.options, onFold: () => { if (++folds === 2) edited.resolve() } })
+    const config = { ...f.config, automaticUpdates: false }
+    await writeGromaConfig(f.root, config)
+    const reads = f.metadataReads()
+    expect(await updateNpmScanners(f.root, f.options)).toBe(false)
+    session = await createScannerSession(f.root, f.options)
     await session.ready
-    expect(f.scans).toEqual(['1.1.0'])
-    expect(await readGromaConfig(f.root)).toEqual({ ...f.config, scanners: [{ ...f.config.scanners[0], source: `${f.name}@1.1.0` }] })
+    await session.close()
+    expect(f.scans).toEqual(['1.0.0'])
+    expect(f.metadataReads()).toBe(reads)
+    expect(await readGromaConfig(f.root)).toEqual(config)
+    await updateScanner(f.root, 'sample', undefined, f.options)
+    expect(await readGromaConfig(f.root)).toEqual({ ...config, scanners: [{ ...config.scanners[0], source: `${f.name}@1.1.0` }] })
+  } finally { await session?.close(); await f.close() }
+})
+
+test.concurrent('disabling automaticUpdates during a held check keeps the installed selection', async () => {
+  const f = await fixture()
+  let gate: ReturnType<typeof f.holdRegistry> | undefined
+  try {
+    await updateScanner(f.root, 'sample', `${f.name}@1.0.0`, f.options)
+    gate = f.holdRegistry()
+    const updating = updateNpmScanners(f.root, f.options)
+    await gate.requested
+    const config = { ...f.config, automaticUpdates: false }
+    await writeGromaConfig(f.root, config)
+    gate.release()
+    expect(await updating).toBe(false)
+    expect(await readGromaConfig(f.root)).toEqual(config)
+  } finally { gate?.release(); await f.close() }
+})
+
+test.concurrent('live startup uses the installed scanner before a held update check, then rescans after updating', async () => {
+  const f = await fixture()
+  const updated = Promise.withResolvers<void>()
+  const edited = Promise.withResolvers<void>()
+  let session: Awaited<ReturnType<typeof createScannerSession>> | undefined
+  let gate: ReturnType<typeof f.holdRegistry> | undefined
+  try {
+    await updateScanner(f.root, 'sample', `${f.name}@1.0.0`, f.options)
+    gate = f.holdRegistry()
+    session = await createScannerSession(f.root, { ...f.options, onFold: () => {
+      if (f.scans.length === 2) updated.resolve()
+      if (f.scans.length === 3) edited.resolve()
+    } })
+    expect(await Promise.race([session.ready.then(() => 'ready'), gate.requested.then(() => 'registry')])).toBe('ready')
+    await session.ready
+    expect(f.scans).toEqual(['1.0.0'])
+    await gate.requested
+    const changed = { ...f.config, scanners: [{ ...f.config.scanners[0], settings: { mode: 'changed' } }] }
+    await writeGromaConfig(f.root, changed)
+    gate.release()
+    await updated.promise
+    expect(f.scans).toEqual(['1.0.0', '1.1.0'])
+    expect(await readGromaConfig(f.root)).toEqual({ ...changed, scanners: [{ ...changed.scanners[0], source: `${f.name}@1.1.0` }] })
     const reads = f.metadataReads()
     f.publishNewer()
     await writeFile(path.join(f.root, 'src/main.sample'), 'edited')
     await edited.promise
-    expect(f.scans).toEqual(['1.1.0', '1.1.0'])
+    expect(f.scans).toEqual(['1.0.0', '1.1.0', '1.1.0'])
     expect(f.metadataReads()).toBe(reads)
-    await session.close()
-    session = await createScannerSession(f.root, f.options)
-    await session.ready
-    expect(f.scans, JSON.stringify(session.state)).toEqual(['1.1.0', '1.1.0', '1.2.0'])
-  } finally { await session?.close(); await f.close() }
+  } finally { gate?.release(); await session?.close(); await f.close() }
 })
 
-for (const mode of ['scan', 'watch'] as const) {
-  test.concurrent(`${mode} startup prepares the latest compatible npm scanner`, async () => {
+for (const mode of ['scan', 'watch', 'live'] as const) {
+  test.concurrent(`${mode} works offline with its installed npm scanner`, async () => {
     const f = await fixture()
-    let watcher: Awaited<ReturnType<typeof watchScan>> | undefined
+    let session: { close(): Promise<void> } | undefined
     try {
       await updateScanner(f.root, 'sample', `${f.name}@1.0.0`, f.options)
+      const saved = await readFile(path.join(f.root, 'groma/config.json'), 'utf8')
+      await f.goOffline()
       if (mode === 'scan') await scanRepository(f.root, f.options)
-      else {
+      else if (mode === 'live') {
+        const live = await createScannerSession(f.root, f.options)
+        session = live
+        await live.ready
+        expect(live.state.plugins.find(item => item.id === 'sample')?.status).toBe('ready')
+      } else {
         const folded = Promise.withResolvers<void>()
-        watcher = await watchScan(f.root, { ...f.options, onFold: () => { folded.resolve() } })
+        session = await watchScan(f.root, { ...f.options, onFold: () => { folded.resolve() } })
         await writeFile(path.join(f.root, 'src/main.sample'), 'edited')
         await folded.promise
       }
-      expect(f.scans).toEqual(['1.1.0'])
-      expect((await readGromaConfig(f.root)).scanners[0]?.source).toBe(`${f.name}@1.1.0`)
-    } finally { await watcher?.close(); await f.close() }
+      expect(f.scans).toEqual(['1.0.0'])
+      expect(await readFile(path.join(f.root, 'groma/config.json'), 'utf8')).toBe(saved)
+    } finally { await session?.close(); await f.close() }
   })
 }
+
+test.concurrent('closing a live session does not wait for its held registry check', async () => {
+  const f = await fixture()
+  let session: Awaited<ReturnType<typeof createScannerSession>> | undefined
+  let gate: ReturnType<typeof f.holdRegistry> | undefined
+  try {
+    await updateScanner(f.root, 'sample', `${f.name}@1.0.0`, f.options)
+    gate = f.holdRegistry()
+    session = await createScannerSession(f.root, f.options)
+    expect(await Promise.race([session.ready.then(() => 'ready'), gate.requested.then(() => 'registry')])).toBe('ready')
+    await gate.requested
+    await session.close()
+    expect(f.scans).toEqual(['1.0.0'])
+  } finally { gate?.release(); await session?.close(); await f.close() }
+})
+
+test.concurrent('a one-shot CLI scan exits while its background registry check is held', async () => {
+  const f = await fixture()
+  let gate: ReturnType<typeof f.holdRegistry> | undefined
+  let child: Bun.Subprocess<'ignore', 'pipe', 'pipe'> | undefined
+  try {
+    const home = path.join(f.root, 'home')
+    await mkdir(home)
+    await writeFile(path.join(home, '.npmrc'), `@example:registry=${f.options.registry}\n`)
+    await updateScanner(f.root, 'sample', `${f.name}@1.0.0`, { ...f.options, cacheRoot: path.join(home, '.groma/cache/scanners') })
+    gate = f.holdRegistry()
+    child = Bun.spawn([process.execPath, path.resolve(import.meta.dir, '../src/cli.ts'), 'scan'], {
+      cwd: f.root, env: { ...process.env, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: home }, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe',
+    })
+    await gate.requested
+    expect(await child.exited, await new Response(child.stderr).text()).toBe(0)
+    expect(f.scans).toEqual(['1.0.0'])
+  } finally {
+    // Fail the held check so its detached worker has no download or project write left to perform.
+    f.makeUnavailable(); gate?.release()
+    await child?.exited
+    await f.close()
+  }
+})
 
 test.concurrent('restoring an npm scanner selects the current release and reuses its installed package', async () => {
   const f = await fixture()
