@@ -22,9 +22,15 @@ scanner in Settings. Potential duplicates belong to the separate Project review.
 **Install** selects a published stable release for this groma.md version and
 computer, saves its exact version, and scans. **Install recommended scanners**
 performs that flow for all current recommendations. **Install missing plugins**
-restores the exact selections shared by the team and scans. Both actions keep
-successful installations if another package fails; Retry attempts the remaining
-work. Existing selections are never silently upgraded.
+selects the newest compatible releases of configured npm scanners, restores
+other missing plugins, and scans. Both actions keep successful installations if
+another package fails; Retry attempts the remaining work.
+
+Before a scan or live map starts, configured npm scanners update automatically
+to their newest stable compatible releases. Project settings and include/exclude
+lists stay unchanged. The recorded npm version is the release last selected,
+not a lock. Each open session keeps one loaded version for file-edit rescans;
+starting another session checks for new releases.
 
 **Add plugin** accepts a package name, exact npm version, Git source or local
 package path. Bare names use the same published-release selection. For a missing
@@ -35,8 +41,9 @@ compatible releases and shows the installed and available versions with **Update
 on the row. The button installs that shown version. An available upgrade does not
 raise a scan warning. Update check errors appear in Details without changing scan
 readiness. **Remove from project** and **Choose version** are in Details.
-**Choose version** accepts an exact version of the same package. Git updates
-require a tag or commit in the same repository.
+**Choose version** selects an exact version of the same package for the current
+session; the next startup refreshes npm versions automatically. Git updates
+require a tag or commit in the same repository and keep that revision.
 
 Release selection and download both use the package manager built into groma.md,
 so they follow the same npm settings. They read the default registry
@@ -101,7 +108,8 @@ Browser windows share a pending setup step. Submitting it from two windows runs
 installation and the first scan once; both windows wait for the same result.
 If an installation fails, setup keeps successful installations and refreshes
 the browser selection. Submit the remaining selection again to retry; scanners
-already saved in the project keep their pinned versions and are not reinstalled.
+already saved in the project stay selected. Their npm versions are refreshed
+when scanning starts, reusing packages already on this computer.
 
 Run the journey again after project technologies change:
 
@@ -109,9 +117,9 @@ Run the journey again after project technologies change:
 groma scanner setup
 ```
 
-Only selected additions are installed through the existing exact-version
-installer. `config.json` in the selected architecture directory records their
-exact package versions. Disable an existing scanner explicitly with
+Setup adds only selected scanners. `config.json` in the selected architecture
+directory records their resolved package versions; scan startup refreshes npm
+selections automatically. Disable an existing scanner explicitly with
 `groma plugin remove <id>`.
 
 ## Package availability and project readiness
@@ -154,11 +162,9 @@ groma init 'My project' --directory groma
 groma scanner setup --no-interactive
 ```
 
-Install a chosen, qualified release explicitly with
-`groma plugin add <package>@<exact-version>`. Use the exact source provided by
-the verified release; the catalog does not invent published versions. For a
-project whose scanner configuration is already committed, CI restores and
-checks it with:
+Install a scanner with `groma plugin add <package>`; it selects a published
+compatible release. For a project whose scanner configuration is already
+committed, CI prepares the current npm scanners and checks them with:
 
 ```sh
 groma plugin install

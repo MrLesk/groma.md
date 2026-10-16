@@ -59,7 +59,8 @@ export async function readPublishedRelease<Manifest>(
 
 /** Download the dependencies of the package.json in `directory`. `source` names them in the error. */
 export async function installDependencies(directory: string, source: string, registry?: string): Promise<void> {
-  const { exitCode, stderr } = await runPackageManager(directory, ['install', '--ignore-scripts'], registry)
+  // A release selected by pm view can be newer than install's cached registry manifest.
+  const { exitCode, stderr } = await runPackageManager(directory, ['install', '--ignore-scripts', '--no-cache'], registry)
   if (exitCode !== 0) {
     throw new Error(`Could not download ${source}. Check your connection and registry access, then retry.\n${stderr.trim() || `exit ${exitCode}`}`)
   }

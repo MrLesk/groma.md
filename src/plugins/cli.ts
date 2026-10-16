@@ -18,7 +18,7 @@ function pluginLine(fields: string[]): string {
 }
 
 function selectionLine(plugin: PluginSelection): string {
-  return pluginLine([plugin.kind, plugin.id, plugin.pinned])
+  return pluginLine([plugin.kind, plugin.id, plugin.selection])
 }
 
 export function registerPluginCommands(program: Command): void {
@@ -67,7 +67,7 @@ export function registerPluginCommands(program: Command): void {
     .action(async options => {
       await runPluginCommand(async () => {
         const lines = (await pluginPresence(process.cwd())).map(item =>
-          pluginLine([item.kind, item.id, item.present ? 'found' : 'missing', item.pinned, item.message]))
+          pluginLine([item.kind, item.id, item.present ? 'found' : 'missing', item.selection, item.message]))
         printListPage(lines, parseListWindow(options, process.argv.slice(2)))
       })
     })

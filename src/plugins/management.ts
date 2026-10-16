@@ -13,7 +13,7 @@ import { bundledWorkSource, bundledWorkSources, checkWorkSourceReadiness, type B
  * The one owner of the plugins config.json lists: whether this computer has each of them, and adding, updating,
  * removing and restoring them. Every entry point uses it: the plugin commands, groma init, the plugins screen, the
  * welcome screen and the groma web restore view. What "present" and "restore" mean depends on the kind:
- * - scanner: the package at its exact listed source is on this computer; restoring downloads it.
+ * - scanner: its last selected source is on this computer; npm restoration selects the newest compatible release.
  * - work source: it ships inside groma.md, and its tool is installed at the listed version or newer; restoring
  *   installs the current tool.
  */
@@ -26,8 +26,8 @@ export interface PluginPresence {
   id: string
   /** The scanner id, or the work source's name such as Backlog.md. */
   name: string
-  /** What the entry pins: a scanner's exact source, or the lowest tool version of a work source. */
-  pinned: string
+  /** The scanner source last selected, or the lowest tool version of a work source. */
+  selection: string
   present: boolean
   /** Why the plugin is not present; empty when it is. */
   message: string
@@ -36,13 +36,13 @@ export interface PluginPresence {
 /** Every plugin config.json lists, scanners first, with whether this computer has it. */
 export async function pluginPresence(root: string, options: ScannerInstallOptions = {}): Promise<PluginPresence[]> {
   const scanners = (await configuredScannerModules(root, options)).map(module => ({
-    kind: 'scanner' as const, id: module.id, name: module.id, pinned: module.source, present: module.status === 'found',
+    kind: 'scanner' as const, id: module.id, name: module.id, selection: module.source, present: module.status === 'found',
     message: module.status === 'missing' ? `Package missing: ${module.source}` : '',
   }))
   const work = await checkWorkSourceReadiness(root)
   if (!work) return scanners
   return [...scanners, {
-    kind: 'workSource', id: work.id, name: work.name, pinned: work.version, present: work.status === 'found', message: work.message,
+    kind: 'workSource', id: work.id, name: work.name, selection: work.version, present: work.status === 'found', message: work.message,
   }]
 }
 
@@ -63,7 +63,7 @@ async function ensureTool(bundled: BundledWorkSource, latest: boolean): Promise<
 export interface PluginSelection {
   kind: PluginKind
   id: string
-  pinned: string
+  selection: string
 }
 
 /**
@@ -74,14 +74,14 @@ export async function addPlugin(root: string, input: string, options: ScannerIns
   const id = input.trim()
   if (!Object.hasOwn(bundledWorkSources, id)) {
     const added = await addScanner(root, input, options)
-    return { kind: 'scanner', id: added.id, pinned: added.source }
+    return { kind: 'scanner', id: added.id, selection: added.source }
   }
   const config = await readGromaConfig(root)
   const listed = config.workSources[0]
   if (listed) throw new Error(`config.json already lists the work source ${listed.id}; remove it before adding another`)
   const version = await ensureTool(bundledWorkSource(id), false)
   await writeGromaConfig(root, { ...config, workSources: [{ id, version }] })
-  return { kind: 'workSource', id, pinned: version }
+  return { kind: 'workSource', id, selection: version }
 }
 
 /** Removes a plugin from config.json. Ids are unique across sections, so the id finds the one entry. */
@@ -94,7 +94,7 @@ export async function removePlugin(root: string, id: string): Promise<string> {
 }
 
 /**
- * Moves a plugin to a newer release and records it, so a colleague who pulls finds it missing and restores it.
+ * Moves a plugin to another release and records the selected source.
  * A scanner moves to its newest compatible release or the exact source given; a work source updates its tool to the
  * current release and records that version.
  */
@@ -102,16 +102,16 @@ export async function updatePlugin(root: string, id: string, input?: string, opt
   const config = await readGromaConfig(root)
   if (config.scanners.some(scanner => scanner.id === id)) {
     const updated = await updateScanner(root, id, input, options)
-    return { kind: 'scanner', id, pinned: updated.source }
+    return { kind: 'scanner', id, selection: updated.source }
   }
   if (!config.workSources.some(work => work.id === id)) throw new Error(`plugin is not configured: ${id}`)
   if (input !== undefined) throw new Error(`${id} ships inside groma.md; update it without a source`)
   const version = await ensureTool(bundledWorkSource(id), true)
   await writeGromaConfig(root, { ...config, workSources: config.workSources.map(work => work.id === id ? { id, version } : work) })
-  return { kind: 'workSource', id, pinned: version }
+  return { kind: 'workSource', id, selection: version }
 }
 
-/** Makes one listed plugin present on this computer without changing config.json. */
+/** Restores one listed plugin; an npm scanner records its newest compatible release. */
 export async function restorePlugin(root: string, id: string, options: ScannerInstallOptions = {}): Promise<void> {
   const config = await readGromaConfig(root)
   if (config.scanners.some(scanner => scanner.id === id)) return restoreScanner(root, id, options)
