@@ -191,8 +191,10 @@ export async function readGromaConfig(repositoryRoot: string): Promise<GromaConf
 
     // Before config.json, an installed Backlog CLI enabled tasks without a recorded selection.
     const config = parseGromaConfig(await filesystem.read('scanners.json'), filesystem.sourceFilename('scanners.json'))
-    const backlog = await backlogPlugin.readiness()
-    config.workSources = backlog.status === 'found' ? [{ id: 'backlog', version: backlog.version }] : []
+    if (!config.scanners.some(scanner => scanner.id === 'backlog')) {
+      const backlog = await backlogPlugin.readiness()
+      config.workSources = backlog.status === 'found' ? [{ id: 'backlog', version: backlog.version }] : []
+    }
     await writeGromaConfig(repositoryRoot, config)
     await filesystem.removeSource(filesystem.sourceFilename('scanners.json'))
     return config

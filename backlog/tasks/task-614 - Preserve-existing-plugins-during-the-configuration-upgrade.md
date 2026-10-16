@@ -1,11 +1,11 @@
 ---
 id: TASK-614
 title: Preserve existing plugins during the configuration upgrade
-status: Done
+status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-16 14:10'
-updated_date: '2026-10-16 14:48'
+updated_date: '2026-10-16 15:07'
 labels: []
 dependencies: []
 references:
@@ -31,15 +31,15 @@ Alex approved a one-time upgrade before Groma 0.7.0. Existing projects otherwise
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 When config.json is absent and scanners.json exists, the first configuration read creates config.json with the same scanner pins, settings, include/exclude lists and global flags, then removes scanners.json.
-- [x] #2 Conversion records the installed Backlog CLI version when available, without reinstalling or initializing Backlog; without that CLI the converted workSources list is empty.
+- [x] #2 Conversion records an installed Backlog CLI version without reinstalling or initializing Backlog, unless a legacy scanner already owns the backlog plugin ID; that scanner is preserved. Without the CLI or with that ID occupied, workSources is empty.
 - [x] #3 An existing config.json is unchanged, no legacy file is read or removed, and an explicit Backlog removal is respected on later reads.
-- [x] #4 Project configuration documentation and the draft upgrade notes describe the one-time conversion; focused checks and the repository check pass, with Windows/Linux/macOS CI required before release.
+- [ ] #4 Project configuration documentation and the draft upgrade notes describe the one-time conversion; focused checks and the repository check pass, with Windows/Linux/macOS CI required before release.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [x] #1 Acceptance criteria have objective verification evidence.
-- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [ ] #1 Acceptance criteria have objective verification evidence.
+- [ ] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -47,10 +47,11 @@ Alex approved a one-time upgrade before Groma 0.7.0. Existing projects otherwise
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Keep the change in src/config.ts: the common reader uses the existing project lock, prefers config.json, and converts scanners.json only when config.json is absent. Reuse the current parser/writer and the bundled Backlog plugin readiness check. Preserve exact scanner sources, settings, include/exclude lists and global flags; record an installed Backlog CLI version without installing or initializing it; remove the old Groma-owned file after saving the new one.
-2. Configuration is delivery state, not OKF architecture knowledge or a C4 element. No architecture metadata or containment meaning changes; ordinary Markdown remains unchanged. This is the explicitly approved one-time upgrade, not a permanent reader for two configuration formats.
-3. Regression coverage: the user-approved upgrade must preserve scanner choices and existing Backlog tasks. Current tests cover explicit config.json and new-project setup, but no legacy conversion. Add one installed-CLI conversion test proving preserved settings, saved configuration and no re-registration after removal; one absent-CLI conversion in .groma; one existing-config test proving no CLI probe or rewrite even when an old file remains. Reuse the child-process fake CLI helper and make its launcher work on Windows so these rules run on all three CI systems.
-4. Update project configuration documentation and the draft release Upgrading paragraph. Run focused tests, inspect the complete diff with specification and quality reviews, and run bun run check. Commit only this task's files and open a stacked PR; require Windows/Linux/macOS CI before it enters the release. Keep publication paused.
+1. Keep the approved one-time conversion in readGromaConfig, using the existing project lock, parser, writer and Backlog readiness check. Existing config.json remains authoritative; preserve scanner selections and remove scanners.json only after saving the new configuration.
+2. Honor the existing global plugin-ID rule: if a legacy scanner already owns the backlog ID, preserve that scanner and do not auto-register or probe the Backlog work source. Otherwise record an installed Backlog CLI version without installing or initializing it. This resolves Codex finding discussion_r4295734222 within the approved configuration-preservation flow.
+3. Existing concurrent child-process tests cover normal installed-CLI conversion, missing CLI and existing config.json. Add one collision regression: a valid legacy custom scanner with ID backlog currently makes writeGromaConfig reject every configuration read. Prove its configuration now converts and remains usable, without adding a duplicate work source or calling the CLI. This is the smallest gap identified by the user-requested Codex review and the documented global ID constraint.
+4. Configuration is delivery state, not OKF knowledge or a C4 element; no architecture meaning or stored metadata changes. Explain the ID condition in project configuration documentation and draft upgrade notes.
+5. Deliver PR #162 directly to latest main, including TASK-613 layout changes in its base, without the paused release metadata or TypeScript packaging commits. Run the collision regression before and after the fix, bun run check, and Windows/Linux/macOS CI. Review only the reported finding, its fix and merge-update regressions. Merge after checks and Codex feedback pass; npm and GitHub publication remain paused.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -69,10 +70,12 @@ Quality/simplicity review: the complete flow stays in the existing configuration
 Final local bun run check passes lint and type checks, 16 Node tests, 877 Bun tests, 62 optional skips, zero failures and 3565 Bun assertions (/tmp/groma-task614-final-check.log). The final Windows fake-CLI environment keeps only its controlled bin and native System32 commands. Own specification/quality/simplicity review is complete with no blocking finding. git diff --check passes; groma/ is unchanged because this operational configuration fix changes no architecture concept or source ownership. Platform CI remains pending and publication stays paused.
 
 Windows, Linux and macOS CI all pass for source commit 64a6c7738157d3f976aab861d00467612bb7709a: https://github.com/MrLesk/groma.md/actions/runs/38915675414. This verifies the approved conversion and configuration-preservation cases on all three systems. No blocking specification or quality finding remains. Release publication remains paused; this task delivers the upgrade in stacked PR #162.
+
+Alex asked for active work to get PR #162 merged and for appropriate Codex feedback fixes. The three upgrade source/test/documentation files on main8affbc2f match the old stacked base exactly. Existing migration commits were applied cleanly in a separate managed checkout, preserving the old release checkout and its uncommitted TASK-610 progress record. Codex review discussion_r4295734222 reproduces a duplicate global plugin ID when a valid legacy scanner is named backlog; preserve that explicit scanner choice and skip automatic work-source registration for that ID.
+
+Codex collision regression fails before the fix: readGromaConfig reaches writeGromaConfig, which rejects the duplicate backlog ID. The source fix now checks the existing scanner selection before probing or registering Backlog. An explicit scanner keeps its ID and the old configuration converts normally with an empty workSources list. The documentation states this existing global-ID constraint.
+
+The duplicate-ID regression fails before the fix with requireUniqueIds rejecting backlog, then all 12 focused configuration/work-source tests pass afterward (27 assertions). The installed fake CLI receives no call when a scanner already owns the ID. Own targeted specification/quality review confirms the scanner selection is preserved, the shared global-ID contract stays unchanged, normal automatic registration still passes, and no new abstraction or architecture metadata is introduced. The project guide and unpublished draft upgrade note now state the ID condition. Full repository check on the latest-main combination is running.
+
+Latest-main repository check passes after the Codex fix: bun run check completes lint, types, 16 Node tests and 880 Bun tests, with 62 optional skips, zero failures and 3567 Bun assertions (/tmp/groma-task614-main-check.log). The focused collision test fails before the fix and all 12 configuration/work-source tests pass afterward. The only source difference from the previously reviewed migration is the guard preserving an already selected backlog scanner ID; the documentation and one regression test explain and prove it. The branch is based on main8affbc2f, so it includes the merged shared-map-layout feature and excludes release metadata/packaging changes. Windows/Linux/macOS CI and refreshed Codex review remain the merge gates.
 <!-- SECTION:NOTES:END -->
-
-## Final Summary
-
-<!-- SECTION:FINAL_SUMMARY:BEGIN -->
-The common configuration reader converts scanners.json once when config.json is absent, preserving scanner sources, settings, patterns and global flags. It records an installed Backlog CLI without installing or initializing it, saves config.json, then removes the old Groma-owned file. Existing config.json and later Backlog removals stay authoritative. Configuration documentation and the unpublished release upgrade notes explain the behavior. Before/after regression checks, bun run check (16 Node and 877 Bun tests, zero failures), and Windows/Linux/macOS CI run 38915675414 pass. PR #162 is stacked on #158; publication remains paused.
-<!-- SECTION:FINAL_SUMMARY:END -->

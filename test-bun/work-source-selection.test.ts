@@ -245,3 +245,21 @@ test.concurrent('an explicit config.json is unchanged and never reads an old fil
     expect(await readFile(path.join(root, 'groma/scanners.json'), 'utf8')).toBe('{')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
+
+
+test.concurrent('the upgrade preserves a legacy scanner that already owns the backlog plugin ID', async () => {
+  const root = await project()
+  const legacy = { scanners: [{ id: 'backlog', source: '@example/scanner-backlog@1.0.0', include: ['**/*.ts'] }] }
+  try {
+    await rm(path.join(root, 'groma/config.json'))
+    await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify(legacy))
+    const result = await withFakeBacklog(root, '1.53.0', `
+      result.config = await readGromaConfig(root)
+      result.saved = JSON.parse(await readFile(root + '/groma/config.json', 'utf8'))
+      result.legacyExists = await Bun.file(root + '/groma/scanners.json').exists()
+      result.calls = await calls()
+    `)
+    const converted = { ...legacy, workSources: [] }
+    expect(result).toEqual({ config: converted, saved: converted, legacyExists: false, calls: [] })
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
