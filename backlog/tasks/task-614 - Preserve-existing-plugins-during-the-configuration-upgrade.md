@@ -1,11 +1,11 @@
 ---
 id: TASK-614
 title: Preserve existing plugins during the configuration upgrade
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-16 14:10'
-updated_date: '2026-10-16 15:07'
+updated_date: '2026-10-16 15:17'
 labels: []
 dependencies: []
 references:
@@ -33,13 +33,13 @@ Alex approved a one-time upgrade before Groma 0.7.0. Existing projects otherwise
 - [x] #1 When config.json is absent and scanners.json exists, the first configuration read creates config.json with the same scanner pins, settings, include/exclude lists and global flags, then removes scanners.json.
 - [x] #2 Conversion records an installed Backlog CLI version without reinstalling or initializing Backlog, unless a legacy scanner already owns the backlog plugin ID; that scanner is preserved. Without the CLI or with that ID occupied, workSources is empty.
 - [x] #3 An existing config.json is unchanged, no legacy file is read or removed, and an explicit Backlog removal is respected on later reads.
-- [ ] #4 Project configuration documentation and the draft upgrade notes describe the one-time conversion; focused checks and the repository check pass, with Windows/Linux/macOS CI required before release.
+- [x] #4 Project configuration documentation and the draft upgrade notes describe the one-time conversion; focused checks and the repository check pass, with Windows/Linux/macOS CI required before release.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -78,4 +78,12 @@ Codex collision regression fails before the fix: readGromaConfig reaches writeGr
 The duplicate-ID regression fails before the fix with requireUniqueIds rejecting backlog, then all 12 focused configuration/work-source tests pass afterward (27 assertions). The installed fake CLI receives no call when a scanner already owns the ID. Own targeted specification/quality review confirms the scanner selection is preserved, the shared global-ID contract stays unchanged, normal automatic registration still passes, and no new abstraction or architecture metadata is introduced. The project guide and unpublished draft upgrade note now state the ID condition. Full repository check on the latest-main combination is running.
 
 Latest-main repository check passes after the Codex fix: bun run check completes lint, types, 16 Node tests and 880 Bun tests, with 62 optional skips, zero failures and 3567 Bun assertions (/tmp/groma-task614-main-check.log). The focused collision test fails before the fix and all 12 configuration/work-source tests pass afterward. The only source difference from the previously reviewed migration is the guard preserving an already selected backlog scanner ID; the documentation and one regression test explain and prove it. The branch is based on main8affbc2f, so it includes the merged shared-map-layout feature and excludes release metadata/packaging changes. Windows/Linux/macOS CI and refreshed Codex review remain the merge gates.
+
+The latest-main source commit 5bd51205b41530ff37c269ad0b5de1d2c5f9f3c9 passes Windows, Linux and macOS CI run 38921394645 and architecture workflow 38921391574. Refreshed Codex code review for that exact commit completed with no findings or unresolved findings. Original review thread PRRT_kwDOTVpKCM6tPlki is resolved after reproducing the collision and proving the fix. Own targeted specification/quality review found no blocking issue in the guard, its regression test or the clean main update. main remains8affbc2f. This final task-record commit changes no source or tests; its automatic checks must finish before the direct-to-main merge. npm and GitHub publication remain paused.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The configuration reader converts scanners.json once when config.json is missing, preserving scanner selections and global options. It records an installed Backlog CLI without installation or initialization, unless a selected scanner already owns the backlog ID; that scanner keeps its identity and remains usable. Existing config.json and later Backlog removals remain authoritative. Documentation and draft upgrade notes explain the behavior. Conversion and collision regressions fail before their fixes and pass afterward; all 12 focused cases and bun run check pass (16 Node, 880 Bun, 62 optional skips, zero failures). Latest-main source5bd51205 passes Windows/Linux/macOS CI38921394645, architecture38921391574 and refreshed Codex review with no findings. PR #162 now targets main directly, independently of the paused release metadata and packaging changes. Publication remains paused.
+<!-- SECTION:FINAL_SUMMARY:END -->
