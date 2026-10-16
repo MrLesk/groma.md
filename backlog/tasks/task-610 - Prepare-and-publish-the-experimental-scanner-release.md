@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-15 22:17'
-updated_date: '2026-10-15 22:25'
+updated_date: '2026-10-16 00:02'
 labels: []
 dependencies: []
 references:
@@ -37,6 +37,8 @@ modified_files:
   - plugins/scanners/swift/package.json
   - bun.lock
   - package.json
+  - docs/scanners/c/index.md
+  - docs/scanners/dart/index.md
 type: chore
 ordinal: 679000
 ---
@@ -77,4 +79,6 @@ The npm/source audit also finds that all existing scanner packages carry README 
 The candidate CLI version is 0.7.0 so its declared API satisfies Dart >=0.7.0 during manual builds, fresh-checkout checks and eventual publication. The first build-only workflow reproduced a packaged TypeScript native-compiler symbol failure on both Linux architectures and macOS; all other 21 scanner package checks pass on those hosts. This actual release blocker will be fixed before publication.
 
 Prepared Groma 0.7.0, all six new scanner identities, C public metadata, Dart >=0.7.0 and patch versions for the 16 existing scanners plus author contract. bun.lock changes only the 17 matching workspace versions; formatting and all other manifest values are preserved. The existing local build path passes bun run check: lint/typecheck, 16 Node tests, 874 Bun tests, 62 optional skips, zero failures and 3558 assertions (/tmp/groma-release610-versioned-check.log). Own specification/quality review confirms these are publication identity changes, with no scanner inference change or new test. The first five-platform workflow passes repository validation and all other 21 package checks on Linux/macOS but finds the TypeScript SDK/worker mismatch tracked in TASK-611. Platform artifact qualification, publication and the concrete draft review remain pending.
+
+TASK-611 fixes the TypeScript SDK/worker mismatch; build-only run 38817786034 passes validation and all 22 packaged fresh-checkout scenarios on macOS ARM64, Linux x64/ARM64 and Windows x64/ARM64. The original source candidate 5a6a0ff9 and the final 79d53153 candidate differ only by TASK-612 test/record changes, not scanner package inputs. All 13 PR matrices pass Windows, Linux and macOS; TASK-612 also passes its controlled Windows full suite with 100 repeated cases (maximum 1025.95 ms). Source PRs through Mojo are merged. Version metadata and the worker packaging fix stay open until their exact npm versions exist, because architecture export restores those manifest versions. The exact merged main architecture workflow 38826009978 passes every comparison, export and deployment; main CI 38825821199 is running. Six 0.1.0 tarballs are assembled and audited for entry points, licenses and parser/worker contents; Dart includes all five workers. The two outdated C/Dart platform notes now distinguish five-target fixture execution from macOS-only real-project trials. Dart copies its guide into the npm README, so that text must be refreshed in the prepared artifact before publication; no code or native worker changes. Both npm browser login windows expired without completion; no packages or GitHub release have been published. The v0.7.0 draft uses the last eight releases user-facing format and remains draft pending its concrete maintainer review. Fresh public install/second-checkout restore scripts are prepared but cannot run before publication.
 <!-- SECTION:NOTES:END -->

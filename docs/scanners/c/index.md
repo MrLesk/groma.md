@@ -5,9 +5,9 @@ The experimental C scanner reads selected `.c` and `.h` source files using the
 with a small C-owned extension for macro syntax.
 The package includes its parser and WebAssembly runtime. Scanning needs no C
 compiler, system headers, build tools, project dependencies or network access.
-The portable package uses the same assets on Windows, Linux and macOS. Current
-real-project qualification ran on macOS ARM64; Windows and Linux execution has
-not yet been verified.
+The portable package passed [fresh-checkout fixture checks](https://github.com/MrLesk/groma.md/actions/runs/38817786034)
+on Windows x64/ARM64, Linux x64/ARM64 and macOS ARM64. Real-project trials ran
+on macOS ARM64.
 
 ## Source selection
 
