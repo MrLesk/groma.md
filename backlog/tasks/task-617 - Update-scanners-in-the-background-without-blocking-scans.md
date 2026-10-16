@@ -1,11 +1,11 @@
 ---
 id: TASK-617
 title: Update scanners in the background without blocking scans
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-16 19:01'
-updated_date: '2026-10-16 19:53'
+updated_date: '2026-10-16 20:00'
 labels: []
 dependencies: []
 references:
@@ -87,26 +87,28 @@ Automatic npm updates currently run before the installed registry loads. A disco
 - [x] #1 Installed npm scanners run immediately in scan, watch and live-view startup without awaiting registry lookups or using a startup timeout; unavailable registry access leaves the installed version usable.
 - [x] #2 Successful background updates preserve project settings and publish the completed scanner selection together, then trigger the normal scan flow with the updated scanners so the open map refreshes through existing behavior.
 - [x] #3 A one-shot scan can finish while the background update check is still pending. Closing a live session does not wait for network checks. Manual plugin update and restoration retain their explicit errors and installation behavior.
-- [ ] #4 Focused regressions prove startup before a deliberately held registry response, offline operation, updated rescan after release, and settings preservation. bun run check and Windows/Linux/macOS CI pass; review Codex feedback before merge.
+- [x] #4 Focused regressions prove startup before a deliberately held registry response, offline operation, updated rescan after release, and settings preservation. bun run check and Windows/Linux/macOS CI pass; review Codex feedback before merge.
 - [x] #5 Project config accepts automaticUpdates as a boolean, defaults to true when absent, and false prevents automatic registry checks and follow-up scans while explicit plugin updates remain available.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Keep automaticUpdates in src/config.ts as an optional validated boolean, enabled when absent. The automatic updater checks it before registry work and again before saving changes. false disables background checks/apply/rescan only; explicit plugin update and restoration keep their behavior. 2. Scan installed packages immediately. Live sessions start registry work outside their startup/close queue, then use the existing reconfigure/scan path after completed changes. Watch mode shares that session, including scan summaries and error callbacks. Closing a live session aborts its package-manager work without a timeout. 3. Inventory owns replacement validation and selection. It prepares compatible updates for installed npm scanners, keeps current packages when background work fails, rereads current config, and saves successful sources together only where the original selection still matches. Current settings, include/exclude lists and global choices are preserved. Git/local sources and the explicit missing-plugin install/restore flow keep their existing owners. 4. The one-shot CLI owns its independent unreferenced worker so process exit does not wait for the registry. Its hidden scanner command completes updates and calls the normal installed-scanner scan only when sources changed. Source and standalone builds share this command. Existing scan/architecture watching updates the map; there is no separate map event, retry policy, cache index or startup timer. 5. Supported test rules come from Alex: cached offline use, immediate startup without a timeout, normal post-update rescan, and default-enabled configuration control. Extend the existing isolated registry fixture to observe actual executed versions and held metadata requests. Catch startup or exit waiting for a held response, a new version being written while the current flag is false, settings lost during a check, and failure to execute the updated scanner. Preserve explicit update/restore coverage, round-trip and validate the boolean in existing config tests, and reuse the held CLI case against a temporary standalone build. 6. This flag and package state are operational configuration, not new OKF knowledge or a C4 element. Ordinary architecture Markdown stays unchanged. Existing scanner inventory, package process and lifecycle components own the meaning; configuration/setup guides explain immediate installed-version use, background updates, normal rescans and the switch. 7. Require focused tests, bun run check, one cold simplicity review, own specification/quality reviews and one final full-context complexity review. Commit one task-scoped PR, handle appropriate Codex feedback, and require Windows/Linux/macOS CI before merge. Release publication remains paused.
-
-Codex follow-up is limited to three concrete findings: make initial ready reject setup errors so watchScan preserves its previous failure contract; place the final config read/source-and-flag checks/write inside the existing GromaFileSystem.withAccess boundary, outside network work; scan the new updater and combine its code into its existing CLI responsibility. Add one invalid-config watch-start regression because current availability coverage only exercises successful and missing selections; it must catch a fulfilled watcher startup instead of a rejected error. Reuse held-registry settings/disable coverage and existing cross-process filesystem access tests for the config commit; avoid global mocks or timing-dependent race tests. Rerun focused and full checks, then hosted all-platform CI and targeted review.
-
-Windows qualification reproduced two existing CLI fixture cleanup failures (EPERM/EBUSY) because a detached worker was launched even for an empty/local-only scanner selection. Keep update work independent when npm is configured, but make the launcher first read only local config and skip spawning when automaticUpdates is false or no npm source is selected. Await only this local launcher decision in scanOnce, never registry work. Existing compiled-local-scanner and empty-selection CLI tests are the regression coverage; do not change their assertions, cleanup, timeouts or retries. Re-run them alongside held npm-registry and explicit-update coverage, the full check and hosted Windows/Linux/macOS qualification.
+1. Validate automaticUpdates as an optional project boolean, enabled when absent. false skips automatic registry work and follow-up scans while explicit plugin updates and restoration keep their behavior.
+2. Scan installed packages immediately. Live/watch sessions start updates outside their startup/close queue and use normal reconfigure/scan after completed updates. Setup failures reject readiness after one error report; closing cancels package work without a startup timer.
+3. Inventory validates and installs compatible replacements without changing config per package. After network work, commit the completed selections under the existing project lock: reread current config, preserve settings and source edits, and respect the current automaticUpdates flag and cancellation. Git/local and missing-package installation retain their existing owners.
+4. The one-shot CLI awaits only a local config decision, skipping a child for disabled or non-npm selections. Eligible npm checks run in an independent unreferenced CLI job, which calls the normal scan when selections change. Existing architecture watching refreshes maps; no new map protocol, cache index, retry policy or startup timeout is introduced.
+5. Verify Alex's supported rules with isolated installed-scanner fixtures, held registry responses, real refused connections, executed versions and config edits. Extend existing config/availability tests for the boolean and rejected startup. Reuse existing filesystem access, compiled local-scanner and empty-selection CLI tests for transaction/lifecycle fixes; preserve their assertions, cleanup and timeouts. Verify source and compiled npm one-shot exit while the response remains held.
+6. These switches and packages are operational configuration, not new OKF knowledge or a C4 element. Keep ordinary architecture Markdown meaning and existing ownership. Scan the launcher and combine its source into Command interface; include task-caused derived relationship changes. Document the setting, offline startup and normal background rescan.
+7. Run focused and complete repository checks, the cold simplicity review, own specification/quality review and final full-context complexity review. Address actual Codex/CI findings with scoped fixes and targeted own reviews. Require Windows/Linux/macOS CI and architecture comparison before merge; record the Codex re-review quota limitation. Release publication remains paused.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -147,4 +149,12 @@ Reviewed-head Linux and macOS CI completed successfully, and architecture compar
 Windows rerun 38955926583 attempt 2 cleared Maven and reached all tests. It reproduced EPERM/EBUSY cleanup failures in compiled-scanner and first-scan-curation: an unnecessary detached worker held temporary project/executable paths even with only local or no scanners. The launcher now reads only local config before spawning and returns when automaticUpdates is false or no npm source is selected. scanOnce awaits this local decision only; npm registry/download work remains independent. Existing tests and assertions are unchanged. Focused coverage passes 41 tests across seven files, 196 assertions. Targeted own review confirms the npm held-response path still starts independently, disabled/local/empty selections launch no worker, and ownership stays on Command interface. Full checks and the rebuilt standalone smoke follow, then fresh hosted all-platform qualification.
 
 Windows lifecycle fix qualification passes: final bun run check completed lint/types, 16 Node tests and 891 Bun tests with 62 optional skips, zero failures and 3649 Bun assertions. Focused seven-file coverage passes 41 tests/196 assertions, and the rebuilt standalone held-registry smoke passes. Targeted own specification/quality review is limited to the actual Windows no-op-worker finding and its regressions; local-only/empty/disabled selections stop before spawn while npm remains independent after the local config read. No new tests, retries, timeout or platform-specific branch was needed. Pushing this source fix for fresh all-platform CI; AC4 remains pending.
+
+Final source qualification is green on e14464361ad9dc6e4ce5492ce8407b2770686b86: CI run 38958218249 passed Windows, Linux and macOS, and architecture comparison 38958214262 passed. The unchanged Windows compiled-local-scanner and first-scan CLI cases are now covered by successful repository checks after the no-op-worker fix. All three original Codex findings are fixed and resolved; no unresolved review threads remain on PR #164. Codex could not run its later re-review because the account code-review quota was exhausted, so that limit remains visible in the PR. Required cold/full-context reviews and targeted implementer reviews passed; final local full/focused/standalone checks passed. All acceptance criteria and Definition of Done items have evidence. This final commit only records task verification; qualify the resulting hosted head before merging. Publication remains paused.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Installed scanners now run immediately, including offline. Compatible npm updates complete in the background and trigger the normal scan, so existing map watching refreshes results. automaticUpdates defaults to true; false disables this work and its follow-up scan while explicit plugin commands remain available. Final config selection uses the existing project lock and preserves current edits. One-shot CLI jobs remain independent and skip disabled/non-npm projects; startup errors propagate and live close cancels pending package work. The launcher is owned by Command interface. Verified 41 focused tests/196 assertions, lint/types, 16 Node and 891 Bun tests (62 optional skips, zero failures), rebuilt standalone held-registry exit, green Windows/Linux/macOS CI and architecture comparison. Original Codex findings are addressed; automated re-review reached the account limit. Release publication remains paused.
+<!-- SECTION:FINAL_SUMMARY:END -->
