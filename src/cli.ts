@@ -165,7 +165,7 @@ async function scanOnce(): Promise<void> {
   console.log('ok')
   console.log(formatScanReport(root, summary))
   if (await awaitingCuration(root)) console.log(`${firstScanTitle}. ${firstScanHint}`)
-  startBackgroundScannerUpdates(root)
+  await startBackgroundScannerUpdates(root)
 }
 
 async function runScan(watchEnabled: boolean): Promise<void> {
