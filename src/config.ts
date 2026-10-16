@@ -1,5 +1,6 @@
 import path from 'node:path'
 import type { ScannerSettings } from '@groma/scanner'
+import { backlogPlugin } from '@groma/work-source-backlog'
 import ignore from 'ignore'
 import { GromaFileSystem } from './groma-filesystem.ts'
 
@@ -182,15 +183,22 @@ function parseGromaConfig(
 
 export async function readGromaConfig(repositoryRoot: string): Promise<GromaConfig> {
   const filesystem = GromaFileSystem.open(repositoryRoot)
-  try {
-    return parseGromaConfig(
-      await filesystem.read('config.json'),
-      filesystem.sourceFilename('config.json'),
-    )
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { scanners: [], workSources: [] }
-    throw error
-  }
+  return filesystem.withAccess(async () => {
+    if (filesystem.exists('config.json')) {
+      return parseGromaConfig(await filesystem.read('config.json'), filesystem.sourceFilename('config.json'))
+    }
+    if (!filesystem.exists('scanners.json')) return { scanners: [], workSources: [] }
+
+    // Before config.json, an installed Backlog CLI enabled tasks without a recorded selection.
+    const config = parseGromaConfig(await filesystem.read('scanners.json'), filesystem.sourceFilename('scanners.json'))
+    if (!config.scanners.some(scanner => scanner.id === 'backlog')) {
+      const backlog = await backlogPlugin.readiness()
+      config.workSources = backlog.status === 'found' ? [{ id: 'backlog', version: backlog.version }] : []
+    }
+    await writeGromaConfig(repositoryRoot, config)
+    await filesystem.removeSource(filesystem.sourceFilename('scanners.json'))
+    return config
+  })
 }
 
 /** Saves config.json in one key order, and only when the parser accepts it: every rule of the file has that one owner. */
