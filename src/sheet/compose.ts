@@ -115,6 +115,20 @@ function mediatorScore(id: string, mediators: ReadonlySet<string>, flow: readonl
   }, 0)
 }
 
+function entryReachableUnits(
+  entries: ReadonlySet<string>,
+  units: ReadonlySet<string>,
+  flow: readonly Connection[],
+): Set<string> {
+  const reached = new Set(entries)
+  for (const source of reached) {
+    for (const connection of flow) {
+      if (connection.source === source && units.has(connection.target)) reached.add(connection.target)
+    }
+  }
+  return reached
+}
+
 /** Reads the entry, mediator and sink roles of one internal system from its leaf relationships. */
 export function containerFlow(
   placement: Placement,
@@ -144,8 +158,9 @@ export function containerFlow(
   })
   if (entries.length === 0) return null
   const entryIds = new Set(entries)
-  // A fan-out has no intermediate container: keep its endpoint-aware packing.
-  const onward = flow.filter(connection => unitIds.has(connection.source) && !entryIds.has(connection.source))
+  const reached = entryReachableUnits(entryIds, unitIds, flow)
+  // Only an entry-reachable intermediate container can turn packing into columns.
+  const onward = flow.filter(connection => reached.has(connection.source) && !entryIds.has(connection.source))
   const core = [...units]
     .filter(unit => !entryIds.has(unit.representationId)
       && onward.some(connection => connection.target === unit.representationId))

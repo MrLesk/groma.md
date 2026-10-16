@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-16 06:03'
-updated_date: '2026-10-16 14:24'
+updated_date: '2026-10-16 14:29'
 labels: []
 dependencies: []
 references:
@@ -23,6 +23,7 @@ modified_files:
   - test-bun/pack-forces.test.ts
   - src/sheet/compose.ts
   - docs/product-model.md
+  - test-bun/sheet-compose.test.ts
 type: bug
 ordinal: 673000
 ---
@@ -61,6 +62,8 @@ The map spreads separate workers around a large application even when their conn
 6. Preserve endpoint-aware placement while reducing repeated calculation: skip duplicate clamped candidates in first-seen order, stop scoring when the nonnegative partial cost cannot improve the best candidate, and index rectangles with numeric buckets that yield each entry once. Measure the original main algorithm, the unoptimized PR and the optimized version on the reported dense graphs. Compare complete placements against the saved unoptimized PR for the same synthetic worlds, fixtures and project model; rerun focused and repository checks and update PR #160. No new timing test is needed: existing tests cover locality/spacing/routing, while exact comparisons and comparative measurements verify this behavior-preserving reduction without unstable clock assertions.
 
 OKF/C4: preserve the existing readable Markdown concepts and links and the true container/component ownership. Endpoint coordinates are temporary shared-sheet geometry, not new metadata, architecture elements or ownership. This rule uses only recorded relationships and works independently of scanner or language; absent relationship evidence remains absent.
+
+7. Codex review follow-up: prevent disconnected container edges from activating entry/mediator/core composition. Follow directed internal-container paths from actor entries and consider onward connections only from those reached containers. Keep existing placement and column rules otherwise. Test authority is the documented direct-fan-out rule and the reproduced review example (actor -> entry, entry -> two leaves, disconnected X -> Y). The incorrect result is a non-null container flow selecting Y as core and rearranging the fan-out. Existing composition tests cover a reachable multi-entry chain, but no fan-out with an unrelated edge. Add one regression to the existing composition test file, prove it fails before the fix, and rerun focused tests and bun run check. This is presentation-only: ordinary Markdown links and C4 ownership remain unchanged; no scanner or language interpretation is added.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -91,10 +94,16 @@ Final performance verification: the 100-component complete graph (4,950 connecti
 Targeted re-review of the original performance finding passes with no findings. The reviewer independently checked 3,000 bucket queries against 300 rectangles, including negative and fractional coordinates and exact boundaries, with no missing or duplicate overlaps. Implementer specification re-review confirms AC5 while preserving AC1-4. Quality re-review traced candidate generation -> clamp/deduplication -> nonnegative cost pruning -> unique bucket queries; first-candidate tie order and full-score arithmetic are preserved. No scanner, metadata, C4 boundary or product behavior changes were added by this optimization; no new complexity warnings or files over 500 lines. No groma/ files changed. Refreshed the review export and map image from this revision.
 
 Alex accepted proceeding on 2026-10-16 and explicitly authorized merging PR #160 once Codex review approves, fixing relevant review findings first. All acceptance criteria and Definition of Done items already have verification evidence. Marking the implementation Done records that human acceptance; GitHub merge remains conditional on successful Codex review and CI for the final PR head.
+
+Accepted Codex P2 finding https://github.com/MrLesk/groma.md/pull/160#discussion_r4295683042: an unrelated X -> Y edge can activate column composition for an actor-entry direct fan-out. Reopening the task to reproduce and correct that documented flow-rule defect before merge.
+
+The new disconnected-edge regression failed before the fix: containerFlow selected the disconnected sink as core. The fix follows directed relationships from entry containers within the same system and ignores unreached sources when deciding whether an intermediate flow exists. Existing column placement and complete-unit spacing remain unchanged once that decision is valid.
+
+Codex finding verification: the new regression fails before the fix by selecting the disconnected sink as core, and passes after entry-reachability gates onward connections. All 43 focused tests pass. Full bun run check passes lint, types, Node tests and 876 Bun tests, with 62 existing optional-runtime skips. Complete scenes for all four fixtures and the frozen approved project placement remain identical. The initial focused command lacked sandbox access to fixture locks; rerunning the unchanged command with managed-worktree access passes. Specification re-review confirms the documented direct fan-out rule and AC1; quality re-review is limited to this finding and its regressions. Directed traversal stays within the system, terminates on cycles because each unit enters the set once, and leaves existing column positioning intact. The single concurrent regression proves the concrete defect without freezing wording or coordinates. No scanner contracts, stored architecture, groma/ files, or unrelated source changed. The final source and test files remain under 500 lines with no new lint or complexity warnings. Alex's prior merge authorization remains in effect after fresh Codex review and CI.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Shared-sheet placement retains actual relationship endpoint positions through growth, path costs, alignment and final flow composition. Rust, C# and Go workers now occupy neighboring slots above Language analysis. Scanner contracts, C4 ownership and stored architecture metadata are unchanged. Candidate deduplication, exact cost pruning and unique numeric bucket queries preserve those placements while reducing the reproduced 100-component dense case from about 3 seconds to 226 ms (original main about 180 ms). Complete placement comparisons, focused tests, full repository checks and the targeted performance review pass. Alex accepted proceeding to merge; PR #160 awaits successful Codex review and CI on its final head.
+Shared-sheet placement retains actual relationship endpoint positions through growth, path costs, alignment and final flow composition. Rust, C# and Go workers occupy neighboring slots above Language analysis. Column composition requires an entry-reachable intermediate connection, so a disconnected edge cannot rearrange a direct fan-out. Scanner contracts, C4 ownership and stored architecture metadata are unchanged. Calculation reductions bring the reported 100-component dense case from about 3 seconds to 226 ms (original main about 180 ms). The Codex regression fails before the fix and passes after it; 43 focused tests and the full repository check pass. Alex accepted proceeding to merge; PR #160 awaits successful Codex review and CI on its final head.
 <!-- SECTION:FINAL_SUMMARY:END -->
