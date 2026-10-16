@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-16 06:03'
-updated_date: '2026-10-16 06:19'
+updated_date: '2026-10-16 06:20'
 labels: []
 dependencies: []
 references:
@@ -38,12 +38,12 @@ The map spreads separate workers around a large application even when their conn
 - [x] #1 Sibling containers connected to nearby components of another container are placed together near that component region, including the approved three-worker map.
 - [x] #2 Placement uses the recorded architecture graph and preserves C4 ownership, authored groups, clear spacing, connection capacity, deterministic output and world immutability.
 - [x] #3 Scanner evidence and plugin contracts are unchanged; no architecture or placement decision branches on a scanner identity or implementation.
-- [ ] #4 The PR includes the task record and an updated rendered map for human review.
+- [x] #4 The PR includes the task record and an updated rendered map for human review.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
+- [x] #1 Acceptance criteria have objective verification evidence.
 - [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
@@ -70,4 +70,12 @@ Cold simplicity review passed with no blocking or material findings. Applied its
 Specification review: the approved project map places Rust, C# and Go in neighboring slots above Language analysis; all retained source and C4 ownership remains unchanged. The generic regression passes after the change and the final assertion fails against the original sheet code in an isolated temporary baseline. Existing tests verify spacing, route capacity, deterministic output and immutable architecture. Quality review: traced placeWorld -> lifted endpoint offsets -> grow/path scoring -> balance -> final composition -> routing; responsibilities and centre-relative offsets are explicit, all changed files stay below 500 lines, lint reports no new complexity warnings, and no scanner identity is interpreted. The second full bun run check passed (794 Bun tests, 54 optional-runtime skips), plus Node tests, lint and types. tui-test verified the root worker row at 120x36 and 200x60, details, container drill-down, arrow navigation and returning to root. Actual web painters generated overview.png and workers.png under /private/tmp/groma-613-review; static export is served locally on port 4391. No scanner was run, no Groma-owned architecture files changed, and existing shared-sheet components own all modified source files.
 
 Final full-context complexity review passed with no blockers or material simplification recommendations. After rebasing onto current origin/main, bun run check passed again: lint, TypeScript, Node tests and 875 Bun tests, with 62 existing optional-runtime skips. Refreshed static export and the overview/worker images from that final branch. Implementation is ready for Alex to review; the task stays In Progress until that human review.
+
+PR created and attached to the Codex chat: https://github.com/MrLesk/groma.md/pull/160. Verified the PR contains exactly this task record, five shared-sheet source files, the relevant product documentation and two test files. The PR embeds the updated worker map at https://github.com/user-attachments/assets/9d97eec6-dff3-4f27-a505-9b95ba1165cc. All acceptance criteria and Definition of Done items have evidence; status remains In Progress pending Alex reviewing the rendered map.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Shared-sheet placement retains actual relationship endpoint positions instead of reducing each container connection to its centre. Growth placement, path pricing and alignment keep containers serving one local region nearby; direct fan-out retains that placement in final composition. The approved map now places Rust, C# and Go workers together above Language analysis. Scanner contracts, C4 ownership and stored architecture metadata are unchanged. Full repository checks, regression verification, terminal/web inspection and both required complexity reviews passed. PR #160 is ready for human review; the task remains In Progress.
+<!-- SECTION:FINAL_SUMMARY:END -->
