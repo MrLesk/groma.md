@@ -4,7 +4,7 @@ import { watchObservations } from './source-watch.ts'
 import { readGromaConfig } from '../config.ts'
 import type { ProjectReadiness } from './modules/readiness.ts'
 import { changePluginSettings, readPluginSettings, type PluginSettings, type PluginSettingsAction } from '../plugins/settings.ts'
-import type { ScannerInstallOptions } from './modules/inventory.ts'
+import { updateNpmScanners, type ScannerInstallOptions } from './modules/inventory.ts'
 
 export type ScannerProgress =
   | { phase: 'preparing-scanners' | 'updating-architecture' }
@@ -84,7 +84,10 @@ export async function createScannerSession(root: string, options: {
     serial = next.catch(() => {})
     return next
   }
-  const ready = enqueue(() => start(options.scan !== false))
+  const ready = enqueue(async () => {
+    await updateNpmScanners(root, options)
+    await start(options.scan !== false)
+  })
 
   return {
     /** Resolves after the initial scan, including its architecture update and failure reporting. */

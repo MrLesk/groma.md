@@ -163,6 +163,7 @@ export async function updateScanner(
   if (installed.package.id !== id) {
     throw new Error(`replacement scanner id ${installed.package.id} does not match ${id}`)
   }
+  if (selected.source === installed.source) return { id, source: selected.source, status: 'found' }
   const updated = { ...selected, source: installed.source }
   await writeGromaConfig(repositoryRoot, {
     ...config, scanners: config.scanners.map(scanner => scanner.id === id ? updated : scanner),
@@ -170,12 +171,23 @@ export async function updateScanner(
   return { id, source: updated.source, status: 'found' }
 }
 
-/** Restore one project selection without installing unrelated configured packages. */
+/** Refresh configured npm scanners before a scan session; Git and local selections stay as declared. */
+export async function updateNpmScanners(root: string, options: ScannerInstallOptions = {}): Promise<void> {
+  for (const scanner of (await readGromaConfig(root)).scanners) {
+    if (parseScannerSource(root, scanner.source).kind === 'npm') await updateScanner(root, scanner.id, undefined, options)
+  }
+}
+
+/** Restore one configured scanner; npm uses the newest compatible release. */
 export async function restoreScanner(repositoryRoot: string, id: string, options: ScannerInstallOptions = {}): Promise<void> {
   const configured = (await readGromaConfig(repositoryRoot)).scanners.find(scanner => scanner.id === id)
   if (!configured) throw new Error(`scanner is not configured: ${id}`)
   const source = parseScannerSource(repositoryRoot, configured.source)
   if (source.kind === 'local') throw new Error(`Restore the local scanner directory: ${configured.source}`)
+  if (source.kind === 'npm') {
+    await updateScanner(repositoryRoot, id, undefined, options)
+    return
+  }
   const installed = await installScannerPackage(source, cacheRoot(options), options.registry)
   if (installed.package.id !== id) throw new Error(`restored scanner id ${installed.package.id} does not match ${id}`)
 }

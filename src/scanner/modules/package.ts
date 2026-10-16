@@ -245,16 +245,15 @@ async function installGitScanner(
   }
 }
 
-/** Installation is explicit; registry loading only resolves already installed packages. */
+/** Reuse an installed exact source before downloading it. Registry loading only resolves installed packages. */
 export async function installScannerPackage(
   source: ScannerSource,
   cacheRoot = defaultScannerCacheRoot(),
   registry?: string,
 ): Promise<{ source: string; package: ResolvedScannerPackage }> {
   if (source.kind === 'git') return installGitScanner(source, cacheRoot, registry)
-  const resolved = source.kind === 'npm'
-    ? await installNpmScanner(source, cacheRoot, registry)
-    : await resolveScannerPackage(source, cacheRoot)
+  const resolved = await resolveScannerPackage(source, cacheRoot)
+    ?? (source.kind === 'npm' ? await installNpmScanner(source, cacheRoot, registry) : undefined)
   if (resolved === undefined) throw new Error(`scanner package not found: ${source.source}`)
   return { source: source.source, package: resolved }
 }
