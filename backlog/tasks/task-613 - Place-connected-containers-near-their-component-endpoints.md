@@ -1,11 +1,11 @@
 ---
 id: TASK-613
 title: Place connected containers near their component endpoints
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-16 06:03'
-updated_date: '2026-10-16 14:17'
+updated_date: '2026-10-16 14:24'
 labels: []
 dependencies: []
 references:
@@ -89,10 +89,12 @@ After numeric bucket indexing, the separate distance-bound pass had no meaningfu
 Final performance verification: the 100-component complete graph (4,950 connections) has a median placement time of 225.88 ms, down from about 2,985 ms for the unoptimized PR; original main is 179.66 ms in the same comparison. Medians for 50/75 components are 39.84/107.85 ms, against original main 34.17/84.55 ms. The large fixture improves from 45.02 to 37.68 ms. Complete placements and routes match the saved unoptimized PR for 200 seeded synthetic worlds, four fixtures and the approved project model; the rendered worker image is byte-identical. All 42 focused tests pass. Final bun run check passes lint, types, Node tests and 875 Bun tests, with 62 existing optional-runtime skips.
 
 Targeted re-review of the original performance finding passes with no findings. The reviewer independently checked 3,000 bucket queries against 300 rectangles, including negative and fractional coordinates and exact boundaries, with no missing or duplicate overlaps. Implementer specification re-review confirms AC5 while preserving AC1-4. Quality re-review traced candidate generation -> clamp/deduplication -> nonnegative cost pruning -> unique bucket queries; first-candidate tie order and full-score arithmetic are preserved. No scanner, metadata, C4 boundary or product behavior changes were added by this optimization; no new complexity warnings or files over 500 lines. No groma/ files changed. Refreshed the review export and map image from this revision.
+
+Alex accepted proceeding on 2026-10-16 and explicitly authorized merging PR #160 once Codex review approves, fixing relevant review findings first. All acceptance criteria and Definition of Done items already have verification evidence. Marking the implementation Done records that human acceptance; GitHub merge remains conditional on successful Codex review and CI for the final PR head.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Shared-sheet placement retains actual relationship endpoint positions through growth, path costs, alignment and final flow composition. Rust, C# and Go workers now occupy neighboring slots above Language analysis. Scanner contracts, C4 ownership and stored architecture metadata are unchanged. Candidate deduplication, exact cost pruning and unique numeric bucket queries preserve those placements while reducing the reproduced 100-component dense case from about 3 seconds to 226 ms (original main about 180 ms). Complete placement comparisons, focused tests, full repository checks and the targeted performance review pass. PR #160 and its map are ready for human review; the task remains In Progress.
+Shared-sheet placement retains actual relationship endpoint positions through growth, path costs, alignment and final flow composition. Rust, C# and Go workers now occupy neighboring slots above Language analysis. Scanner contracts, C4 ownership and stored architecture metadata are unchanged. Candidate deduplication, exact cost pruning and unique numeric bucket queries preserve those placements while reducing the reproduced 100-component dense case from about 3 seconds to 226 ms (original main about 180 ms). Complete placement comparisons, focused tests, full repository checks and the targeted performance review pass. Alex accepted proceeding to merge; PR #160 awaits successful Codex review and CI on its final head.
 <!-- SECTION:FINAL_SUMMARY:END -->
