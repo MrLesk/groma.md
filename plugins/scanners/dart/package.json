@@ -36,7 +36,7 @@
           }
         ],
         "compatibility": {
-          "groma": ">=0.6.6"
+          "groma": ">=0.7.0"
         }
       }
     }

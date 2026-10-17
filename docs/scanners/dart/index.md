@@ -11,8 +11,9 @@ groma plugin add @groma/scanner-dart
 The package contains Dart analyzer 14.5.0 compiled with Dart SDK 3.13.5 into a
 standalone executable. Scanning requires no installed Dart or Flutter SDK,
 project dependencies, package download, `pub get`, build or code generation.
-Release builds target Linux and Windows x64/ARM64 and macOS ARM64. Local
-qualification currently covers macOS ARM64; other hosts require their native CI run.
+The package passed [fresh-checkout fixture checks](https://github.com/MrLesk/groma.md/actions/runs/38817786034)
+on Linux and Windows x64/ARM64 and macOS ARM64. Real-project qualification is
+from macOS ARM64.
 
 ## Inputs and source structure
 
