@@ -1,4 +1,4 @@
-import { readGromaConfig, writeGromaConfig } from '../config.ts'
+import { readGromaConfig, updateGromaConfig } from '../config.ts'
 import {
   addScanner,
   configuredScannerModules,
@@ -80,7 +80,10 @@ export async function addPlugin(root: string, input: string, options: ScannerIns
   const listed = config.workSources[0]
   if (listed) throw new Error(`config.json already lists the work source ${listed.id}; remove it before adding another`)
   const version = await ensureTool(bundledWorkSource(id), false)
-  await writeGromaConfig(root, { ...config, workSources: [{ id, version }] })
+  await updateGromaConfig(root, current => {
+    if (current.workSources.length) throw new Error(`config.json already lists the work source ${current.workSources[0]!.id}; remove it before adding another`)
+    return { ...current, workSources: [{ id, version }] }
+  })
   return { kind: 'workSource', id, selection: version }
 }
 
@@ -89,7 +92,10 @@ export async function removePlugin(root: string, id: string): Promise<string> {
   const config = await readGromaConfig(root)
   if (config.scanners.some(scanner => scanner.id === id)) return removeScanner(root, id)
   if (!config.workSources.some(work => work.id === id)) throw new Error(`plugin is not configured: ${id}`)
-  await writeGromaConfig(root, { ...config, workSources: config.workSources.filter(work => work.id !== id) })
+  await updateGromaConfig(root, current => {
+    if (!current.workSources.some(work => work.id === id)) throw new Error(`plugin is not configured: ${id}`)
+    return { ...current, workSources: current.workSources.filter(work => work.id !== id) }
+  })
   return id
 }
 
@@ -104,10 +110,18 @@ export async function updatePlugin(root: string, id: string, input?: string, opt
     const updated = await updateScanner(root, id, input, options)
     return { kind: 'scanner', id, selection: updated.source }
   }
-  if (!config.workSources.some(work => work.id === id)) throw new Error(`plugin is not configured: ${id}`)
+  const selected = config.workSources.find(work => work.id === id)
+  if (!selected) throw new Error(`plugin is not configured: ${id}`)
   if (input !== undefined) throw new Error(`${id} ships inside groma.md; update it without a source`)
   const version = await ensureTool(bundledWorkSource(id), true)
-  await writeGromaConfig(root, { ...config, workSources: config.workSources.map(work => work.id === id ? { id, version } : work) })
+  await updateGromaConfig(root, current => {
+    const work = current.workSources.find(item => item.id === id)
+    if (!work || (work.version !== selected.version && work.version !== version)) {
+      throw new Error(`plugin selection changed while updating: ${id}`)
+    }
+    if (work.version === version) return undefined
+    return { ...current, workSources: current.workSources.map(item => item.id === id ? { id, version } : item) }
+  })
   return { kind: 'workSource', id, selection: version }
 }
 

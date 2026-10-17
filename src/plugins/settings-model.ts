@@ -26,12 +26,14 @@ export interface WorkSourceSetting extends PluginSettingFields {
 /** One row of the plugin settings list; `kind` tells which fields the row has. */
 export type PluginSetting = ScannerSetting | WorkSourceSetting
 export interface PluginSettings {
+  automaticUpdates: boolean
   plugins: PluginSetting[]
   notice: { tone: 'neutral' | 'hint' | 'warning' | 'error'; message: string }
   limits: string[]
   upgrades?: Record<string, { version?: string; error?: string }>
 }
 export type PluginSettingsAction =
+  | { action: 'automatic-updates'; enabled: boolean }
   | { action: 'add'; source: string }
   | { action: 'install' | 'restore' | 'remove'; id: string }
   | { action: 'update'; id: string; source?: string }

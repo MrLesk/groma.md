@@ -249,3 +249,113 @@ test.concurrent('restoring an npm scanner selects the current release and reuses
     expect(await readFile(path.join(f.root, 'groma/config.json'), 'utf8')).toBe(saved)
   } finally { await f.close() }
 })
+
+test.concurrent('a manual update keeps concurrent plugin removal and edited project settings', async () => {
+  const f = await fixture()
+  let gate: ReturnType<typeof f.holdRegistry> | undefined
+  try {
+    await writeGromaConfig(f.root, { ...f.config, scanners: [
+      ...f.config.scanners, { id: 'other', source: './other', include: ['**/*.other'] },
+    ] })
+    gate = f.holdRegistry()
+    const updating = changePluginSettings(f.root, { action: 'update', id: 'sample' }, f.options)
+    await gate.requested
+    await changePluginSettings(f.root, { action: 'remove', id: 'other' }, f.options)
+    const current = await readGromaConfig(f.root)
+    const changed = { ...current, automaticUpdates: false, useGitignore: true,
+      scanners: current.scanners.map(scanner => ({ ...scanner, settings: { mode: 'edited' } })) }
+    await writeGromaConfig(f.root, changed)
+    gate.release()
+    await updating
+    expect(await readGromaConfig(f.root)).toEqual({ ...changed,
+      scanners: changed.scanners.map(scanner => ({ ...scanner, source: `${f.name}@1.1.0` })) })
+  } finally { gate?.release(); await f.close() }
+})
+
+test.concurrent('Plugins switches automatic updates without rescanning and honors a pending disable', async () => {
+  const f = await fixture()
+  let session: Awaited<ReturnType<typeof createScannerSession>> | undefined
+  let gate: ReturnType<typeof f.holdRegistry> | undefined
+  try {
+    await updateScanner(f.root, 'sample', `${f.name}@1.0.0`, f.options)
+    gate = f.holdRegistry()
+    session = await createScannerSession(f.root, f.options)
+    await session.ready
+    expect(session.state.automaticUpdates).toBe(true)
+    await gate.requested
+    const updating = session.checkUpdates()
+    await session.change(parsePluginSettingsAction({ action: 'automatic-updates', enabled: false }))
+    expect(session.state.automaticUpdates).toBe(false)
+    expect(f.scans).toEqual(['1.0.0'])
+    gate.release()
+    await updating
+    expect((await readGromaConfig(f.root)).scanners[0]?.source).toBe(`${f.name}@1.0.0`)
+    expect(f.scans).toEqual(['1.0.0'])
+    await session.change({ action: 'automatic-updates', enabled: true })
+    await session.checkUpdates()
+    expect(session.state.automaticUpdates).toBe(true)
+    expect(f.scans).toEqual(['1.0.0', '1.1.0'])
+    const current = await readGromaConfig(f.root)
+    await writeGromaConfig(f.root, { ...current, automaticUpdates: false })
+    await session.reconfigure()
+    expect(session.state.automaticUpdates).toBe(false)
+    expect(f.scans).toEqual(['1.0.0', '1.1.0'])
+    expect(() => parsePluginSettingsAction({ action: 'automatic-updates', enabled: 'false' })).toThrow()
+  } finally { gate?.release(); await session?.close(); await f.close() }
+})
+
+test.concurrent('opening Plugins rechecks a running session without waiting and shares its in-flight check', async () => {
+  const f = await fixture()
+  let session: Awaited<ReturnType<typeof createScannerSession>> | undefined
+  let gate: ReturnType<typeof f.holdRegistry> | undefined
+  try {
+    await updateScanner(f.root, 'sample', `${f.name}@1.0.0`, f.options)
+    session = await createScannerSession(f.root, f.options)
+    await session.ready
+    await session.checkUpdates()
+    expect(f.scans).toEqual(['1.0.0', '1.1.0'])
+    f.publishNewer()
+    const reads = f.metadataReads()
+    gate = f.holdRegistry()
+    const checking = session.checkUpdates()
+    const overlapping = session.checkUpdates()
+    await gate.requested
+    const settings = await session.refresh(true)
+    expect(settings.plugins.find(plugin => plugin.id === 'sample')?.version).toBe('1.1.0')
+    const repeated = session.checkUpdates()
+    gate.release()
+    await Promise.all([checking, overlapping, repeated])
+    // Repeated openings add no requests beyond one compatibility lookup and installation.
+    expect(f.metadataReads() - reads).toBeLessThanOrEqual(3)
+    expect(session.state.plugins.find(plugin => plugin.id === 'sample')?.version).toBe('1.2.0')
+    expect(f.scans).toEqual(['1.0.0', '1.1.0', '1.2.0'])
+  } finally { gate?.release(); await session?.close(); await f.close() }
+})
+
+test.concurrent('web Plugins retains registry diagnostics when automatic updates are enabled', async () => {
+  const f = await fixture()
+  const home = await mkdtemp(path.join(os.tmpdir(), 'groma-plugins-home-'))
+  try {
+    await updateScanner(f.root, 'sample', `${f.name}@1.0.0`, f.options)
+    await cp(f.options.cacheRoot, path.join(home, '.groma/cache/scanners'), { recursive: true })
+    await writeFile(path.join(home, '.npmrc'), `registry=${f.options.registry}\n`)
+    f.makeUnavailable()
+    const probe = path.join(home, 'probe.ts')
+    await writeFile(probe, `
+      import { createWebMapSession } from ${JSON.stringify(path.resolve(import.meta.dir, '../src/viewers/web/map-session.ts'))}
+      const session = await createWebMapSession(${JSON.stringify(f.root)}, { scan: false })
+      try {
+        const response = await session.fetch(new Request('http://localhost/plugin-settings?updates'))
+        console.log(JSON.stringify(await response.json()))
+      } finally { await session.close() }
+    `)
+    const child = Bun.spawn([process.execPath, probe], {
+      stdout: 'pipe', stderr: 'pipe', env: { ...process.env, HOME: home, USERPROFILE: home },
+    })
+    const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()])
+    expect(code, stderr).toBe(0)
+    const settings = JSON.parse(stdout)
+    expect(settings.automaticUpdates).toBe(true)
+    expect(settings.upgrades?.[`${f.name}@1.0.0`]?.error).toContain('503')
+  } finally { await f.close(); await rm(home, { recursive: true, force: true }) }
+})

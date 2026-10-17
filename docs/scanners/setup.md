@@ -27,7 +27,9 @@ other missing plugins, and scans. Both actions keep successful installations if
 another package fails; Retry attempts the remaining work.
 
 Scans and live maps start immediately with installed scanners. The project's
-`automaticUpdates` setting defaults to `true`; `false` disables background
+`automaticUpdates` setting defaults to `true`; **Automatic updates** in Plugins
+(web checkbox or terminal `t`) changes it. Opening Plugins rechecks in the
+background without waiting for the registry. `false` disables background
 updates and their follow-up scan. npm update checks run in the background; offline use keeps the installed versions working. Once
 updates finish, Groma records their versions and runs the normal scan again, so
 the open map refreshes through its existing architecture watcher. Project

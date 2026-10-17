@@ -21,7 +21,7 @@ test.concurrent('upgrade checks preserve scan health and offer only a newer comp
     official: false, technologies: ['sample'], matches: ['project.json'], match: 'matched' as const,
     status: 'ready' as const, message: 'Scan completed.',
   }
-  const state: PluginSettings = { plugins: [scanner,
+  const state: PluginSettings = { automaticUpdates: false, plugins: [scanner,
     { ...scanner, id: 'local', source: './plugin' },
     { ...scanner, id: 'git', source: 'git+https://example.com/scanner#abc' },
     { ...scanner, id: 'missing', status: 'missing' },

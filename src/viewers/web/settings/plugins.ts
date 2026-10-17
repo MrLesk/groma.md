@@ -40,6 +40,8 @@ export const pluginSettingsCss = `
   #scanner-settings form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
   #scanner-settings label { display: grid; gap: 8px; flex: 1; min-width: 0; }
   #scanner-settings input { width: 100%; box-sizing: border-box; border: 1px solid var(--hairline); border-radius: var(--control-radius); background: var(--paper); color: var(--ink); padding: 9px; font: inherit; }
+  #scanner-settings .scanner-updates { display: flex; flex: none; align-items: center; gap: 8px; }
+  #scanner-settings .scanner-updates input { width: auto; }
   #scanner-settings .scanner-error { color: var(--diff-removed); }
   #scanner-settings .scanner-error summary { color: inherit; }
   #scanner-settings [hidden] { display: none; }
@@ -113,7 +115,7 @@ function settingGroup(group: ReturnType<typeof pluginGroups>[number], showBulk: 
 
 /** Plugin management uses the live data source inside Settings. */
 export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onState: (state: PluginSettings) => void) {
-  host.innerHTML = '<p class="scanner-notice" hidden></p><div class="scanner-tools"><input type="search" aria-label="Search plugins" placeholder="Search plugins"><button class="chrome-button" type="button" data-add>Add plugin</button></div>'
+  host.innerHTML = '<p class="scanner-notice" hidden></p><label class="scanner-updates"><input type="checkbox" data-automatic-updates>Automatic updates</label><div class="scanner-tools"><input type="search" aria-label="Search plugins" placeholder="Search plugins"><button class="chrome-button" type="button" data-add>Add plugin</button></div>'
     + '<form hidden><label>Plugin source<input name="source" placeholder="package name, package@version, Git URL, or local path" required></label><button class="chrome-button" type="submit">Add</button><button class="chrome-button" type="button" data-cancel>Cancel</button></form>'
     + '<details class="scanner-error" hidden><summary></summary><pre></pre></details><button class="chrome-button" type="button" data-retry hidden>Retry installation</button><div data-rows></div>'
   const rows = host.querySelector<HTMLElement>('[data-rows]')!
@@ -123,6 +125,7 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
   const search = host.querySelector<HTMLInputElement>('input[type="search"]')!
   const notice = host.querySelector<HTMLElement>('.scanner-notice')!
   const retry = host.querySelector<HTMLButtonElement>('[data-retry]')!
+  const automatic = host.querySelector<HTMLInputElement>('[data-automatic-updates]')!
   let updateId: string | undefined
   let state: PluginSettings | undefined
   let upgrades: PluginSettings['upgrades']
@@ -149,6 +152,7 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
     if (focused) rows.querySelector<HTMLElement>(`[data-scanner-id="${CSS.escape(focused)}"] ${focusedSelector}`)?.focus()
   }
   function setBusy() {
+    automatic.disabled = busy !== undefined
     for (const button of host.querySelectorAll<HTMLButtonElement>('button')) button.disabled = busy !== undefined
     if (!busy || !('id' in busy)) return
     const button = rows.querySelector<HTMLButtonElement>(`[data-scanner-id="${CSS.escape(busy.id)}"] .scanner-primary button`)
@@ -157,6 +161,7 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
   }
   function paint(next: PluginSettings): void {
     state = next
+    automatic.checked = next.automaticUpdates
     onState(next)
     const tone = next.notice.tone
     notice.dataset.tone = tone
@@ -176,8 +181,13 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
     }
     catch (cause) {
       showError('Could not load plugins', String(cause))
-      if (!checkUpdates) onState({ plugins: [], notice: { tone: 'error', message: String(cause) }, limits: [] })
+      if (!checkUpdates) onState({ automaticUpdates: state?.automaticUpdates ?? true, plugins: [], notice: { tone: 'error', message: String(cause) }, limits: [] })
     }
+  }
+  function focusAction(action: PluginSettingsAction) {
+    if (action.action === 'automatic-updates') { automatic.focus(); return }
+    const next = 'id' in action ? rows.querySelector<HTMLElement>(`[data-scanner-id="${CSS.escape(action.id)}"] .scanner-primary button`) : undefined
+    ;(next ?? search).focus()
   }
   async function change(action: PluginSettingsAction) {
     if (busy) return
@@ -191,8 +201,7 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
       busy = undefined
       if (state) paintRows(state)
       setBusy()
-      const next = 'id' in action ? rows.querySelector<HTMLElement>(`[data-scanner-id="${CSS.escape(action.id)}"] .scanner-primary button`) : undefined
-      ;(next ?? search).focus()
+      focusAction(action)
     }
   }
   function sourceForm(id?: string) {
@@ -202,6 +211,7 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
     form.querySelector('button')!.textContent = id ? 'Update' : 'Add'
     source.focus()
   }
+  automatic.addEventListener('change', () => { void change({ action: 'automatic-updates', enabled: automatic.checked }) })
   host.querySelector('[data-add]')!.addEventListener('click', () => sourceForm())
   host.querySelector('[data-cancel]')!.addEventListener('click', () => { form.hidden = true })
   retry.addEventListener('click', () => { if (failedAction) void change(failedAction) })
