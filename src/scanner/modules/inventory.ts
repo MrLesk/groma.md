@@ -178,16 +178,14 @@ export async function updateScanner(
   const selected = config.scanners.find(scanner => scanner.id === id)
   if (selected === undefined) throw new Error(`scanner is not configured: ${id}`)
   const source = await scannerReplacement(repositoryRoot, selected, input, options)
-  if (selected.source !== source) {
-    await updateGromaConfig(repositoryRoot, current => {
-      const scanner = current.scanners.find(item => item.id === id)
-      if (!scanner || (scanner.source !== selected.source && scanner.source !== source)) {
-        throw new Error(`scanner selection changed while updating: ${id}`)
-      }
-      if (scanner.source === source) return undefined
-      return { ...current, scanners: current.scanners.map(item => item.id === id ? { ...item, source } : item) }
-    })
-  }
+  await updateGromaConfig(repositoryRoot, current => {
+    const scanner = current.scanners.find(item => item.id === id)
+    if (!scanner || (scanner.source !== selected.source && scanner.source !== source)) {
+      throw new Error(`scanner selection changed while updating: ${id}`)
+    }
+    if (scanner.source === source) return undefined
+    return { ...current, scanners: current.scanners.map(item => item.id === id ? { ...item, source } : item) }
+  })
   return { id, source, status: 'found' }
 }
 
