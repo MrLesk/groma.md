@@ -272,6 +272,28 @@ test.concurrent('a manual update keeps concurrent plugin removal and edited proj
   } finally { gate?.release(); await f.close() }
 })
 
+test.concurrent('an unchanged manual update rejects a scanner removed during its registry lookup', async () => {
+  const f = await fixture()
+  let gate: ReturnType<typeof f.holdRegistry> | undefined
+  try {
+    await updateScanner(f.root, 'sample', undefined, f.options)
+    const saved = await readFile(path.join(f.root, 'groma/config.json'), 'utf8')
+    expect(await updateScanner(f.root, 'sample', undefined, f.options)).toMatchObject({
+      id: 'sample', source: `${f.name}@1.1.0`, status: 'found',
+    })
+    expect(await readFile(path.join(f.root, 'groma/config.json'), 'utf8')).toBe(saved)
+    gate = f.holdRegistry()
+    const updating = updateScanner(f.root, 'sample', undefined, f.options)
+    await gate.requested
+    await changePluginSettings(f.root, { action: 'remove', id: 'sample' }, f.options)
+    const removed = await readGromaConfig(f.root)
+    gate.release()
+    await expect(updating).rejects.toThrow('selection changed')
+    expect((await readGromaConfig(f.root)).scanners).toEqual([])
+    expect(await readGromaConfig(f.root)).toEqual(removed)
+  } finally { gate?.release(); await f.close() }
+})
+
 test.concurrent('Plugins switches automatic updates without rescanning and honors a pending disable', async () => {
   const f = await fixture()
   let session: Awaited<ReturnType<typeof createScannerSession>> | undefined

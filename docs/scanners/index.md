@@ -76,8 +76,9 @@ Optional modules are enabled only through `config.json` in the selected
 `groma/` or `.groma/` directory, normally written by `groma plugin add`.
 `groma plugin list` derives found and missing package availability without executing scanner code.
 `groma scanner check` checks source inputs and scanner-owned tools.
-Network installation happens only after explicit selection in setup,
-`plugin add`, `plugin update`, `plugin install`, or Restore in `groma web`.
+Setup, `plugin add`, `plugin update`, `plugin install`, and Restore in `groma web`
+can download packages. [Automatic scanner updates](../config.md#automatic-scanner-updates)
+are enabled by default and download compatible releases in the background.
 
 Bare `groma` shows the scanner notice above its commands and, in one fixed
 bottom row, the plugins `config.json` lists that this computer lacks. That
