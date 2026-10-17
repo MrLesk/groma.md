@@ -8,8 +8,10 @@ const root = fileURLToPath(new URL('./', import.meta.url))
 /** Bundle the SDK and ship its already compiled worker beside the scanner. */
 export async function buildPackage(destination: string): Promise<void> {
   const require = createRequire(path.join(root, 'package.json'))
+  const compiler = path.dirname(require.resolve('typescript/package.json'))
+  const compilerRequire = createRequire(path.join(compiler, 'package.json'))
   const platform = `${process.platform}-${process.arch}`
-  const worker = path.join(path.dirname(require.resolve(`@typescript/typescript-${platform}/package.json`)), 'lib')
+  const worker = path.join(path.dirname(compilerRequire.resolve(`@typescript/typescript-${platform}/package.json`)), 'lib')
   const output = path.join(destination, 'dist', platform)
   await mkdir(output, { recursive: true })
   for (const file of [process.platform === 'win32' ? 'tsc.exe' : 'tsc', 'lib.d.ts']) {
@@ -37,7 +39,6 @@ export default function getExePath() {
     groma: { scanner: { ...manifest.groma.scanner, entry: './src/index.js' } },
   }, null, 2)}\n`)
   await cp(path.join(root, '../../../LICENSE'), path.join(destination, 'LICENSE'))
-  const compiler = path.dirname(require.resolve('typescript/package.json'))
   await cp(path.join(compiler, 'LICENSE'), path.join(destination, 'TYPESCRIPT-LICENSE'))
   await cp(path.join(compiler, 'NOTICE.txt'), path.join(destination, 'TYPESCRIPT-NOTICE.txt'))
 }
