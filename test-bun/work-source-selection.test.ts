@@ -275,3 +275,28 @@ test.concurrent('the upgrade preserves a legacy scanner that already owns the ba
     expect(result).toEqual({ config: converted, saved: converted, legacyExists: false, calls: [] })
   } finally { await rm(root, { recursive: true, force: true }) }
 })
+
+for (const concurrentVersion of ['1.54.0', '1.53.0']) {
+  test.concurrent(`Backlog updates ${concurrentVersion === '1.53.0' ? 'accept an already applied result' : 'preserve a concurrent version choice'}`, async () => {
+    const root = await project()
+    try {
+      await writeGromaConfig(root, { scanners: [], workSources: [{ id: 'backlog', version: '1.0.0' }] })
+      const result = await withFakeBacklog(root, '1.53.0', `
+        const { updatePlugin } = await import(${JSON.stringify(path.join(source, 'plugins/management.ts'))})
+        const { writeGromaConfig } = await import(${JSON.stringify(path.join(source, 'config.ts'))})
+        const { bundledWorkSources } = await import(${JSON.stringify(path.join(source, 'work/sources.ts'))})
+        const started = Promise.withResolvers(), release = Promise.withResolvers()
+        bundledWorkSources.backlog.installTool = async () => { started.resolve(); await release.promise }
+        const updating = updatePlugin(root, 'backlog')
+        await started.promise
+        await writeGromaConfig(root, { scanners: [], workSources: [{ id: 'backlog', version: '${concurrentVersion}' }] })
+        release.resolve()
+        try { await updating } catch (error) { result.error = error.message }
+        result.version = (await readGromaConfig(root)).workSources[0].version
+      `)
+      expect(result.version).toBe(concurrentVersion)
+      if (concurrentVersion === '1.53.0') expect(result.error).toBeUndefined()
+      else expect(result.error).toContain('selection changed')
+    } finally { await rm(root, { recursive: true, force: true }) }
+  })
+}
