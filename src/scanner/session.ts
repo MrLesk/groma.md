@@ -35,6 +35,7 @@ export async function createScannerSession(root: string, options: {
   let scannerConfig = ''
   let closed = false
   const updates = new AbortController()
+  let updateCheck: Promise<void> | undefined
   let serial = Promise.resolve()
   const listeners = new Set<(state: PluginSettings) => void>()
   const activeScanners = new Set<string>()
@@ -93,13 +94,27 @@ export async function createScannerSession(root: string, options: {
   function reconfigure() {
     return enqueue(async () => {
       if (await scannerSignature(root) !== scannerConfig) await start(true)
+      else await refresh()
     })
   }
   const ready = enqueue(() => start(options.scan !== false), true)
-  // Registry work never joins the startup/close queue. Completed updates use the existing rescan path.
-  void ready.then(async () => {
-    if (!closed && await updateNpmScanners(root, { ...options, signal: updates.signal })) await reconfigure()
-  }, () => {}).catch(error => { if (!closed) return report(error) })
+  // One background check belongs to this session. Registry work never joins the startup/close queue.
+  function checkUpdates(): Promise<void> {
+    if (closed) return Promise.resolve()
+    if (updateCheck) return updateCheck
+    updateCheck = ready.then(async () => {
+      if (!closed && await updateNpmScanners(root, { ...options, signal: updates.signal })) await reconfigure()
+    }, () => {}).catch(error => { if (!closed) return report(error) }).finally(() => { updateCheck = undefined })
+    return updateCheck
+  }
+  void checkUpdates()
+
+  /** Refresh local settings immediately; check starts background updates without waiting for them. */
+  async function refresh(check = false) {
+    if (check) void checkUpdates()
+    publish(await readPluginSettings(root, checks, options))
+    return state
+  }
 
   return {
     /** Resolves after the initial scan and failure reporting; rejects when session setup fails. */
@@ -109,10 +124,16 @@ export async function createScannerSession(root: string, options: {
       listeners.add(listener)
       return () => { listeners.delete(listener) }
     },
-    async refresh() { publish(await readPluginSettings(root, checks, options)); return state },
+    refresh,
+    checkUpdates,
     reconfigure,
     change(action: PluginSettingsAction) {
       return enqueue(async () => {
+        if (action.action === 'automatic-updates') {
+          await changePluginSettings(root, action, options)
+          await refresh(action.enabled)
+          return
+        }
         // Stop in-flight evidence before a new selection can own source updates.
         await watcher?.close()
         watcher = undefined

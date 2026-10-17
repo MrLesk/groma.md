@@ -1,10 +1,9 @@
 import { isNpmPackageName, publishedScannerSource } from './published.ts'
 import {
   readGromaConfig,
-  writeGromaConfig,
+  updateGromaConfig,
 } from '../../config.ts'
 import type { ConfiguredScanner } from '../../config.ts'
-import { GromaFileSystem } from '../../groma-filesystem.ts'
 import {
   defaultScannerCacheRoot,
   installScannerPackage,
@@ -113,13 +112,18 @@ export async function addScanner(
   }
   const installed = await installScannerPackage(source, cacheRoot(options), options.registry)
   const resolved = installed.package
-  if (configured.some(scanner => scanner.id === resolved.id)) {
-    throw new Error(`scanner id is already configured: ${resolved.id}`)
-  }
   // The package's include globs and default exclusions become this project's lists, which people then edit.
   const scanner = { id: resolved.id, source: installed.source, include: resolved.include,
     ...(resolved.exclude?.length ? { exclude: resolved.exclude } : {}) }
-  await writeGromaConfig(repositoryRoot, { ...config, scanners: [...configured, scanner] })
+  await updateGromaConfig(repositoryRoot, current => {
+    if (current.scanners.some(item => item.source === installed.source)) {
+      throw new Error(`scanner source is already configured: ${installed.source}`)
+    }
+    if (current.scanners.some(item => item.id === resolved.id)) {
+      throw new Error(`scanner id is already configured: ${resolved.id}`)
+    }
+    return { ...current, scanners: [...current.scanners, scanner] }
+  })
   return { id: scanner.id, source: scanner.source, status: 'found' }
 }
 
@@ -127,15 +131,12 @@ export async function removeScanner(
   repositoryRoot: string,
   id: string,
 ): Promise<string> {
-  const config = await readGromaConfig(repositoryRoot)
-  const configured = config.scanners
-  if (!configured.some(scanner => scanner.id === id)) {
-    throw new Error(`scanner is not configured: ${id}`)
-  }
-  await writeGromaConfig(
-    repositoryRoot,
-    { ...config, scanners: configured.filter(scanner => scanner.id !== id) },
-  )
+  await updateGromaConfig(repositoryRoot, config => {
+    if (!config.scanners.some(scanner => scanner.id === id)) {
+      throw new Error(`scanner is not configured: ${id}`)
+    }
+    return { ...config, scanners: config.scanners.filter(scanner => scanner.id !== id) }
+  })
   return id
 }
 
@@ -178,8 +179,13 @@ export async function updateScanner(
   if (selected === undefined) throw new Error(`scanner is not configured: ${id}`)
   const source = await scannerReplacement(repositoryRoot, selected, input, options)
   if (selected.source !== source) {
-    await writeGromaConfig(repositoryRoot, {
-      ...config, scanners: config.scanners.map(scanner => scanner.id === id ? { ...scanner, source } : scanner),
+    await updateGromaConfig(repositoryRoot, current => {
+      const scanner = current.scanners.find(item => item.id === id)
+      if (!scanner || (scanner.source !== selected.source && scanner.source !== source)) {
+        throw new Error(`scanner selection changed while updating: ${id}`)
+      }
+      if (scanner.source === source) return undefined
+      return { ...current, scanners: current.scanners.map(item => item.id === id ? { ...item, source } : item) }
     })
   }
   return { id, source, status: 'found' }
@@ -201,8 +207,7 @@ export async function updateNpmScanners(root: string, options: ScannerInstallOpt
   }
   if (!updates.size || options.signal?.aborted) return false
   // Commit against the current config under its existing lock, after all network work has finished.
-  return GromaFileSystem.open(root).withAccess(async () => {
-    const config = await readGromaConfig(root)
+  return updateGromaConfig(root, config => {
     let changed = false
     const scanners = config.scanners.map(scanner => {
       const update = updates.get(scanner.id)
@@ -210,9 +215,8 @@ export async function updateNpmScanners(root: string, options: ScannerInstallOpt
       changed = true
       return { ...scanner, source: update.source }
     })
-    if (!changed || config.automaticUpdates === false || options.signal?.aborted) return false
-    await writeGromaConfig(root, { ...config, scanners })
-    return true
+    if (!changed || config.automaticUpdates === false || options.signal?.aborted) return undefined
+    return { ...config, scanners }
   })
 }
 

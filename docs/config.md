@@ -53,7 +53,8 @@ version. The Backlog.md work source reads tasks through the Backlog.md CLI; its
 ## Automatic scanner updates
 
 `automaticUpdates` defaults to `true`. Set it to `false` to disable background
-updates and their follow-up scan. Explicit plugin update commands still work.
+updates and their follow-up scan. The Plugins screen offers **Automatic updates**
+(web checkbox or terminal `t`). Explicit plugin update commands still work.
 
 Scans and live terminal or web maps start with the scanner versions already on
 this computer. They check for newer compatible stable npm releases in the
@@ -62,9 +63,14 @@ scans keep using the installed versions.
 
 After the updates finish, groma.md records the completed selections in
 `config.json` and runs the normal scan again. An open map refreshes from that
-scan through its ordinary architecture watcher. Scanner settings and
+scan through its ordinary architecture watcher. Opening Plugins checks again in
+the background, sharing any check already running in that session. Scanner settings and
 include/exclude lists stay as the project set them. Already installed releases
 are reused, and Git and local scanners keep their declared sources.
+
+Manual plugin changes also save against the current configuration after downloads,
+so another plugin change or settings edit is preserved. If the same scanner's
+selection changed during a manual update, Groma reports the conflict.
 
 Missing packages still need the normal plugin installation or restoration flow.
 

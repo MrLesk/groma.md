@@ -225,3 +225,16 @@ export async function writeGromaConfig(
   parseGromaConfig(text, filesystem.sourceFilename('config.json'))
   await filesystem.write('config.json', text)
 }
+
+/** Apply one plugin/settings change to the latest config under the existing project lock, after any downloads. */
+export async function updateGromaConfig(
+  repositoryRoot: string,
+  change: (config: GromaConfig) => GromaConfig | undefined,
+): Promise<boolean> {
+  return GromaFileSystem.open(repositoryRoot).withAccess(async () => {
+    const next = change(await readGromaConfig(repositoryRoot))
+    if (next === undefined) return false
+    await writeGromaConfig(repositoryRoot, next)
+    return true
+  })
+}

@@ -420,8 +420,9 @@ export async function createWebMapSession(
   ])
   if (scannerSession !== undefined) {
     routes.set('/plugin-settings', async (_request, url) => {
-      const settings = await scannerSession.refresh()
-      return Response.json(url.searchParams.has('updates') ? await withPluginUpgrades(settings) : settings)
+      const check = url.searchParams.has('updates')
+      const settings = await scannerSession.refresh(check)
+      return Response.json(check && !settings.automaticUpdates ? await withPluginUpgrades(settings) : settings)
     })
     writeRoutes.set('/plugin-settings', async request => {
       try { await scannerSession.change(parsePluginSettingsAction(await request.json())); return Response.json(scannerSession.state) }
