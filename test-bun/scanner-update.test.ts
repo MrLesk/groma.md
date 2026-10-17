@@ -79,6 +79,18 @@ async function fixture() {
   } catch (error) { await close(); throw error }
 }
 
+// A detached grandchild has no Subprocess handle in this test process.
+async function waitForProcessExit(pid: number): Promise<void> {
+  while (true) {
+    try { process.kill(pid, 0) }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ESRCH') return
+      throw error
+    }
+    await Bun.sleep(10)
+  }
+}
+
 test.concurrent('explicit npm updates select compatible releases and preserve project settings', async () => {
   const f = await fixture()
   try {
@@ -216,9 +228,15 @@ test.concurrent('a one-shot CLI scan exits while its background registry check i
   const f = await fixture()
   let gate: ReturnType<typeof f.holdRegistry> | undefined
   let child: Bun.Subprocess<'ignore', 'pipe', 'pipe'> | undefined
+  let workerPid: number | undefined
   try {
     const home = path.join(f.root, 'home')
     await mkdir(home)
+    const workerPidFile = path.join(home, 'worker.pid')
+    const preload = path.join(home, 'observe-worker.ts')
+    await writeFile(preload, `import { writeFileSync } from 'node:fs';
+      if (process.argv.at(-1) === 'refresh') writeFileSync(${JSON.stringify(workerPidFile)}, String(process.pid));`)
+    await writeFile(path.join(f.root, 'bunfig.toml'), 'preload = ["./home/observe-worker.ts"]\n')
     await writeFile(path.join(home, '.npmrc'), `@example:registry=${f.options.registry}\n`)
     await updateScanner(f.root, 'sample', `${f.name}@1.0.0`, { ...f.options, cacheRoot: path.join(home, '.groma/cache/scanners') })
     gate = f.holdRegistry()
@@ -226,12 +244,15 @@ test.concurrent('a one-shot CLI scan exits while its background registry check i
       cwd: f.root, env: { ...process.env, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: home }, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe',
     })
     await gate.requested
+    workerPid = Number(await readFile(workerPidFile, 'utf8'))
     expect(await child.exited, await new Response(child.stderr).text()).toBe(0)
     expect(f.scans).toEqual(['1.0.0'])
   } finally {
     // Fail the held check so its detached worker has no download or project write left to perform.
     f.makeUnavailable(); gate?.release()
     await child?.exited
+    // Windows keeps a running process's working directory in use.
+    if (workerPid !== undefined) await waitForProcessExit(workerPid)
     await f.close()
   }
 })
