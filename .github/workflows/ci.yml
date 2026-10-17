@@ -1,5 +1,8 @@
 name: CI
 
+# Action startup rewrites a shared event file; keep uses steps sequential.
+# Pure build/test commands remain parallel: https://github.com/actions/runner/pull/4675
+
 on:
   workflow_dispatch:
   push:
@@ -23,78 +26,76 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
-      - parallel:
-          - name: Cache Swift test package
-            id: swift-package
-            uses: actions/cache@v6
-            with:
-              path: scanner-packages/swift
-              key: >-
-                swift-test-package-${{ matrix.os }}-${{ runner.arch }}-${{ env.BUN_VERSION }}-${{ hashFiles(
-                  '.github/actions/setup-swift/action.yml',
-                  'plugins/scanners/swift/**',
-                  'packages/scanner/**',
-                  'docs/scanners/swift/**',
-                  'LICENSE') }}
-          - name: Cache C# test package
-            id: csharp-package
-            uses: actions/cache@v6
-            with:
-              path: scanner-packages/csharp
-              key: >-
-                csharp-test-package-${{ matrix.os }}-${{ runner.arch }}-${{ env.BUN_VERSION }}-${{ hashFiles(
-                  'plugins/scanners/csharp/**',
-                  'plugins/scanners/projects.ts',
-                  'packages/scanner/**',
-                  'scripts/package-csharp-scanner.ts',
-                  'bun.lock', 'LICENSE') }}
-          - name: Cache Rust test package
-            id: rust-package
-            uses: actions/cache@v6
-            with:
-              path: plugins/scanners/rust/dist
-              key: >-
-                rust-test-package-${{ matrix.os }}-${{ runner.arch }}-${{ env.BUN_VERSION }}-${{ env.RUST_VERSION }}-${{ hashFiles(
-                  'plugins/scanners/rust/**',
-                  'plugins/scanners/projects.ts',
-                  'plugins/scanners/observations.ts',
-                  'packages/scanner/**',
-                  'bun.lock', 'LICENSE') }}
-      - parallel:
-          - name: Cache SwiftSyntax build
-            if: runner.os == 'Windows' && steps.swift-package.outputs.cache-hit != 'true'
-            uses: actions/cache@v6
-            with:
-              path: .groma/swift-syntax-build
-              key: >-
-                swift-syntax-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(
-                  '.github/actions/setup-swift/action.yml',
-                  'plugins/scanners/swift/Package.swift') }}
-          - uses: ./.github/actions/setup-swift
-            if: steps.swift-package.outputs.cache-hit != 'true'
-          - uses: dart-lang/setup-dart@v1
-            with:
-              sdk: '3.13.5'
-              # Swift's Windows setup exports its own action path; Dart analysis still runs below.
-              problem-matcher: false
-          - uses: actions/setup-java@v6
-            with:
-              distribution: temurin
-              java-version: '25'
-          - uses: actions/setup-go@v7
-            with:
-              go-version-file: plugins/scanners/go/worker/go.mod
-              cache-dependency-path: plugins/scanners/go/worker/go.sum
-          - uses: actions/setup-dotnet@v6
-            with:
-              dotnet-version: '10.0.x'
-          - name: Install Rust build toolchain
-            if: steps.rust-package.outputs.cache-hit != 'true'
-            run: rustup toolchain install "$RUST_VERSION" --profile minimal
-            shell: bash
-          - uses: oven-sh/setup-bun@v2
-            with:
-              bun-version: ${{ env.BUN_VERSION }}
+      - name: Cache Swift test package
+        id: swift-package
+        uses: actions/cache@v6
+        with:
+          path: scanner-packages/swift
+          key: >-
+            swift-test-package-${{ matrix.os }}-${{ runner.arch }}-${{ env.BUN_VERSION }}-${{ hashFiles(
+              '.github/actions/setup-swift/action.yml',
+              'plugins/scanners/swift/**',
+              'packages/scanner/**',
+              'docs/scanners/swift/**',
+              'LICENSE') }}
+      - name: Cache C# test package
+        id: csharp-package
+        uses: actions/cache@v6
+        with:
+          path: scanner-packages/csharp
+          key: >-
+            csharp-test-package-${{ matrix.os }}-${{ runner.arch }}-${{ env.BUN_VERSION }}-${{ hashFiles(
+              'plugins/scanners/csharp/**',
+              'plugins/scanners/projects.ts',
+              'packages/scanner/**',
+              'scripts/package-csharp-scanner.ts',
+              'bun.lock', 'LICENSE') }}
+      - name: Cache Rust test package
+        id: rust-package
+        uses: actions/cache@v6
+        with:
+          path: plugins/scanners/rust/dist
+          key: >-
+            rust-test-package-${{ matrix.os }}-${{ runner.arch }}-${{ env.BUN_VERSION }}-${{ env.RUST_VERSION }}-${{ hashFiles(
+              'plugins/scanners/rust/**',
+              'plugins/scanners/projects.ts',
+              'plugins/scanners/observations.ts',
+              'packages/scanner/**',
+              'bun.lock', 'LICENSE') }}
+      - name: Cache SwiftSyntax build
+        if: runner.os == 'Windows' && steps.swift-package.outputs.cache-hit != 'true'
+        uses: actions/cache@v6
+        with:
+          path: .groma/swift-syntax-build
+          key: >-
+            swift-syntax-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(
+              '.github/actions/setup-swift/action.yml',
+              'plugins/scanners/swift/Package.swift') }}
+      - uses: ./.github/actions/setup-swift
+        if: steps.swift-package.outputs.cache-hit != 'true'
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: '3.13.5'
+          # Swift's Windows setup exports its own action path; Dart analysis still runs below.
+          problem-matcher: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: plugins/scanners/go/worker/go.mod
+          cache-dependency-path: plugins/scanners/go/worker/go.sum
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install Rust build toolchain
+        if: steps.rust-package.outputs.cache-hit != 'true'
+        run: rustup toolchain install "$RUST_VERSION" --profile minimal
+        shell: bash
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
       - name: Install dependencies
         run: bun install --frozen-lockfile
         shell: bash
