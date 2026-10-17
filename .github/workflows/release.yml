@@ -1,5 +1,8 @@
 name: Release
 
+# Action startup rewrites a shared event file; keep uses steps sequential.
+# Pure build/test commands remain parallel: https://github.com/actions/runner/pull/4675
+
 # Publishing a GitHub release creates its tag and starts this workflow; the tag names the version.
 on:
   workflow_dispatch:
@@ -25,20 +28,19 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - parallel:
-          - uses: ./.github/actions/setup-swift
-          - uses: dart-lang/setup-dart@v1
-            with:
-              sdk: '3.13.5'
-              # Swift's Windows setup exports its own action path; Dart analysis still runs below.
-              problem-matcher: false
-          - uses: actions/setup-java@v6
-            with:
-              distribution: temurin
-              java-version: '25'
-          - uses: oven-sh/setup-bun@v2
-            with:
-              bun-version: ${{ env.BUN_VERSION }}
+      - uses: ./.github/actions/setup-swift
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: '3.13.5'
+          # Swift's Windows setup exports its own action path; Dart analysis still runs below.
+          problem-matcher: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
       - name: Set version from tag
         if: github.event_name == 'release'
         env:
@@ -77,39 +79,38 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
-      - parallel:
-          - name: Cache SwiftSyntax build
-            if: runner.os == 'Windows'
-            uses: actions/cache@v6
-            with:
-              path: .groma/swift-syntax-build
-              key: >-
-                swift-syntax-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(
-                  '.github/actions/setup-swift/action.yml',
-                  'plugins/scanners/swift/Package.swift') }}
-          - uses: ./.github/actions/setup-swift
-          - uses: oven-sh/setup-bun@v2
-            with:
-              bun-version: ${{ env.BUN_VERSION }}
-          - uses: dart-lang/setup-dart@v1
-            with:
-              sdk: '3.13.5'
-              # Swift's Windows setup exports its own action path; Dart analysis still runs below.
-              problem-matcher: false
-          - uses: actions/setup-java@v6
-            with:
-              distribution: ${{ matrix.platform == 'win32-arm64' && 'microsoft' || 'temurin' }}
-              java-version: '25'
-          - uses: actions/setup-go@v7
-            with:
-              go-version-file: plugins/scanners/go/worker/go.mod
-              cache-dependency-path: plugins/scanners/go/worker/go.sum
-          - uses: actions/setup-dotnet@v6
-            with:
-              dotnet-version: '10.0.x'
-          - name: Install Rust build toolchain
-            run: rustup toolchain install 1.91.1 --profile minimal
-            shell: bash
+      - name: Cache SwiftSyntax build
+        if: runner.os == 'Windows'
+        uses: actions/cache@v6
+        with:
+          path: .groma/swift-syntax-build
+          key: >-
+            swift-syntax-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(
+              '.github/actions/setup-swift/action.yml',
+              'plugins/scanners/swift/Package.swift') }}
+      - uses: ./.github/actions/setup-swift
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: '3.13.5'
+          # Swift's Windows setup exports its own action path; Dart analysis still runs below.
+          problem-matcher: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: ${{ matrix.platform == 'win32-arm64' && 'microsoft' || 'temurin' }}
+          java-version: '25'
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: plugins/scanners/go/worker/go.mod
+          cache-dependency-path: plugins/scanners/go/worker/go.sum
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install Rust build toolchain
+        run: rustup toolchain install 1.91.1 --profile minimal
+        shell: bash
       - name: Select Rust build toolchain
         run: rustup override set 1.91.1
         shell: bash
@@ -145,18 +146,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - parallel:
-          - uses: oven-sh/setup-bun@v2
-            with:
-              bun-version: ${{ env.BUN_VERSION }}
-          - uses: actions/setup-node@v7
-            with:
-              node-version: ${{ env.NODE_VERSION }}
-              registry-url: https://registry.npmjs.org
-          - uses: actions/download-artifact@v8
-            with:
-              pattern: scanner-packages-*
-              path: scanner-artifacts
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: scanner-packages-*
+          path: scanner-artifacts
       - parallel:
           - name: Assemble scanner packages
             run: bun scripts/scanner-release.ts assemble scanner-artifacts scanner-packages
@@ -230,14 +230,13 @@ jobs:
           fs.writeFileSync(filename, `${JSON.stringify(manifest, null, 2)}\n`)
           NODE
         shell: bash
-      - parallel:
-          - name: Install all Bun target dependencies
-            run: bun install --frozen-lockfile --os="*" --cpu="*"
-            shell: bash
-          - uses: actions/download-artifact@v8
-            with:
-              name: published-scanner-packages
-              path: published-scanner-packages
+      - name: Install all Bun target dependencies
+        run: bun install --frozen-lockfile --os="*" --cpu="*"
+        shell: bash
+      - uses: actions/download-artifact@v8
+        with:
+          name: published-scanner-packages
+          path: published-scanner-packages
       - name: Embed published scanner metadata
         run: bun scripts/scanner-release.ts catalog published-scanner-packages
         shell: bash
@@ -322,15 +321,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - parallel:
-          - uses: actions/download-artifact@v8
-            with:
-              name: groma-${{ matrix.target }}
-              path: artifact
-          - uses: actions/setup-node@v7
-            with:
-              node-version: ${{ env.NODE_VERSION }}
-              registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v8
+        with:
+          name: groma-${{ matrix.target }}
+          path: artifact
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
       - parallel:
           - name: Prepare platform package
             env:
