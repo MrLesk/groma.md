@@ -110,12 +110,17 @@ export async function updatePlugin(root: string, id: string, input?: string, opt
     const updated = await updateScanner(root, id, input, options)
     return { kind: 'scanner', id, selection: updated.source }
   }
-  if (!config.workSources.some(work => work.id === id)) throw new Error(`plugin is not configured: ${id}`)
+  const selected = config.workSources.find(work => work.id === id)
+  if (!selected) throw new Error(`plugin is not configured: ${id}`)
   if (input !== undefined) throw new Error(`${id} ships inside groma.md; update it without a source`)
   const version = await ensureTool(bundledWorkSource(id), true)
   await updateGromaConfig(root, current => {
-    if (!current.workSources.some(work => work.id === id)) throw new Error(`plugin selection changed while updating: ${id}`)
-    return { ...current, workSources: current.workSources.map(work => work.id === id ? { id, version } : work) }
+    const work = current.workSources.find(item => item.id === id)
+    if (!work || (work.version !== selected.version && work.version !== version)) {
+      throw new Error(`plugin selection changed while updating: ${id}`)
+    }
+    if (work.version === version) return undefined
+    return { ...current, workSources: current.workSources.map(item => item.id === id ? { id, version } : item) }
   })
   return { kind: 'workSource', id, selection: version }
 }

@@ -331,3 +331,31 @@ test.concurrent('opening Plugins rechecks a running session without waiting and 
     expect(f.scans).toEqual(['1.0.0', '1.1.0', '1.2.0'])
   } finally { gate?.release(); await session?.close(); await f.close() }
 })
+
+test.concurrent('web Plugins retains registry diagnostics when automatic updates are enabled', async () => {
+  const f = await fixture()
+  const home = await mkdtemp(path.join(os.tmpdir(), 'groma-plugins-home-'))
+  try {
+    await updateScanner(f.root, 'sample', `${f.name}@1.0.0`, f.options)
+    await cp(f.options.cacheRoot, path.join(home, '.groma/cache/scanners'), { recursive: true })
+    await writeFile(path.join(home, '.npmrc'), `registry=${f.options.registry}\n`)
+    f.makeUnavailable()
+    const probe = path.join(home, 'probe.ts')
+    await writeFile(probe, `
+      import { createWebMapSession } from ${JSON.stringify(path.resolve(import.meta.dir, '../src/viewers/web/map-session.ts'))}
+      const session = await createWebMapSession(${JSON.stringify(f.root)}, { scan: false })
+      try {
+        const response = await session.fetch(new Request('http://localhost/plugin-settings?updates'))
+        console.log(JSON.stringify(await response.json()))
+      } finally { await session.close() }
+    `)
+    const child = Bun.spawn([process.execPath, probe], {
+      stdout: 'pipe', stderr: 'pipe', env: { ...process.env, HOME: home, USERPROFILE: home },
+    })
+    const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()])
+    expect(code, stderr).toBe(0)
+    const settings = JSON.parse(stdout)
+    expect(settings.automaticUpdates).toBe(true)
+    expect(settings.upgrades?.[`${f.name}@1.0.0`]?.error).toContain('503')
+  } finally { await f.close(); await rm(home, { recursive: true, force: true }) }
+})
