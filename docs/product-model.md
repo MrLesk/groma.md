@@ -299,6 +299,14 @@ element document under the architecture directory and every draft record under
 viewer sees it. The sheet gives both maps their surfaces, buildings, groups,
 and route paths. Each viewer only projects those fixed cells for its own
 screen. It never reads the architecture files or creates another world layout.
+Sibling placement follows the actual relationship endpoints inside each subtree,
+so containers serving nearby components can stand together beside that region.
+Packing, path costs and alignment use those endpoint positions while preserving
+containment and clear connection space. The final entry/mediator/core columns
+apply only when a relationship passes through an intermediate container; a
+direct fan-out retains its local placement. These are shared presentation rules,
+independent of scanner identity, language and project names. They add no stored
+metadata or architecture boundaries.
 The package
 requires `groma/index.md` with the OKF v0.2 declaration and a generated
 listing of immediate Markdown files and directories, and

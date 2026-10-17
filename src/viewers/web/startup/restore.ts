@@ -1,4 +1,5 @@
 import type { PluginPresence, RestoreState } from '../../../plugins/management.ts'
+import { parseScannerSource } from '../../../scanner/modules/package.ts'
 import { escaped } from '../atoms/escape.ts'
 import { scannerName } from '../scanners/name.ts'
 
@@ -6,22 +7,29 @@ import { scannerName } from '../scanners/name.ts'
 export interface RestoreRow {
   id: string
   name: string
-  /** What config.json pins: a scanner's exact source, or the lowest CLI version of a work source. */
-  pinned: string
+  /** The source to restore; npm scanners use the newest compatible release. */
+  selection: string
   state: 'missing' | RestoreState
   /** Why restoring failed; empty otherwise. */
   message: string
 }
 
 export function restoreRows(missing: readonly PluginPresence[]): RestoreRow[] {
-  return missing.map(plugin => plugin.kind === 'scanner'
-    ? { id: plugin.id, name: `${scannerName(plugin.id)} scanner`, pinned: plugin.pinned, state: 'missing', message: '' }
-    : { id: plugin.id, name: `${plugin.name} CLI`, pinned: `${plugin.pinned} or newer`, state: 'missing', message: '' })
+  return missing.map(plugin => {
+    if (plugin.kind === 'workSource') return {
+      id: plugin.id, name: `${plugin.name} CLI`, selection: `${plugin.selection} or newer`, state: 'missing', message: '',
+    }
+    const source = parseScannerSource('.', plugin.selection)
+    return {
+      id: plugin.id, name: `${scannerName(plugin.id)} scanner`,
+      selection: source.kind === 'npm' ? `${source.name} (latest compatible)` : plugin.selection, state: 'missing', message: '',
+    }
+  })
 }
 
 function restoreRow(row: RestoreRow): string {
   return `<li data-plugin="${escaped(row.id)}" data-state="${row.state}"><span class="restore-mark" aria-hidden="true"></span>`
-    + `<span class="restore-plugin"><strong>${escaped(row.name)}</strong><code>${escaped(row.pinned)}</code>`
+    + `<span class="restore-plugin"><strong>${escaped(row.name)}</strong><code>${escaped(row.selection)}</code>`
     + `<span class="restore-message" data-message>${escaped(row.message)}</span></span></li>`
 }
 

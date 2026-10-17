@@ -22,6 +22,4 @@ Matches file changes to scanner subscriptions. Runs the affected scanners and se
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [src/scanner/source-watch.ts](../../../../../../src/scanner/source-watch.ts) | [src/cli.ts](../../../../../../src/cli.ts) | Invokes supplied callback: onError | typescript |
-| [src/scanner/source-watch.ts](../../../../../../src/scanner/source-watch.ts) | [src/scanner.ts](../../../../../../src/scanner.ts) | Invokes supplied callback: onObservations | typescript |
 | [src/scanner/source-watch.ts](../../../../../../src/scanner/source-watch.ts) | [src/scanner/session.ts](../../../../../../src/scanner/session.ts) | Invokes supplied callbacks: onError, onObservations | typescript |

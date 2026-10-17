@@ -16,6 +16,9 @@ groma:
       symbol: registerWriteCommands
     - scanner: typescript
       file: src/plugins/cli.ts
+    - scanner: typescript
+      file: src/scanner/background-updates.ts
+      symbol: startBackgroundScannerUpdates
   group: Project commands
 description: Reads CLI commands and starts the requested Groma action
 ---

@@ -1,11 +1,11 @@
 ---
 id: TASK-612
 title: Avoid stalled asynchronous scanner assertions
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-15 22:34'
-updated_date: '2026-10-15 23:25'
+updated_date: '2026-10-15 23:37'
 labels: []
 dependencies: []
 references:
@@ -31,15 +31,15 @@ Current-main scanner qualification failed on Windows in the existing no-input/mi
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 A bounded Windows diagnostic preserves the existing scenario and deadline and records the phase reached when it stalls.
-- [ ] #2 A delivered correction is tied to the reproduced failure; the unchanged configuration behavior and full Windows, Linux and macOS checks pass before release.
+- [x] #2 A delivered correction is tied to the reproduced failure; the unchanged configuration behavior and full Windows, Linux and macOS checks pass before release.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -60,4 +60,12 @@ Full-context diagnostic run 38819360712 reproduced 20-second stalls, then reache
 The local Bun 1.4.3 control uses the same setImmediate request-batching shape and a loopback socket. The Bun rejection matcher takes 13018 ms; node:assert/strict rejects takes 1.11 ms for the same rejection and message. /tmp/groma-bun-rejection-control.log. The production PR includes only the existing task record and two-line test change; source-analysis, projects, workflow and package probes remain private diagnostic history.
 
 Focused original file passes: 12 tests, 70 Bun assertions plus the native rejection assertion, no skips/failures (/tmp/groma-task612-focused.log). Assertion controls verify node:assert rejects fails for a successful scan and for the wrong error, and accepts the required target error. Own specification/quality review traces the same scanner promise to the same rejection requirement; only matcher waiting changes, with no fixture or product change. Full repository and cross-platform qualification are running.
+
+Controlled Windows run 38823347596 passes the full suite: 1002 Bun tests, 31 skips, zero failures. Every one of the 100 private copies passes the original scenario within its unchanged 20-second limit: median 177.86 ms, maximum 1025.95 ms (/tmp/groma-ts-config-diagnostic-fixed.log). The original diagnostic reproduced 20-second stalls before changing only the assertion. Normal PR CI 38823540865 passes Windows, Linux and macOS. Final combined scanner/release candidate check passes lint/types, 16 Node tests and 874 Bun tests, 62 optional skips, zero failures, 3557 Bun assertions plus the native rejection assertion (/tmp/groma-final-test612-candidate-check.log). Specification and quality reviews pass: success or the wrong error still fails the assertion, complete scenario and isolation are retained, no product or public-contract behavior changes, and all timing probes stay off the production branch.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Replace the existing invalid-TypeScript-option promise matcher with the standard asynchronous Node rejection assertion. This preserves the required scan failure and message while avoiding Bun 1.4.3 nested-loop stalls over native request batches. The full Windows diagnostic reproduces the failure before and passes all 100 copies after; normal Windows, Linux and macOS CI and the complete local repository check pass. No scanner code, timeout, retry, scheduling or fixture changes.
+<!-- SECTION:FINAL_SUMMARY:END -->

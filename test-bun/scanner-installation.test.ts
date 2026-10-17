@@ -80,7 +80,7 @@ test.concurrent('a bare package name is selected and downloaded with the registr
   } finally { await f.close() }
 })
 
-test.concurrent('bulk installation retains successful releases, retries unpublished packages and restores exact team selections', async () => {
+test.concurrent('bulk installation retains successful releases, retries unpublished packages and prepares another computer', async () => {
   const f = await fixture()
   const session = await createScannerSession(f.root, { ...f.options, scan: false })
   try {
@@ -100,6 +100,7 @@ test.concurrent('bulk installation retains successful releases, retries unpublis
     await session.close()
     const colleague = await createScannerSession(f.root, { registry: f.options.registry, cacheRoot: path.join(f.root, 'colleague-cache'), scan: false })
     try {
+      await colleague.ready
       expect(colleague.state.plugins.filter(item => item.status === 'missing')).toHaveLength(2)
       await colleague.change({ action: 'install-missing' })
       expect(colleague.state.plugins.filter(item => item.listed).every(item => item.status === 'ready')).toBe(true)
@@ -138,7 +139,7 @@ test.concurrent('setup retries a partial selection without reinstalling its succ
   } finally { await f.close() }
 })
 
-test.concurrent('one Install resolves and pins a release, reports scan failure and retries without replacing saved architecture', async () => {
+test.concurrent('one Install selects a release, reports scan failure and retries without replacing saved architecture', async () => {
   const f = await fixture()
   const session = await createScannerSession(f.root, { ...f.options, scan: false })
   try {

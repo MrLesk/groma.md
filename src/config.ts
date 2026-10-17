@@ -1,5 +1,6 @@
 import path from 'node:path'
 import type { ScannerSettings } from '@groma/scanner'
+import { backlogPlugin } from '@groma/work-source-backlog'
 import ignore from 'ignore'
 import { GromaFileSystem } from './groma-filesystem.ts'
 
@@ -33,6 +34,8 @@ export interface GromaConfig {
   exclude?: string[]
   /** Whether files Git ignores stay out of every scan; true unless set to false. */
   useGitignore?: boolean
+  /** Check for npm scanner updates in the background; true unless set to false. */
+  automaticUpdates?: boolean
 }
 
 const pluginId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -151,6 +154,12 @@ function requireUniqueIds(plugins: readonly { id: string }[], sourceFilename: st
   }
 }
 
+/** Optional project switches keep their defaults when absent. */
+function configuredBoolean(value: unknown, filename: string, field: string): boolean | undefined {
+  if (value !== undefined && typeof value !== 'boolean') throw new Error(`${filename} ${field} must be true or false`)
+  return value
+}
+
 function parseGromaConfig(
   source: string,
   sourceFilename: string,
@@ -160,15 +169,14 @@ function parseGromaConfig(
     throw new Error(`${sourceFilename} must be an object`)
   }
   const config = value as Record<string, unknown>
-  if (Object.keys(config).some(key => !['scanners', 'workSources', 'exclude', 'useGitignore'].includes(key)) || !Array.isArray(config.scanners)) {
-    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, an exclude array and useGitignore`)
+  if (Object.keys(config).some(key => !['scanners', 'workSources', 'exclude', 'useGitignore', 'automaticUpdates'].includes(key)) || !Array.isArray(config.scanners)) {
+    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, an exclude array, useGitignore and automaticUpdates`)
   }
   if (config.exclude !== undefined && !stringArray(config.exclude)) {
     throw new Error(`${sourceFilename} exclude must be an array of strings`)
   }
-  if (config.useGitignore !== undefined && typeof config.useGitignore !== 'boolean') {
-    throw new Error(`${sourceFilename} useGitignore must be true or false`)
-  }
+  const useGitignore = configuredBoolean(config.useGitignore, sourceFilename, 'useGitignore')
+  const automaticUpdates = configuredBoolean(config.automaticUpdates, sourceFilename, 'automaticUpdates')
   const workSources = configuredWorkSources(config.workSources, sourceFilename)
   const scanners = configuredScanners(config.scanners, sourceFilename)
   requireUniqueIds([...scanners, ...workSources], sourceFilename)
@@ -176,21 +184,29 @@ function parseGromaConfig(
     scanners,
     workSources,
     ...(config.exclude === undefined ? {} : { exclude: config.exclude as string[] }),
-    ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
+    ...(useGitignore === undefined ? {} : { useGitignore }),
+    ...(automaticUpdates === undefined ? {} : { automaticUpdates }),
   }
 }
 
 export async function readGromaConfig(repositoryRoot: string): Promise<GromaConfig> {
   const filesystem = GromaFileSystem.open(repositoryRoot)
-  try {
-    return parseGromaConfig(
-      await filesystem.read('config.json'),
-      filesystem.sourceFilename('config.json'),
-    )
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { scanners: [], workSources: [] }
-    throw error
-  }
+  return filesystem.withAccess(async () => {
+    if (filesystem.exists('config.json')) {
+      return parseGromaConfig(await filesystem.read('config.json'), filesystem.sourceFilename('config.json'))
+    }
+    if (!filesystem.exists('scanners.json')) return { scanners: [], workSources: [] }
+
+    // Before config.json, an installed Backlog CLI enabled tasks without a recorded selection.
+    const config = parseGromaConfig(await filesystem.read('scanners.json'), filesystem.sourceFilename('scanners.json'))
+    if (!config.scanners.some(scanner => scanner.id === 'backlog')) {
+      const backlog = await backlogPlugin.readiness()
+      config.workSources = backlog.status === 'found' ? [{ id: 'backlog', version: backlog.version }] : []
+    }
+    await writeGromaConfig(repositoryRoot, config)
+    await filesystem.removeSource(filesystem.sourceFilename('scanners.json'))
+    return config
+  })
 }
 
 /** Saves config.json in one key order, and only when the parser accepts it: every rule of the file has that one owner. */
@@ -204,7 +220,21 @@ export async function writeGromaConfig(
     workSources: config.workSources,
     ...(config.exclude === undefined ? {} : { exclude: config.exclude }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
+    ...(config.automaticUpdates === undefined ? {} : { automaticUpdates: config.automaticUpdates }),
   }, null, 2)}\n`
   parseGromaConfig(text, filesystem.sourceFilename('config.json'))
   await filesystem.write('config.json', text)
+}
+
+/** Apply one plugin/settings change to the latest config under the existing project lock, after any downloads. */
+export async function updateGromaConfig(
+  repositoryRoot: string,
+  change: (config: GromaConfig) => GromaConfig | undefined,
+): Promise<boolean> {
+  return GromaFileSystem.open(repositoryRoot).withAccess(async () => {
+    const next = change(await readGromaConfig(repositoryRoot))
+    if (next === undefined) return false
+    await writeGromaConfig(repositoryRoot, next)
+    return true
+  })
 }

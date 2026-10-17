@@ -77,15 +77,19 @@ export async function mountPluginSettings(renderer: CliRenderer, session: Scanne
       : `[↑↓] Select  [Enter] Action  ${controls}  [Esc] Back`, frame.height - 2)
     line(busy ? 'Working…' : '[x] Remove from project  [u] Update  · Saved architecture is kept.', frame.height - 1)
   }
-  function paint() {
-    if (closed || frame.isDestroyed) return
-    const { contentY: y } = paintShell(frame.frameBuffer, model, sheet)
+  function paintControls(y: number) {
     line(`Plugins                  [a] Add plugin${failedAction ? '  [r] Retry installation' : ''}`, y, green)
     const recommended = session.state.plugins.filter(item => item.kind === 'scanner' && !item.listed && item.installSource).length
     const missing = session.state.plugins.filter(item => item.status === 'missing').length
-    line([recommended ? `[i] Install recommended scanners (${recommended})` : '', missing ? `[m] Install missing plugins (${missing})` : ''].filter(Boolean).join('  '), y + 1)
-    line(`Search: ${query}${searching ? '▌' : '  [/] Edit'}`, y + 2)
-    const start = y + 4
+    line(`[t] Automatic updates: ${session.state.automaticUpdates ? 'On' : 'Off'}`, y + 1)
+    line([recommended ? `[i] Install recommended scanners (${recommended})` : '', missing ? `[m] Install missing plugins (${missing})` : ''].filter(Boolean).join('  '), y + 2)
+    line(`Search: ${query}${searching ? '▌' : '  [/] Edit'}`, y + 3)
+  }
+  function paint() {
+    if (closed || frame.isDestroyed) return
+    const { contentY: y } = paintShell(frame.frameBuffer, model, sheet)
+    paintControls(y)
+    const start = y + 5
     const detailHeight = details ? Math.min(7, Math.floor((frame.height - start - 4) / 2)) : 0
     const listHeight = Math.max(1, frame.height - start - 4 - detailHeight)
     paintList(start, listHeight)
@@ -150,6 +154,7 @@ export async function mountPluginSettings(renderer: CliRenderer, session: Scanne
       case 'pagedown': if (details) detailScroll += 5; else select(5); break
       case '/': searching = true; break
       case 'd': details = !details; detailScroll = 0; break
+      case 't': void change({ action: 'automatic-updates', enabled: !session.state.automaticUpdates }); break
       case 'a': input = { action: 'add', value: '' }; break
       case 'i': if (session.state.plugins.some(item => item.kind === 'scanner' && !item.listed && item.installSource)) void change({ action: 'install-recommended' }); break
       case 'm': if (session.state.plugins.some(item => item.status === 'missing')) void change({ action: 'install-missing' }); break
@@ -183,6 +188,7 @@ export async function mountPluginSettings(renderer: CliRenderer, session: Scanne
   renderer.keyInput.on('paste', onPaste)
   renderer.once('destroy', close)
   paint()
+  void session.refresh(true)
   await done.promise
 }
 

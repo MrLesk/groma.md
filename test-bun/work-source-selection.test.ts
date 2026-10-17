@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { chmod, cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { chmod, cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { runInitCommand, type InitCommandDependencies, type InitCommandUi } from '../src/init-command.ts'
@@ -11,11 +11,12 @@ const source = path.resolve(import.meta.dir, '../src')
  * Runs a script in a child process whose PATH starts with a fake `backlog` CLI, so the bundled Backlog.md work source
  * finds it. The CLI prints the version in `<root>/version`, logs every call to `<root>/calls` and lists one task.
  */
-async function withFakeBacklog(root: string, version: string, script: string): Promise<Record<string, unknown>> {
+async function withFakeBacklog(root: string, version: string, script: string, available = true): Promise<Record<string, unknown>> {
   const bin = path.join(root, 'bin')
   await mkdir(bin)
   await writeFile(path.join(root, 'version'), version)
-  await writeFile(path.join(bin, 'backlog'), `#!${process.execPath}
+  const executable = path.join(bin, process.platform === 'win32' ? 'backlog.ts' : 'backlog')
+  if (available) await writeFile(executable, `#!${process.execPath}
     import { appendFileSync, readFileSync } from 'node:fs'
     const args = process.argv.slice(2)
     appendFileSync(${JSON.stringify(path.join(root, 'calls'))}, args.join(' ') + '\\n')
@@ -23,7 +24,10 @@ async function withFakeBacklog(root: string, version: string, script: string): P
     else if (args[0] === 'config') console.log('To Do')
     else console.log(JSON.stringify({ tasks: [{ id: 'TASK-1', title: 'One', status: 'To Do', assignees: [], references: [], modifiedFiles: [], acceptanceCriteriaCount: 0, acceptanceCriteriaCompleted: 0, updatedAt: null }] }))
   `)
-  await chmod(path.join(bin, 'backlog'), 0o755)
+  if (available) {
+    if (process.platform === 'win32') await writeFile(path.join(bin, 'backlog.cmd'), `@"${process.execPath}" "${executable}" %*\r\n`)
+    else await chmod(executable, 0o755)
+  }
   const file = path.join(root, 'probe.ts')
   await writeFile(file, `
     import { readFile, writeFile } from 'node:fs/promises'
@@ -36,8 +40,11 @@ async function withFakeBacklog(root: string, version: string, script: string): P
     ${script}
     console.log(JSON.stringify(result))
   `)
+  const executablePath = [bin]
+  // The Windows adapter uses cmd.exe to launch the fake npm-style command shim.
+  if (process.platform === 'win32') executablePath.push(`${process.env.SystemRoot}\\System32`)
   const child = Bun.spawn([process.execPath, file], {
-    cwd: root, stdout: 'pipe', stderr: 'pipe', env: { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH}` },
+    cwd: root, stdout: 'pipe', stderr: 'pipe', env: { ...process.env, PATH: executablePath.join(path.delimiter) },
   })
   const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()])
   expect(code, stderr).toBe(0)
@@ -51,7 +58,7 @@ async function project(): Promise<string> {
   return root
 }
 
-test.skipIf(process.platform === 'win32').concurrent('the Backlog.md CLI runs only while config.json lists Backlog.md, added by id with its installed version', async () => {
+test.concurrent('the Backlog.md CLI runs only while config.json lists Backlog.md, added by id with its installed version', async () => {
   const root = await project()
   try {
     const result = await withFakeBacklog(root, '1.53.0', `
@@ -72,7 +79,7 @@ test.skipIf(process.platform === 'win32').concurrent('the Backlog.md CLI runs on
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-test.skipIf(process.platform === 'win32').concurrent('a Backlog.md CLI older than the version config.json lists counts as missing', async () => {
+test.concurrent('a Backlog.md CLI older than the version config.json lists counts as missing', async () => {
   const root = await project()
   try {
     await writeGromaConfig(root, { scanners: [], workSources: [{ id: 'backlog', version: '1.53.0' }] })
@@ -89,6 +96,18 @@ test.skipIf(process.platform === 'win32').concurrent('a Backlog.md CLI older tha
 async function handWritten(root: string, config: unknown): Promise<void> {
   await writeFile(path.join(root, 'groma/config.json'), JSON.stringify(config))
 }
+
+test.concurrent('automaticUpdates accepts booleans, preserves the project choice and rejects a non-boolean', async () => {
+  const root = await project()
+  try {
+    for (const automaticUpdates of [true, false]) {
+      await writeGromaConfig(root, { scanners: [], workSources: [], automaticUpdates })
+      expect((await readGromaConfig(root)).automaticUpdates).toBe(automaticUpdates)
+    }
+    await handWritten(root, { scanners: [], automaticUpdates: 'false' })
+    await expect(readGromaConfig(root)).rejects.toThrow('automaticUpdates')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
 
 test.concurrent('a config.json with a second work-source entry is refused when read and when written', async () => {
   const root = await project()
@@ -182,3 +201,102 @@ test.concurrent('groma init reports a Backlog.md that cannot be added and contin
     expect(initialized).toBe(0)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
+
+
+test.concurrent('the configuration upgrade preserves scanner choices and registers the installed Backlog CLI once', async () => {
+  const root = await project()
+  const legacy = {
+    scanners: [{ id: 'typescript', source: '@groma/scanner-typescript@0.2.2', include: ['**/*.ts'],
+      exclude: ['generated/**'], settings: { workspace: 'application' } }],
+    exclude: ['vendor/**'], useGitignore: false,
+  }
+  try {
+    await rm(path.join(root, 'groma/config.json'))
+    await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify(legacy))
+    const result = await withFakeBacklog(root, '1.53.0', `
+      result.config = await readGromaConfig(root)
+      result.saved = JSON.parse(await readFile(root + '/groma/config.json', 'utf8'))
+      result.legacyExists = await Bun.file(root + '/groma/scanners.json').exists()
+      await removePlugin(root, 'backlog')
+      result.afterRemoval = (await readGromaConfig(root)).workSources
+      result.calls = await calls()
+    `)
+    const converted = { ...legacy, workSources: [{ id: 'backlog', version: '1.53.0' }] }
+    expect(result).toEqual({ config: converted, saved: converted, legacyExists: false, afterRemoval: [], calls: ['--version'] })
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('an old .groma configuration converts without installing a missing Backlog CLI', async () => {
+  const root = await project()
+  try {
+    await rename(path.join(root, 'groma'), path.join(root, '.groma'))
+    await rm(path.join(root, '.groma/config.json'))
+    await writeFile(path.join(root, '.groma/scanners.json'), JSON.stringify({ scanners: [] }))
+    const result = await withFakeBacklog(root, '1.53.0', `
+      result.config = await readGromaConfig(root)
+      result.saved = JSON.parse(await readFile(root + '/.groma/config.json', 'utf8'))
+      result.legacyExists = await Bun.file(root + '/.groma/scanners.json').exists()
+      result.calls = await calls()
+    `, false)
+    const converted = { scanners: [], workSources: [] }
+    expect(result).toEqual({ config: converted, saved: converted, legacyExists: false, calls: [] })
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('an explicit config.json is unchanged and never reads an old file or probes the Backlog CLI', async () => {
+  const root = await project()
+  try {
+    await writeFile(path.join(root, 'groma/scanners.json'), '{')
+    const before = await readFile(path.join(root, 'groma/config.json'), 'utf8')
+    const result = await withFakeBacklog(root, '1.53.0', `
+      result.config = await readGromaConfig(root)
+      result.calls = await calls()
+    `)
+    expect(result).toEqual({ config: { scanners: [], workSources: [] }, calls: [] })
+    expect(await readFile(path.join(root, 'groma/config.json'), 'utf8')).toBe(before)
+    expect(await readFile(path.join(root, 'groma/scanners.json'), 'utf8')).toBe('{')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+
+test.concurrent('the upgrade preserves a legacy scanner that already owns the backlog plugin ID', async () => {
+  const root = await project()
+  const legacy = { scanners: [{ id: 'backlog', source: '@example/scanner-backlog@1.0.0', include: ['**/*.ts'] }] }
+  try {
+    await rm(path.join(root, 'groma/config.json'))
+    await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify(legacy))
+    const result = await withFakeBacklog(root, '1.53.0', `
+      result.config = await readGromaConfig(root)
+      result.saved = JSON.parse(await readFile(root + '/groma/config.json', 'utf8'))
+      result.legacyExists = await Bun.file(root + '/groma/scanners.json').exists()
+      result.calls = await calls()
+    `)
+    const converted = { ...legacy, workSources: [] }
+    expect(result).toEqual({ config: converted, saved: converted, legacyExists: false, calls: [] })
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+for (const concurrentVersion of ['1.54.0', '1.53.0']) {
+  test.concurrent(`Backlog updates ${concurrentVersion === '1.53.0' ? 'accept an already applied result' : 'preserve a concurrent version choice'}`, async () => {
+    const root = await project()
+    try {
+      await writeGromaConfig(root, { scanners: [], workSources: [{ id: 'backlog', version: '1.0.0' }] })
+      const result = await withFakeBacklog(root, '1.53.0', `
+        const { updatePlugin } = await import(${JSON.stringify(path.join(source, 'plugins/management.ts'))})
+        const { writeGromaConfig } = await import(${JSON.stringify(path.join(source, 'config.ts'))})
+        const { bundledWorkSources } = await import(${JSON.stringify(path.join(source, 'work/sources.ts'))})
+        const started = Promise.withResolvers(), release = Promise.withResolvers()
+        bundledWorkSources.backlog.installTool = async () => { started.resolve(); await release.promise }
+        const updating = updatePlugin(root, 'backlog')
+        await started.promise
+        await writeGromaConfig(root, { scanners: [], workSources: [{ id: 'backlog', version: '${concurrentVersion}' }] })
+        release.resolve()
+        try { await updating } catch (error) { result.error = error.message }
+        result.version = (await readGromaConfig(root)).workSources[0].version
+      `)
+      expect(result.version).toBe(concurrentVersion)
+      if (concurrentVersion === '1.53.0') expect(result.error).toBeUndefined()
+      else expect(result.error).toContain('selection changed')
+    } finally { await rm(root, { recursive: true, force: true }) }
+  })
+}
