@@ -3,7 +3,7 @@ import type { ScannerSetting, PluginSettings } from '../src/plugins/settings-mod
 import { scannerWarning } from '../src/viewers/web/settings/model.ts'
 
 function settings(tone: PluginSettings['notice']['tone'], statuses: ScannerSetting['status'][]): PluginSettings {
-  return { notice: { tone, message: '' }, limits: [], plugins: statuses.map((status, index) => ({
+  return { automaticUpdates: true, notice: { tone, message: '' }, limits: [], plugins: statuses.map((status, index) => ({
     kind: 'scanner', id: String(index), name: '', listed: status !== 'available', official: true, technologies: [], matches: [], match: 'matched', status, message: '',
   })) }
 }

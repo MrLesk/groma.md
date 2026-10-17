@@ -12,13 +12,13 @@ import path from 'node:path'
  */
 
 /** Groma's own executable is Bun, and `BUN_BE_BUN` makes it act as the `bun` command. */
-async function runPackageManager(directory: string, args: string[], registry?: string) {
+async function runPackageManager(directory: string, args: string[], registry?: string, signal?: AbortSignal) {
   const command = [process.execPath, ...args]
   if (registry !== undefined) command.push(`--registry=${registry}`)
   const child = Bun.spawn(command, {
     cwd: directory,
     env: { ...process.env, BUN_BE_BUN: '1' },
-    stdout: 'pipe', stderr: 'pipe',
+    stdout: 'pipe', stderr: 'pipe', signal,
   })
   const [exitCode, stdout, stderr] = await Promise.all([
     child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
@@ -39,7 +39,7 @@ async function runPackageManager(directory: string, args: string[], registry?: s
  */
 export async function readPublishedRelease<Manifest>(
   name: string,
-  { version, registry }: { version?: string; registry?: string } = {},
+  { version, registry, signal }: { version?: string; registry?: string; signal?: AbortSignal } = {},
 ): Promise<(Manifest & { versions: string[] }) | undefined> {
   // Bun looks a package up only from inside a project. A new empty project has no `.npmrc` of its own, so the
   // lookup sees the user's configuration alone, as the download does in its cache directory.
@@ -47,7 +47,7 @@ export async function readPublishedRelease<Manifest>(
   try {
     await writeFile(path.join(project, 'package.json'), '{}\n')
     const specifier = version === undefined ? name : `${name}@${version}`
-    const { exitCode, stdout, stderr } = await runPackageManager(project, ['pm', 'view', specifier, '--json'], registry)
+    const { exitCode, stdout, stderr } = await runPackageManager(project, ['pm', 'view', specifier, '--json'], registry, signal)
     if (exitCode === 0) return JSON.parse(stdout)
     // Bun prints the unlisted-version answer as JSON on stdout; registry and network errors are text on stderr.
     if (stdout.includes('No matching version found')) return undefined
@@ -58,8 +58,9 @@ export async function readPublishedRelease<Manifest>(
 }
 
 /** Download the dependencies of the package.json in `directory`. `source` names them in the error. */
-export async function installDependencies(directory: string, source: string, registry?: string): Promise<void> {
-  const { exitCode, stderr } = await runPackageManager(directory, ['install', '--ignore-scripts'], registry)
+export async function installDependencies(directory: string, source: string, registry?: string, signal?: AbortSignal): Promise<void> {
+  // A release selected by pm view can be newer than install's cached registry manifest.
+  const { exitCode, stderr } = await runPackageManager(directory, ['install', '--ignore-scripts', '--no-cache'], registry, signal)
   if (exitCode !== 0) {
     throw new Error(`Could not download ${source}. Check your connection and registry access, then retry.\n${stderr.trim() || `exit ${exitCode}`}`)
   }

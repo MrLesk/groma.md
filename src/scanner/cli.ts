@@ -1,4 +1,6 @@
 import type { Command } from 'commander'
+import { updateNpmScanners } from './modules/inventory.ts'
+import { scanRepository } from '../scanner.ts'
 import { parseListWindow, printListPage, withListWindowOptions, type ListWindowInput } from '../list-window.ts'
 import { runPluginCommand } from '../plugins/cli.ts'
 import { discoverScanners, discoveryItems, discoveryNote } from './modules/discovery.ts'
@@ -10,6 +12,12 @@ export function registerScannerCommands(program: Command): void {
   const scanner = program
     .command('scanner')
     .description('Set up and check the scanners of this project; groma plugin adds, updates and removes them')
+
+  // Internal job for a one-shot scan; ordinary architecture watching publishes its scan result.
+  scanner.command('refresh', { hidden: true })
+    .action(async () => {
+      if (await updateNpmScanners(process.cwd())) await scanRepository(process.cwd())
+    })
 
   scanner.command('settings').description('Open the plugins screen of this project').action(() => runPluginCommand(async () => {
     if (process.stdin.isTTY && process.stdout.isTTY) await (await import('../viewers/tui/plugin-settings.ts')).startPluginSettings(process.cwd())

@@ -1,3 +1,4 @@
+import { readGromaConfig, updateGromaConfig } from '../config.ts'
 import { scannerNotice, type ScannerSetting, type PluginSettings, type PluginSettingsAction, type WorkSourceSetting } from './settings-model.ts'
 export * from './settings-model.ts'
 import type { ScannerDiscovery } from '../scanner/modules/discovery.ts'
@@ -105,18 +106,19 @@ async function workSourceSettings(root: string): Promise<WorkSourceSetting[]> {
 
 export async function readPluginSettings(root: string, checks: readonly ProjectReadiness[] = [], options: ScannerInstallOptions = {}): Promise<PluginSettings> {
   try {
-    const [proposal, modules, workSources] = await Promise.all([
-      discoverScanners(root, options), configuredScannerModules(root, options), workSourceSettings(root),
+    const [proposal, modules, workSources, config] = await Promise.all([
+      discoverScanners(root, options), configuredScannerModules(root, options), workSourceSettings(root), readGromaConfig(root),
     ])
     const state = scannerSettingsState(proposal, modules, checks)
-    return { ...state, plugins: [...state.plugins, ...workSources] }
+    return { ...state, automaticUpdates: config.automaticUpdates !== false, plugins: [...state.plugins, ...workSources] }
   } catch (error) {
-    return { plugins: [], notice: { tone: 'error', message: error instanceof Error ? error.message : String(error) }, limits: [] }
+    return { automaticUpdates: true, plugins: [], notice: { tone: 'error', message: error instanceof Error ? error.message : String(error) }, limits: [] }
   }
 }
 
 export async function changePluginSettings(root: string, action: PluginSettingsAction, options: ScannerInstallOptions = {}): Promise<void> {
   switch (action.action) {
+    case 'automatic-updates': await updateGromaConfig(root, config => ({ ...config, automaticUpdates: action.enabled })); return
     case 'add': await addPlugin(root, action.source, options); return
     case 'remove': await removePlugin(root, action.id); return
     case 'restore': await restorePlugin(root, action.id, options); return
@@ -152,6 +154,7 @@ export function parsePluginSettingsAction(input: unknown): PluginSettingsAction 
   if (!input || typeof input !== 'object') throw new Error('Plugin action required')
   const value = input as Record<string, unknown>
   const action = value.action
+  if (action === 'automatic-updates' && typeof value.enabled === 'boolean') return { action, enabled: value.enabled }
   if (action === 'retry' || action === 'install-recommended' || action === 'install-missing') return { action }
   if (action === 'add' && typeof value.source === 'string') return { action, source: value.source }
   if (typeof value.id !== 'string') throw new Error('Plugin id required')

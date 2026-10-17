@@ -23,14 +23,14 @@ function supports(values: string[] | undefined, current: string): boolean {
  * The stable releases of a package, newest first. One registry read returns one release, so each further release is
  * read only when the caller reaches it: a caller that stops at the newest release costs one read.
  */
-async function* stableReleases(name: string, registry?: string): AsyncGenerator<PublishedScanner> {
-  const latest = await readPublishedRelease<PublishedScanner>(name, { registry })
+async function* stableReleases(name: string, registry?: string, signal?: AbortSignal): AsyncGenerator<PublishedScanner> {
+  const latest = await readPublishedRelease<PublishedScanner>(name, { registry, signal })
   if (!latest) return
   const newestFirst = latest.versions.filter(version => Bun.semver.satisfies(version, '*'))
     .sort((a, b) => Bun.semver.order(b, a))
   for (const version of newestFirst) {
     // The first read already returned the registry's latest release, which is usually the newest stable one.
-    const release = version === latest.version ? latest : await readPublishedRelease<PublishedScanner>(name, { version, registry })
+    const release = version === latest.version ? latest : await readPublishedRelease<PublishedScanner>(name, { version, registry, signal })
     if (release) yield release
   }
 }
@@ -43,11 +43,12 @@ export async function selectPublishedScanner(
   name: string,
   registry?: string,
   host = { groma: groma.version, os: process.platform as string, cpu: process.arch as string },
+  signal?: AbortSignal,
 ): Promise<PublishedScanner> {
   let published = false
   let supportsComputer = false
   let newestRequirement: string | undefined
-  for await (const release of stableReleases(name, registry)) {
+  for await (const release of stableReleases(name, registry, signal)) {
     if (!release.groma?.scanner?.id || !release.groma.scanner.entry) continue
     published = true
     if (!supports(release.os, host.os) || !supports(release.cpu, host.cpu)) continue
@@ -61,7 +62,7 @@ export async function selectPublishedScanner(
   throw new Error(`${name}: requires Groma ${newestRequirement}; this computer has ${host.groma}. Update Groma, then retry.`)
 }
 
-export async function publishedScannerSource(name: string, registry?: string): Promise<string> {
-  const release = await selectPublishedScanner(name, registry)
+export async function publishedScannerSource(name: string, registry?: string, signal?: AbortSignal): Promise<string> {
+  const release = await selectPublishedScanner(name, registry, undefined, signal)
   return `${name}@${release.version}`
 }

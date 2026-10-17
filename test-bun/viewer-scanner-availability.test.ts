@@ -83,3 +83,18 @@ test.concurrent('a live session reports failed tooling without preventing saved 
     expect(await snapshot(root)).toEqual(before)
   } finally { await session?.close(); await rm(root, { recursive: true, force: true }) }
 })
+
+test.concurrent('watch startup rejects an invalid project config', async () => {
+  const root = await setup()
+  let watcher: Awaited<ReturnType<typeof watchScan>> | undefined
+  const errors: unknown[] = []
+  try {
+    await writeFile(path.join(root, 'groma/config.json'), JSON.stringify({ scanners: false }))
+    const starting = watchScan(root, { onError: error => { errors.push(error) } }).then(started => {
+      watcher = started
+      return started
+    })
+    await expect(starting).rejects.toThrow()
+    expect(errors).toHaveLength(0)
+  } finally { await watcher?.close(); await rm(root, { recursive: true, force: true }) }
+})
