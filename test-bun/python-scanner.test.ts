@@ -402,3 +402,34 @@ test.concurrent('Python supports source without packaging metadata and returns n
     expect(await scanner.scan(root, {}, await pythonFiles(root))).toBeUndefined()
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
+
+
+test.concurrent('Python parser warnings survive scan and outline workers without corrupting their results', async () => {
+  const { root, temporary, artifact } = await fixture()
+  try {
+    await writeFile(path.join(root, 'warning.py'), '"""Usage: D:\\Plugin"""\ndef sample():\n    return 1\n\nraise RuntimeError("project code must not run")\n')
+    for (const mode of ['scan', 'outline']) {
+      const script = `
+        const scanner = (await import(${JSON.stringify(path.join(artifact, 'src/index.js'))})).default
+        const root = ${JSON.stringify(root)}
+        const mode = ${JSON.stringify(mode)}
+        const result = mode === 'scan'
+          ? await scanner.scan(root, {}, ['warning.py'])
+          : await scanner.readCodeStructure(root, [{ file: 'warning.py', symbols: ['sample'] }])
+        const files = mode === 'scan' ? result.files : result
+        const declarations = mode === 'scan' ? result.operations : result.flatMap(file => file.declarations)
+        console.log(JSON.stringify({ files: files.map(file => file.file), sample: declarations.some(item => item.name === 'sample') }))
+      `
+      const child = Bun.spawn([process.execPath, '--eval', script], {
+        cwd: root, stdout: 'pipe', stderr: 'pipe', env: { ...process.env, PATH: '' },
+      })
+      const [code, output, error] = await Promise.all([
+        child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
+      ])
+      expect(code, error).toBe(0)
+      expect(JSON.parse(output)).toEqual({ files: ['warning.py'], sample: true })
+      expect(error).toContain('SyntaxWarning')
+      expect(error).not.toContain('Error thrown in write')
+    }
+  } finally { await rm(temporary, { recursive: true, force: true }) }
+})
