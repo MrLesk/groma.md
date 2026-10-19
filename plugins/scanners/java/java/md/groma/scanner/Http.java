@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeKind;
 
 /**
@@ -221,7 +222,7 @@ final class Http extends TreePathScanner<Void, Void> {
         var host = feign == null ? "" : text(path, feign, "url");
         if (prefix == null || host == null) return;
         for (var member : tree.getMembers()) {
-            if (!(member instanceof MethodTree method)) continue;
+            if (!(member instanceof MethodTree method) || runsAsCode(method, feign != null)) continue;
             var methodPath = new TreePath(path, method);
             reportMappings(methodPath, method, prefix, List.of("*"), (verb, route) -> {
                 if (route.contains(HttpPaths.UNREADABLE)) return;
@@ -234,12 +235,23 @@ final class Http extends TreePathScanner<Void, Void> {
         }
     }
 
+    /**
+     * Whether the client runs this method's body as ordinary code instead of sending a request. Feign does for every
+     * method with a body. A Spring HTTP interface sends the request of an annotated default method, so only a body no
+     * client proxy receives, such as a static method's, runs there.
+     */
+    private static boolean runsAsCode(MethodTree method, boolean feign) {
+        return method.getBody() != null && (feign || !method.getModifiers().getFlags().contains(Modifier.DEFAULT));
+    }
+
     /** A MicroProfile REST client declares JAX-RS methods under its interface path. */
     private void microprofileRequestsOf(TreePath path, ClassTree tree) {
         var root = annotation(tree.getModifiers(), "Path");
         var prefix = root == null ? "" : routes(path, root).get(0);
         for (var member : tree.getMembers()) {
-            if (!(member instanceof MethodTree method)) continue;
+            // Implementations disagree on whether an annotated default method sends its request, and no client proxy
+            // receives a static call, so a method with a body reports none.
+            if (!(member instanceof MethodTree method) || method.getBody() != null) continue;
             var methodPath = new TreePath(path, method);
             var own = annotation(method.getModifiers(), "Path");
             var route = prefix + "/" + (own == null ? "" : routes(methodPath, own).get(0));

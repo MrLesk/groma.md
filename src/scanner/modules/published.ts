@@ -1,4 +1,5 @@
 import groma from '../../../package.json'
+import { readPublishedRelease } from './package-manager.ts'
 
 export interface PublishedScanner {
   name: string
@@ -18,40 +19,50 @@ function supports(values: string[] | undefined, current: string): boolean {
     && (values.includes(current) || values.includes('any') || values.every(value => value.startsWith('!')))
 }
 
-/** Language versions never select releases; the scanner validates its projects. */
-export function selectPublishedScanner(
-  name: string,
-  versions: Record<string, PublishedScanner>,
-  host = { groma: groma.version, os: process.platform as string, cpu: process.arch as string },
-): PublishedScanner {
-  const releases = Object.values(versions).filter(item => item.name === name
-    && item.groma?.scanner?.id && item.groma.scanner.entry && Bun.semver.satisfies(item.version, '*'))
-    .sort((a, b) => Bun.semver.order(b.version, a.version))
-  if (!releases.length) throw new Error(`${name}: no published stable scanner release. Ask the plugin author to publish one, then retry.`)
-  const platform = releases.filter(item => supports(item.os, host.os) && supports(item.cpu, host.cpu))
-  if (!platform.length) throw new Error(`${name}: no published release supports ${host.os}/${host.cpu}. Ask the plugin author for a build for this computer.`)
-  const selected = platform.find(item => {
-    const required = item.groma?.scanner?.discovery?.compatibility?.groma
-    return !required || Bun.semver.satisfies(host.groma, required)
-  })
-  if (!selected) {
-    const required = platform[0]!.groma!.scanner!.discovery!.compatibility!.groma
-    throw new Error(`${name}: requires Groma ${required}; this computer has ${host.groma}. Update Groma, then retry.`)
+/**
+ * The stable releases of a package, newest first. One registry read returns one release, so each further release is
+ * read only when the caller reaches it: a caller that stops at the newest release costs one read.
+ */
+async function* stableReleases(name: string, registry?: string, signal?: AbortSignal): AsyncGenerator<PublishedScanner> {
+  const latest = await readPublishedRelease<PublishedScanner>(name, { registry, signal })
+  if (!latest) return
+  const newestFirst = latest.versions.filter(version => Bun.semver.satisfies(version, '*'))
+    .sort((a, b) => Bun.semver.order(b, a))
+  for (const version of newestFirst) {
+    // The first read already returned the registry's latest release, which is usually the newest stable one.
+    const release = version === latest.version ? latest : await readPublishedRelease<PublishedScanner>(name, { version, registry, signal })
+    if (release) yield release
   }
-  return selected
 }
 
-export async function readPublishedScanners(name: string, registry = process.env.npm_config_registry ?? 'https://registry.npmjs.org'): Promise<Record<string, PublishedScanner>> {
-  let response: Response
-  try { response = await fetch(`${registry.replace(/\/$/, '')}/${encodeURIComponent(name)}`, { headers: { accept: 'application/json' } }) }
-  catch { throw new Error(`${name}: could not reach the package registry. Check your connection and retry.`) }
-  if (response.status === 404) throw new Error(`${name}: package is not published in this registry. Check its name or ask the plugin author to publish it.`)
-  if (!response.ok) throw new Error(`${name}: package registry returned HTTP ${response.status}. Check registry access and retry.`)
-  const metadata = await response.json() as { versions?: Record<string, PublishedScanner> }
-  return metadata.versions ?? {}
+/**
+ * The newest stable release that supports this computer and this Groma version.
+ * Language versions never select releases; the scanner validates its projects.
+ */
+export async function selectPublishedScanner(
+  name: string,
+  registry?: string,
+  host = { groma: groma.version, os: process.platform as string, cpu: process.arch as string },
+  signal?: AbortSignal,
+): Promise<PublishedScanner> {
+  let published = false
+  let supportsComputer = false
+  let newestRequirement: string | undefined
+  for await (const release of stableReleases(name, registry, signal)) {
+    if (!release.groma?.scanner?.id || !release.groma.scanner.entry) continue
+    published = true
+    if (!supports(release.os, host.os) || !supports(release.cpu, host.cpu)) continue
+    supportsComputer = true
+    const required = release.groma.scanner.discovery?.compatibility?.groma
+    if (!required || Bun.semver.satisfies(host.groma, required)) return release
+    newestRequirement ??= required
+  }
+  if (!published) throw new Error(`${name}: no published stable scanner release. Ask the plugin author to publish one, then retry.`)
+  if (!supportsComputer) throw new Error(`${name}: no published release supports ${host.os}/${host.cpu}. Ask the plugin author for a build for this computer.`)
+  throw new Error(`${name}: requires Groma ${newestRequirement}; this computer has ${host.groma}. Update Groma, then retry.`)
 }
 
-export async function publishedScannerSource(name: string, registry?: string): Promise<string> {
-  const release = selectPublishedScanner(name, await readPublishedScanners(name, registry))
-  return `${release.name}@${release.version}`
+export async function publishedScannerSource(name: string, registry?: string, signal?: AbortSignal): Promise<string> {
+  const release = await selectPublishedScanner(name, registry, undefined, signal)
+  return `${name}@${release.version}`
 }

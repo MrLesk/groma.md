@@ -7,7 +7,7 @@ need no installed Java, Scala, sbt, project dependencies, build, or network acce
 From an initialized project:
 
 ```sh
-groma scanner add @groma/scanner-scala
+groma plugin add @groma/scanner-scala
 groma scan
 ```
 
@@ -29,7 +29,10 @@ Scala 2 syntax and newer syntax outside that parser's support are not promised.
 The TypeScript entry point filters the selected paths and invokes the bundled
 worker. The worker parses each file, reports top-level declarations, and extracts
 methods (including extension methods), secondary constructors, named given aliases,
-and named function values as operations with original source positions. Ordinary and infix call expressions
+and named function values as operations with original source positions. A `val`
+that binds several names to a function literal, as in `val a, b = (x: Int) => x`,
+is one operation for each name, all at the position of that definition, and the
+calls in its right side are reported for each name. Ordinary and infix call expressions
 inside those bodies have call-site positions. Calls remain unresolved because
 syntax alone cannot prove their runtime targets. Constructor calls, implicit
 calls, macros, and build-generated code are not resolved.

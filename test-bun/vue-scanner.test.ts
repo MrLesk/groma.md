@@ -262,7 +262,7 @@ test.concurrent('the live Vue session refreshes after external script, template,
   const session = await createScannerSession(root, { onFold() { complete?.() } })
   try {
     await session.change({ action: 'add', source: artifact })
-    expect(session.state.scanners.find(scanner => scanner.id === 'vue')?.status).toBe('ready')
+    expect(session.state.plugins.find(scanner => scanner.id === 'vue')?.status).toBe('ready')
     const id = owner(await loadAnnotatedArchitecture(root), 'External.vue').id
     for (const file of ['logic.ts', 'markup.html', 'panel.css']) {
       const changed = Promise.withResolvers<void>()
@@ -311,7 +311,9 @@ test.concurrent('the built Vue package and the TypeScript scanner outline a scri
 test.concurrent('a script Vue and TypeScript both own shows one outline', async () => {
   const { temporary, root, artifact, scanner } = await outlineSetup()
   try {
-    await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify({ scanners: [
+    const child = Bun.spawn(['git', 'init', '--quiet'], { cwd: root, stdout: 'ignore', stderr: 'pipe' })
+    expect(await child.exited, await new Response(child.stderr).text()).toBe(0)
+    await writeFile(path.join(root, 'groma/config.json'), JSON.stringify({ scanners: [
       { id: 'typescript', source: path.resolve(import.meta.dir, '../plugins/scanners/typescript'), include: typescriptManifest.groma.scanner.include },
       { id: 'vue', source: artifact, include: manifest.groma.scanner.include },
     ] }))

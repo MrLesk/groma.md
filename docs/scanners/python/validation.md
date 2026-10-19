@@ -54,7 +54,7 @@ artifacts are outside the source inventory. From each clone:
 
 ```sh
 groma init 'Python qualification' --directory .groma
-groma scanner add ./tools/python-scanner
+groma plugin add ./tools/python-scanner
 groma scanner check
 groma scan
 groma scan
@@ -69,8 +69,8 @@ TypeScript and React packages were built with their existing `build.ts` entry
 points, copied into each clone's excluded `tools` directory, then added:
 
 ```sh
-groma scanner add ./tools/typescript-scanner
-groma scanner add ./tools/react-scanner
+groma plugin add ./tools/typescript-scanner
+groma plugin add ./tools/react-scanner
 groma scanner discover --json
 groma scan
 ```

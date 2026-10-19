@@ -13,7 +13,8 @@ test.concurrent('a component outlines its Java file beside a TypeScript file und
   try {
     const root = path.join(temporary, 'project')
     const artifact = path.join(temporary, 'scanner')
-    await buildPackage(artifact)
+    if (process.env.GROMA_TEST_JAVA_PACKAGE) await cp(process.env.GROMA_TEST_JAVA_PACKAGE, artifact, { recursive: true })
+    else await buildPackage(artifact)
     await cp(path.resolve(import.meta.dir, '../test/fixtures/java-outline'), root, { recursive: true })
     const git = Bun.spawn(['git', 'init', '--quiet'], { cwd: root, stdout: 'ignore', stderr: 'pipe' })
     expect(await git.exited, await new Response(git.stderr).text()).toBe(0)

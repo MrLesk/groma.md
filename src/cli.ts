@@ -15,8 +15,10 @@ import { ensureInitialized, runInitCommand } from './init-command.ts'
 import { humanInstructionGuide } from './instructions.ts'
 import { listWindowRequested, parseListWindow, withListWindowOptions, type ListWindow } from './list-window.ts'
 import { registerLintCommand } from './lint-command.ts'
+import { registerPluginCommands } from './plugins/cli.ts'
 import { registerScannerCommands } from './scanner/cli.ts'
 import { formatScanReport, scanRepository, watchScan } from './scanner.ts'
+import { startBackgroundScannerUpdates } from './scanner/background-updates.ts'
 import { renderPlainWelcome, startWelcome } from './welcome.ts'
 import { registerWriteCommands } from './write-commands.ts'
 import type { WelcomeActionId, WelcomeScreen } from './welcome.ts'
@@ -163,6 +165,7 @@ async function scanOnce(): Promise<void> {
   console.log('ok')
   console.log(formatScanReport(root, summary))
   if (await awaitingCuration(root)) console.log(`${firstScanTitle}. ${firstScanHint}`)
+  await startBackgroundScannerUpdates(root)
 }
 
 async function runScan(watchEnabled: boolean): Promise<void> {
@@ -188,7 +191,7 @@ async function runWelcomeAction(action: WelcomeActionId): Promise<void> {
   switch (action) {
     case 'web': return openWeb()
     case 'scan': return scanOnce()
-    case 'scanners': return openTerminalFromWelcome('scanner', 'settings')
+    case 'plugins': return openTerminalFromWelcome('scanner', 'settings')
     default: return unhandledWelcomeAction(action)
   }
 }
@@ -203,7 +206,7 @@ async function runInteractiveWelcome(screen: WelcomeScreen = 'launcher'): Promis
       try {
         if (session.selection !== undefined) await runWelcomeAction(session.selection)
       } finally { await session.close() }
-      reopen = session.selection === 'scanners'
+      reopen = session.selection === 'plugins'
     }
   } finally {
     clearInterval(lifecycle)
@@ -291,6 +294,7 @@ program
   })
 
 registerScannerCommands(program)
+registerPluginCommands(program)
 registerLintCommand(program)
 registerWriteCommands(program)
 

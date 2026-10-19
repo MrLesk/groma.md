@@ -1,0 +1,47 @@
+{
+  "name": "@groma/scanner-dart",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "description": "Experimental Dart source declarations, outlines and bounded call evidence for Flutter and Serverpod source.",
+  "groma": {
+    "scanner": {
+      "id": "dart",
+      "entry": "./src/index.ts",
+      "include": [
+        "**/*.dart",
+        "**/pubspec.yaml"
+      ],
+      "exclude": [
+        ".dart_tool/",
+        "build/",
+        "test/",
+        "integration_test/",
+        "**/*_test.dart"
+      ],
+      "discovery": {
+        "technologies": [
+          "dart"
+        ],
+        "rules": [
+          {
+            "type": "file",
+            "files": [
+              "**/*.dart"
+            ],
+            "technology": "dart",
+            "kind": "language",
+            "declaration": "Dart source; Flutter, Serverpod and build configuration unverified"
+          }
+        ],
+        "compatibility": {
+          "groma": ">=0.7.0"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@groma/scanner": "workspace:*"
+  }
+}

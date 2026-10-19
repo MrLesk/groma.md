@@ -18,6 +18,14 @@ does not install or execute plugins, run project builds, change scanner
 selection, or write architecture. Rerun it after adding a nested application
 to see the additional support needed alongside the existing selection.
 
+In the live web map, **Settings** and its **Plugins** menu entry show a small
+numeric badge for matching scanner recommendations that are not configured.
+Open **Plugins** to inspect the Recommended rows, matching project files and
+**Install** actions. The count refreshes with plugin settings, including after
+installation, and the badge disappears at zero. Configured scanners, missing
+local copies, work sources and version updates do not count. Scanner problems
+keep their separate warning and actions; recommendations do not install automatically.
+
 ## Supported declarations
 
 Discovery reads tracked and unignored untracked files at every repository
@@ -58,7 +66,7 @@ Dependency and generated directories are excluded by path segment:
 `.angular`, `coverage`, and `generated`. Git metadata and groma.md architecture
 directories are also excluded. A project deliberately placed under one of
 these names is outside this discovery scope. In an initialized project, discovery
-also honors the shared `exclude` patterns in groma.md's `scanners.json`.
+also honors the shared `exclude` patterns in groma.md's `config.json`.
 
 Discovery does not evaluate Maven/MSBuild properties, inherited settings,
 profiles, Gradle scripts, or Cargo workspace inheritance. Literal XML tags
@@ -84,6 +92,8 @@ imports those manifests. The existing groma.md build embeds their data; it does
 not execute the optional plugins or contact a registry for discovery. Updating
 an existing plugin's metadata and rebuilding groma.md updates its recommendations.
 Adding an official plugin requires adding its manifest to the selection.
+Newly introduced official scanners become discoverable after updating Groma to a
+release whose embedded catalogue includes their metadata.
 There is no separately maintained technology detector or compatibility table.
 
 Every detected official technology offers Install. Detection neither contacts npm

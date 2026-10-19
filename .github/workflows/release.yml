@@ -25,14 +25,20 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-swift
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
+      - parallel:
+          - uses: ./.github/actions/setup-swift
+          - uses: dart-lang/setup-dart@v1
+            with:
+              sdk: '3.13.5'
+              # Swift's Windows setup exports its own action path; Dart analysis still runs below.
+              problem-matcher: false
+          - uses: actions/setup-java@v6
+            with:
+              distribution: temurin
+              java-version: '25'
+          - uses: oven-sh/setup-bun@v2
+            with:
+              bun-version: ${{ env.BUN_VERSION }}
       - name: Set version from tag
         if: github.event_name == 'release'
         env:
@@ -71,52 +77,61 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
-      - name: Cache SwiftSyntax build
-        if: runner.os == 'Windows'
-        uses: actions/cache@v6
-        with:
-          path: .groma/swift-syntax-build
-          key: >-
-            swift-syntax-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(
-              '.github/actions/setup-swift/action.yml',
-              'plugins/scanners/swift/Package.swift') }}
-      - uses: ./.github/actions/setup-swift
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-      - uses: actions/setup-java@v6
-        with:
-          distribution: ${{ matrix.platform == 'win32-arm64' && 'microsoft' || 'temurin' }}
-          java-version: '25'
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: plugins/scanners/go/worker/go.mod
-          cache-dependency-path: plugins/scanners/go/worker/go.sum
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: '10.0.x'
-      - name: Install Rust build toolchain
-        run: rustup toolchain install 1.91.1 --profile minimal
-        shell: bash
+      - parallel:
+          - name: Cache SwiftSyntax build
+            if: runner.os == 'Windows'
+            uses: actions/cache@v6
+            with:
+              path: .groma/swift-syntax-build
+              key: >-
+                swift-syntax-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(
+                  '.github/actions/setup-swift/action.yml',
+                  'plugins/scanners/swift/Package.swift') }}
+          - uses: ./.github/actions/setup-swift
+          - uses: oven-sh/setup-bun@v2
+            with:
+              bun-version: ${{ env.BUN_VERSION }}
+          - uses: dart-lang/setup-dart@v1
+            with:
+              sdk: '3.13.5'
+              # Swift's Windows setup exports its own action path; Dart analysis still runs below.
+              problem-matcher: false
+          - uses: actions/setup-java@v6
+            with:
+              distribution: ${{ matrix.platform == 'win32-arm64' && 'microsoft' || 'temurin' }}
+              java-version: '25'
+          - uses: actions/setup-go@v7
+            with:
+              go-version-file: plugins/scanners/go/worker/go.mod
+              cache-dependency-path: plugins/scanners/go/worker/go.sum
+          - uses: actions/setup-dotnet@v6
+            with:
+              dotnet-version: '10.0.x'
+          - name: Install Rust build toolchain
+            run: rustup toolchain install 1.91.1 --profile minimal
+            shell: bash
       - name: Select Rust build toolchain
         run: rustup override set 1.91.1
         shell: bash
-      - name: Install build dependencies
-        run: |
-          bun install --frozen-lockfile --ignore-scripts
-          dotnet restore plugins/scanners/csharp/dotnet/Groma.CSharpScanner.csproj --locked-mode
-        shell: bash
+      - parallel:
+          - name: Install Bun dependencies
+            run: bun install --frozen-lockfile --ignore-scripts
+            shell: bash
+          - name: Restore C# worker dependencies
+            run: dotnet restore plugins/scanners/csharp/dotnet/Groma.CSharpScanner.csproj --locked-mode
+            shell: bash
       - name: Build runnable scanner packages
         env:
           GROMA_SWIFT_PM_CACHE: ${{ github.workspace }}/.groma/swift-syntax-build
         run: bun scripts/scanner-release.ts stage scanner-packages
         shell: bash
-      - name: Check Swift evidence and installed worker
-        run: GROMA_TEST_SWIFT_PACKAGE=scanner-packages/swift bun test test-bun/swift-scanner.test.ts
-        shell: bash
-      - name: Check fresh checkouts without project tools
-        run: GROMA_TEST_PACKAGES=scanner-packages bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts
-        shell: bash
+      - parallel:
+          - name: Check Swift evidence and installed worker
+            run: GROMA_TEST_SWIFT_PACKAGE=scanner-packages/swift bun test test-bun/swift-scanner.test.ts
+            shell: bash
+          - name: Check fresh checkouts without project tools
+            run: GROMA_TEST_PACKAGES=scanner-packages bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts
+            shell: bash
       - uses: actions/upload-artifact@v7
         with:
           name: scanner-packages-${{ matrix.platform }}
@@ -130,21 +145,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-      - uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          registry-url: https://registry.npmjs.org
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: scanner-packages-*
-          path: scanner-artifacts
-      - name: Assemble scanner packages
-        run: bun scripts/scanner-release.ts assemble scanner-artifacts scanner-packages
-      - name: Use npm 11 for trusted publishing
-        run: npm install --global npm@11
+      - parallel:
+          - uses: oven-sh/setup-bun@v2
+            with:
+              bun-version: ${{ env.BUN_VERSION }}
+          - uses: actions/setup-node@v7
+            with:
+              node-version: ${{ env.NODE_VERSION }}
+              registry-url: https://registry.npmjs.org
+          - uses: actions/download-artifact@v8
+            with:
+              pattern: scanner-packages-*
+              path: scanner-artifacts
+      - parallel:
+          - name: Assemble scanner packages
+            run: bun scripts/scanner-release.ts assemble scanner-artifacts scanner-packages
+          - name: Use npm 11 for trusted publishing
+            run: npm install --global npm@11
       - name: Publish contract and official scanners
         run: bun scripts/scanner-release.ts publish scanner-packages
         env:
@@ -213,13 +230,14 @@ jobs:
           fs.writeFileSync(filename, `${JSON.stringify(manifest, null, 2)}\n`)
           NODE
         shell: bash
-      - name: Install all Bun target dependencies
-        run: bun install --frozen-lockfile --os="*" --cpu="*"
-        shell: bash
-      - uses: actions/download-artifact@v8
-        with:
-          name: published-scanner-packages
-          path: published-scanner-packages
+      - parallel:
+          - name: Install all Bun target dependencies
+            run: bun install --frozen-lockfile --os="*" --cpu="*"
+            shell: bash
+          - uses: actions/download-artifact@v8
+            with:
+              name: published-scanner-packages
+              path: published-scanner-packages
       - name: Embed published scanner metadata
         run: bun scripts/scanner-release.ts catalog published-scanner-packages
         shell: bash
@@ -304,43 +322,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
-        with:
-          name: groma-${{ matrix.target }}
-          path: artifact
-      - uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          registry-url: https://registry.npmjs.org
-      - name: Prepare platform package
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          version="${RELEASE_TAG#v}"
-          mkdir -p package
-          cp "artifact/${{ matrix.binary }}" "package/${{ matrix.binary }}"
-          cp LICENSE package/
-          if [[ "${{ matrix.npm_os }}" != "win32" ]]; then
-            chmod +x "package/${{ matrix.binary }}"
-          fi
-          node - "$version" "${{ matrix.package }}" "${{ matrix.npm_os }}" "${{ matrix.npm_cpu }}" "${{ matrix.binary }}" <<'NODE'
-          const fs = require('node:fs')
-          const [version, name, os, cpu, binary] = process.argv.slice(2)
-          const manifest = {
-            name,
-            version,
-            description: 'Groma standalone architecture CLI',
-            license: 'MIT',
-            repository: { type: 'git', url: 'https://github.com/MrLesk/groma.md.git' },
-            os: [os],
-            cpu: [cpu],
-            files: [binary, 'package.json', 'LICENSE'],
-          }
-          fs.writeFileSync('package/package.json', `${JSON.stringify(manifest, null, 2)}\n`)
-          NODE
-        shell: bash
-      - name: Use npm 11 for trusted publishing
-        run: npm install --global npm@11
+      - parallel:
+          - uses: actions/download-artifact@v8
+            with:
+              name: groma-${{ matrix.target }}
+              path: artifact
+          - uses: actions/setup-node@v7
+            with:
+              node-version: ${{ env.NODE_VERSION }}
+              registry-url: https://registry.npmjs.org
+      - parallel:
+          - name: Prepare platform package
+            env:
+              RELEASE_TAG: ${{ github.ref_name }}
+            run: |
+              version="${RELEASE_TAG#v}"
+              mkdir -p package
+              cp "artifact/${{ matrix.binary }}" "package/${{ matrix.binary }}"
+              cp LICENSE package/
+              if [[ "${{ matrix.npm_os }}" != "win32" ]]; then
+                chmod +x "package/${{ matrix.binary }}"
+              fi
+              node - "$version" "${{ matrix.package }}" "${{ matrix.npm_os }}" "${{ matrix.npm_cpu }}" "${{ matrix.binary }}" <<'NODE'
+              const fs = require('node:fs')
+              const [version, name, os, cpu, binary] = process.argv.slice(2)
+              const manifest = {
+                name,
+                version,
+                description: 'Groma standalone architecture CLI',
+                license: 'MIT',
+                repository: { type: 'git', url: 'https://github.com/MrLesk/groma.md.git' },
+                os: [os],
+                cpu: [cpu],
+                files: [binary, 'package.json', 'LICENSE'],
+              }
+              fs.writeFileSync('package/package.json', `${JSON.stringify(manifest, null, 2)}\n`)
+              NODE
+            shell: bash
+          - name: Use npm 11 for trusted publishing
+            run: npm install --global npm@11
       - name: Publish platform package
         working-directory: package
         run: npm publish --access public
@@ -357,45 +377,46 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: https://registry.npmjs.org
-      - name: Prepare npm wrapper package
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          version="${RELEASE_TAG#v}"
-          mkdir -p package
-          cp scripts/npm/cli.cjs package/cli.cjs
-          cp README.md LICENSE package/
-          node - "$version" <<'NODE'
-          const fs = require('node:fs')
-          const root = JSON.parse(fs.readFileSync('package.json', 'utf8'))
-          const [version] = process.argv.slice(2)
-          const platformPackages = [
-            'groma.md-linux-x64',
-            'groma.md-linux-arm64',
-            'groma.md-darwin-arm64',
-            'groma.md-windows-x64',
-            'groma.md-windows-arm64',
-          ]
-          const manifest = {
-            name: root.name,
-            version,
-            description: root.description,
-            license: root.license,
-            author: root.author,
-            homepage: root.homepage,
-            repository: root.repository,
-            bugs: root.bugs,
-            keywords: root.keywords,
-            engines: { node: '>=20.19.0' },
-            bin: { groma: 'cli.cjs' },
-            files: ['cli.cjs', 'package.json', 'README.md', 'LICENSE'],
-            optionalDependencies: Object.fromEntries(platformPackages.map(name => [name, version])),
-          }
-          fs.writeFileSync('package/package.json', `${JSON.stringify(manifest, null, 2)}\n`)
-          NODE
-        shell: bash
-      - name: Use npm 11 for trusted publishing
-        run: npm install --global npm@11
+      - parallel:
+          - name: Prepare npm wrapper package
+            env:
+              RELEASE_TAG: ${{ github.ref_name }}
+            run: |
+              version="${RELEASE_TAG#v}"
+              mkdir -p package
+              cp scripts/npm/cli.cjs package/cli.cjs
+              cp README.md LICENSE package/
+              node - "$version" <<'NODE'
+              const fs = require('node:fs')
+              const root = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+              const [version] = process.argv.slice(2)
+              const platformPackages = [
+                'groma.md-linux-x64',
+                'groma.md-linux-arm64',
+                'groma.md-darwin-arm64',
+                'groma.md-windows-x64',
+                'groma.md-windows-arm64',
+              ]
+              const manifest = {
+                name: root.name,
+                version,
+                description: root.description,
+                license: root.license,
+                author: root.author,
+                homepage: root.homepage,
+                repository: root.repository,
+                bugs: root.bugs,
+                keywords: root.keywords,
+                engines: { node: '>=20.19.0' },
+                bin: { groma: 'cli.cjs' },
+                files: ['cli.cjs', 'package.json', 'README.md', 'LICENSE'],
+                optionalDependencies: Object.fromEntries(platformPackages.map(name => [name, version])),
+              }
+              fs.writeFileSync('package/package.json', `${JSON.stringify(manifest, null, 2)}\n`)
+              NODE
+            shell: bash
+          - name: Use npm 11 for trusted publishing
+            run: npm install --global npm@11
       - name: Publish groma.md
         working-directory: package
         run: npm publish --access public

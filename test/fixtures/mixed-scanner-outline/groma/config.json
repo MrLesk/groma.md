@@ -1,0 +1,19 @@
+{
+  "scanners": [
+    {
+      "id": "alpha",
+      "source": "./plugins/alpha",
+      "include": [
+        "**/*.alpha"
+      ]
+    },
+    {
+      "id": "beta",
+      "source": "./plugins/beta",
+      "include": [
+        "**/*.beta"
+      ]
+    }
+  ],
+  "workSources": []
+}

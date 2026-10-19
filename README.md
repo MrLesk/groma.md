@@ -60,7 +60,7 @@ Three steps. Scan your code, then review and curate the map yourself or with you
 npm i -g groma.md backlog.md
 ```
 
-Backlog.md provides the tasks shown on the map; groma.md works without it. macOS requires Apple Silicon.
+Backlog.md provides the tasks shown on the map once the project's `config.json` lists it: answer yes in `groma init`, or run `groma plugin add backlog`. groma.md works without it. macOS requires Apple Silicon.
 
 ### 2. Scan
 
@@ -114,6 +114,12 @@ The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](ht
 | [Angular](docs/scanners/angular/index.md) | ✅ Available |
 | [React](docs/scanners/react/index.md) | ✅ Available |
 | [Vue](docs/scanners/vue/index.md) | ✅ Available |
+| [C](docs/scanners/c/index.md) | 🧪 Experimental |
+| [C++](docs/scanners/cpp/index.md) | 🧪 Experimental |
+| [Ada](docs/scanners/ada/index.md) | 🧪 Experimental |
+| [Dart (Flutter and Serverpod source)](docs/scanners/dart/index.md) | 🧪 Experimental |
+| [MQL5](docs/scanners/mql5/index.md) | 🧪 Experimental |
+| [Mojo](docs/scanners/mojo/index.md) | 🧪 Experimental |
 | [C#/.NET](docs/scanners/dotnet-csharp/index.md) | ✅ Available |
 | [Go](docs/scanners/go/index.md) | ✅ Available |
 | [Java (Maven, Gradle)](docs/scanners/java/index.md) | ✅ Available |
@@ -127,7 +133,7 @@ The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](ht
 | [Assembly (NASM x86-64, Linux ELF64)](docs/scanners/nasm/index.md) | 🧪 Experimental |
 | Your favorite language or framework | [Submit an issue with your request](https://github.com/MrLesk/Groma.md/issues) |
 
-More languages arrive as [scanner plugins](docs/scanners/creating-a-plugin.md); add your own with `groma scanner add`. Each scanner's page describes what it reads. See [which relationships groma.md detects](docs/relationship-inference.md#current-inference-rule).
+More languages arrive as [scanner plugins](docs/scanners/creating-a-plugin.md); add your own with `groma plugin add`. Each scanner's page describes what it reads. See [which relationships groma.md detects](docs/relationship-inference.md#current-inference-rule).
 
 ## FAQ
 
@@ -155,7 +161,7 @@ Nothing breaks. The architecture stays in your repository as ordinary Markdown i
 
 > ### Which languages does it support?
 
-TypeScript, JavaScript, Angular, React, Vue, C#/.NET, Go, Java, Scala 3, Kotlin, Python, Rust, PHP, Swift, COBOL, and NASM assembly, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
+TypeScript, JavaScript, Angular, React, Vue, C, C++, Ada, Dart, MQL5, Mojo, C#/.NET, Go, Java, Scala 3, Kotlin, Python, Rust, PHP, Swift, COBOL, and NASM assembly, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
 
 ## Experimental
 

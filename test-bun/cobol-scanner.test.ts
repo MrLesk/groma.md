@@ -16,7 +16,8 @@ async function setup() {
   const artifact = path.join(temporary, 'scanner')
   try {
     await cp(fixture, root, { recursive: true })
-    await buildPackage(artifact)
+    if (process.env.GROMA_TEST_COBOL_PACKAGE) await cp(process.env.GROMA_TEST_COBOL_PACKAGE, artifact, { recursive: true })
+    else await buildPackage(artifact)
     const scanner: ScannerPlugin = (await import(pathToFileURL(path.join(artifact, 'src/index.js')).href)).default
     return { temporary, root, scanner }
   } catch (error) { await rm(temporary, { recursive: true, force: true }); throw error }
@@ -57,9 +58,12 @@ test.concurrent('COBOL keeps original program locations, declaration candidates 
     ])
     expect(outlines.map(file => [file.file, file.declarations.map(item => [item.kind, item.name, item.line, item.entry])])).toEqual([
       ['caller.cbl', [['program', 'MAIN', 4, true]]],
-      ['providers.cob', [['program', 'WORKER', 2, true], ['program', 'SECOND', 10, false]]],
+      ['providers.cob', [['program', 'WORKER', 2, true], ['program', 'SECOND', 12, false]]],
     ])
     expect(observation.operations!.find(operation => operation.name === 'MAIN')!.position).toBe(source.indexOf('MAIN.'))
+    // In providers.cob a line that ends before column 8 separates PROGRAM-ID. from SECOND; the position is the offset of the name.
+    const providers = await readFile(path.join(root, 'providers.cob'), 'utf8')
+    expect(observation.operations!.find(operation => operation.name === 'SECOND')!.position).toBe(providers.indexOf('SECOND.'))
 
     // Excluded copybooks cannot be read as hidden context, even when they exist on disk.
     const missing = (await scanner.scan(root, {}, selected.filter(file => file !== 'Fields.CPY')))!

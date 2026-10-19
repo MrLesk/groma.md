@@ -3,7 +3,8 @@ import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
 import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { stringArray } from './config.ts'
+import { exactVersion, stringArray } from '../../config.ts'
+import { installDependencies } from './package-manager.ts'
 import { isNpmPackageName } from './published.ts'
 
 export interface NpmScannerSource {
@@ -40,7 +41,6 @@ export interface ResolvedScannerPackage {
   version: string
 }
 
-const exactVersion = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
 const scannerId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export function defaultScannerCacheRoot(): string {
@@ -192,6 +192,7 @@ async function installNpmScanner(
   source: NpmScannerSource,
   cacheRoot = defaultScannerCacheRoot(),
   registry?: string,
+  signal?: AbortSignal,
 ): Promise<ResolvedScannerPackage> {
   const directory = installDirectory(cacheRoot, source.source)
   await mkdir(directory, { recursive: true })
@@ -199,24 +200,10 @@ async function installNpmScanner(
     private: true,
     dependencies: { [source.name]: source.version },
   }, null, 2)}\n`)
-  await installDependencies(directory, source.source, registry)
+  await installDependencies(directory, source.source, registry, signal)
   const resolved = await resolveScannerPackage(source, cacheRoot)
   if (resolved === undefined) throw new Error(`installed scanner is missing: ${source.source}`)
   return resolved
-}
-
-async function installDependencies(directory: string, source: string, registry?: string): Promise<void> {
-  const command = [process.execPath, 'install', '--ignore-scripts']
-  if (registry !== undefined) command.push(`--registry=${registry}`)
-  const child = Bun.spawn(command, {
-    cwd: directory,
-    env: { ...process.env, BUN_BE_BUN: '1' },
-    stderr: 'pipe', stdout: 'ignore',
-  })
-  const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()])
-  if (exitCode !== 0) {
-    throw new Error(`Could not download ${source}. Check your connection and registry access, then retry.\n${stderr.trim() || `exit ${exitCode}`}`)
-  }
 }
 
 async function git(directory: string, ...args: string[]): Promise<string> {
@@ -259,16 +246,16 @@ async function installGitScanner(
   }
 }
 
-/** Installation is explicit; registry loading only resolves already installed packages. */
+/** Reuse an installed exact source before downloading it. Registry loading only resolves installed packages. */
 export async function installScannerPackage(
   source: ScannerSource,
   cacheRoot = defaultScannerCacheRoot(),
   registry?: string,
+  signal?: AbortSignal,
 ): Promise<{ source: string; package: ResolvedScannerPackage }> {
   if (source.kind === 'git') return installGitScanner(source, cacheRoot, registry)
-  const resolved = source.kind === 'npm'
-    ? await installNpmScanner(source, cacheRoot, registry)
-    : await resolveScannerPackage(source, cacheRoot)
+  const resolved = await resolveScannerPackage(source, cacheRoot)
+    ?? (source.kind === 'npm' ? await installNpmScanner(source, cacheRoot, registry, signal) : undefined)
   if (resolved === undefined) throw new Error(`scanner package not found: ${source.source}`)
   return { source: source.source, package: resolved }
 }

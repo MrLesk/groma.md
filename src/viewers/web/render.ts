@@ -9,7 +9,7 @@ import type { FlowRef } from '../flows.ts'
 import { createAddControl } from './chrome/add.ts'
 import { createEmptyState } from './chrome/empty.ts'
 import { createMapDebugPanel } from './chrome/map-debug.ts'
-import { bindMapView } from './chrome/map-view.ts'
+import { bindMapView, readSavedMapControls, saveMapControls } from './chrome/map-view.ts'
 import { bindC4Filter } from './chrome/c4-filter.ts'
 import { animateControl, animateContent } from './chrome/motion.ts'
 import { measureFrame, type MapFrame } from './chrome/frame.ts'
@@ -52,16 +52,22 @@ let sheet = boot.sheet
 let project: ProjectProfile | undefined = boot.project ?? undefined
 let currentPins = boot.pins
 let mapMeta = { generation: boot.generation, timings: boot.timings }
+const opened = readView(location, world, work.items, boot.revisions, readSavedTheme(localStorage), boot.comparison, readSavedMapControls(localStorage))
+saveMapControls(opened, localStorage)
 const changes = createComparisonControl(document.body, select, () => {
   repaintScene(false)
   paintViewState()
 })
 changes.update(world, boot.comparison, boot.revision?.id, undefined)
 const mapMotion = createMapMotion(sheet)
-const filterC4 = bindC4Filter(document.getElementById('c4-filter')!, () => repaintScene(false))
+mapMotion.choose(opened.mapView, 0, false)
+const filterC4 = bindC4Filter(document.getElementById('c4-filter')!, opened.hiddenFilters, () => {
+  repaintScene(false)
+  rememberMapControls()
+})
 const debug = createMapDebugPanel(document.body, () => ({ ...mapMeta, world, sheet }))
 function projectedScene() {
-  return debug.project(() => changes.project(filterC4(presentScene(mapMotion.sheet, project, mapMotion.pose))))
+  return debug.project(() => changes.project(filterC4.project(presentScene(mapMotion.sheet, project, mapMotion.pose))))
 }
 let scene = projectedScene()
 const hosts = pageHosts()
@@ -78,7 +84,6 @@ const tip = createTip(host)
 const pins = createPins(host, id => map.anchorOf(id), id => toggleTask(id, false), tip)
 const island = createWorkIsland(host, id => toggleTask(id), pins.show, tip)
 const hierarchy = createHierarchy(treeHost, select)
-const opened = readView(location, world, work.items, boot.revisions, readSavedTheme(localStorage), boot.comparison)
 const themeControl = bindThemeControl(document.getElementById('theme') as HTMLDetailsElement, opened.theme, syncUrl)
 let hudVisible = opened.hudVisible
 shell.setHud(hudVisible)
@@ -145,6 +150,7 @@ function zoomStep(factor: number, control: HTMLElement): void {
 
 function syncUrl(): void {
   const query = writeView({
+    ...currentMapControls(),
     ...(revisionControl.selected === undefined ? {} : { revision: revisionControl.selected }),
     ...(revisionControl.from === undefined ? {} : { from: revisionControl.from }),
     ...(source.file === undefined ? {} : { file: source.file }),
@@ -156,6 +162,12 @@ function syncUrl(): void {
     ...(opened.inset === undefined ? {} : { inset: opened.inset }),
   }, world, work.items, location.pathname, revisionControl.comparison)
   history.replaceState(null, '', `${location.pathname}${query}`)
+}
+
+function currentMapControls() { return { mapView: mapMotion.view, hiddenFilters: filterC4.hidden } }
+function rememberMapControls(): void {
+  saveMapControls(currentMapControls(), localStorage)
+  syncUrl()
 }
 /** Applies comparison marks, highlights and task activation from the current selection, flows and active tasks. */
 function paintMapState(): void {
@@ -352,13 +364,17 @@ function focusOpened(kind: Selection['kind']): void {
 }
 /** An embedding page opens another view in place, from the same query string the URL carries. */
 function openView(search: string): void {
-  const next = readView({ search, pathname: location.pathname }, world, work.items, boot.revisions, themeControl.mode, revisionControl.comparison)
+  const next = readView({ search, pathname: location.pathname }, world, work.items, boot.revisions, themeControl.mode, revisionControl.comparison, currentMapControls())
   if (next.hudVisible !== hudVisible) toggleHud()
   source.clear()
   selection = next.selection
   activeFlows = next.flows
   activeTaskIds = selection.kind === 'task' ? [selection.id] : []
   detailsTab = next.tab
+  filterC4.setHidden(next.hiddenFilters)
+  mapAnimator.choose(next.mapView)
+  repaintScene(false)
+  saveMapControls(currentMapControls(), localStorage)
   paintViewState()
   if (next.file !== undefined) source.open(next.file, next.line)
   focusOpened(selection.kind)
@@ -389,11 +405,15 @@ function repaintScene(fit: boolean): void {
 }
 
 const mapAnimator = createMapAnimator(mapMotion, repaintScene)
-const paintMapView = bindMapView(document.getElementById('map-view')!, mapAnimator.choose)
+const paintMapView = bindMapView(document.getElementById('map-view')!, view => {
+  mapAnimator.choose(view)
+  rememberMapControls()
+})
+paintMapView(mapMotion.view)
 
 bindChromeActions({
   hud: toggleHud,
-  layers: mapAnimator.toggleLayers,
+  layers: () => { mapAnimator.toggleLayers(); rememberMapControls() },
   debug: debug.toggle,
   zoomIn: () => zoomStep(ZOOM_STEP, document.getElementById('zoom-in')!),
   zoomOut: () => zoomStep(1 / ZOOM_STEP, document.getElementById('zoom-out')!),

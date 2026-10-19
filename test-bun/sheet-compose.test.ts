@@ -60,6 +60,18 @@ test.concurrent('leaf relationships derive weighted entry, mediator, and core ro
     connection.source === 'observed:entry-a' && connection.target === 'observed:core')?.weight, 3)
 })
 
+test.concurrent('a disconnected edge cannot turn a direct entry fan-out into columns', () => {
+  const world = flowWorld()
+  world.relationships = [
+    uses('entry', 'architect', 'entry-a-leaf'),
+    uses('branch-a', 'entry-a-leaf', 'mid-a-leaf'),
+    uses('branch-b', 'entry-a-leaf', 'mid-b-leaf'),
+    uses('disconnected', 'entry-b-leaf', 'core-leaf'),
+  ]
+
+  assert.equal(containerFlow(placeWorld(world), 'observed:service', world.relationships), null)
+})
+
 test.concurrent('the composed system reads west to east while complete subtrees remain together', () => {
   const placement = placeWorld(flowWorld())
   const slabs = new Map(placement.slabs.map(slab => [slab.id, slab]))

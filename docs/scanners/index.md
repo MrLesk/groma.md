@@ -72,16 +72,18 @@ before opening, then start a source watch session.
 Source and architecture watch subscriptions are ready before viewer startup
 completes, so the first edit can update the open map.
 
-Optional modules are enabled only through `scanners.json` in the selected
-`groma/` or `.groma/` directory, normally written by `groma scanner add`.
-`groma scanner list` derives found and missing package availability without executing third-party code.
+Optional modules are enabled only through `config.json` in the selected
+`groma/` or `.groma/` directory, normally written by `groma plugin add`.
+`groma plugin list` derives found and missing package availability without executing scanner code.
 `groma scanner check` checks source inputs and scanner-owned tools.
-Network installation happens only after explicit selection in setup,
-`scanner add`, `scanner update`, or `scanner install`.
+Setup, `plugin add`, `plugin update`, `plugin install`, and Restore in `groma web`
+can download packages. [Automatic scanner updates](../config.md#automatic-scanner-updates)
+are enabled by default and download compatible releases in the background.
 
-Bare `groma` shows scanner readiness beside the embedded Backlog work-source
-readiness in one fixed bottom row. The complete scanner inventory and scanner
-management syntax remain under Advanced commands.
+Bare `groma` shows the scanner notice above its commands and, in one fixed
+bottom row, the plugins `config.json` lists that this computer lacks. That
+row stays empty when none is missing. The complete scanner inventory and
+scanner management syntax remain under Advanced commands.
 
 ## Fresh checkouts
 
@@ -106,7 +108,7 @@ not become new map elements. groma.md core continues to own architectural meanin
 
 ## Scanner settings
 
-Use the same `scanners.json` for scanner selection and settings. Add an
+Use the same `config.json` for scanner selection and settings. Add an
 optional `settings` object to the relevant entry, preserving its installed
 `source` and all other entries:
 
@@ -136,7 +138,7 @@ on retained entries. See the [plugin contract](creating-a-plugin.md#scanner-sett
 
 ## Selecting source files
 
-`scanners.json` inside the selected `groma/` or `.groma/` directory decides which
+`config.json` inside the selected `groma/` or `.groma/` directory decides which
 files each scanner reads:
 
 ```json
@@ -180,7 +182,7 @@ A scanner's own `exclude` list applies after it and to that scanner alone, so it
 can add patterns, or restore with `!` a file the global list excludes, as
 `!/test/` does for the TypeScript scanner above. A global `!` pattern cannot
 restore a file a scanner's own list excludes; edit that scanner's list instead.
-Adding a scanner with `groma scanner add`, setup, init or the web writes the
+Adding a scanner with `groma plugin add`, setup, init or the web writes the
 include globs and default exclusions its package declares into its entry, where
 they are edited like any other pattern; updating a scanner keeps both lists.
 A scanner's defaults name only its own ecosystem's folders and files. Omitting a
@@ -219,6 +221,12 @@ authored relationships remain intact.
 - [Kotlin](kotlin/index.md)
 - [COBOL](cobol/index.md)
 - [NASM assembly](nasm/index.md)
+- [C](c/index.md)
+- [C++](cpp/index.md)
+- [Ada](ada/index.md)
+- [Dart](dart/index.md)
+- [MQL5](mql5/index.md)
+- [Mojo](mojo/index.md)
 - [C#/.NET](dotnet-csharp/index.md)
 - [Shared contract](creating-a-plugin.md)
 

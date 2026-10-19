@@ -3,20 +3,23 @@ import ts from 'typescript'
 import { classicChecker } from '../../http-checker.ts'
 import { sourceBuildEntries, type EntrySources } from '../../entry-points/source.ts'
 import { fileChecker } from './http.ts'
+import type { JavaScriptSource } from './sources.ts'
 
 /** Literal local module paths in authored JavaScript; external packages remain separate units. */
-export async function javaScriptEntries(root: string, sources: ts.SourceFile[]): Promise<EntrySources> {
-  const files = new Set(sources.map(source => source.fileName))
-  const imports = new Map(sources.map(source => {
-    const targets = ts.preProcessFile(source.text, true, true).importedFiles.flatMap(imported => {
+export async function javaScriptEntries(root: string, sources: JavaScriptSource[]): Promise<EntrySources> {
+  const files = new Set(sources.map(source => source.file))
+  const imports = new Map(sources.map(({ file, syntax }) => {
+    const targets = ts.preProcessFile(syntax.text, true, true).importedFiles.flatMap(imported => {
       if (!imported.fileName.startsWith('.')) return []
-      const base = path.posix.normalize(path.posix.join(path.posix.dirname(source.fileName), imported.fileName))
+      const base = path.posix.normalize(path.posix.join(path.posix.dirname(file), imported.fileName))
       const candidates = [base, ...['.js', '.mjs', '.cjs', '.jsx'].flatMap(extension => [base + extension, `${base}/index${extension}`])]
-      return candidates.find(file => files.has(file)) ?? []
+      return candidates.find(candidate => files.has(candidate)) ?? []
     })
-    return [source.fileName, targets] as const
+    return [file, targets] as const
   }))
-  const entries = (await Promise.all(sources.map(source => sourceBuildEntries(root, ts,
-    classicChecker(ts, fileChecker(source)), [source])))).flat()
+  // The reader is handed one file at a time, so that file declares every entry it finds.
+  const entries = (await Promise.all(sources.map(async ({ file, syntax }) =>
+    (await sourceBuildEntries(root, ts, classicChecker(ts, fileChecker(syntax)), [syntax]))
+      .map(entry => ({ ...entry, declaration: file }))))).flat()
   return { imports, entries }
 }

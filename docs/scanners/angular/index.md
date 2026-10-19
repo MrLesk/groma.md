@@ -16,7 +16,7 @@ bun plugins/scanners/angular/build.ts
 From the project being scanned:
 
 ```sh
-groma scanner add /absolute/path/to/groma/plugins/scanners/angular/dist/package
+groma plugin add /absolute/path/to/groma/plugins/scanners/angular/dist/package
 groma scan
 ```
 

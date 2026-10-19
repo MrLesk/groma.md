@@ -4,7 +4,8 @@ import { balance } from '../src/sheet/pack-forces.ts'
 import type { Partnered, Shelf } from '../src/sheet/pack.ts'
 
 const item = (key: string, partners: [string, number][] = []): Partnered =>
-  ({ key, w: 2, d: 2, entry: false, partners: new Map(partners) })
+  ({ key, w: 2, d: 2, entry: false, partners: new Map(partners.map(([id, count]) =>
+    [id, Array.from({ length: count }, () => ({ own: { x: 0, y: 0 }, other: { x: 0, y: 0 } }))])) })
 const shelfAt = (at: [string, number, number][]): Shelf =>
   ({ w: 0, d: 0, at: new Map(at.map(([key, gx, gy]) => [key, { gx, gy }])) })
 

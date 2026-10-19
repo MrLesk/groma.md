@@ -14,6 +14,8 @@ interface Connection {
   source: string
   target: string
   weight: number
+  /** Sum of target-minus-source endpoint offsets from their owner centres. */
+  alignmentY: number
 }
 
 export interface ContainerFlow {
@@ -79,6 +81,7 @@ function owners(placement: Placement): Map<string, string> {
 function connections(
   relationships: readonly Pick<AnnotatedRelationship, 'source' | 'target'>[],
   ownerByElement: ReadonlyMap<string, string>,
+  rects: ReadonlyMap<string, CellRect>,
 ): Connection[] {
   const grouped = new Map<string, Connection>()
   for (const relationship of relationships) {
@@ -86,8 +89,11 @@ function connections(
     const target = ownerByElement.get(relationship.target)
     if (!source || !target || source === target) continue
     const key = `${source}\0${target}`
-    const connection = grouped.get(key) ?? { source, target, weight: 0 }
+    const connection = grouped.get(key) ?? { source, target, weight: 0, alignmentY: 0 }
     connection.weight += 1
+    const sourceOffset = centre(rects.get(relationship.source)!).y - centre(rects.get(source)!).y
+    const targetOffset = centre(rects.get(relationship.target)!).y - centre(rects.get(target)!).y
+    connection.alignmentY += targetOffset - sourceOffset
     grouped.set(key, connection)
   }
   return [...grouped.values()]
@@ -109,6 +115,20 @@ function mediatorScore(id: string, mediators: ReadonlySet<string>, flow: readonl
   }, 0)
 }
 
+function entryReachableUnits(
+  entries: ReadonlySet<string>,
+  units: ReadonlySet<string>,
+  flow: readonly Connection[],
+): Set<string> {
+  const reached = new Set(entries)
+  for (const source of reached) {
+    for (const connection of flow) {
+      if (connection.source === source && units.has(connection.target)) reached.add(connection.target)
+    }
+  }
+  return reached
+}
+
 /** Reads the entry, mediator and sink roles of one internal system from its leaf relationships. */
 export function containerFlow(
   placement: Placement,
@@ -120,7 +140,12 @@ export function containerFlow(
   const units = placement.slabs.filter(slab => slab.island === systemIsland)
   if (units.length < 2) return null
   const ownerByElement = owners(placement)
-  const flow = connections(relationships, ownerByElement)
+  const rects = new Map([
+    ...placement.islands.map(island => [island.key, island.rect] as const),
+    ...placement.slabs.map(slab => [slab.representationId, slab.rect] as const),
+    ...placement.buildings.map(building => [building.representationId, building.rect] as const),
+  ])
+  const flow = connections(relationships, ownerByElement, rects)
   const unitIds = new Set(units.map(unit => unit.representationId))
   const entries = [...new Set(flow.flatMap(connection => {
     if (connection.source === ACTORS && unitIds.has(connection.target)) return [connection.target]
@@ -133,8 +158,12 @@ export function containerFlow(
   })
   if (entries.length === 0) return null
   const entryIds = new Set(entries)
+  const reached = entryReachableUnits(entryIds, unitIds, flow)
+  // Only an entry-reachable intermediate container can turn packing into columns.
+  const onward = flow.filter(connection => reached.has(connection.source) && !entryIds.has(connection.source))
   const core = [...units]
-    .filter(unit => !entryIds.has(unit.representationId))
+    .filter(unit => !entryIds.has(unit.representationId)
+      && onward.some(connection => connection.target === unit.representationId))
     .sort((a, b) => incomingWeight(b.representationId, flow) - incomingWeight(a.representationId, flow)
       || a.representationId.localeCompare(b.representationId))[0]
   if (!core) return null
@@ -170,7 +199,8 @@ function connectedCentreY(
     if (!partner || !partners.has(partner)) continue
     const rect = positions.get(partner)
     if (!rect) continue
-    total += centre(rect).y * connection.weight
+    const offset = connection.source === id ? connection.alignmentY : -connection.alignmentY
+    total += centre(rect).y * connection.weight + offset
     weight += connection.weight
   }
   return { total, weight }

@@ -6,13 +6,14 @@ import { parseListWindow } from '../src/list-window.ts'
 import type { ListWindowInput } from '../src/list-window.ts'
 import { boundaryRelationships, fileConnections, renderPlainRecord, renderPlainWorld, rootRelationships } from '../src/plain-world.ts'
 import type { PlainRelationship } from '../src/plain-world.ts'
+import { withFixture } from './helpers.ts'
 
 const fixture = path.resolve(import.meta.dir, '../test/fixtures/flows')
 const plainViewFixture = path.resolve(import.meta.dir, '../test/fixtures/plain-view')
 const viewerViewFixture = path.resolve(import.meta.dir, '../test/fixtures/viewer-view')
 
 async function loadFixture() {
-  return annotateArchitecture(await loadArchitecture(fixture))
+  return annotateArchitecture(await withFixture(fixture, loadArchitecture))
 }
 
 function ends(relationships: readonly PlainRelationship[]): string[] {
@@ -89,7 +90,7 @@ test.concurrent('an empty section and the closing command print on the page that
   // and the file answer ends with the owner record command.
   await expectPagesRejoin(overview(plainViewFixture), 4, 0)
   await expectPagesRejoin(record(plainViewFixture, 'shop', true), 2, 1)
-  await expectPagesRejoin(record(fixture, 'src/entry.ts', false), 1, 1)
+  await withFixture(fixture, root => expectPagesRejoin(record(root, 'src/entry.ts', false), 1, 1))
 })
 
 test.concurrent('a draft summary pages the elements it touches', async () => {

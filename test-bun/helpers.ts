@@ -1,4 +1,6 @@
 import path from 'node:path'
+import { cp, mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 import { DETAILS_PANE_WIDTH, HIERARCHY_PANE_WIDTH, type PaneVisibility } from '../src/viewers/tui/layout.ts'
@@ -17,6 +19,15 @@ export const repositoryRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
 )
+/** Even architecture reads create a project lock, so keep them out of shared fixture sources. */
+export async function withFixture<T>(source: string, read: (root: string) => Promise<T>): Promise<T> {
+  const root = await mkdtemp(path.join(tmpdir(), 'groma-fixture-'))
+  try {
+    await cp(source, root, { recursive: true })
+    return await read(root)
+  } finally { await rm(root, { recursive: true, force: true }) }
+}
+
 export const fixtureRoot = path.join(repositoryRoot, 'test', 'fixtures', 'core-view')
 export const okfFixtureRoot = path.join(repositoryRoot, 'test', 'fixtures', 'validate')
 export const containersFixtureRoot = path.join(

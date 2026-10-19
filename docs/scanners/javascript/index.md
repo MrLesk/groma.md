@@ -13,7 +13,7 @@ bun plugins/scanners/javascript/build.ts
 From the project being scanned:
 
 ```sh
-groma scanner add /absolute/path/to/groma/plugins/scanners/javascript/dist/package
+groma plugin add /absolute/path/to/groma/plugins/scanners/javascript/dist/package
 groma scan
 ```
 
@@ -42,10 +42,10 @@ output, such as `jquery-ui.min.js`, and `node_modules`, `dist`, `build` and
 lists select.
 
 A bundle under an ordinary name, such as `vendor.js`, is read like any other
-source; a project that keeps it out adds a pattern to `scanners.json`.
+source; a project that keeps it out adds a pattern to `config.json`.
 
 Test sources are treated like any other JavaScript source: the defaults name
-none, so a project that keeps them out adds a pattern to `scanners.json`.
+none, so a project that keeps them out adds a pattern to `config.json`.
 
 TypeScript sources belong to the [TypeScript scanner](../typescript/index.md)
 and single-file components to the [Vue scanner](../vue/index.md). This scanner
@@ -78,7 +78,8 @@ assignments or `cross-env` may come before the runtime, and runtime options and
 a `run` or `watch` subcommand before the script; the first remaining word must
 name the script, so a preloaded module or `bun build` supplies none. An HTML
 page's script supplies one too, named after the page, or after its folder for
-an `index.html`.
+an `index.html`. A `package.json`, `angular.json` or `project.json` that is not
+valid JSON supplies none: the scan continues and reports a warning for that file.
 
 ## Source outline
 

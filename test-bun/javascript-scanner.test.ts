@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import type { CodeSymbol, ScannerPlugin, ScanOperation } from '@groma/scanner'
@@ -95,7 +95,7 @@ test.concurrent('configured exclusions and include patterns decide which JavaScr
   const { temporary, root, artifact } = await setup()
   try {
     await addScanner(root, artifact)
-    const configFile = path.join(root, 'groma/scanners.json')
+    const configFile = path.join(root, 'groma/config.json')
     const config = JSON.parse(await readFile(configFile, 'utf8'))
     await writeFile(configFile, JSON.stringify({ ...config, exclude: ['public/'] }))
     await writeFile(path.join(root, '.gitignore'), 'src/draft.js\n')
@@ -120,6 +120,28 @@ test.concurrent('the scan reads a minified name a later pattern restores', async
     // A `.min` name is a default exclusion rather than a rule in code, so a `!` pattern restores it.
     const restored = { include: manifest.groma.scanner.include, exclude: [...manifest.groma.scanner.exclude, '!widget.min.js'] }
     expect((await javascript.scan(root, {}, await scannerFiles(root, restored)))!.files.map(file => file.file)).toEqual(['app.js', 'widget.min.js'])
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+// Windows reads a backslash as a separator, so no file there can carry the second name.
+test.skipIf(process.platform === 'win32').concurrent('a JavaScript file keeps the path Groma listed where the parser spells it differently', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-javascript-listed-path-'))
+  try {
+    // The parser spells the second name with a slash, which is the path of the first file.
+    await mkdir(path.join(root, 'a'))
+    await writeFile(path.join(root, 'a/b.js'), 'export function one() { return 1 }\n')
+    await writeFile(path.join(root, 'a\\b.js'), "import express from 'express'\nimport './c.js'\nconst app = express()\nfunction two() {}\napp.get('/two', two)\n")
+    await writeFile(path.join(root, 'c.js'), 'export const three = 3\n')
+    await writeFile(path.join(root, 'package.json'), '{ "name": "listed", "bin": "a\\\\b.js" }')
+    expect(await Bun.spawn(['git', 'init', '--quiet', root]).exited).toBe(0)
+    const scan = (await javascript.scan(root, {}, await javascriptFiles(root)))!
+    expect(Object.fromEntries(scan.files.map(file => [file.file, file.symbols.map(symbol => symbol.name)])))
+      .toEqual({ 'a/b.js': ['one'], 'a\\b.js': ['two'], 'c.js': [] })
+    const two = scan.operations!.find(operation => operation.name === 'two')!
+    expect(two.file).toBe('a\\b.js')
+    expect(scan.httpEndpoints).toEqual([expect.objectContaining({ operation: two.id, order: { application: 'a\\b.js#app', position: 0 } })])
+    // The entry imports `./c.js` from its own directory, the root; the parser's spelling would place it under `a/`.
+    expect(scan.entryPoints).toEqual([expect.objectContaining({ file: 'a\\b.js', files: ['a\\b.js', 'c.js'] })])
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 

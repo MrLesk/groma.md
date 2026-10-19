@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import path from 'node:path'
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 
 import { readCodeStructure as readReferenceOutline } from '../plugins/scanners/typescript/src/structure.ts'
@@ -23,39 +23,9 @@ test.concurrent('snapshot outlines use installed repository scanners without loa
   const snapshot = await mkdtemp(path.join(tmpdir(), 'groma-outline-snapshot-'))
   try {
     const { world, component } = await mixedComponent()
-    const files = await readSnapshotCodeStructure(mixedFixture, snapshot, world, component.representationId)
+    const files = await readSnapshotCodeStructure(mixedFixture, snapshot, world, component.representationId, [])
     expect(files?.map(file => file.declarations[0]?.name)).toEqual(['beta', 'alpha'])
   } finally { await rm(snapshot, { recursive: true, force: true }) }
-})
-
-test.concurrent('outline context includes another component source from the snapshot and respects scanner exclusions', async () => {
-  const temporary = await mkdtemp(path.join(tmpdir(), 'groma-outline-context-'))
-  const root = path.join(temporary, 'installed'), snapshot = path.join(temporary, 'snapshot')
-  try {
-    await cp(mixedFixture, root, { recursive: true })
-    await mkdir(snapshot)
-    await writeFile(path.join(snapshot, 'support.alpha'), 'snapshot helper')
-    await writeFile(path.join(root, 'support.alpha'), 'current helper')
-    await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify({ scanners: [
-      { id: 'alpha', source: './plugins/alpha', include: ['**/*.alpha'], exclude: ['excluded.alpha'] },
-    ] }))
-    await writeFile(path.join(root, 'plugins/alpha/index.js'), `import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-export default {
-  id: 'alpha', async scan() { return undefined },
-  async readCodeStructure(root, refs, settings, files) {
-    if (files.includes('excluded.alpha') || !files.includes('support.alpha')) throw new Error('wrong context');
-    return [{ file: refs[0].file, declarations: [{ kind: 'function', line: 1, visibility: 'public', entry: false,
-      name: await readFile(path.join(root, 'support.alpha'), 'utf8') }] }];
-  }
-}`)
-    const { world, component } = await mixedComponent()
-    world.elements.push({ ...component, id: 'support', representationId: 'support', code: [
-      { scanner: 'alpha', file: 'support.alpha' }, { scanner: 'alpha', file: 'excluded.alpha' },
-    ] })
-    const files = await readSnapshotCodeStructure(root, snapshot, world, component.representationId)
-    expect(files?.[0]?.declarations[0]?.name).toBe('snapshot helper')
-  } finally { await rm(temporary, { recursive: true, force: true }) }
 })
 
 test.concurrent('a scanner that cannot outline, such as one missing its worker, leaves the other scanners outlining', async () => {
@@ -69,7 +39,7 @@ test.concurrent('a scanner that cannot outline, such as one missing its worker, 
 }
 `)
     const { world, component } = await mixedComponent()
-    const files = await readSnapshotCodeStructure(root, root, world, component.representationId)
+    const files = await readSnapshotCodeStructure(root, root, world, component.representationId, [])
     expect(files?.map(file => [file.file, file.declarations[0]?.name])).toEqual([['src/orders.alpha', 'alpha']])
   } finally { await rm(root, { recursive: true, force: true }) }
 })
@@ -139,4 +109,47 @@ test.concurrent('the TypeScript outline reads a file outside every project of a 
   // The native SDK's default-project search for such a file never answered, so the export waited forever.
   const [file] = await readReferenceOutline(solutionFixture, [{ file: 'outside.ts', symbols: [] }])
   expect(file?.declarations.map(declaration => [declaration.kind, declaration.name])).toEqual([['function', 'outside']])
+})
+
+test.concurrent('live and historical outlines receive selected metadata without giving it source ownership', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'groma-outline-metadata-'))
+  const git = async (...args: string[]) => {
+    const child = Bun.spawn(['git', '-C', root, ...args], { stdout: 'pipe', stderr: 'pipe' })
+    const [output, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
+    expect(code, error).toBe(0)
+    return output.trim()
+  }
+  try {
+    await cp(mixedFixture, root, { recursive: true })
+    await writeFile(path.join(root, 'groma/config.json'), JSON.stringify({ scanners: [
+      { id: 'alpha', source: './plugins/alpha', include: ['**/*.alpha'], exclude: ['excluded.alpha'] },
+    ], workSources: [] }))
+    await writeFile(path.join(root, '.gitignore'), 'ignored.alpha\n')
+    await writeFile(path.join(root, 'settings.alpha'), 'historical setting')
+    await writeFile(path.join(root, 'excluded.alpha'), 'excluded setting')
+    await writeFile(path.join(root, 'ignored.alpha'), 'ignored setting')
+    await writeFile(path.join(root, 'plugins/alpha/index.js'), `import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+export default {
+  id: 'alpha', async scan() { return undefined },
+  async readCodeStructure(root, refs, settings, files) {
+    if (!files.includes('settings.alpha') || files.includes('excluded.alpha') || files.includes('ignored.alpha')) throw new Error('wrong context');
+    const name = await readFile(path.join(root, 'settings.alpha'), 'utf8');
+    return refs.map(ref => ({ file: ref.file, declarations: [{ kind: 'function', line: 1, visibility: 'public', entry: false, name }] }));
+  }
+}`)
+    await git('init', '--quiet')
+    await git('add', '.')
+    await git('-c', 'user.name=Outline Test', '-c', 'user.email=outline@example.invalid', 'commit', '--quiet', '-m', 'source settings')
+    const revision = await git('rev-parse', 'HEAD')
+    await writeFile(path.join(root, 'settings.alpha'), 'current setting')
+    const world = await loadAnnotatedArchitecture(root)
+    const component = world.elements.find(element => element.kind === 'component')!
+    const before = structuredClone(world)
+    const current = await readCodeStructure(root, world, null, component.representationId)
+    const historical = await readCodeStructure(root, world, revision, component.representationId)
+    expect(current?.map(file => [file.file, file.declarations[0]?.name])).toEqual([['src/orders.alpha', 'current setting']])
+    expect(historical?.map(file => [file.file, file.declarations[0]?.name])).toEqual([['src/orders.alpha', 'historical setting']])
+    expect(world).toEqual(before)
+  } finally { await rm(root, { recursive: true, force: true }) }
 })

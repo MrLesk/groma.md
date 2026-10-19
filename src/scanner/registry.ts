@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url'
 import type { ScannerPlugin, ScannerSettings, ScanObservation } from '@groma/scanner'
 
 import { repositoryListing } from '../repository-listing.ts'
-import { exclusion, readScannerConfig, type ScannerConfig } from './modules/config.ts'
+import { exclusion, readGromaConfig, type GromaConfig } from '../config.ts'
 import { configuredScannerModules } from './modules/inventory.ts'
 import { configuredSelection, selectedFiles, type ScannerSelection } from './modules/selection.ts'
 import type {
@@ -79,7 +79,7 @@ export async function importScanner(entry: string, id: string): Promise<ScannerP
 }
 
 /** A found scanner ready to run in this project, for scans and readiness checks alike. */
-export async function configuredPlugin(module: FoundScannerModule, config: ScannerConfig): Promise<ConfiguredPlugin> {
+export async function configuredPlugin(module: FoundScannerModule, config: GromaConfig): Promise<ConfiguredPlugin> {
   return {
     plugin: await importScanner(module.entry, module.id),
     ...(module.settings === undefined ? {} : { settings: module.settings }),
@@ -140,7 +140,7 @@ export async function loadScannerRegistry(
   repositoryRoot: string,
   options: ScannerResolutionOptions = {},
 ): Promise<ScannerRegistry> {
-  const config = await readScannerConfig(repositoryRoot)
+  const config = await readGromaConfig(repositoryRoot)
   const globallyExcluded = exclusion(config.exclude ?? [])
   const modules = await configuredScannerModules(repositoryRoot, options)
   const found = modules.filter((module): module is FoundScannerModule => module.status === 'found')

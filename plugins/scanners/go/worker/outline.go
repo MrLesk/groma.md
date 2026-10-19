@@ -76,7 +76,7 @@ func (o *outliner) symbol(name *ast.Ident) codeSymbol {
 	if name.IsExported() {
 		visibility = "public"
 	}
-	return codeSymbol{name.Name, o.fset.Position(name.Pos()).Line, visibility, slices.Contains(o.symbols, name.Name)}
+	return codeSymbol{name.Name, sourcePosition(o.fset, name.Pos()).Line, visibility, slices.Contains(o.symbols, name.Name)}
 }
 
 // add lists a named declaration; the blank identifier names nothing.

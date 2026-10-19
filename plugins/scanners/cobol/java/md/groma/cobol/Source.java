@@ -27,7 +27,9 @@ record Source(String file, String text) {
         var tokens = Pattern.compile("[A-Za-z0-9_-]+|\"[^\"]*\"|'[^']*'");
         for (int line = range.getStart().getLine(); line <= range.getEnd().getLine(); line++) {
             String physical = lines[line];
-            if (physical.length() > 6 && "*/".indexOf(physical.charAt(6)) >= 0) continue;
+            // Fixed format: column 7 marks a comment with * or /, and program text is columns 8 to 72.
+            // A comment, or a line that ends before column 8, holds no part of the declaration.
+            if (physical.length() < 8 || "*/".indexOf(physical.charAt(6)) >= 0) continue;
             int start = line == range.getStart().getLine() ? range.getStart().getCharacter() : 7;
             int end = line == range.getEnd().getLine() ? range.getEnd().getCharacter() : Math.min(72, physical.length());
             var matcher = tokens.matcher(physical.substring(start, end));

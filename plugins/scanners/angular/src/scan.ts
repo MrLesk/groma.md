@@ -51,18 +51,17 @@ async function scanProject(root: string, directory: string, programs: readonly A
   const httpRequests = []
   for (const { program, owned, sources } of programs) {
     const checker = program.getTypeChecker()
-    const mine = new Set(owned)
     const directives = sources.filter(source => readable.has(relative(root, source.fileName)))
       .flatMap(source => source.statements.filter(ts.isClassDeclaration).flatMap(node => sourceDirective(node, checker) ?? []))
-    for (const component of directives.filter(directive => directive.view && mine.has(directive.declaration.getSourceFile()))) {
+    for (const component of directives.filter(directive => directive.view && owned.has(directive.declaration.getSourceFile()))) {
       templates.bindOutputs(component, directives, checker)
       sourceUnits.push(templates.unit(component))
     }
     httpRequests.push(...await angularHttpRequests(sources, checker, node => {
-      const caller = mine.has(node.getSourceFile()) ? enclosingOperation(node) : undefined
+      const caller = owned.has(node.getSourceFile()) ? enclosingOperation(node) : undefined
       return caller && evidence.operationId(caller)
     }))
-    files.push(...owned.map(source => ({ file: relative(root, source.fileName),
+    files.push(...[...owned].map(source => ({ file: relative(root, source.fileName),
       symbols: source.statements.filter(ts.isClassDeclaration).map(node => ({
         id: `${relative(root, source.fileName)}#${node.getStart()}`, name: node.name?.text ?? 'default', kind: 'class' })) })))
     mergeInputs(inputs, await entrySourceInputs(root, ts, classicChecker(ts, checker), sources))

@@ -1,10 +1,11 @@
 import { chmod, cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { readPublishedScanners } from '../src/scanner/modules/published.ts'
+import { readPublishedRelease } from '../src/scanner/modules/package-manager.ts'
+import type { PublishedScanner } from '../src/scanner/modules/published.ts'
 import { assembleCSharpPackages } from './package-csharp-scanner.ts'
 
 const repository = { type: 'git', url: 'https://github.com/MrLesk/groma.md.git' }
-const scannerIds = ['nasm', 'cobol', 'java', 'scala', 'kotlin', 'go', 'rust', 'csharp', 'angular', 'vue', 'react', 'typescript', 'python', 'php', 'swift', 'javascript']
+const scannerIds = ['c', 'cpp', 'ada', 'mql5', 'mojo', 'nasm', 'cobol', 'java', 'scala', 'kotlin', 'dart', 'go', 'rust', 'csharp', 'angular', 'vue', 'react', 'typescript', 'python', 'php', 'swift', 'javascript']
 
 async function manifest(directory: string) {
   return JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'))
@@ -36,6 +37,11 @@ async function stage(output: string) {
   await writeManifest(contract, { ...await manifest('packages/scanner'), license: 'MIT', repository,
     files: ['src', 'LICENSE'], publishConfig: { access: 'public' } })
   const builders = {
+    c: (await import('../plugins/scanners/c/build.ts')).buildPackage,
+    cpp: (await import('../plugins/scanners/cpp/build.ts')).buildPackage,
+    ada: (await import('../plugins/scanners/ada/build.ts')).buildPackage,
+    mql5: (await import('../plugins/scanners/mql5/build.ts')).buildPackage,
+    mojo: (await import('../plugins/scanners/mojo/build.ts')).buildPackage,
     php: (await import('../plugins/scanners/php/build.ts')).buildPackage,
     python: (await import('../plugins/scanners/python/build.ts')).buildPackage,
     typescript: (await import('../plugins/scanners/typescript/build.ts')).buildPackage,
@@ -44,6 +50,7 @@ async function stage(output: string) {
     java: (await import('../plugins/scanners/java/build.ts')).buildPackage,
     scala: (await import('../plugins/scanners/scala/build.ts')).buildPackage,
     kotlin: (await import('../plugins/scanners/kotlin/build.ts')).buildPackage,
+    dart: (await import('../plugins/scanners/dart/build.ts')).buildPackage,
     go: (await import('../plugins/scanners/go/build.ts')).buildPackage,
     rust: (await import('../plugins/scanners/rust/build.ts')).buildPackage,
     angular: (await import('../plugins/scanners/angular/build.ts')).buildPackage,
@@ -68,14 +75,14 @@ async function assemble(input: string, output: string) {
   if (hosts.length === 0) throw new Error('No scanner build artifacts')
   await cp(path.join(input, hosts[0]!), output, { recursive: true })
   for (const host of hosts.slice(1)) {
-    for (const id of ['go', 'rust', 'typescript', 'java', 'scala', 'kotlin', 'cobol', 'nasm', 'swift']) {
+    for (const id of ['go', 'rust', 'typescript', 'java', 'scala', 'kotlin', 'dart', 'cobol', 'nasm', 'swift']) {
       await cp(path.join(input, host, id, 'dist'), path.join(output, id, 'dist'), { recursive: true })
     }
   }
   await assembleCSharpPackages(hosts.map(host => path.join(input, host)), output)
   for (const [id, worker] of Object.entries({
     go: 'worker', rust: 'groma-rust-scanner', typescript: 'tsc', java: 'runtime/bin/java',
-    scala: 'runtime/bin/java', kotlin: 'runtime/bin/java', cobol: 'runtime/bin/java', nasm: 'nasm', swift: 'worker',
+    scala: 'runtime/bin/java', kotlin: 'runtime/bin/java', cobol: 'runtime/bin/java', nasm: 'nasm', swift: 'worker', dart: 'worker',
   })) {
     await prepareWorkers(path.join(output, id), id === 'rust' ? 'dist/bin' : 'dist', worker)
   }
@@ -96,13 +103,13 @@ async function prepareWorkers(directory: string, relative: string, worker: strin
 
 /** Wait for the exact uploaded version; the catalog shares one deadline across its packages. */
 export async function waitForPublishedScanner(staged: { name: string; version: string }, deadline: number, registry?: string) {
-  let published = (await readPublishedScanners(staged.name, registry))[staged.version]
+  let published = await readPublishedRelease<PublishedScanner>(staged.name, { version: staged.version, registry })
   while (!published) {
     const remaining = deadline - Date.now()
     if (remaining <= 0) throw new Error(`Timed out waiting for npm metadata for ${staged.name}@${staged.version}`)
     console.log(`Waiting for npm metadata for ${staged.name}@${staged.version}`)
     await Bun.sleep(Math.min(10_000, remaining))
-    published = (await readPublishedScanners(staged.name, registry))[staged.version]
+    published = await readPublishedRelease<PublishedScanner>(staged.name, { version: staged.version, registry })
   }
   return published
 }

@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT, type WorkSource } from '@groma/work-source'
-import { writeScannerConfig } from '../src/scanner/modules/config.ts'
+import { writeGromaConfig } from '../src/config.ts'
 import { startWebViewer } from '../src/viewers/web/server.ts'
 import { loadProjectProfile } from '../src/project-profile.ts'
 import { createScannerSession } from '../src/scanner/session.ts'
@@ -139,9 +139,9 @@ for (const findsComponents of [true, false]) {
           return undefined
         }
       }`)
-      await writeScannerConfig(root, { scanners: [
+      await writeGromaConfig(root, { scanners: [
         { id: 'fixture', source: './plugin', include: ['**/*.fixture'] }, { id: 'companion', source: './companion', include: ['**/*.companion'] },
-      ] })
+      ], workSources: [] })
       opening = startWebViewer(root, { port: 0, scan: true, workSource: emptyWorkSource(), onListening: listening.resolve })
       const url = await listening.promise
       await Promise.all([scanning.promise, companionScanning.promise])
@@ -209,10 +209,11 @@ for (const findsComponents of [true, false]) {
   })
 }
 
-test.concurrent('setup reports its real work and readiness waits for initialization before scanner selection', async () => {
+test.concurrent('setup reports its real work, waits for initialization before plugin selection and sets up a chosen Backlog.md', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-setup-progress-'))
   const creating = Promise.withResolvers<void>()
   const release = Promise.withResolvers<void>()
+  const backlog: string[] = []
   let viewer: Awaited<ReturnType<typeof startWebViewer>> | undefined
   let progress: Awaited<ReturnType<typeof startupEvents>> | undefined
   let initialize: Promise<Response> | undefined
@@ -224,7 +225,12 @@ test.concurrent('setup reports its real work and readiness waits for initializat
     viewer = await startWebViewer(root, {
       port: 0, workSource: emptyWorkSource(), initDependencies: {
         async gitInitialized() { creating.resolve(); await release.promise; return true },
-        backlogAvailable: () => false,
+        backlogAvailable: () => backlog.includes('add'),
+        async addBacklog() {
+          await writeGromaConfig(root, { scanners: [], workSources: [{ id: 'backlog', version: '1.0.0' }] })
+          backlog.push('add')
+        },
+        async initializeBacklog() { backlog.push('initialize'); return true },
       },
     })
     const watching = startupEvents(viewer.url)
@@ -243,8 +249,12 @@ test.concurrent('setup reports its real work and readiness waits for initializat
     expect((await waiting).status).toBe(204)
     await progress.waitFor('finding-scanners')
     expect((await loadProjectProfile(root))?.title).toBe('Example')
-    const scan = await fetch(`${viewer.url}/scanners`, { method: 'POST', redirect: 'manual', body: new FormData() })
+    expect(await (await fetch(viewer.url)).text()).toContain('<h2>Tasks</h2>')
+    const choice = new FormData()
+    choice.set('workSource', 'backlog')
+    const scan = await fetch(`${viewer.url}/plugins`, { method: 'POST', redirect: 'manual', body: choice })
     expect(scan.status).toBe(303)
+    expect(backlog).toEqual(['add', 'initialize'])
     await progress.waitFor('opening-map')
     expect(progress.phases).not.toContain('installing-scanners')
     expect(progress.phases).not.toContain('scanning')
@@ -296,8 +306,8 @@ test.concurrent('simultaneous scanner setup submissions share one initial scan a
       method: 'POST', redirect: 'manual', body: new URLSearchParams({ projectName: 'Example', directory: 'groma' }),
     })
     expect(initialized.status).toBe(303)
-    await writeScannerConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }] })
-    submissions = [0, 1].map(() => fetch(`${viewer!.url}/scanners`, {
+    await writeGromaConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], workSources: [] })
+    submissions = [0, 1].map(() => fetch(`${viewer!.url}/plugins`, {
       method: 'POST', redirect: 'manual', body: new FormData(),
     }))
     await scanning.promise
@@ -335,13 +345,34 @@ test.concurrent('startup does not report scanning when every selected source is 
       async scan() { throw new Error('Excluded sources must not be scanned') },
     }`)
     expect(await Bun.spawn(['git', 'init', '--quiet', root]).exited).toBe(0)
-    await writeScannerConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], exclude: ['*.fixture'] })
+    await writeGromaConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], exclude: ['*.fixture'], workSources: [] })
     const phases: string[] = []
     session = await createScannerSession(root, { scan: true, onProgress: update => phases.push(update.phase) })
     await session.ready
     expect(phases).toEqual(['preparing-scanners'])
   } finally {
     await session?.close()
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test.concurrent('a missing plugin opens the restore view, and proceeding without it opens a map that refuses writes', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-restore-startup-'))
+  let viewer: Awaited<ReturnType<typeof startWebViewer>> | undefined
+  try {
+    await cp(path.resolve(import.meta.dir, '../test/fixtures/flows'), root, { recursive: true })
+    expect(await Bun.spawn(['git', 'init', '--quiet', root]).exited).toBe(0)
+    // The listed local scanner directory does not exist on this computer, and restoring cannot bring it back.
+    await writeGromaConfig(root, { scanners: [{ id: 'fixture', source: './plugin', include: ['**/*.fixture'] }], workSources: [] })
+    viewer = await startWebViewer(root, { port: 0, workSource: emptyWorkSource() })
+    expect(await (await fetch(viewer.url)).text()).toContain('data-plugin="fixture" data-state="missing"')
+    await fetch(`${viewer.url}/restore`, { method: 'POST', redirect: 'manual' })
+    expect(await (await fetch(viewer.url)).text()).toMatch(/data-plugin="fixture" data-state="failed">.*data-message>[^<]+</)
+    expect((await fetch(`${viewer.url}/proceed`, { method: 'POST', redirect: 'manual' })).status).toBe(303)
+    expect((await fetch(`${viewer.url}/world.json`)).ok).toBe(true)
+    expect((await fetch(`${viewer.url}/add`, { method: 'POST', body: '{}' })).status).toBe(403)
+  } finally {
+    await viewer?.close()
     await rm(root, { recursive: true, force: true })
   }
 })

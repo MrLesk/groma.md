@@ -1,11 +1,14 @@
 import type { ScannerProgress } from '../../../scanner/session.ts'
 import { scannerName } from '../scanners/name.ts'
+import type { RestoreRow } from './restore.ts'
 
 /** Startup belongs to the web host; scanner and map operations only report their work. */
 export const startupPhases = {
   'creating-project': { label: 'Creating project', milestone: 0 },
   'finding-scanners': { label: 'Finding scanners', milestone: 1 },
   'installing-scanners': { label: 'Installing scanners', milestone: 1 },
+  'setting-up-backlog': { label: 'Setting up Backlog.md', milestone: 1 },
+  'restoring-plugins': { label: 'Restoring plugins', milestone: 1 },
   'preparing-viewer': { label: 'Preparing viewer', milestone: 2 },
   'loading-architecture': { label: 'Loading architecture', milestone: 2 },
   'preparing-map': { label: 'Preparing map', milestone: 2 },
@@ -16,7 +19,10 @@ export const startupPhases = {
 } as const
 
 export type StartupPhase = keyof typeof startupPhases
-export type StartupProgress = ScannerProgress | { phase: Exclude<StartupPhase, ScannerProgress['phase']> }
+export type StartupProgress =
+  | ScannerProgress
+  | { phase: 'restoring-plugins'; plugins: readonly RestoreRow[] }
+  | { phase: Exclude<StartupPhase, ScannerProgress['phase'] | 'restoring-plugins'> }
 
 export function startupUpdate(progress: StartupProgress) {
   return {

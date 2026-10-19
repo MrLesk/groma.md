@@ -17,7 +17,7 @@ import swift from '../plugins/scanners/swift/src/index.ts'
 import typescript from '../plugins/scanners/typescript/src/index.ts'
 import vue from '../plugins/scanners/vue/src/index.ts'
 import { repositoryListing } from '../src/repository-listing.ts'
-import { inclusion } from '../src/scanner/modules/config.ts'
+import { inclusion } from '../src/config.ts'
 
 /** The files a scanner's package include list names in a repository, before exclusions: the listing's candidates. */
 async function candidates(root: string, scanner: ScannerPlugin): Promise<string[]> {
@@ -118,4 +118,34 @@ test.concurrent('a stylesheet is listed only by a scanner that reads component s
   } finally {
     await Promise.all([angularRoot, reactRoot].map(root => rm(root, { recursive: true, force: true })))
   }
+})
+
+// The child owns its filesystem mock, so parallel scanner tests keep the real module.
+test.concurrent('repository listing keeps source files when a temporary file disappears before inspection', async () => {
+  const root = await repository('swift-source')
+  try {
+    await writeFile(path.join(root, 'transient.tmp'), 'lock')
+    const script = `
+      import { mock } from 'bun:test';
+      import fs from 'node:fs';
+      import path from 'node:path';
+      const root = process.env.GROMA_LISTING_ROOT;
+      const temporary = path.join(root, 'transient.tmp');
+      const stat = fs.lstatSync;
+      mock.module('node:fs', () => ({ ...fs, lstatSync(filename, options) {
+        if (filename === temporary) fs.unlinkSync(temporary);
+        return stat(filename, options);
+      } }));
+      const { repositoryListing } = await import(${JSON.stringify(import.meta.resolve('../src/repository-listing.ts'))});
+      console.log(JSON.stringify(await repositoryListing(root)));
+    `
+    const child = Bun.spawn([process.execPath, '-e', script], {
+      env: { ...process.env, GROMA_LISTING_ROOT: root }, stdout: 'pipe', stderr: 'pipe',
+    })
+    const [code, output, error] = await Promise.all([
+      child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
+    ])
+    expect(code, error).toBe(0)
+    expect(JSON.parse(output)).toEqual(['Ledger.swift', 'Other.swift', 'Package.swift'])
+  } finally { await rm(root, { recursive: true, force: true }) }
 })

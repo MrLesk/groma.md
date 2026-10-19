@@ -17,7 +17,7 @@ The worker receives those files as an in-memory snapshot. It cannot discover
 additional files through an editor, a remote copybook library, or a filesystem
 search. Source text must be UTF-8; convert an EBCDIC export before scanning.
 
-Set `copybookPaths` on the scanner entry in `groma/scanners.json`. It is an
+Set `copybookPaths` on the scanner entry in `groma/config.json`. It is an
 ordered list of directories relative to the repository root, defaulting to
 `["."]`. Groma's configuration owns these paths; they are not OKF metadata.
 For the supported CardDemo slice, retain the installed `source` and set:
@@ -40,6 +40,9 @@ COPY searches those directories in order for a selected member, with an optional
 `.cpy` suffix and case-insensitive member matching. Two matching selected files
 in one directory are ambiguous and fail the scan. An excluded file is never
 read as hidden context. COPY and COPY REPLACING are handled by the parser.
+A second COPY that starts on the same source line as another COPY fails the
+scan with `fromIndex(N) > toIndex(M)`: the parser (2.5.1) misplaces it after
+expanding the first.
 A missing copybook or undefined data name produces a warning. Syntax errors
 fail the scan without a partial observation; Groma's normal failed-scanner
 lifecycle keeps the last saved architecture.

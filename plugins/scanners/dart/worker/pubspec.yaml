@@ -1,0 +1,8 @@
+name: groma_dart_worker
+publish_to: none
+environment:
+  sdk: '>=3.13.5 <4.0.0'
+dependencies:
+  analyzer: 14.5.0
+  pub_semver: 2.2.1
+  yaml: 3.1.4

@@ -7,7 +7,7 @@ import manifest from '../plugins/scanners/go/package.json'
 import { readGoCodeStructure, run, scanGoSource } from '../plugins/scanners/go/src/adapter.ts'
 import plugin from '../plugins/scanners/go/src/index.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
-import { readScannerConfig, writeScannerConfig } from '../src/scanner/modules/config.ts'
+import { readGromaConfig, writeGromaConfig } from '../src/config.ts'
 import { addScanner } from '../src/scanner/modules/inventory.ts'
 import { scannerFiles } from '../src/scanner/modules/selection.ts'
 import { readCodeStructure } from '../src/viewers/source/structure.ts'
@@ -105,6 +105,42 @@ goTest('Go scans source without its dependencies and fails only on invalid synta
   } finally { await rm(root, { recursive: true, force: true }) }
 }, 60000)
 
+goTest('Go reports every function of a directory that declares names twice, and binds each use within its own file', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-go-test-'))
+  const worker = path.join(root, process.platform === 'win32' ? 'worker.exe' : 'worker')
+  try {
+    await buildWorker(worker, go)
+    // Programs run one file at a time: each file declares its own main, helper, handler and method, and
+    // the two write the method's receiver differently.
+    const program = (name: string, parameter: string, receiver: string) => `package main\n\nimport "net/http"\n\n`
+      + `type job[${parameter} any] struct{}\n\nfunc (${receiver}) run() {}\n\n`
+      + `func serve(w http.ResponseWriter, r *http.Request) {}\n\n`
+      + `func main() { helper(); (&job[int]{}).run(); http.HandleFunc("/${name}", serve) }\n\n`
+      + `func helper() { http.Get("/${name}") }\n`
+    const sources = {
+      'go.mod': 'module example.test/programs\n\ngo 1.22\n',
+      'first.go': program('first', 'T', 'job[T]'), 'second.go': program('second', 'E', '*job[E]'),
+      'third.go': 'package main\n\nfunc extra() { helper() }\n',
+      'fourth.go': 'package main\n\nvar extra = func() {}\n\nfunc later() { extra() }\n',
+    }
+    await writeFiles(root, sources)
+    const observation = await scanGoSource(root, { worker }, Object.keys(sources))
+    const files = new Map(observation.operations!.map(operation => [operation.id, operation.file]))
+    expect(observation.operations!.filter(operation => operation.file === 'second.go')
+      .map(operation => operation.name.split('.').pop()).sort()).toEqual(['helper', 'main', 'run', 'serve'])
+    expect(observation.httpEndpoints!.map(endpoint => `${files.get(endpoint.operation)} ${httpPath(endpoint.path)}`).sort())
+      .toEqual(['first.go /first', 'second.go /second'])
+    // A file that does not declare the name as one function cannot say which declaration it means:
+    // third.go declares no helper, and fourth.go declares extra as a variable.
+    expect(calls(observation).filter(call => call.member !== 'Get' && call.member !== 'HandleFunc')
+      .map(call => `${call.caller.file} -> ${call.providers.map(provider => provider.file).join() || 'unresolved'}`).sort())
+      .toEqual(['first.go -> first.go', 'first.go -> first.go', 'fourth.go -> unresolved', 'second.go -> second.go',
+        'second.go -> second.go', 'third.go -> unresolved'])
+    expect(observation.httpRequests!.map(request => `${files.get(request.operation)} ${httpPath(request.path)}`).sort())
+      .toEqual(['first.go /first', 'second.go /second'])
+  } finally { await rm(root, { recursive: true, force: true }) }
+}, 60000)
+
 goTest('Go scans every machine alike, in one linux/amd64 build context with cgo', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-go-test-'))
   const worker = path.join(root, process.platform === 'win32' ? 'worker.exe' : 'worker')
@@ -191,6 +227,33 @@ goTest('Go attaches source ranges and binding-normalized tokens only to named op
   } finally { await rm(root, { recursive: true, force: true }) }
 }, 60000)
 
+goTest('Go reports positions in the file as written, whatever //line directives say', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-go-test-'))
+  const worker = path.join(root, process.platform === 'win32' ? 'worker.exe' : 'worker')
+  try {
+    await buildWorker(worker, go)
+    // First and Other start at the same byte offset behind one directive file name.
+    const sources = {
+      'go.mod': 'module example.test/line\n\ngo 1.22\n',
+      'first.go': 'package line\n\n//line grammar.y:1\nfunc First() int { return 1 }\n',
+      'other.go': 'package line\n\n//line grammar.y:1\nfunc Other() int { return 2 }\n',
+      'caller.go': 'package line\n\nfunc Caller() int {\n//line grammar.y:1\n\treturn First() + Other() + missing()\n}\n',
+    }
+    await writeFiles(root, sources)
+    const observation = await scanGoSource(root, { worker }, Object.keys(sources))
+    expect(observation.operations!.find(operation => operation.file === 'caller.go'))
+      .toMatchObject({ startLine: 3, endLine: 6 })
+    const at = (text: string) => calls(observation).find(call => call.position === sources['caller.go'].indexOf(text))!
+    expect(at('First()').providers.map(provider => provider.file)).toEqual(['first.go'])
+    expect(at('Other()').providers.map(provider => provider.file)).toEqual(['other.go'])
+    expect(at('First()').line).toBe(5)
+    // The undeclared name is the module's only type error, so the summary is located on it.
+    expect(observation.diagnostics).toContainEqual(expect.objectContaining({ file: 'caller.go', line: 5 }))
+    const [outlined] = await readGoCodeStructure(root, [{ file: 'first.go', symbols: [] }], { worker })
+    expect(outlined!.declarations[0]!.line).toBe(4)
+  } finally { await rm(root, { recursive: true, force: true }) }
+}, 60000)
+
 goTest('groma lint reports identical and near-duplicate Go bodies across renamed local names', async () => {
   const { root, worker } = await fixture('go-duplicates')
   try {
@@ -199,8 +262,8 @@ goTest('groma lint reports identical and near-duplicate Go bodies across renamed
     const git = Bun.spawn(['git', 'init', '--quiet', root], { stdout: 'ignore', stderr: 'pipe' })
     expect(await git.exited).toBe(0)
     await addScanner(root, path.resolve(import.meta.dir, '../plugins/scanners/go'))
-    const config = await readScannerConfig(root)
-    await writeScannerConfig(root, { ...config, scanners: config.scanners.map(scanner => ({ ...scanner, settings: { worker } })) })
+    const config = await readGromaConfig(root)
+    await writeGromaConfig(root, { ...config, scanners: config.scanners.map(scanner => ({ ...scanner, settings: { worker } })) })
     const lint = Bun.spawn([process.execPath, path.resolve(import.meta.dir, '../src/cli.ts'), 'lint'],
       { cwd: root, stdout: 'pipe', stderr: 'pipe' })
     const [code, out, error] = await Promise.all([lint.exited, new Response(lint.stdout).text(), new Response(lint.stderr).text()])
@@ -264,8 +327,8 @@ goTest('a component with Go and TypeScript files outlines every file in Code ord
     await buildWorker(worker, go)
     await addScanner(root, path.resolve(import.meta.dir, '../plugins/scanners/go'))
     await addScanner(root, path.resolve(import.meta.dir, '../plugins/scanners/typescript'))
-    const config = await readScannerConfig(root)
-    await writeScannerConfig(root, {
+    const config = await readGromaConfig(root)
+    await writeGromaConfig(root, {
       ...config, scanners: config.scanners.map(scanner => scanner.id === 'go' ? { ...scanner, settings: { worker } } : scanner),
     })
     const world = await loadAnnotatedArchitecture(root)

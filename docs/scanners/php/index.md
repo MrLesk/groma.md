@@ -13,7 +13,7 @@ bun plugins/scanners/php/build.ts
 From the project being scanned:
 
 ```sh
-groma scanner add /absolute/path/to/groma/plugins/scanners/php/dist/package
+groma plugin add /absolute/path/to/groma/plugins/scanners/php/dist/package
 groma scan
 ```
 
@@ -181,7 +181,10 @@ none, which routes `__invoke`, and `register_rest_route` with the
 `[Type::class, 'method']`, `[$this, 'method']`, `Type::class` for an invokable
 class, or a string naming a function or `Type::method`, and must be a function
 or method with a body in the scanned files, including an inherited method on a
-scanned parent class. Laravel reads a plain string
+scanned parent class. A type name the scanned files declare more than once, in
+one file, as in the branches of an `if`, or in several, names no single
+declaration, so no handler inherits through it: a route that names a method
+only its parent declares is a blocker. Laravel reads a plain string
 handler as a method of the controller its `Route::controller(...)` group names,
 and otherwise as a controller class, so outside such a group it is unknown.
 A Laravel route under `domain(...)`, or in a group whose options state a

@@ -15,13 +15,13 @@ and platform verification evidence.
 Install the scanner from npm, then scan:
 
 ```sh
-groma scanner add @groma/scanner-swift
+groma plugin add @groma/scanner-swift
 groma scanner check
 groma scan
 ```
 
 groma.md records the selected exact version in the project's scanner settings.
-On another checkout, `groma scanner install` restores that selection before
+On another checkout, `groma plugin install` restores that selection before
 `groma scan`. Local package paths remain available for maintainer validation.
 
 ## Source inputs

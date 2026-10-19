@@ -1,0 +1,149 @@
+diff --git a/grammar.js b/grammar.js
+index 9485f46..a7ada55 100644
+--- a/grammar.js
++++ b/grammar.js
+@@ -1,0 +2 @@ const CPP = require("tree-sitter-cpp/grammar")
++const { preprocessor } = require("tree-sitter-c/grammar")
+@@ -43,0 +45,5 @@ module.exports = grammar(CPP, {
++  inline: ($, original) => [...original, $._initializer_value, $._initializer_item, $._parameter_value, $._parameter_item],
++  conflicts: ($, original) => [...original,
++    [$.primitive_type, $.emulated_constructor_declarator],
++    [$.sized_type_specifier, $.integer_conversion_expression],
++  ],
+@@ -44,0 +51,57 @@ module.exports = grammar(CPP, {
++    // Quoted replacement tokens keep comment markers literal in any directive position.
++    // Continued definitions also retain their raw block/line comments.
++    preproc_arg: _ => {
++      const quoted = /"(?:\\(?:\r?\n|[^\r\n])|[^"\\\r\n])*"|'(?:\\(?:\r?\n|[^\r\n])|[^'\\\r\n])*'/;
++      return token(prec(-1, seq(choice(quoted, /[^\s"']/), repeat(choice(
++        quoted, /[^/"'\n]/, seq('/', choice(quoted, /[^*/"']/)),
++        /\\[ \t]*\/\/[^\r\n]*\r?\n/, /\\\r?\n/,
++        /\/\*[^*\n]*\*+([^/*\n][^*\n]*\*+)*\//,
++      )))));
++    },
++
++    // Shared C++ headers can implement types which are MQL5 primitive names.
++    emulated_constructor_declarator: $ => seq(field("declarator", alias($._mql_shared_type, $.identifier)), $._function_declarator_seq),
++    constructor_or_destructor_declaration: ($, original) => choice(original, seq(
++      field("declarator", alias($.emulated_constructor_declarator, $.function_declarator)), ";")),
++    constructor_or_destructor_definition: ($, original) => choice(original, seq(
++      field("declarator", alias($.emulated_constructor_declarator, $.function_declarator)), field("body", $.compound_statement))),
++
++    _class_declaration_item: ($, original) => choice(original, seq(field("name", $._class_name),
++      alias($.conditional_base_clause, $.preproc_if), field("body", $.field_declaration_list))),
++    conditional_base_clause: $ => seq(choice(preprocessor("ifdef"), preprocessor("ifndef")), $.identifier,
++      $.base_class_clause, preprocessor("endif")),
++
++    // Paired standard-library maps are retained as source, never expanded into OnEvent.
++    event_map: $ => seq("EVENT_MAP_BEGIN", "(", $.identifier, ")",
++      repeat($._event_map_item), "EVENT_MAP_END", "(", $.identifier, ")"),
++    _event_map_item: $ => choice($.event_map_handler,
++      seq("{", repeat($._event_map_item), "}"),
++      prec.right(seq("if", $.condition_clause, $._event_map_item, optional(seq("else", $._event_map_item))))),
++    event_map_handler: $ => seq(choice("ON_EVENT", "ON_INDEXED_EVENT"), $.argument_list),
++
++    // MQL5 permits void before a constructor, including its initializer list.
++    function_definition: ($, original) => choice(original, seq(
++      $._declaration_specifiers,
++      field("declarator", $.function_declarator),
++      $.field_initializer_list,
++      field("body", $.compound_statement),
++    )),
++    inline_method_definition: ($, original) => choice(original, prec(1, seq(
++      $._declaration_specifiers,
++      field("declarator", alias($.function_field_declarator, $.function_declarator)),
++      $.field_initializer_list,
++      field("body", $.compound_statement),
++    ))),
++
++    _field_declarator: ($, original) => choice(original, $.destructor_name),
++
++    // MQL5 this is the current object variable, not C++'s pointer value.
++    _assignment_left_expression: ($, original) => choice(original, $.this),
++
++    parameter_list: $ => seq("(", repeat($._parameter_item), optional($._parameter_value), ")"),
++    _parameter_value: $ => choice($.parameter_declaration, $.optional_parameter_declaration,
++      $.variadic_parameter_declaration, "..."),
++    _parameter_item: $ => choice(seq($._parameter_value, ","),
++      alias($.conditional_parameters, $.preproc_if)),
++    conditional_parameters: $ => conditionalEntries($, $._parameter_item, $._parameter_value),
++
+@@ -46 +109,9 @@ module.exports = grammar(CPP, {
+-      choice(original, "input", "sinput"),
++      choice(original, "sinput", prec.right(seq("input",
++        optional(seq("(", "name", "=", choice($.string_literal, $.identifier), ")"))))),
++
++    _top_level_item: ($, original) => choice(original, $.input_group, $.conditional_declaration_prefix, $.event_map),
++
++    conditional_declaration_prefix: $ => seq(
++      choice(preprocessor("ifdef"), preprocessor("ifndef")), $.identifier,
++      choice(seq("template", $.template_parameter_list), "constexpr"), preprocessor("endif"),
++    ),
+@@ -48 +119,15 @@ module.exports = grammar(CPP, {
+-    _top_level_item: ($, original) => choice(original, $.input_group),
++    conditional_method: $ => seq(
++      choice(preprocessor("ifdef"), preprocessor("ifndef")), $.identifier,
++      $._conditional_constructor_header,
++      preprocessor("else"), $._conditional_constructor_header, preprocessor("endif"),
++      repeat($._block_item), "}",
++    ),
++    _conditional_constructor_header: $ => seq($.function_declarator, "{"),
++
++    _block_item: ($, original) => choice(original, alias($.conditional_if_statement, $.preproc_if)),
++    conditional_if_statement: $ => prec.right(seq(
++      choice(preprocessor("ifdef"), preprocessor("ifndef")), $.identifier,
++      "if", $.condition_clause, "{",
++      preprocessor("else"), "if", $.condition_clause, "{", preprocessor("endif"),
++      repeat($._block_item), "}", optional($.else_clause),
++    )),
+@@ -54 +139 @@ module.exports = grammar(CPP, {
+-      prec.right(seq("input", "group", field("name", $.string_literal), optional(";"))),
++      prec.right(seq("input", "group", field("name", choice($.string_literal, $.identifier)), optional(";"))),
+@@ -69 +154,3 @@ module.exports = grammar(CPP, {
+-    primitive_type: _ =>
++    _mql_shared_type: _ => choice("datetime", "color"),
++
++    primitive_type: $ => choice($._mql_shared_type,
+@@ -91,2 +177,0 @@ module.exports = grammar(CPP, {
+-        "datetime",
+-        "color",
+@@ -97 +182 @@ module.exports = grammar(CPP, {
+-      )),
++      ))),
+@@ -118,0 +204,2 @@ module.exports = grammar(CPP, {
++      $.typename_expression,
++      $.integer_conversion_expression,
+@@ -120,0 +208,16 @@ module.exports = grammar(CPP, {
++    // MQL5 typename(T) returns a type name. It is not a runtime invocation.
++    typename_expression: $ => prec(16, seq("typename", "(", $.type_descriptor, ")")),
++
++    // C++ treats long/short as sized types, so its primitive-call rule misses them.
++    integer_conversion_expression: $ => seq(choice("long", "short"), $.argument_list),
++
++    // Conditional array entries remain syntax, never a chosen preprocessing branch.
++    initializer_list: $ => seq("{", repeat($._initializer_item),
++      optional($._initializer_value), "}"),
++
++    _initializer_value: $ => choice($.initializer_pair, $.expression, $.initializer_list),
++    _initializer_item: $ => choice(seq($._initializer_value, ","),
++      alias($.conditional_initializer, $.preproc_if)),
++
++    conditional_initializer: $ => conditionalEntries($, $._initializer_item, $._initializer_value),
++
+@@ -142 +245 @@ module.exports = grammar(CPP, {
+-      original,
++      original, $.conditional_declaration_prefix, alias($.conditional_method, $.preproc_if),
+@@ -146,0 +250,13 @@ module.exports = grammar(CPP, {
++
++// Retain both raw branches, with the same conditional-node alias in either list.
++function conditionalEntries($, item, value) {
++  return seq(
++    choice(
++      seq(choice(/#[ \t]*ifdef/, /#[ \t]*ifndef/), field("name", $.identifier)),
++      seq(/#[ \t]*if/, field("condition", $._preproc_expression), "\n"),
++    ),
++    repeat(item), optional(value),
++    optional(seq(/#[ \t]*else/, repeat(item), optional(value))),
++    /#[ \t]*endif/,
++  )
++}

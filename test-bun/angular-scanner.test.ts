@@ -182,7 +182,7 @@ test.concurrent('the live scanner session refreshes a component when its externa
   const session = await createScannerSession(root, { onFold() { complete?.() } })
   try {
     await session.change({ action: 'add', source: artifact })
-    expect(session.state.scanners.find(scanner => scanner.id === 'angular')?.status).toBe('ready')
+    expect(session.state.plugins.find(scanner => scanner.id === 'angular')?.status).toBe('ready')
     const before = await storedArchitecture(root)
     const changed = Promise.withResolvers<void>()
     complete = () => changed.resolve()
@@ -230,7 +230,7 @@ test.concurrent('the built Angular package and the TypeScript scanner outline a 
 test.concurrent('a file Angular and TypeScript both own shows one outline', async () => {
   const { temporary, root, artifact, scanner } = await outlineSetup()
   try {
-    await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify({ scanners: [
+    await writeFile(path.join(root, 'groma/config.json'), JSON.stringify({ scanners: [
       { id: 'typescript', source: path.resolve(import.meta.dir, '../plugins/scanners/typescript'), include: typescriptManifest.groma.scanner.include },
       { id: 'angular', source: artifact, include: manifest.groma.scanner.include },
     ] }))
@@ -312,6 +312,38 @@ test.concurrent('Angular binds directive outputs and template emits from inline 
     const list = await readFile(path.join(root, 'list.ts'), 'utf8')
     const position = list.indexOf('(removed)')
     expect(observation.invocations!.map(call => call.binding)).toContainEqual({ file: 'list.ts', line: list.slice(0, position).split('\n').length, position })
+  } finally { await rm(temporary, { recursive: true, force: true }) }
+})
+
+test.concurrent('Angular reports a source once when the listing names it by two paths', async () => {
+  const config = JSON.stringify({ compilerOptions: { experimentalDecorators: true }, include: ['src/**/*.ts'] })
+  const { temporary, root, scanner } = await workspace({
+    'package.json': JSON.stringify({ dependencies: { '@angular/core': '21.2.17' } }),
+    // The application's program comes first and reads the library component that the library's config owns. It comes
+    // first only because `apps/` sorts before `libs/`: with the directories renamed the other way round, the library's
+    // own program would read the second spelling first, and the test would stop covering a source another program owns.
+    'apps/shop/tsconfig.json': config,
+    'apps/shop/src/shop.ts': "import { Component } from '@angular/core'\nimport { Item } from '../../../libs/ui/src/Item'\n\n"
+      + "@Component({ imports: [Item], template: `<ui-item (removed)=\"forget()\" />` })\nexport class Shop {\n  forget() { return true }\n}\n",
+    'libs/ui/tsconfig.json': config,
+    'libs/ui/src/Item.ts': "import { Component, output } from '@angular/core'\n\n"
+      + "@Component({ selector: 'ui-item', template: '' })\nexport class Item {\n  removed = output<boolean>()\n  remove() { this.removed.emit(true) }\n}\n",
+    // No config includes this source.
+    'tools/Seed.ts': 'export function seed() { return 1 }\n',
+  })
+  try {
+    // No disk holds two spellings of a path as one file, but a Git index does, and a case-insensitive disk finds the
+    // file under either. Git then lists the first spelling only if it has an entry too. The listing reads only names,
+    // so the entries carry Git's empty blob id. On a case-sensitive disk the listing drops the absent second
+    // spellings, so there this test compares a scan with itself.
+    const second = ['libs/ui/src/item.ts', 'tools/seed.ts']
+    const entries = ['libs/ui/src/Item.ts', 'tools/Seed.ts', ...second].flatMap(file => ['--cacheinfo', `100644,e69de29bb2d1d6434b8b29ae775ad8c2e48c5391,${file}`])
+    const git = Bun.spawn(['git', 'update-index', '--add', ...entries], { cwd: root, stdout: 'ignore', stderr: 'pipe' })
+    expect(await git.exited, await new Response(git.stderr).text()).toBe(0)
+    const files = await angularFiles(root)
+    const named = (await scanner.scan(root, {}, files.filter(file => !second.includes(file))))!
+    expect(named.invocations).toHaveLength(1)
+    expect(await scanner.scan(root, {}, files)).toEqual(named)
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
 

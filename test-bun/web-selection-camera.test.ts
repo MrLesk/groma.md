@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 import path from 'node:path'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
+import { withFixture } from './helpers.ts'
 import { sheetScene } from '../src/sheet/scene.ts'
 import type { Point } from '../src/types.ts'
 import { fitArchitecture, fitCamera, zoomAbout, type Camera } from '../src/viewers/web/iso/camera/camera.ts'
@@ -10,7 +11,7 @@ import { sceneAtSeparation } from '../src/viewers/web/iso/projection/separation.
 const viewport = { width: 800, height: 600 }
 
 async function map(separation: number) {
-  const world = await loadAnnotatedArchitecture(path.resolve(import.meta.dir, '../test/fixtures/flows'))
+  const world = await withFixture(path.resolve(import.meta.dir, '../test/fixtures/flows'), loadAnnotatedArchitecture)
   const sheet = sheetScene(world)
   const scene = sceneAtSeparation(projectScene(sheet, undefined, { yaw: 65, pitch: 35 }), separation)
   return { world, sheet, scene }

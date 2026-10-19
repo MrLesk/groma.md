@@ -1,10 +1,41 @@
 import type { MapView } from '../iso/view-motion/presentation.ts'
+import { readHiddenFilters, type MapFilter } from './c4-filter.ts'
+
+export interface MapControls {
+  mapView: MapView
+  hiddenFilters: ReadonlySet<MapFilter>
+}
+
+const MAP_CONTROLS_STORAGE_KEY = 'groma.mapControls'
 
 const views: { value: MapView; label: string; title: string; icon: string }[] = [
   { value: 'iso', label: 'Iso', title: 'Isometric', icon: '<path d="m12 3 9 5v8l-9 5-9-5V8l9-5ZM3 8l9 5 9-5m-9 5v8M12 3v10"/>' },
   { value: '2d', label: '2D', title: '2D overhead', icon: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 11h16m-9 0v9"/>' },
   { value: 'layers', label: 'Layers', title: 'Layers (F2)', icon: '<path d="m12 3 10 5-10 5L2 8l10-5ZM2 12l10 5 10-5M2 16l10 5 10-5"/>' },
 ]
+
+/** Each explicit URL value wins; omitted controls retain the supplied saved or current choice. */
+export function readMapControls(params: URLSearchParams, defaults?: MapControls): MapControls {
+  const requested = params.get('view')
+  return {
+    mapView: views.find(view => view.value === requested)?.value ?? defaults?.mapView ?? 'iso',
+    hiddenFilters: params.has('hide') ? readHiddenFilters(params.get('hide')!) : new Set(defaults?.hiddenFilters),
+  }
+}
+
+/** Defaults are explicit so a shared all-visible Iso view overrides the recipient's preferences. */
+export function mapControlEntries(controls: MapControls): [string, string][] {
+  return [['view', controls.mapView], ['hide', [...controls.hiddenFilters].join(',')]]
+}
+
+/** Browser preferences use the URL representation, keeping one parser for both entry points. */
+export function readSavedMapControls(storage: Pick<Storage, 'getItem'>): MapControls {
+  return readMapControls(new URLSearchParams(storage.getItem(MAP_CONTROLS_STORAGE_KEY) ?? ''))
+}
+
+export function saveMapControls(controls: MapControls, storage: Pick<Storage, 'setItem'>): void {
+  storage.setItem(MAP_CONTROLS_STORAGE_KEY, new URLSearchParams(mapControlEntries(controls)).toString())
+}
 
 export function mapViewControl(): string {
   return `<div id="map-view" class="floating-map-bar" role="tablist" aria-label="Map view"><span class="view-indicator" aria-hidden="true"></span>${views.map(view =>

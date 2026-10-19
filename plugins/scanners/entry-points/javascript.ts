@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { createScanObservation, type ScanEntryPoint, type ScanObservation } from '@groma/scanner'
+import { createScanObservation, type ScanDiagnostic, type ScanEntryPoint, type ScanObservation } from '@groma/scanner'
 import type { EntrySources } from './source.ts'
 import { sourceOf, type BuildOutput } from '../workspace-packages.ts'
 
@@ -127,21 +127,32 @@ function reachedFiles(entry: string, compiled: readonly string[], imports: Reado
   return found
 }
 
-/** The entries that package manifests, workspace build targets and HTML pages declare. */
+/**
+ * The entries that package manifests, workspace build targets and HTML pages declare. A manifest or workspace file
+ * that is not JSON, such as a broken fixture the repository keeps on purpose, declares none and is reported.
+ */
 async function declaredEntries(root: string, declarations: readonly string[], packages: ReadonlySet<string>,
-  workspaces: ReadonlySet<string>): Promise<SourceEntry[]> {
+  workspaces: ReadonlySet<string>): Promise<{ entries: SourceEntry[]; diagnostics: ScanDiagnostic[] }> {
   const entries: SourceEntry[] = []
+  const diagnostics: ScanDiagnostic[] = []
   for (const file of declarations) {
     const text = await readFile(path.join(root, file), 'utf8')
     const name = path.posix.basename(file)
-    if (name === 'package.json') {
-      const manifest = JSON.parse(text)
-      entries.push(...declaredBins(file, manifest), ...declaredScripts(file, manifest.scripts))
-    } else if (name === 'angular.json') entries.push(...angularEntries(file, text))
-    else if (name === 'project.json') entries.push(...nxEntries(file, text, workspaces))
-    else if (file.endsWith('.html')) entries.push(...browserEntries(file, text, packages))
+    try {
+      if (name === 'package.json') {
+        const manifest = JSON.parse(text)
+        entries.push(...declaredBins(file, manifest), ...declaredScripts(file, manifest.scripts))
+      } else if (name === 'angular.json') entries.push(...angularEntries(file, text))
+      else if (name === 'project.json') entries.push(...nxEntries(file, text, workspaces))
+      else if (file.endsWith('.html')) entries.push(...browserEntries(file, text, packages))
+    } catch (error) {
+      // JSON.parse reports invalid JSON with a SyntaxError; any other error is a defect and stays visible.
+      if (!(error instanceof SyntaxError)) throw error
+      diagnostics.push({ severity: 'warning', code: 'JAVASCRIPT_MANIFEST_INVALID', file,
+        message: `The file is not valid JSON; the entry points it declares are not read. ${error.message}` })
+    }
   }
-  return entries
+  return { entries, diagnostics }
 }
 
 /** A declared entry on the source file it stands for, such as the source a `bin` under a build's `outDir` comes from. */
@@ -164,7 +175,8 @@ export async function withJavaScriptEntries(
   const packages = new Set(inventory.filter(file => path.posix.basename(file) === 'package.json').map(file => path.posix.dirname(file)))
   const active = new Set(observation.files.map(file => packageFor(file.file, packages)))
   const declarations = inventory.filter(file => path.posix.basename(file) !== 'nx.json' && active.has(packageFor(file, packages)))
-  const entries = [...inputs.entries, ...await declaredEntries(root, declarations, packages, workspaces)]
+  const declared = await declaredEntries(root, declarations, packages, workspaces)
+  const entries = [...inputs.entries, ...declared.entries]
   const inventoryFiles = [...observation.files]
   const visible = new Set(inventoryFiles.map(file => file.file))
   const readable = new Set(files)
@@ -180,5 +192,6 @@ export async function withJavaScriptEntries(
     }
     return [{ ...entry, files: [...new Set([entry.file, ...members.map(file => file.file)])] }]
   })
-  return createScanObservation({ ...observation, files: inventoryFiles, entryPoints })
+  return createScanObservation({ ...observation, files: inventoryFiles, entryPoints,
+    diagnostics: [...observation.diagnostics, ...declared.diagnostics] })
 }

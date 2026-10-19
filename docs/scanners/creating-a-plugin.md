@@ -66,7 +66,7 @@ A scanner declares what it scans in its manifest, never in code:
   ecosystem.
 
 Both lists use Git ignore patterns with `/` separators. Adding the scanner to a
-project writes them into its entry in `scanners.json`, where people edit them;
+project writes them into its entry in `config.json`, where people edit them;
 an update never rewrites them. [Selecting source files](index.md#selecting-source-files)
 describes how the lists combine with the global list and `useGitignore`.
 
@@ -130,12 +130,14 @@ keep every other scanner's outline. The outline is read-only source detail, neve
 architecture record. Build it by parsing source only: no project dependencies,
 builds, or project tools.
 
-The optional fourth argument supplies known Code files from the loaded
-architecture, filtered by the scanner's configured include/exclude rules.
-Use it when outlining a file requires source owned by another component, such
-as NASM macros and includes. Read these paths from `repositoryRoot`, which may
-be a historical source snapshot without Git metadata. Return declarations only
-for the requested references; context files do not change their ownership.
+The optional fourth argument supplies the scanner's selected source inputs,
+including metadata without Code ownership, filtered by configured include/exclude
+rules. Live inputs also respect the configured Git-ignore policy; historical
+inputs come from the requested Git tree. Use this context for declarations in
+other components, such as NASM macros, or package language versions. Read these
+paths from `repositoryRoot`, which may be a historical source snapshot without
+Git metadata. Return declarations only for the requested references; context
+files do not change their ownership or become architecture elements.
 
 Each reference holds one owned `file` and the `symbols` its Code links name.
 When a file has Code links from several configured scanners, the one with the
@@ -161,7 +163,7 @@ and are not listed.
 - `kind: 'program'` is a top-level named program, such as COBOL `PROGRAM-ID`.
   It has no `members` list. Programs are Code declarations, not C4 containers;
   nested programs are omitted.
-- `kind: 'type'` is a top-level class, interface, struct, record, enum, trait,
+- `kind: 'type'` is a top-level class, interface, struct, union, record, enum, trait,
   or protocol, a Scala or Kotlin object, or a Go defined type such as `type X struct{}` or `type X int`.
   A named type whose form is a function, such as a C# `delegate` or a Go
   `type X func(...)`, is a type with an empty `members` list. Type aliases are
@@ -192,8 +194,10 @@ Every declaration and member has `name`, `line` (the 1-based line of the
 name), `visibility`, and `entry`. `entry` is true when the reference's `symbols`
 name the symbol in the spelling that scanner's Code links use: a member
 qualified by its type, or its bare name. Members are `Type.member` in Java, C#,
-and Python, and `Namespace\Type::method` in PHP, beside a top-level
-`Namespace\name`; every other scanner matches bare names. A link naming a type
+and Python, `Type::method` in MQL5, and `Namespace\Type::method` in PHP, beside a top-level
+`Namespace\name`. Dart constructors match `Type.name` or `Type.new` for an unnamed
+constructor; see [Dart outlines](dart/index.md#inputs-and-source-structure). Other
+members and scanners match bare names. A link naming a type
 never marks its members.
 
 `visibility` states who may use the name:
@@ -217,7 +221,13 @@ follows; a dash means the language has no such case.
 | Vue | As TypeScript in `<script>` | As TypeScript | - | As TypeScript; every `<script setup>` top-level declaration |
 | Java | `public`; interface members without a modifier | `protected` | No modifier elsewhere (package access) | `private` |
 | Scala | No access modifier | `protected`, `protected[scope]` | `private[scope]` | `private`, `private[this]` |
+| Dart | Names without a leading `_` | - | - | Names beginning with `_`, restricted to their library and its parts |
 | Kotlin | `public`; default except constructors and inherited overrides | `protected`; sealed constructors by default | `internal` | `private`; enum constructors by default |
+| C | External source linkage and named file-scope type definitions | - | - | Static function linkage, including inherited same-file linkage |
+| C++ | Namespace-level names without file-local linkage; `public`; struct/union members by default | `protected` | - | `static` namespace-level functions, unnamed namespaces; `private`; class members by default |
+| Ada | Visible package declarations and library subprograms | - | Package private parts and private child units | Package-body-only declarations |
+| MQL5 | Top-level declarations; structure/interface members without an access label; `public` | `protected` | - | Class members without an access label; `private` |
+| Mojo | Every declared function, struct, trait and method; underscore prefixes are naming conventions | - | - | - |
 | C# | `public`; interface members without a modifier | `protected`, `protected internal`, `private protected` | `internal`; top-level types without a modifier | `private`; other members without a modifier |
 | Go | Names starting with an upper-case letter | - | Other names | - |
 | Rust | `pub`. Methods in a trait definition take the trait's visibility, and methods in a trait `impl` are `public` | - | `pub(crate)`, `pub(super)`, `pub(in path)` | No `pub`, `pub(self)` |
@@ -267,7 +277,7 @@ file as read by no enabled scanner.
 
 groma.md uses the listing to explain a file with no architecture owner. `groma view`
 on such a file exits non-zero with one reason: it is not a repository file, a
-named `scanners.json` pattern excludes it, no enabled scanner reads it, or it
+named `config.json` pattern excludes it, no enabled scanner reads it, or it
 waits for a scan by the scanners that read it, because it is new or was
 detached. A listing that throws names its scanner with the error's first line,
 beside the other scanners' answer. A plugin without the hook
@@ -346,7 +356,7 @@ remain installable by name, but groma.md has no third-party discovery index.
 
 ## Scanner settings
 
-All groma.md scanner settings belong in the single `scanners.json` inside the
+All groma.md scanner settings belong in the single `config.json` inside the
 selected `groma/` or `.groma/` directory. Put optional `settings` on the
 existing scanner entry beside `id` and `source`:
 
@@ -381,7 +391,7 @@ validation for readiness and analysis. Document supported keys and defaults,
 and make errors identify the scanner and setting to correct. Resolve project
 selection paths relative to the supplied repository root.
 
-Scanners must not read `scanners.json` themselves or introduce separate
+Scanners must not read `config.json` themselves or introduce separate
 groma.md configuration files. Keep native compiler settings in native project
 files such as `tsconfig.json`, `Cargo.toml` and `.csproj`. Pass parsed
 settings to a native worker through its existing invocation interface.
@@ -602,20 +612,20 @@ never contains `/`, a query, or a fragment. Omit empty segments. For a route
 Use an exact npm version, a Git tag or full commit, or a project-relative local package:
 
 ```sh
-groma scanner add @example/groma-scanner-python@1.0.0
-groma scanner add ./plugins/scanners/python
-groma scanner add git+https://github.com/example/python-scanner.git#v1.0.0
+groma plugin add @example/groma-scanner-python@1.0.0
+groma plugin add ./plugins/scanners/python
+groma plugin add git+https://github.com/example/python-scanner.git#v1.0.0
 ```
 
-`add` validates the installed package before writing `scanners.json` in the
+`add` validates the installed package before writing `config.json` in the
 selected `groma/` or `.groma/` directory.
-Npm and Git packages live in groma.md's shared `~/.groma/cache/scanners` cache. Local
+Npm and Git packages live in groma.md's shared `~/.groma/cache/plugins` cache. Local
 packages run directly from the configured path.
 
 ```sh
-groma scanner list
-groma scanner install
-groma scanner remove python
+groma plugin list
+groma plugin install
+groma plugin remove python
 ```
 
 `install` restores configured npm and Git packages. `remove` disables a scanner without
@@ -625,14 +635,14 @@ For a runnable example, use the [inventory teaching scanner](https://github.com/
 with its supplied project fixture and groma.md 0.3.0 or later:
 
 ```sh
-groma scanner add 'git+https://github.com/MrLesk/groma-scanner-example.git#v0.1.0'
+groma plugin add 'git+https://github.com/MrLesk/groma-scanner-example.git#v0.1.0'
 ```
 
 A Git source must use public HTTPS and contain one runnable scanner package at
 its repository root. Include bundled entry code and required worker assets in
 the selected tag or commit. groma.md installs declared dependencies with installation
 scripts disabled; it does not compile the scanner. Git must be available locally.
-groma.md resolves a tag to its full commit and records that commit in `scanners.json`.
+groma.md resolves a tag to its full commit and records that commit in `config.json`.
 Commit this project configuration so teammates restore the same scanner even
 when a tag moves. Local paths stay local; package downloads are shared, but each
 project chooses its own scanners and settings. Scan and watch never install packages, search global
@@ -645,18 +655,18 @@ compatible stable release. You can also choose an exact version of the same npm
 package, or a tag or commit in the same Git repository:
 
 ```sh
-groma scanner update python
-groma scanner update python @example/groma-scanner-python
-groma scanner update python @example/groma-scanner-python@1.1.0
-groma scanner update python git+https://github.com/example/python-scanner.git#v1.1.0
+groma plugin update python
+groma plugin update python @example/groma-scanner-python
+groma plugin update python @example/groma-scanner-python@1.1.0
+groma plugin update python git+https://github.com/example/python-scanner.git#v1.1.0
 ```
 
 groma.md installs and validates the replacement before recording its exact source.
 The scanner ID must remain the same. A failed or rejected replacement leaves
 project configuration unchanged. Scanner settings, project exclusions and
 other scanner selections are preserved. Other projects keep their own versions.
-Use `groma scanner list` and `groma scanner check` to inspect the result;
-`groma scanner install` restores the recorded version or commit.
+Use `groma plugin list` and `groma scanner check` to inspect the result;
+`groma plugin install` restores the recorded version or commit.
 
 Updates are explicit. Scanning, starting a viewer or upgrading groma.md does not
 select a newer scanner. Local plugins continue to run from their configured

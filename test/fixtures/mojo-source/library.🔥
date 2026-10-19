@@ -1,0 +1,3 @@
+struct Store:
+    def write(self, value: Int):
+        print(value)

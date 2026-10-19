@@ -35,9 +35,11 @@ function assertCover(bytes: Buffer): void {
 }
 
 test.concurrent('export writes the themed image referenced by its initial sharing metadata', async () => {
-  const output = await mkdtemp(path.join(os.tmpdir(), 'groma-sharing-export-'))
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-sharing-export-'))
+  const output = path.join(root, 'site')
   try {
-    const exported = await exportWebViewer(mappedFixture, output, {
+    await cp(mappedFixture, root, { recursive: true })
+    const exported = await exportWebViewer(root, output, {
       url: 'https://example.test/repository/architecture/blueprint',
     })
     await exported.close()
@@ -54,7 +56,7 @@ test.concurrent('export writes the themed image referenced by its initial sharin
       assertCover(await readFile(path.join(output, `cover-${theme}.png`)))
     }
   } finally {
-    await rm(output, { recursive: true, force: true })
+    await rm(root, { recursive: true, force: true })
   }
 })
 
@@ -84,8 +86,12 @@ test.concurrent('live initial metadata uses the project profile and links to a t
 })
 
 test.concurrent('Auto shares a light cover without inventing an unauthored project description', async () => {
-  const project = await loadProjectProfile(fixture)
-  const fields = await headMetadata(`<html><head>${sharingMetadata(project!, new URL('https://example.test/architecture/auto/'))}</head></html>`)
-  assert.equal(fields.get('og:image'), 'https://example.test/architecture/auto/cover-light.png')
-  assert.equal(fields.has('og:description'), false)
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-sharing-metadata-'))
+  try {
+    await cp(fixture, root, { recursive: true })
+    const project = await loadProjectProfile(root)
+    const fields = await headMetadata(`<html><head>${sharingMetadata(project!, new URL('https://example.test/architecture/auto/'))}</head></html>`)
+    assert.equal(fields.get('og:image'), 'https://example.test/architecture/auto/cover-light.png')
+    assert.equal(fields.has('og:description'), false)
+  } finally { await rm(root, { recursive: true, force: true }) }
 })

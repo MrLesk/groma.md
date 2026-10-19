@@ -12,7 +12,7 @@ import project modules, execute source, install dependencies, or evaluate
 For a published release:
 
 ```sh
-groma scanner add @groma/scanner-python
+groma plugin add @groma/scanner-python
 groma scanner check
 groma scan
 ```
@@ -23,7 +23,7 @@ copy that package into the consumer repository, and add its relative path:
 ```sh
 bun plugins/scanners/python/build.ts /tmp/python-scanner
 # In the consumer repository, after copying the folder to tools/python-scanner:
-groma scanner add ./tools/python-scanner
+groma plugin add ./tools/python-scanner
 groma scanner check
 groma scan
 ```
@@ -180,6 +180,16 @@ function, resolve to nothing.
 A client call counts only when the module imports that library. A name that a
 function binds, such as a parameter named `requests` or `BASE`, never resolves
 to the module's import or constant of the same name.
+
+A route registered by reference, as in `add_url_rule("/talks", view_func=talks)`,
+`add_api_route("/talks", talks)` or `path("talks/", talks)`, names the function
+its module declares at module level. A name the module declares more than once,
+such as two `def talks` in sequence or a second one in an `if` branch, names no
+single declaration, so the reference resolves to nothing: the Flask route is not
+reported, and the FastAPI, Starlette or Django route is a blocker (decision 8).
+The rule concerns references only. A route decorator names the function it
+decorates, so decorator routes are unaffected, including those on an
+application assigned in the body of a function declared twice.
 
 Names resolve across modules by import: the scanner maps each scanned file to
 its dotted module path and follows `import`, `from ... import` and relative

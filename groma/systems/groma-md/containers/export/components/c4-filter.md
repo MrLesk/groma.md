@@ -12,4 +12,4 @@ groma:
 description: Shows or hides element kinds and relationships on the browser map
 ---
 
-Owns the page-local map filters. The same control toggles C4 element kinds and relationship visibility before the projected scene is painted. Filtering preserves layout, camera, selection, and stored architecture; showing relationships restores only routes whose endpoints are visible.
+Owns the map visibility filters. Restores the selected element kinds and relationship visibility from the browser session, then applies the same choices to buttons and every projected scene. Filtering preserves layout, camera, selection, and stored architecture; showing relationships restores only routes whose endpoints are visible.

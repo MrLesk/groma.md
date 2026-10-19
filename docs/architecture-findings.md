@@ -9,7 +9,7 @@ exclusions. It does not write architecture records or change scanner selections.
 
 The command exits with code 1 when it finds issues or a scanner fails, and 0
 otherwise. An empty result applies only to the available scanner evidence;
-it does not mean that every source file was checked. Run `groma scanner list`
+it does not mean that every source file was checked. Run `groma plugin list`
 to see which scanners are installed.
 
 ## Review findings

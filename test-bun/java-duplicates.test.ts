@@ -58,7 +58,8 @@ test.concurrent('groma lint reports identical and near-duplicate Java bodies acr
   try {
     const root = path.join(temporary, 'project')
     const artifact = path.join(temporary, 'scanner')
-    await buildPackage(artifact)
+    if (process.env.GROMA_TEST_JAVA_PACKAGE) await cp(process.env.GROMA_TEST_JAVA_PACKAGE, artifact, { recursive: true })
+    else await buildPackage(artifact)
     await cp(path.join(fixtures, 'empty-project'), root, { recursive: true })
     await cp(path.join(fixtures, 'java-duplicates'), root, { recursive: true })
     const git = Bun.spawn(['git', 'init', '--quiet', root], { stdout: 'ignore', stderr: 'pipe' })

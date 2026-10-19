@@ -32,7 +32,7 @@ for (const view of ['welcome', 'map'] as const) {
     const restored = Promise.withResolvers<void>()
     Object.defineProperty(setup.renderer, 'closed', { configurable: true, value: restored.promise })
     try {
-      const closed = view === 'welcome'
+      const closed: Promise<unknown> = view === 'welcome'
         ? mountWelcome(setup.renderer, await loadWelcomeModel(viewerFixtureRoot))
         : mountTerminalViewer(setup.renderer, await terminalModel(viewerFixtureRoot)).closed
       let finished = false

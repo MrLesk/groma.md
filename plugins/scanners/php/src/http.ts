@@ -21,8 +21,11 @@ import {
 export interface PhpHttpFacts {
   endpoints: PendingEndpoint[]
   requests: ScanHttpRequest[]
-  /** A declared class and the parent whose inherited methods it can serve. */
-  parents: Map<string, string>
+  /**
+   * Every declaration of a named type in the file, with the parent class it extends, whose inherited
+   * methods it can serve. A name the file declares twice is listed twice; `parentsByType` reads the list.
+   */
+  declaredTypes: { type: string; parent: string | undefined }[]
   /** Routes files this file loads, such as through Laravel's `withRouting` or a route group given a file. */
   loads: Load[]
   /** Laravel's global parameter patterns this file sets. */
@@ -112,7 +115,7 @@ function constantsIn(table: ConstantTable, scope: NameScope): Constants {
 export function phpHttpFacts(file: string, tree: Syntax): PhpHttpFacts {
   const endpoints: PendingEndpoint[] = []
   const requests: ScanHttpRequest[] = []
-  const parents = new Map<string, string>()
+  const declaredTypes: PhpHttpFacts['declaredTypes'] = []
   const loads: Load[] = []
   const patterns = new Map<string, string>()
   const basePaths: RouteText[] = []
@@ -139,9 +142,10 @@ export function phpHttpFacts(file: string, tree: Syntax): PhpHttpFacts {
     return { ...next, constants: constantsIn(table, next) }
   }
 
-  function recordParent(node: Fields, scope: FileScope): void {
+  /** One declaration of the type the scope names; only a class has a parent, and an anonymous class has no name. */
+  function recordType(node: Fields, scope: FileScope): void {
     const parent = node.kind === 'class' ? typeName(field(node, 'extends'), scope) : undefined
-    if (scope.type !== undefined && parent !== undefined) parents.set(scope.type, parent)
+    if (scope.type !== undefined) declaredTypes.push({ type: scope.type, parent })
   }
 
   /**
@@ -157,7 +161,7 @@ export function phpHttpFacts(file: string, tree: Syntax): PhpHttpFacts {
     if (typeKinds.has(node.kind)) {
       const name = nameOf(node.name)
       const typed = renamed(scope, { type: name === undefined ? undefined : symbolName(scope.namespace, name) })
-      recordParent(node, typed)
+      recordType(node, typed)
       const { prefix, requirements } = attributeScope(node, typed)
       return { ...typed, receivers: typeReceivers(node, typed), prefix: joinRoutes(scope.prefix, prefix), requirements }
     }
@@ -231,7 +235,7 @@ export function phpHttpFacts(file: string, tree: Syntax): PhpHttpFacts {
   const globalReceivers = list(tree, 'children').some(child => child.kind === 'namespace')
     ? new Map<string, Receiver>() : boundReceivers(tree as Fields, named)
   visit(tree as Fields, { ...named, receivers: globalReceivers })
-  return { endpoints, requests: [...requests, ...curl.requests()], parents, loads, patterns, basePaths }
+  return { endpoints, requests: [...requests, ...curl.requests()], declaredTypes, loads, patterns, basePaths }
 }
 
 /**
@@ -243,7 +247,7 @@ export function moduleOperation(file: string): ScanOperation {
 }
 
 /** One file's facts as the scan collects them, before handler symbols name operations. */
-export interface FileFacts extends Pick<PhpHttpFacts, 'endpoints' | 'parents' | 'loads' | 'patterns' | 'basePaths'> {
+export interface FileFacts extends Pick<PhpHttpFacts, 'endpoints' | 'declaredTypes' | 'loads' | 'patterns' | 'basePaths'> {
   file: string
   symbols: ScanSymbol[]
 }
@@ -255,6 +259,18 @@ function operationsByName(files: readonly FileFacts[], declared: ReadonlySet<str
     if (declared.has(id)) byName.set(name, byName.has(name) && byName.get(name) !== id ? undefined : id)
   }
   return byName
+}
+
+/**
+ * The parent class of each declared type. A type name declared more than once, in one file or in
+ * several, names no single declaration, so it has no parent here and no handler inherits through it.
+ */
+function parentsByType(files: readonly FileFacts[]): Map<string, string | undefined> {
+  const parents = new Map<string, string | undefined>()
+  for (const { type, parent } of files.flatMap(file => file.declaredTypes)) {
+    parents.set(type, parents.has(type) ? undefined : parent)
+  }
+  return parents
 }
 
 /**
@@ -295,10 +311,7 @@ export function resolveEndpoints(
 ): ScanHttpEndpoint[] {
   const declared = new Set(operations.map(operation => operation.id))
   const byName = operationsByName(files, declared)
-  const parents = new Map<string, string | undefined>()
-  for (const file of files) for (const [child, parent] of file.parents) {
-    parents.set(child, parents.has(child) ? undefined : parent)
-  }
+  const parents = parentsByType(files)
   const paths = files.map(file => file.file)
   const application = (file: string) => laravelApplication(file, paths, manifests)
   const laravel = laravelRouting(files, application)

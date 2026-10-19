@@ -4,12 +4,12 @@ import { loadTerminalModel } from '../src/view-host.ts'
 import { initialState, reduceViewer, toggleFlow, litAction } from '../src/viewers/tui/navigation.ts'
 import { litLegs, projectFlowStep } from '../src/viewers/tui/flow.ts'
 import { projectWorld } from '../src/viewers/tui/projection.ts'
-import { mapViewportOf } from './helpers.ts'
+import { mapViewportOf, withFixture } from './helpers.ts'
 
 const fixture = path.resolve(import.meta.dir, '../test/fixtures/flows')
 
 test.concurrent('flow reading, endpoint inspection and return retain the authored step and membership', async () => {
-  const model = await loadTerminalModel(fixture)
+  const model = await withFixture(fixture, loadTerminalModel)
   const before = initialState(model)
   let state = toggleFlow(before, 'process-request')
   expect(state.currentId).toBe(before.currentId)
@@ -39,7 +39,7 @@ test.concurrent('flow reading, endpoint inspection and return retain the authore
 })
 
 test.concurrent('stepping a flow keeps the map and marks each endpoint on the shape that draws it', async () => {
-  const model = await loadTerminalModel(fixture)
+  const model = await withFixture(fixture, loadTerminalModel)
   const state = toggleFlow(initialState(model), 'process-request')
   const selected = reduceViewer(model, reduceViewer(model, state, 'step-action'), 'step-action')
   for (const size of [{ width: 120, height: 36 }, { width: 200, height: 60 }]) {

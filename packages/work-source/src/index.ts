@@ -1,7 +1,7 @@
-export interface WorkSourceReadiness {
-  status: 'found' | 'missing'
-  install?: string
-}
+/** Whether the command-line tool a work source reads through is installed, and which version. */
+export type WorkSourceReadiness =
+  | { status: 'found'; version: string }
+  | { status: 'missing' }
 
 export interface WorkChecklistItem {
   text: string
@@ -50,7 +50,7 @@ export interface WorkSource {
 
 export interface WorkSourcePlugin {
   id: string
-  readiness(): WorkSourceReadiness
+  readiness(): Promise<WorkSourceReadiness>
   create(repositoryRoot: string): WorkSource
 }
 

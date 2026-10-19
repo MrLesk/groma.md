@@ -65,7 +65,7 @@ bun scripts/scanner-release.ts stage /tmp/scanner-packages
 
 This stages the contract and all official scanner packages without publishing them.
 Maintainer builds may download scanner build dependencies and runtime packs.
-Use these folders with `groma scanner add` for focused local validation. For a
+Use these folders with `groma plugin add` for focused local validation. For a
 multi-platform release, collect the staged host directories, then assemble them:
 
 ```sh

@@ -5,7 +5,7 @@ model for source names, modules and types. A source checkout needs no Cargo,
 rustc, rust-src, downloaded crates or application build.
 
 ```sh
-groma scanner add @groma/scanner-rust
+groma plugin add @groma/scanner-rust
 groma scan
 ```
 
