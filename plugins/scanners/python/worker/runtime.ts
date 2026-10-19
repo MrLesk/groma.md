@@ -1,5 +1,6 @@
 import { parentPort, workerData } from 'node:worker_threads'
 import { readFile } from 'node:fs/promises'
+import { writeSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { loadPyodide } from 'pyodide'
@@ -8,7 +9,12 @@ import { workerModules } from './modules.ts'
 
 const runtime = fileURLToPath(new URL('../runtime/pyodide.mjs', import.meta.url))
 const { loadPyodide: load }: { loadPyodide: typeof loadPyodide } = await import(runtime)
-const python = await load({ indexURL: path.dirname(runtime) })
+// Worker stdio streams have no fd. Write synchronously before the parent terminates the worker.
+const python = await load({
+  indexURL: path.dirname(runtime),
+  stdout: line => writeSync(2, `${line}\n`),
+  stderr: line => writeSync(2, `${line}\n`),
+})
 /** With references, the worker outlines those files instead of scanning. */
 const { root, files: scanned, references }: { root: string; files?: string[]; references?: SourceReference[] } = workerData
 const files = references?.map(reference => reference.file) ?? scanned!
