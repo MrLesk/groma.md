@@ -1,5 +1,7 @@
 package shop
 
+import org.springframework.web.bind.annotation.RequestMethod.GET as POST
+
 @RestController
 @RequestMapping("/api/orders")
 class OrderController(private val prefix: String) {
@@ -26,6 +28,9 @@ class OrderController(private val prefix: String) {
 
     @RequestMapping("/export", method = [READ])
     fun export() {}
+
+    @RequestMapping("/aliased", method = [POST])
+    fun aliased() {}
 
     fun helper() {}
 }

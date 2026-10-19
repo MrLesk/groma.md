@@ -122,9 +122,14 @@ object Endpoints {
         return text.toString()
     }
 
-    /** The constant's own name however it is qualified: `RequestMethod.GET`, its fully qualified form, or an imported `GET`. */
-    private fun requestMethod(value: KtExpression?): String? =
-        value?.text?.substringAfterLast('.')?.trim()?.takeIf { it in METHODS }
+    /** Read the enum constant, following an explicit import alias instead of mistaking it for an HTTP method. */
+    private fun requestMethod(value: KtExpression?): String? {
+        val expression = value ?: return null
+        val name = expression.text.substringAfterLast('.').trim()
+        val alias = if (expression.text == name) expression.containingKtFile.importDirectives
+            .singleOrNull { it.aliasName == name }?.importedFqName?.shortName()?.asString() else null
+        return (alias ?: name).takeIf { it in METHODS }
+    }
 
     /**
      * Segments of a Spring path pattern. A segment that may span segments or that the fact format cannot state,

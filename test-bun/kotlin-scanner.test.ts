@@ -120,6 +120,8 @@ async function verifyEntriesAndEndpoints(scanner: ScannerPlugin): Promise<void> 
     'POST OrderController.computed /api/orders/**?!',
     '* OrderController.constant /api/orders/**?!',
     '* OrderController.export /api/orders/export/**?!',
+    // The imported constant is GET, even though its local alias is POST.
+    'GET OrderController.aliased /api/orders/aliased',
     // The class-level mapping is declared by an interface in another file.
     'GET InvoiceController.find /api/invoices/:id',
   ])

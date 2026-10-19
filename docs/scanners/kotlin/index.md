@@ -161,20 +161,21 @@ each through its own supertypes. Supertypes are found among the scanned files
 by `Types.kt`; one outside them, or reached only through a wildcard import, is
 taken to declare none.
 
-The parser resolves no names, so annotations are matched by their simple name
-and a route is read only where the source text states it:
+The parser uses selected source and explicit imports without a classpath.
+Annotations are matched by their simple name, and a route is read only where
+the source text states it:
 
 - A path is a string without interpolation, passed positionally or as `value =`
   or `path =`, alone or inside `[...]` or `arrayOf(...)`.
 - A method is a `RequestMethod` constant read by its own name: `RequestMethod.GET`,
-  the fully qualified form, or an imported `GET`.
+  the fully qualified form, an imported `GET`, or an explicit import alias.
 
 Any other path or method is a route the scanner sees but cannot read, and is
 reported as a blocker rather than dropped or guessed. A path keeps its literal
 text up to the unreadable part, such as the interpolation in
 `"/api/$version/orders"`, and ends there with a constrained optional
 catch-all; a path held in a constant is unreadable from its start. A method the
-scanner cannot read, such as a constant imported under another name, reports
+scanner cannot read, such as a computed expression, reports
 method `*` with the same catch-all after its path. An unreadable class-level
 mapping makes every route of the class a blocker. Core reaches a blocker only
 possibly, so it never proves a row by itself and can keep a request under its

@@ -124,7 +124,7 @@
     },
     "plugins/scanners/kotlin": {
       "name": "@groma/scanner-kotlin",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@groma/scanner": "workspace:*",
       },
