@@ -2,13 +2,13 @@ import type { WebDataSource } from '../data.ts'
 import { createSettingsDialog } from '../atoms/settings-dialog.ts'
 import { bindPluginSettings } from './plugins.ts'
 import { bindPopover } from '../atoms/popover.ts'
-import { scannerWarning } from './model.ts'
+import { scannerRecommendationCount, scannerWarning } from './model.ts'
 
 export const settingsControl = (theme: string) => '<button id="scanner-warning" class="chrome-button" type="button" aria-label="Scanning needs attention" title="Scanning needs attention" aria-haspopup="dialog" aria-expanded="false" aria-controls="project-settings" hidden><svg class="control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg></button>'
-  + '<details id="settings-menu"><summary id="settings-toggle" class="chrome-button" aria-label="Settings" title="Settings" aria-controls="settings-options"><svg class="control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="var(--paper)"/><circle cx="15" cy="17" r="3" fill="var(--paper)"/></svg></summary><div id="settings-options" class="anchored-popover"><button id="plugins-settings" class="anchored-option" type="button" aria-haspopup="dialog" aria-controls="project-settings" hidden>Plugins</button>' + theme + '</div></details>'
+  + '<details id="settings-menu"><summary id="settings-toggle" class="chrome-button" aria-label="Settings" title="Settings" aria-controls="settings-options"><svg class="control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="var(--paper)"/><circle cx="15" cy="17" r="3" fill="var(--paper)"/></svg><span class="scanner-recommendations" aria-hidden="true" hidden></span></summary><div id="settings-options" class="anchored-popover"><button id="plugins-settings" class="anchored-option" type="button" aria-haspopup="dialog" aria-controls="project-settings" hidden>Plugins<span class="scanner-recommendations" aria-hidden="true" hidden></span></button>' + theme + '</div></details>'
 
 export const settingsCss = `
-  #plugins-settings[hidden], #scanner-warning[hidden] { display: none; }
+  #plugins-settings[hidden], #scanner-warning[hidden], .scanner-recommendations[hidden] { display: none; }
   #settings-menu { position: relative; --popover-width: 190px; }
   #settings-menu::details-content, #settings-menu #theme::details-content {
     transition: content-visibility 180ms allow-discrete;
@@ -31,11 +31,24 @@ export const settingsCss = `
     #settings-options, #settings-menu .theme-menu { transition: none; }
   }
   #settings-toggle { list-style: none; width: 32px; height: 32px; padding: 0; justify-content: center; }
+  #settings-toggle { position: relative; }
+  .scanner-recommendations { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; box-sizing: border-box; padding: 0 4px; border: 1px solid var(--accent-text); border-radius: 9px; background: var(--paper); color: var(--accent-text); font-size: 10px; font-weight: 600; line-height: 1; }
+  #settings-toggle .scanner-recommendations { position: absolute; top: -5px; right: -6px; }
+  #plugins-settings { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   #settings-toggle::-webkit-details-marker { display: none; }
   #settings-options > .anchored-option { font: inherit; cursor: pointer; }
   #scanner-warning { width: 32px; height: 32px; padding: 0; justify-content: center; color: var(--syntax-number); }
   #project-settings > h2 { margin: 0; font-size: 13px; }
 `
+
+function showRecommendations(control: HTMLElement, name: string, count: number): void {
+  const badge = control.querySelector<HTMLElement>('.scanner-recommendations')!
+  badge.hidden = count === 0
+  badge.textContent = String(count)
+  const label = count ? `${name}, ${count} matching scanner recommendation${count === 1 ? '' : 's'}` : name
+  control.setAttribute('aria-label', label)
+  control.title = label
+}
 
 export function createProjectSettings(data: WebDataSource) {
   const toggle = document.getElementById('settings-toggle')!
@@ -58,6 +71,9 @@ export function createProjectSettings(data: WebDataSource) {
   let target: ReturnType<typeof scannerWarning>
   const popup = createSettingsDialog('project-settings', 'Settings', '<h2 id="plugins-title">Plugins</h2><section id="scanner-settings" aria-labelledby="plugins-title"></section>')
   const settings = bindPluginSettings(data, popup.dialog.querySelector<HTMLElement>('#scanner-settings')!, state => {
+    const count = scannerRecommendationCount(state)
+    showRecommendations(toggle, 'Settings', count)
+    showRecommendations(plugins, 'Plugins', count)
     target = scannerWarning(state)
     warning.hidden = !target
     const label = target?.scannerId ? `${target.scannerId} needs attention` : 'Scanning needs attention'
