@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-19T15:01:00Z'
-updated_date: '2026-10-19T15:13:00Z'
+updated_date: '2026-10-19T15:17:00Z'
 labels: []
 dependencies: []
 references:
@@ -16,6 +16,7 @@ modified_files:
   - test-bun/python-scanner.test.ts
   - plugins/scanners/python/worker/runtime.ts
   - plugins/scanners/python/package.json
+  - bun.lock
 type: bug
 ordinal: 688000
 ---
