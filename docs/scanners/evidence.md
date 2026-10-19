@@ -79,6 +79,7 @@ The official producers currently recognize these source forms:
 | Go | `main` in package `main` | That package and the module packages it imports, directly or indirectly |
 | Rust | Cargo binary targets | That binary crate's modules; no library or dependency crates |
 | Java | `public static void main(String[])`, including varargs | That project's compiler source set |
+| Kotlin | Top-level `fun main` | The selected `.kt` files under the nearest directory with a Maven or Gradle build declaration |
 | Python | Module execution guard, `__main__.py`, or `project.scripts` | Resolved local imports within the declared project |
 | JavaScript, TypeScript, React, Vue, Angular | Source-backed package commands/bins, HTML script entries, Angular CLI and Nx build targets, and readable Bun browser/compiled build entries | Resolved local modules within the declared package; the polyfills and environment replacements a build target names; framework companion files join their source unit |
 | PHP | Source-backed Composer bins and literal PHP script commands | Explicitly included local sources within that Composer package |
@@ -89,7 +90,7 @@ The official producers currently recognize these source forms:
 
 These are declared extraction limits, not separate C4 policies. Dynamic build
 configuration, unresolved launch commands and unobserved members remain unknown.
-All twelve official scanners emit the same evidence contract, with no C4 kinds,
+All thirteen official scanners emit the same evidence contract, with no C4 kinds,
 container IDs, architecture parents or ownership choices.
 
 In OKF, the result remains ordinary typed Markdown concepts and links; the facts
