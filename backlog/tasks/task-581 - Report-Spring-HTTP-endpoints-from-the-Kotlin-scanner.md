@@ -1,11 +1,11 @@
 ---
 id: TASK-581
 title: Report Kotlin backend entries and Spring HTTP endpoints
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-13 08:33'
-updated_date: '2026-10-19T15:20:00Z'
+updated_date: '2026-10-19T15:55:00Z'
 labels: []
 dependencies: []
 references:
@@ -130,6 +130,8 @@ Quality review reproduced an imported HTTP method alias returning the wrong meth
 Cold simplicity review passed with no blocking findings or required simplifications. The reviewer traced index.ts -> Scan.kt -> Entries.kt/Endpoints.kt/Types.kt -> existing core placement and HTTP relationship inference and found clear responsibility boundaries, no unnecessary abstraction or new architecture concept. Implementer specification review verified all12 acceptance criteria using packaged fixtures, the three pinned Spring projects and the CLI-created mixed TypeScript/Kotlin example: one Kotlin application container owns Application and OrderController and the frontend stores Calls HTTP endpoint: GET /api/orders/:id. Quality review fixed the concrete imported-method alias error; the regression showed POST before and GET after the fix. Full bun run check passes after the fix: Node suite,900 Bun tests,62 optional skips,0 failures. Changed source/test files stay below500 lines and git diff --check passes. No groma/ files changed; the configured repository scanners do not select Kotlin worker source. The full-context complexity review is the remaining local review gate; Windows/Linux/macOS CI will validate the pushed head.
 
 Final full-context complexity review passed with no blocking findings or material architecture recommendations. The reviewer confirmed clear ownership from selected files through Kotlin evidence to core containers and relationships, and no unnecessary architecture concepts. The version-only bun.lock update passes a frozen install. All local gates are complete; final pushed-head CI is the remaining delivery gate.
+
+Alex approved merging PR136 and PR172 and publishing0.7.1 after the platform checks pass. All12 acceptance criteria and4 Definition of Done items have verified local evidence. The combined Kotlin/Python candidate also passes the complete repository check:901 Bun tests,62 optional skips,0 failures, plus the Node suite. PR136 Linux and macOS CI have passed; Windows CI remains a merge gate on the PR. This completion record changes task metadata only; it does not alter scanner code.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
