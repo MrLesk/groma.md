@@ -83,6 +83,12 @@ supported runner platforms, and commits the released version to `main` only afte
 `groma.md` manifest is public; the workflow stages its Node wrapper around the compiled binaries so
 the workspace-only development dependencies are not part of the published package.
 
+`scripts/npm/cli.cjs` selects the platform executable and preserves its command lifetime. The native CLI owns server,
+watcher, and terminal cleanup. On Unix, the launcher forwards `SIGTERM`, `SIGHUP`, and `SIGQUIT` addressed to its PID,
+waits for native exit, and reports its exit code or `128 + signal number`. Ctrl+C already reaches both foreground
+processes, so the launcher waits without sending a second `SIGINT`; a `SIGINT` addressed only to the launcher is not
+forwarded. Windows keeps its existing process behavior. The release workflow copies this launcher into the npm package.
+
 After every successful groma.md release, update the `groma-version` default in
 [`groma.md-action/action.yml`](https://github.com/MrLesk/groma.md-action/blob/main/action.yml) and follow the
 [Action release checklist](https://github.com/MrLesk/groma.md-action/blob/main/CONTRIBUTING.md#releases). This final release step verifies the new
