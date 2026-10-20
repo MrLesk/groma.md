@@ -10,6 +10,7 @@ import packageJson from '../package.json' with { type: 'json' }
 import { agentGuideNames, firstScanAgentNote, readAgentGuide } from './agent-instructions.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { annotateArchitecture } from './core.ts'
+import { stopOnSignal } from './cli-lifecycle.ts'
 import { awaitsCuration, firstScanHint, firstScanTitle } from './empty-world.ts'
 import { ensureInitialized, runInitCommand } from './init-command.ts'
 import { humanInstructionGuide } from './instructions.ts'
@@ -27,17 +28,6 @@ const program = new Command()
 
 function interactiveTerminal(): boolean {
   return process.stdin.isTTY === true && process.stdout.isTTY === true
-}
-
-/** Ends a long-running command on Ctrl-C or SIGTERM once it has released what it holds. */
-function stopOnSignal(close: () => Promise<void>): void {
-  const stop = () => {
-    process.off('SIGINT', stop)
-    process.off('SIGTERM', stop)
-    void close().then(() => process.exit())
-  }
-  process.once('SIGINT', stop)
-  process.once('SIGTERM', stop)
 }
 
 async function startWebOnNextPort(port: number, scan: boolean, onListening: (url: string) => void) {

@@ -3,6 +3,7 @@
 
 const { execFileSync, spawn } = require('node:child_process')
 const fs = require('node:fs')
+const os = require('node:os')
 const path = require('node:path')
 
 const packages = {
@@ -53,6 +54,21 @@ function resolveBinaryPath(packageName, binaryName, resolver = require.resolve) 
   return binary
 }
 
+/** The native process owns cleanup; the launcher stays until its exit is reported. */
+function relayTerminationSignals(child, platform) {
+  if (platform === 'win32') return () => {}
+  const signals = ['SIGTERM', 'SIGHUP', 'SIGQUIT']
+  const forward = signal => child.kill(signal)
+  // The terminal already sends Ctrl+C to both foreground processes. Do not send it twice.
+  const waitForInterrupt = () => {}
+  process.on('SIGINT', waitForInterrupt)
+  for (const signal of signals) process.on(signal, forward)
+  return () => {
+    process.off('SIGINT', waitForInterrupt)
+    for (const signal of signals) process.off(signal, forward)
+  }
+}
+
 function runWrapper({
   platform = process.platform,
   arch = process.arch,
@@ -78,12 +94,15 @@ function runWrapper({
   }
 
   const child = spawnBinary(binary, argv, { stdio: 'inherit' })
+  const releaseSignals = relayTerminationSignals(child, platform)
   child.once('error', error => {
+    releaseSignals()
     writeError(error instanceof Error ? error.message : String(error))
     process.exitCode = 1
   })
   child.once('exit', (code, signal) => {
-    process.exitCode = code ?? (signal === null ? 1 : 1)
+    releaseSignals()
+    process.exitCode = code ?? (platform !== 'win32' && signal !== null ? 128 + os.constants.signals[signal] : 1)
   })
   return { spawned: true, child }
 }
