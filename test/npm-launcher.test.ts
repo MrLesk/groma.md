@@ -26,7 +26,7 @@ async function startLauncher(t: TestContext, mode = 'handled', exitCode = 23) {
   const driver = `
     const { spawn } = require('node:child_process')
     require('./cli.cjs').runWrapper({
-      spawnBinary: (_binary, _args, options) => spawn(process.execPath,
+      spawnBinary: (_binary, _args, options) => spawn(${JSON.stringify(mode === 'groma' ? 'bun' : process.execPath)},
         [${JSON.stringify(worker)}, ${JSON.stringify(mode)}, ${JSON.stringify(resultFile)}, ${JSON.stringify(String(exitCode))}], options),
     })
   `
@@ -65,9 +65,9 @@ async function startLauncher(t: TestContext, mode = 'handled', exitCode = 23) {
       assert.equal(typeof nativePid, 'number')
       return nativePid!
     },
-    async closedWith(signal: string) {
+    async closedWith(signal?: string) {
       assert.deepEqual(await exited, { code: exitCode, signal: null })
-      assert.deepEqual(JSON.parse(await readFile(resultFile, 'utf8')), { signal, received: 1 })
+      assert.deepEqual(JSON.parse(await readFile(resultFile, 'utf8')), signal === undefined ? { received: 1 } : { signal, received: 1 })
     },
   }
 }
@@ -99,3 +99,12 @@ test('npm launcher preserves normal native exit codes on every platform', { conc
   const run = await startLauncher(t, 'exit', 7)
   assert.deepEqual(await run.exited, { code: 7, signal: null })
 })
+
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+  test(`native CLI finishes cleanup after process-group ${signal}`, { concurrency: true, skip: !unix, timeout: 5000 }, async t => {
+    const run = await startLauncher(t, 'groma')
+    await run.ready()
+    process.kill(-run.launcher.pid!, signal)
+    await run.closedWith()
+  })
+}

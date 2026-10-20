@@ -87,7 +87,9 @@ the workspace-only development dependencies are not part of the published packag
 watcher, and terminal cleanup. On Unix, the launcher forwards `SIGTERM`, `SIGHUP`, and `SIGQUIT` addressed to its PID,
 waits for native exit, and reports its exit code or `128 + signal number`. Ctrl+C already reaches both foreground
 processes, so the launcher waits without sending a second `SIGINT`; a `SIGINT` addressed only to the launcher is not
-forwarded. Windows keeps its existing process behavior. The release workflow copies this launcher into the npm package.
+forwarded. Native web and scan-watch shutdown share `src/cli-lifecycle.ts`: cleanup starts once, and repeated
+`SIGTERM` waits for it to finish. A second Ctrl+C can still interrupt cleanup. Windows keeps its existing launcher
+behavior. The release workflow copies this launcher into the npm package.
 
 After every successful groma.md release, update the `groma-version` default in
 [`groma.md-action/action.yml`](https://github.com/MrLesk/groma.md-action/blob/main/action.yml) and follow the
