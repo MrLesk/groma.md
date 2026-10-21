@@ -6,7 +6,7 @@ import path from 'node:path'
 import { exactVersion, stringArray } from '../../config.ts'
 import { installDependencies } from './package-manager.ts'
 import { isNpmPackageName } from './package-name.ts'
-import { runtimeCertificates, withCertificateTrust } from '../../certificate-trust.ts'
+import { withGitCertificateTrust } from './git-trust.ts'
 
 export interface NpmScannerSource {
   kind: 'npm'
@@ -221,15 +221,7 @@ async function runGit(directory: string, args: string[], environment = process.e
 
 async function git(directory: string, ...args: string[]): Promise<string> {
   if (args[0] !== 'fetch') return runGit(directory, args)
-  // Git has its own CA configuration; preserve the selected bundle and remove compromised keys.
-  const configured = Bun.spawnSync(['git', 'config', '--path', '--get-urlmatch', 'http.sslCAInfo', args[2]!], {
-    cwd: directory, stdout: 'pipe', stderr: 'pipe',
-  })
-  if (configured.exitCode > 1) throw new Error(configured.stderr.toString().trim())
-  const file = process.env.GIT_SSL_CAINFO ?? (configured.stdout.toString().trim() || undefined)
-  const certificates = file ? [await readFile(path.resolve(directory, file), 'utf8')] : runtimeCertificates()
-  return withCertificateTrust(certificates, async (_cafile, environment) =>
-    runGit(directory, ['-c', `http.${args[2]}.sslVerify=true`, '-c', `http.${args[2]}.schannelUseSSLCAInfo=true`, ...args], { ...process.env, ...environment }))
+  return withGitCertificateTrust(directory, environment => runGit(directory, args, { ...process.env, ...environment }), args[2]!)
 }
 
 async function installGitScanner(

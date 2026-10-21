@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import compromised from '../test/fixtures/certificate-trust/compromised-cas.json'
-import { trustedCertificates, withCertificateTrust } from '../src/certificate-trust.ts'
+import { hasDistrustedCertificateKey, trustedCertificates, withCertificateTrust } from '../src/certificate-trust.ts'
 import { packageManagerCertificates } from '../src/scanner/modules/package-trust.ts'
 
 const fixtures = path.resolve(import.meta.dir, '../test/fixtures/certificate-trust')
@@ -20,15 +20,31 @@ async function directories() {
 
 test.concurrent('compromised keys and their cross-signed copies cannot become trust anchors', () => {
   for (const certificate of compromised.certificates) {
+    expect(hasDistrustedCertificateKey(certificate.pem), certificate.name).toBe(true)
     expect(trustedCertificates([certificate.pem]), certificate.name).toEqual([])
     expect(trustedCertificates([certificate.pem, clean, clean]), certificate.name).toEqual([clean])
   }
+  expect(hasDistrustedCertificateKey(clean)).toBe(false)
+  expect(() => hasDistrustedCertificateKey('not a certificate')).toThrow()
+  expect(() => hasDistrustedCertificateKey(clean.slice(0, -30))).toThrow()
   expect(() => trustedCertificates(['not a certificate'])).toThrow('no PEM certificates')
 })
 
 test.concurrent('unsupported platform CA keys are omitted and an unusable store fails closed', async () => {
   const unsupported = (await readFile(path.join(fixtures, 'unsupported-key-ca.pem'), 'utf8')).trim()
   expect(() => new X509Certificate(unsupported).publicKey).toThrow('PUBLIC_KEY_DECODE_ERROR')
+  expect(hasDistrustedCertificateKey(unsupported)).toBe(false)
+  expect(trustedCertificates([unsupported], 'native')).toEqual([unsupported])
+  await withCertificateTrust([unsupported], async cafile => {
+    expect((await readFile(cafile, 'utf8')).trim()).toBe(unsupported)
+  }, 'native')
+  const malformed = Buffer.from(new X509Certificate(unsupported).raw)
+  const marker = Buffer.from('3043300506032b6571033a00', 'hex') // Ed448 SubjectPublicKeyInfo / zero unused bits.
+  const key = malformed.indexOf(marker)
+  expect(key).toBeGreaterThan(0)
+  malformed[key + marker.length - 1] = 1
+  const malformedPem = `-----BEGIN CERTIFICATE-----\n${malformed.toString('base64')}\n-----END CERTIFICATE-----`
+  expect(() => hasDistrustedCertificateKey(malformedPem)).toThrow()
   expect(trustedCertificates([unsupported, clean])).toEqual([clean])
   let invoked = false
   await expect(withCertificateTrust([unsupported], async () => { invoked = true })).rejects.toThrow('No trusted certificate authorities remain')
@@ -90,9 +106,9 @@ test.concurrent('metadata lookup and tarball installation use verified HTTPS wit
   const source = `import { readPublishedRelease, installDependencies } from ${JSON.stringify(module)};
     await readPublishedRelease(${JSON.stringify(manifest.name)}, {registry: process.argv[1]});
     await installDependencies(process.cwd(), 'certificate fixture', process.argv[1]);`
-  const run = async () => {
+  const run = async (environment: NodeJS.ProcessEnv = {}) => {
     const child = Bun.spawn([process.execPath, '-e', source, server.url.href], { cwd: f.project,
-      env: { ...process.env, ...f.environment, XDG_CONFIG_HOME: f.home, NPM_CONFIG_USERCONFIG: path.join(f.home, '.npmrc'),
+      env: { ...process.env, ...f.environment, ...environment, XDG_CONFIG_HOME: f.home, NPM_CONFIG_USERCONFIG: path.join(f.home, '.npmrc'),
         NODE_EXTRA_CA_CERTS: '', NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' },
       stdout: 'pipe', stderr: 'pipe' })
     const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
@@ -108,6 +124,8 @@ test.concurrent('metadata lookup and tarball installation use verified HTTPS wit
     await writeFile(path.join(f.home, '.npmrc'), `cafile=${path.join(f.home, 'registry.pem').replaceAll('\\', '/')}\n`)
     const trusted = await run()
     expect(trusted.exit, trusted.error).toBe(0)
+    const withoutGit = await run({ PATH: '' })
+    expect(withoutGit.exit, withoutGit.error).toBe(0)
     expect(requests).toContain('/fixture.tgz')
     expect(JSON.parse(await readFile(path.join(f.project, 'node_modules', manifest.name, 'package.json'), 'utf8')).version).toBe(manifest.version)
   } finally { server.stop(true); await f.close() }
@@ -120,26 +138,32 @@ test.concurrent('Git scanner HTTPS rejects incident chains and retains the confi
     await installScannerPackage(parseScannerSource(process.cwd(), process.argv[1]), process.cwd() + '/cache');`
   try {
     const cafile = path.join(f.home, 'git.pem')
-    await writeFile(cafile, [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n'))
+    await writeFile(cafile, [clean, await readFile(path.join(fixtures, 'native-ed448-ca.pem'), 'utf8'), ...compromised.certificates.map(certificate => certificate.pem)].join('\n'))
     // These local fixture certificates have no CRL endpoint; keep CA verification, but omit that fixture-only lookup.
     // Git applies this Schannel setting only when its backend is explicit; the fixture excludes system config.
     const gitConfig = path.join(f.home, 'git-config')
-    await writeFile(gitConfig, `[http]\n  schannelCheckRevoke = false\n${process.platform === 'win32' ? '  sslBackend = schannel\n' : ''}`)
-    for (const certificate of ['incident-server-emudhra.pem', 'incident-server-aaa.pem', 'registry-server.pem']) {
+    const baseConfig = `[http]\n  schannelCheckRevoke = false\n${process.platform === 'win32' ? '  sslBackend = schannel\n' : ''}`
+    // Ed448 HTTPS is proven with Linux Git/OpenSSL; other native backends may not support that algorithm.
+    const certificates = ['incident-server-emudhra.pem', 'incident-server-aaa.pem', 'registry-server.pem',
+      ...(process.platform === 'linux' ? ['native-ed448-server.pem'] : [])]
+    for (const certificate of certificates) {
       let requests = 0
       const server = Bun.serve({ hostname: 'localhost', port: 0,
         tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, certificate)) },
         fetch() { requests++; return new Response('No repository', { status: 404 }) },
       })
       try {
-        const child = Bun.spawn([process.execPath, '-e', source, `git+${server.url.href}repository#fixture`], {
-          cwd: f.project, env: { ...process.env, ...f.environment, GIT_SSL_CAINFO: cafile,
+        const repository = `${server.url.href}repository`
+        await writeFile(gitConfig, `${baseConfig}[http "${repository}"]\n  sslVerify = false\n  schannelUseSSLCAInfo = false\n[http "https://irrelevant.invalid/"]\n  sslCAInfo = /missing/irrelevant-ca.pem\n`)
+        const child = Bun.spawn([process.execPath, '-e', source, `git+${repository}#fixture`], {
+          cwd: f.project, env: { ...process.env, ...f.environment, GIT_SSL_CAINFO: process.platform === 'win32' ? undefined : cafile,
+            git_ssl_cainfo: process.platform === 'win32' ? cafile : undefined, git_ssl_no_verify: process.platform === 'win32' ? '1' : undefined,
             GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' },
           stdout: 'pipe', stderr: 'pipe',
         })
         const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
         expect(exit).not.toBe(0)
-        if (certificate === 'registry-server.pem') {
+        if (certificate === 'registry-server.pem' || certificate === 'native-ed448-server.pem') {
           expect(requests, error).toBeGreaterThan(0)
           expect(error).toContain('not found')
         } else {
@@ -150,6 +174,113 @@ test.concurrent('Git scanner HTTPS rejects incident chains and retains the confi
     }
   } finally { await f.close() }
 })
+
+test.concurrent('package-manager Git dependencies reject URL-scoped TLS opt-outs and preserve private CA authentication', async () => {
+  const f = await directories()
+  try {
+    const cafile = path.join(f.home, 'git-ca.pem'), config = path.join(f.home, 'git-config')
+    await writeFile(cafile, [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n'))
+    const module = pathToFileURL(path.resolve(import.meta.dir, '../src/scanner/modules/package-manager.ts')).href
+    const source = `import { installDependencies } from ${JSON.stringify(module)}; await installDependencies(process.cwd(), 'Git fixture');`
+    for (const certificate of ['incident-server-emudhra.pem', 'incident-server-aaa.pem', 'registry-server.pem']) {
+      let requests = 0, authenticated = 0
+      const server = Bun.serve({ hostname: 'localhost', port: 0,
+        tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, certificate)) },
+        fetch(request) {
+          requests++
+          if (request.headers.get('authorization') === 'Bearer private-git-fixture') authenticated++
+          return new Response('No repository', { status: 404 })
+        },
+      })
+      try {
+        const repository = new URL('repository.git', server.url)
+        repository.username = 'private-fixture'
+        await writeFile(path.join(f.project, 'package.json'), JSON.stringify({ dependencies: { 'git-fixture': `git+${repository.href}` } }))
+        await writeFile(config, `[http]\n  sslCAInfo = ${cafile.replaceAll('\\', '/')}\n  schannelCheckRevoke = false\n${process.platform === 'win32' ? '  sslBackend = schannel\n' : ''}[http "${repository.href}"]\n  sslVerify = false\n  schannelUseSSLCAInfo = false\n`)
+        const child = Bun.spawn([process.execPath, '-e', source], { cwd: f.project,
+          env: { ...process.env, ...f.environment, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: config,
+            GIT_CONFIG_COUNT: process.platform === 'win32' ? undefined : '1', git_config_count: process.platform === 'win32' ? '1' : undefined,
+            ...(process.platform === 'win32' ? { git_ssl_cainfo: cafile, git_ssl_no_verify: '1' } : {}),
+            GIT_CONFIG_KEY_0: 'http.extraHeader', GIT_CONFIG_VALUE_0: 'Authorization: Bearer private-git-fixture',
+            BUN_INSTALL_CACHE_DIR: path.join(f.home, 'cache'), NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' },
+          stdout: 'pipe', stderr: 'pipe',
+        })
+        const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
+        expect(exit).not.toBe(0)
+        if (certificate === 'registry-server.pem') {
+          expect(requests, error).toBeGreaterThan(0)
+          expect(authenticated).toBe(requests)
+          expect(error).toMatch(/RepositoryNotFound|not found/)
+        } else {
+          expect(requests, error).toBe(0)
+          expect(error).toMatch(/certificate|issuer/i)
+        }
+      } finally { server.stop(true) }
+    }
+  } finally { await f.close() }
+}, 30000)
+
+async function privateGitCase(
+  f: Awaited<ReturnType<typeof directories>>, repository: string,
+  { mode, install, cafile, caDirectory }: { mode: string; install: boolean; cafile: string; caDirectory: string },
+) {
+  const config = path.join(f.home, 'git-only-config')
+  const isPath = mode.endsWith('path'), selected = isPath ? caDirectory : cafile
+  const scope = mode.startsWith('url') ? ` "${repository}"` : ''
+  const backend = process.platform === 'win32' ? '  sslBackend = schannel\n' : ''
+  let authority = mode.startsWith('env') ? '' : `[http${scope}]\n  ${isPath ? 'sslCAPath' : 'sslCAInfo'} = ${selected.replaceAll('\\', '/')}\n`
+  if (mode === 'empty-file') authority = `[http]\n  sslCAInfo =\n  sslCAPath = ${caDirectory.replaceAll('\\', '/')}\n`
+  await writeFile(config, `[http]\n  schannelCheckRevoke = false\n  schannelUseSSLCAInfo = true\n${backend}${authority}`)
+  const module = pathToFileURL(path.resolve(import.meta.dir, '../src/scanner/modules/package-manager.ts')).href
+  const direct = pathToFileURL(path.resolve(import.meta.dir, '../src/scanner/modules/package.ts')).href
+  const source = install
+    ? `import { installDependencies } from ${JSON.stringify(module)}; await installDependencies(process.cwd(), 'Git fixture');`
+    : `import { parseScannerSource, installScannerPackage } from ${JSON.stringify(direct)}; await installScannerPackage(parseScannerSource(process.cwd(), ${JSON.stringify(`git+${repository}#fixture`)}), process.cwd() + '/cache');`
+  const child = Bun.spawn([process.execPath, '-e', source], { cwd: f.project,
+    env: { ...process.env, ...f.environment, GIT_CONFIG_GLOBAL: config, GIT_CONFIG_NOSYSTEM: '1',
+      GIT_SSL_CAINFO: mode === 'env-file' ? cafile : undefined, GIT_SSL_CAPATH: mode === 'env-path' ? caDirectory : undefined,
+      NODE_EXTRA_CA_CERTS: '', BUN_INSTALL_CACHE_DIR: path.join(f.home, 'cache'),
+      NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' }, stdout: 'pipe', stderr: 'pipe',
+  })
+  const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
+  return { exit, error }
+}
+
+test.concurrent('direct and package-manager Git preserve Git-only CA file and hashed-directory selection', async () => {
+  const f = await directories()
+  const cafile = path.join(f.home, 'git-only.pem'), caDirectory = path.join(f.home, 'hashed')
+  await mkdir(caDirectory)
+  await writeFile(cafile, clean)
+  // OpenSSL subject hash for the committed private registry CA; unhashed files and CRLs are not authorities.
+  await writeFile(path.join(caDirectory, '81ee7702.0'), compromised.certificates[3]!.pem)
+  await writeFile(path.join(caDirectory, '81ee7702.1'), clean)
+  await writeFile(path.join(caDirectory, 'unrelated.txt'), 'not a certificate')
+  await writeFile(path.join(caDirectory, '81ee7702.r0'), 'not a certificate')
+  const server = Bun.serve({ hostname: 'localhost', port: 0,
+    tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, 'registry-server.pem')) },
+    fetch() { requests++; return new Response('No repository', { status: 404 }) },
+  })
+  let requests = 0
+  try {
+    const repository = new URL('repository.git', server.url).href
+    await writeFile(path.join(f.project, 'package.json'), JSON.stringify({ dependencies: { 'git-fixture': `git+${repository}` } }))
+    const modes = ['global-file', 'url-file', 'env-file', ...(process.platform === 'linux' ? ['global-path', 'url-path', 'env-path'] : [])]
+    for (const mode of modes) for (const install of [false, true]) {
+      const before = requests
+      const { exit, error } = await privateGitCase(f, repository, { mode, install, cafile, caDirectory })
+      expect(exit).not.toBe(0)
+      expect(requests - before, `${mode} / package-manager=${install}: ${error}`).toBeGreaterThan(0)
+      expect(error).toMatch(/RepositoryNotFound|not found/)
+    }
+    for (const install of [false, true]) {
+      const before = requests
+      const { exit, error } = await privateGitCase(f, repository, { mode: 'empty-file', install, cafile, caDirectory })
+      expect(exit).not.toBe(0)
+      expect(requests).toBe(before)
+      expect(error).toContain('configured Git CA file is empty')
+    }
+  } finally { server.stop(true); await f.close() }
+}, 60000)
 
 test.concurrent('npm global installation keeps npm CA configuration instead of project Bun trust', async () => {
   const f = await directories()

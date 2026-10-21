@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process'
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { promisify } from 'node:util'
-import { trustedCertificates } from '../../src/certificate-trust.ts'
+import { hasDistrustedCertificateKey } from '../../src/certificate-trust.ts'
 
 const execute = promisify(execFile)
 
@@ -22,7 +22,7 @@ export async function secureJavaTrustStore(store: string): Promise<void> {
     throw new Error(`Could not inspect the Java trust store: ${store}`)
   }
   for (const entry of entries) {
-    if (trustedCertificates([entry[2]!]).length === 0) {
+    if (hasDistrustedCertificateKey(entry[2]!)) {
       await execute(keytool, ['-delete', '-alias', entry[1]!, ...options])
     }
   }

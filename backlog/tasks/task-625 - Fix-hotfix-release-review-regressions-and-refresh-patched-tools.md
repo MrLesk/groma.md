@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T14:16:00Z'
-updated_date: '2026-10-21T14:30:00Z'
+updated_date: '2026-10-21T15:11:00Z'
 labels: []
 dependencies: []
 references:
@@ -29,6 +29,15 @@ modified_files:
   - scripts/scanner-release.ts
   - plugins/scanners/go/src/adapter.ts
   - test-bun/go-scanner.test.ts
+  - src/certificate-trust.ts
+  - test-bun/certificate-trust.test.ts
+  - src/scanner/modules/package.ts
+  - src/scanner/modules/package-manager.ts
+  - test/fixtures/certificate-trust/native-ed448-ca.pem
+  - test/fixtures/certificate-trust/native-ed448-server.pem
+  - src/scanner/modules/git-trust.ts
+  - test/fixtures/certificate-trust/incident-server-emudhra.pem
+  - test/fixtures/certificate-trust/incident-server-aaa.pem
 priority: high
 type: bug
 ordinal: 695000
@@ -46,6 +55,8 @@ The post-merge security review reproduced unintended mutation of a symlinked mai
 - [ ] #2 Verified current patched build tools and dependency versions are used before their network operations
 - [ ] #3 The supported scanner release path passes with bounded runtime operations and actionable build failure diagnostics
 - [ ] #4 Fresh source review and relevant hosted checks pass before the coordinated GitHub Release
+- [ ] #5 Java preserves valid Ed448 private authorities; native Git preserves authorities supported by its TLS backend, all incident keys remain excluded and Bun's unusable-store behavior stays fail closed.
+- [ ] #6 Package-manager Git dependencies cannot disable certificate verification through effective URL-scoped settings, while private CA and inherited authentication remain functional.
 <!-- AC:END -->
 
 ## Definition of Done
@@ -59,13 +70,12 @@ The post-merge security review reproduced unintended mutation of a symlinked mai
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Review the merged security update against b8b325fd and retain the exact native/source evidence for confirmed findings.
-2. Copy symlinked Java cacerts by value. Use a real temporary keystore to prove the original bytes stay unchanged, the copy is independent, the blocked authority is removed and the private authority remains.
-3. Bootstrap checksum-verified Rustup 1.29.2 with patched Node before toolchain downloads. Upgrade the verified Biome 2.6.2 native binary and both Comark packages to 0.8.1; validate the supported parsing/rendering behavior.
-4. Preserve Go exec errors as causes and stage its existing package build before the concurrent compiler group. Keep the 120-second runtime bound and add no retry.
-5. Run focused tests, the mandatory repository check and hosted native/package gates. Review the single follow-up PR before coordinating v0.7.4 through GitHub Releases.
-
-Regression coverage: the old JVM test copied the installed JDK store and did not detect source symlink mutation; the new child-isolated test uses actual copy and keytool operations against a private temporary source. The Go failure test proves stderr remains readable while exit code, signal and killed fields remain available for diagnosis.
+1. Preserve the merged hotfix and correct only reproduced audit findings, keeping the root version under the GitHub Release workflow.
+2. Copy Java cacerts symlinks by value and preserve Java-supported private keys with the shared native SPKI/incident-key filter. Real temporary keytool stores prove original bytes unchanged and incident aliases removed.
+3. Bootstrap verified Rustup 1.29.2 before network toolchain setup; use verified Biome 2.6.2 and Comark/@comark/html 0.8.1. Preserve Go exec error causes and stage the existing Go package build before the concurrent compiler group, retaining the 120-second runtime bound.
+4. Preserve native Git-only CAfile/hashed CApath policies and inherited authentication through one scoped helper for direct fetches and embedded-PM Git installs. Enforce effective URL-scoped TLS settings, preserve explicit environment precedence/empty-file failure and contiguous retained CApath hash lookup, and keep Bun trust semantics distinct.
+5. Retain native Ed448 coverage, malformed-input failure and all incident-key exclusions. Complete the peer-served incident fixture chains without changing client trust, request bounds or zero-HTTP assertions.
+6. Run focused real TLS/JVM regressions and the mandatory repository check. Require exact-head hosted checks, native package qualification and fresh Codex reviews before root coordinates v0.7.4 through GitHub Releases.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -88,4 +98,24 @@ Mandatory bun run check was attempted after the full source change: lint and typ
 JDK 27 GA source 815ff4dc327fe17f2433c7d115a5a503af10f3c4 DefaultImageBuilder.java lines 403-452 confirms jlink writes normal resources through InputStream/Files.copy and only permits symbolic links for legal notices. The two packaged cacerts paths use jlink; prepareJavaTrustStore was the only source-copy path.
 
 No executable bunx/bun x path exists in Groma sources or CI. Four validation documents now invoke the installed local Biome binary. The two late config review findings remain disproved by 16 actual native Bun 1.4.3 pm view/install controls and immutable upstream source; no package configuration semantics changed. Release 63 was not retried and no package publication was attempted. Hosted qualification and final PR/Codex review are pending.
+
+Additional targeted JVM regression reproduced after the draft was opened: secureJavaTrustStore deletes the committed valid Ed448 CA because trustedCertificates intentionally omits algorithms unavailable to Bun. Real Java17 CertificateFactory/self-signature verification succeeds (EdDSA/Ed448), and a private real-keytool store imports the CA successfully but loses it after filtering. A blocked-only predicate for the JVM is proposed; Bun TLS omission/fail-closed policy must stay unchanged. Root notified; production source remains frozen pending that decision.
+
+Root approved and implementation now includes the demonstrated Java/native Git Ed448 and embedded-PM Git fixes. One canonical 12-key denylist and key extractor serve both modes. Native mode uses a bounded DER SubjectPublicKeyInfo fallback only for Bun's specific unsupported-public-key decode error; malformed certificates/SPKI throw. Bun mode retains its existing unsupported-key omission and empty-store fail-closed behavior.
+
+The real JVM regression failed before the fix because the valid Ed448 alias disappeared; it passes after the blocked-key-only filter. Java independently verified the fixture's EdDSA/Ed448 self-signature. Direct native Git retains the Ed448 private CA on Linux; other backends keep the existing private-RSA/incident checks because their Ed448 algorithm support is not assumed.
+
+Actual Groma installDependencies mutation proof: a username-scoped Git sslVerify=false previously allowed one authenticated HTTP request through a compromised chain while the control made zero. The install-only key-name query now adds strict indexed child overrides for the exact effective TLS keys; both incident paths make zero HTTP requests, the private-CA/authentication positive reaches the fixture with its original Bearer header, and normal private-registry tarball installation succeeds when Git is absent. No Git configuration file or parent environment is mutated and key contents are not passed as command arguments.
+
+Focused final tests: 14 trust/JVM tests passed with 204 assertions; changed-file lint and typecheck passed. First-head CI Linux reached an inconclusive 15-second native TLS handshake stall without an authenticated request or a proved certificate rejection; Windows/macOS passed that same native probe. Source, TLS assertions and request bounds were not relaxed. The new source head will repeat the exact hosted gate; no old-head retry or release publication was attempted.
+
+Final native Git compatibility controls reproduced two additional regressions from the original override: raw Bun using Git-only global or URL CAfile reached the private fixture while Groma did not; raw Git using environment or URL hashed CApath reached the fixture while Groma did not. One shared native Git helper now preserves CAfile/CApath mappings independently, in original configuration order, with explicit environment precedence. Direct fetches resolve only their actual URL, so an irrelevant unreadable CAfile does not break them. PM installations retain scoped mappings for unknown nested Git dependency URLs.
+
+CApath filtering preserves the original contiguous hash chains, removes blocked certificates and renumbers retained entries without gaps. The actual private-CA regression has blocked hash.0 and retained hash.1, plus ignored non-certificate/CRL files. Explicit empty CAfile is distinguished from absence and fails closed: raw Git made zero requests with an empty CAfile plus valid private CApath, while the earlier helper incorrectly reached the server. Both direct/PM regressions now assert zero requests for that case.
+
+Final focused suite passed 15 trust/JVM tests and 246 assertions. Changed-file lint and typecheck pass; new functions remain below complexity 15. Windows cases explicitly exercise inherited mixed-case Git bypass, CAfile and count spellings while retaining the original authentication index. The helper clears only inherited spellings for keys it overrides.
+
+The served incident fixture chains now append their already committed public self-signed ECC/AAA roots. This changes peer-supplied chains only: client trust, zero-HTTP rejection assertions and request bounds are unchanged. Unpatched Bun 1.4.3 with the explicit incident roots still accepts each complete chain (HTTP 200 and one request), preserving the unsafe baseline control. Prior Linux and independent Windows handshake stalls are consistent with issuer discovery; that attribution remains an inference. Final hosted gates must prove rejection on this source head.
+
+Final Windows regression uses lower-case-only inherited Git CAfile/count/bypass inputs, preserving the original indexed authentication header. Windows-only reads honor native case-insensitive names; final child overrides clear only equivalent spellings of keys they replace. Final focused trust/JVM suite passed 15 tests/246 assertions, changed-file lint and typecheck passed. Mandatory check is being repeated on the frozen source; hosted exact-head checks and Codex reviews remain pending. No release was retried or published.
 <!-- SECTION:NOTES:END -->

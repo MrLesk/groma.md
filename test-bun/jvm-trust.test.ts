@@ -32,12 +32,13 @@ test.concurrent('packaged JVM trust removes compromised authorities and preserve
   } finally { await rm(temporary, { recursive: true, force: true }) }
 }, 30000)
 
-test.concurrent('filtering a symlinked build JDK trust store leaves its original keystore unchanged', async () => {
+test.concurrent('JVM trust copies symlink sources and preserves Java-supported private authorities', async () => {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-java-symlink-'))
   try {
     const original = path.join(temporary, 'original.jks'), copy = path.join(temporary, 'filtered.jks')
     const custom = await readFile(path.resolve(import.meta.dir, '../test/fixtures/certificate-trust/registry-ca.pem'), 'utf8')
-    for (const [alias, pem] of [['blocked', compromisedRoot], ['custom', custom]]) {
+    const ed448 = await readFile(path.resolve(import.meta.dir, '../test/fixtures/certificate-trust/unsupported-key-ca.pem'), 'utf8')
+    for (const [alias, pem] of [['blocked', compromisedRoot], ['custom', custom], ['ed448', ed448]]) {
       const file = path.join(temporary, `${alias}.pem`)
       await writeFile(file, pem!)
       await execute(jdkTool('keytool'), ['-importcert', '-noprompt', '-alias', alias!, '-file', file,
@@ -66,6 +67,8 @@ test.concurrent('filtering a symlinked build JDK trust store leaves its original
     await expect(execute(jdkTool('keytool'), ['-exportcert', '-rfc', '-alias', 'blocked', ...options])).rejects.toThrow()
     const { stdout } = await execute(jdkTool('keytool'), ['-exportcert', '-rfc', '-alias', 'custom', ...options])
     expect(new X509Certificate(stdout).fingerprint256).toBe(new X509Certificate(custom).fingerprint256)
+    const preserved = await execute(jdkTool('keytool'), ['-exportcert', '-rfc', '-alias', 'ed448', ...options])
+    expect(new X509Certificate(preserved.stdout).fingerprint256).toBe(new X509Certificate(ed448).fingerprint256)
   } finally { await rm(temporary, { recursive: true, force: true }) }
 }, 30000)
 
