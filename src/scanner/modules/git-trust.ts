@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { getCACertificates } from 'node:tls'
 import { gitEnvironmentSetting, trustedCertificates, withCertificateTrust } from '../../certificate-trust.ts'
@@ -53,25 +53,47 @@ async function caSettings(project: string, url?: string): Promise<[string, strin
   })
 }
 
-/** Keep OpenSSL's contiguous hash chains contiguous after blocked certificates are removed. */
+/** Keep PEM authorities and revocation lists; DER and unrelated directory entries are not copied. */
+async function directoryAuthority(source: string): Promise<string | undefined> {
+  if (!(await stat(source)).isFile()) return undefined
+  const content = await readFile(source, 'utf8')
+  const certificates = content.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g) ?? []
+  const crls = content.match(/-----BEGIN X509 CRL-----[\s\S]*?-----END X509 CRL-----/g) ?? []
+  const retained = [...(certificates.length ? trustedCertificates(certificates, 'native') : []), ...crls]
+  return certificates.length || crls.length ? retained.join('\n') : undefined
+}
+
+/** Compact files in the original prefix without making entries beyond its first gap reachable to OpenSSL. */
+async function filteredHashChain(target: string, hash: string, entries: Map<number, string | undefined>): Promise<void> {
+  let input = 0, output = 0
+  while (entries.has(input)) {
+    const content = entries.get(input)
+    if (content === undefined) break // Do not move a later authority over an unrecognized native entry.
+    input++
+    if (content) await writeFile(path.join(target, `${hash}.${output++}`), content, { mode: 0o600 })
+  }
+  // GnuTLS also loads these original names; OpenSSL must still encounter a gap first.
+  for (const [index, content] of entries) {
+    if (index > input && content) await writeFile(path.join(target, `${hash}.${index}`), content, { mode: 0o600 })
+  }
+}
+
+/** Preserve ordinary GnuTLS names and OpenSSL's original contiguous hash chains independently. */
 async function filteredDirectory(source: string, target: string): Promise<void> {
   await mkdir(target)
-  const hashes = new Map<string, Set<number>>()
+  const hashes = new Map<string, Map<number, string | undefined>>()
   for (const name of await readdir(source)) {
+    const content = await directoryAuthority(path.join(source, name))
     const match = /^([a-f0-9]{8})\.(0|[1-9][0-9]*)$/i.exec(name)
-    if (!match) continue // Ignore unrelated files and CRLs.
-    const entries = hashes.get(match[1]!) ?? new Set<number>()
-    entries.add(Number(match[2]))
+    if (!match) {
+      if (content) await writeFile(path.join(target, name), content, { mode: 0o600 })
+      continue
+    }
+    const entries = hashes.get(match[1]!) ?? new Map<number, string | undefined>()
+    entries.set(Number(match[2]), content)
     hashes.set(match[1]!, entries)
   }
-  for (const [hash, entries] of hashes) {
-    let input = 0, output = 0
-    // Native lookup ignores entries after a missing index; preserve that selection.
-    while (entries.has(input)) {
-      const certificates = trustedCertificates([await readFile(path.join(source, `${hash}.${input++}`), 'utf8')], 'native')
-      for (const pem of certificates) await writeFile(path.join(target, `${hash}.${output++}`), pem, { mode: 0o600 })
-    }
-  }
+  for (const [hash, entries] of hashes) await filteredHashChain(target, hash, entries)
 }
 
 /** Preserve each Git CA file/directory policy while removing the incident keys. */
