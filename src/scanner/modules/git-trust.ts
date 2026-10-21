@@ -1,6 +1,7 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { gitEnvironmentSetting, runtimeCertificates, trustedCertificates, withCertificateTrust } from '../../certificate-trust.ts'
+import { getCACertificates } from 'node:tls'
+import { gitEnvironmentSetting, trustedCertificates, withCertificateTrust } from '../../certificate-trust.ts'
 
 /** Read configuration without putting its credential-bearing key names in command arguments or errors. */
 async function configuration(project: string, args: string[]): Promise<string | null | undefined> {
@@ -151,7 +152,7 @@ export async function withGitCertificateTrust<T>(
   const keys = await configuration(project, ['--null', '--name-only', '--get-regexp', '^http\\.(.*\\.)?(sslverify|schannelusesslcainfo)$'])
   if (keys === undefined) return operation({}) // Without Git, installation cannot start a Git HTTPS dependency.
   const configured = await caSettings(project, url)
-  return withCertificateTrust(runtimeCertificates('native'), async (cafile, native) => {
+  return withCertificateTrust(getCACertificates('system'), async (cafile, native) => {
     const files = { project, cafile, empty: native.GIT_SSL_CAPATH! }
     const explicit: NodeJS.ProcessEnv = { sslcainfo: gitEnvironmentSetting('GIT_SSL_CAINFO'), sslcapath: gitEnvironmentSetting('GIT_SSL_CAPATH') }
     // For a known URL the native-selected CA must outrank its original URL-specific setting.

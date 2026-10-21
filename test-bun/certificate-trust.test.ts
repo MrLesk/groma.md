@@ -231,7 +231,7 @@ async function privateGitCase(
   const backend = process.platform === 'win32' ? '  sslBackend = schannel\n' : ''
   let authority = mode.startsWith('env') ? '' : `[http${scope}]\n  ${isPath ? 'sslCAPath' : 'sslCAInfo'} = ${selected.replaceAll('\\', '/')}\n`
   if (mode === 'empty-file') authority = `[http]\n  sslCAInfo =\n  sslCAPath = ${caDirectory.replaceAll('\\', '/')}\n`
-  await writeFile(config, `[http]\n  schannelCheckRevoke = false\n  schannelUseSSLCAInfo = true\n${backend}${authority}`)
+  await writeFile(config, `[http]\n  schannelCheckRevoke = false\n  schannelUseSSLCAInfo = true\n${backend}${defaultCa ? `  sslCAInfo = ${defaultCa.replaceAll('\\', '/')}\n` : ''}${authority}`)
   const module = pathToFileURL(path.resolve(import.meta.dir, '../src/scanner/modules/package-manager.ts')).href
   const direct = pathToFileURL(path.resolve(import.meta.dir, '../src/scanner/modules/package.ts')).href
   const source = install
@@ -245,7 +245,7 @@ async function privateGitCase(
         ? `'http.extraHeader=Authorization: Bearer parameters-fixture' ${[
           [`http.${repository}.sslVerify`, 'false'], [`http.${repository}.sslCAInfo`, cafile],
         ].map(pair => pair.map(value => `'${value!.replaceAll("'", "'\\''")}'`).join('=')).join(' ')}` : undefined,
-      NODE_EXTRA_CA_CERTS: defaultCa, BUN_INSTALL_CACHE_DIR: path.join(f.home, 'cache'),
+      NODE_EXTRA_CA_CERTS: '', BUN_INSTALL_CACHE_DIR: path.join(f.home, 'cache'),
       NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' }, stdout: 'pipe', stderr: 'pipe',
   })
   const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
@@ -403,3 +403,40 @@ test.concurrent('npm global installation keeps npm CA configuration instead of p
     expect(JSON.parse(await readFile(path.join(modules, 'node_modules', manifest.name, 'package.json'), 'utf8')).version).toBe(manifest.version)
   } finally { server.stop(true); await f.close() }
 })
+
+test.concurrent('native Git does not inherit Node-only extra trust for scanner or PM downloads', async () => {
+  const f = await directories(), config = path.join(f.home, 'git-config')
+  let requests = 0, authenticated = 0
+  const server = Bun.serve({ hostname: 'localhost', port: 0, tls: fixtureTls('registry-server.pem'),
+    fetch(request) {
+      requests++
+      if (request.headers.get('authorization') === 'Bearer node-extra-fixture') authenticated++
+      return new Response('No repository', { status: 404 })
+    },
+  })
+  try {
+    const repository = new URL('repository.git', server.url).href
+    await writeFile(config, `[http]\n schannelCheckRevoke=false\n schannelUseSSLCAInfo=true\n${process.platform === 'win32' ? ' sslBackend=schannel\n' : ''} extraHeader=Authorization: Bearer node-extra-fixture\n`)
+    await writeFile(path.join(f.project, 'package.json'), JSON.stringify({ dependencies: { fixture: `git+${repository}` } }))
+    const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
+      !/^(?:git_(?:config.*|ssl.*|proxy.*)|ssl_cert_file|ssl_cert_dir|curl_ca_bundle|https?_proxy|all_proxy|no_proxy|node_extra_ca_certs)$/i.test(key)))
+    const manager = pathToFileURL(path.resolve(import.meta.dir, '../src/scanner/modules/package-manager.ts')).href
+    const scanner = pathToFileURL(path.resolve(import.meta.dir, '../src/scanner/modules/package.ts')).href
+    for (const method of ['raw', 'direct', 'install']) {
+      const source = method === 'direct'
+        ? `import {parseScannerSource,installScannerPackage} from ${JSON.stringify(scanner)}; await installScannerPackage(parseScannerSource(process.cwd(), ${JSON.stringify(`git+${repository}#fixture`)}), process.cwd()+'/cache');`
+        : `import {installDependencies} from ${JSON.stringify(manager)}; await installDependencies(process.cwd(),'Node-only CA fixture');`
+      // Only a fresh Bun process reads NODE_EXTRA_CA_CERTS at startup. Native Git must continue to ignore it.
+      const child = Bun.spawn(method === 'raw' ? ['git', 'ls-remote', repository] : [process.execPath, '-e', source], {
+        cwd: f.project, env: { ...inherited, ...f.environment, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: config,
+          NODE_EXTRA_CA_CERTS: path.join(fixtures, 'registry-ca.pem'), BUN_INSTALL_CACHE_DIR: path.join(f.home, `${method}-cache`),
+          NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' }, stdout: 'pipe', stderr: 'pipe',
+      })
+      const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
+      expect(exit).not.toBe(0)
+      expect(requests, `${method}: ${error}`).toBe(0)
+      expect(authenticated).toBe(0)
+      expect(error).toMatch(/certificate|issuer|unknown|trust|schannel|SSL/i)
+    }
+  } finally { server.stop(true); await f.close() }
+}, 30000)
