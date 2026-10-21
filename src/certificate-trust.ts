@@ -23,6 +23,16 @@ const distrustedKeys = new Set([
   '92c063d67e8f14db71d288e11266ffdaf69cbf115f7bab14f3bc2f68d25e0e30', // EM OV CS CA - G3C
 ])
 
+function certificateKey(certificate: X509Certificate): string | undefined {
+  try {
+    return createHash('sha256').update(certificate.publicKey.export({ type: 'spki', format: 'der' })).digest('hex')
+  } catch (error) {
+    // Platform stores can contain key algorithms Bun cannot use for TLS (for example Ed448).
+    if (error instanceof Error && 'code' in error && error.code === 'ERR_OSSL_X509_PUBLIC_KEY_DECODE_ERROR') return undefined
+    throw error
+  }
+}
+
 /** Keep the caller's trust policy while excluding keys affected by the CA compromise. */
 export function trustedCertificates(bundles: readonly string[]): string[] {
   const certificates = new Map<string, string>()
@@ -31,8 +41,8 @@ export function trustedCertificates(bundles: readonly string[]): string[] {
     if (!entries?.length) throw new Error('The configured CA bundle contains no PEM certificates.')
     for (const pem of entries) {
       const certificate = new X509Certificate(pem)
-      const key = createHash('sha256').update(certificate.publicKey.export({ type: 'spki', format: 'der' })).digest('hex')
-      if (!distrustedKeys.has(key)) certificates.set(certificate.fingerprint256, pem)
+      const key = certificateKey(certificate)
+      if (key && !distrustedKeys.has(key)) certificates.set(certificate.fingerprint256, pem)
     }
   }
   return [...certificates.values()]

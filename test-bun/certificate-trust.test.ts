@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import compromised from '../test/fixtures/certificate-trust/compromised-cas.json'
-import { trustedCertificates } from '../src/certificate-trust.ts'
+import { trustedCertificates, withCertificateTrust } from '../src/certificate-trust.ts'
 import { packageManagerCertificates } from '../src/scanner/modules/package-trust.ts'
 
 const fixtures = path.resolve(import.meta.dir, '../test/fixtures/certificate-trust')
@@ -24,6 +24,15 @@ test.concurrent('compromised keys and their cross-signed copies cannot become tr
     expect(trustedCertificates([certificate.pem, clean, clean]), certificate.name).toEqual([clean])
   }
   expect(() => trustedCertificates(['not a certificate'])).toThrow('no PEM certificates')
+})
+
+test.concurrent('unsupported platform CA keys are omitted and an unusable store fails closed', async () => {
+  const unsupported = (await readFile(path.join(fixtures, 'unsupported-key-ca.pem'), 'utf8')).trim()
+  expect(() => new X509Certificate(unsupported).publicKey).toThrow('PUBLIC_KEY_DECODE_ERROR')
+  expect(trustedCertificates([unsupported, clean])).toEqual([clean])
+  let invoked = false
+  await expect(withCertificateTrust([unsupported], async () => { invoked = true })).rejects.toThrow('No trusted certificate authorities remain')
+  expect(invoked).toBe(false)
 })
 
 test.concurrent("relative cafiles use Bun's working directory with environment values and XDG fallback", async () => {

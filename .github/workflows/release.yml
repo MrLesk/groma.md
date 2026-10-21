@@ -143,6 +143,54 @@ jobs:
       - name: Prepare native HTTPS trust on disposable hosted runners
         run: node scripts/prepare-hosted-runner-trust.cjs
         shell: bash
+      - name: Download verified Windows ARM64 JDK
+        if: matrix.platform == 'win32-arm64'
+        id: microsoft-jdk
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs'), path = require('node:path'), https = require('node:https');
+          const { createHash } = require('node:crypto');
+          const { setGlobalProxyFromEnv } = require('node:http');
+          const { pipeline } = require('node:stream/promises');
+          // setup-java's Microsoft catalog lags this official release; verify its archive directly.
+          const url = 'https://aka.ms/download-jdk/microsoft-jdk-25.0.4.1-windows-aarch64.zip';
+          const checksum = '7118ce03f24d4460c5d4ccaae03a2c695a83cd3e48686fe9bbf3b34166dce588';
+          function download(url, redirects = 0) {
+            return new Promise((resolve, reject) => {
+              const request = https.get(url, { headers: { 'Accept-Encoding': 'identity' } }, response => {
+                if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
+                  response.resume();
+                  const destination = new URL(response.headers.location ?? '', url);
+                  if (!response.headers.location || redirects >= 5 || destination.protocol !== 'https:') {
+                    reject(new Error('Unexpected Microsoft JDK download redirect'));
+                    return;
+                  }
+                  resolve(download(destination, redirects + 1));
+                } else if (response.statusCode === 200) resolve(response);
+                else { response.resume(); reject(new Error(`Microsoft JDK download returned HTTP ${response.statusCode}`)); }
+              });
+              request.setTimeout(120000, () => request.destroy(new Error('Microsoft JDK download timed out')));
+              request.on('error', reject);
+            });
+          }
+          async function main() {
+            const [major, minor, patch] = process.versions.node.split('.').map(Number);
+            if (major < 26 || (major === 26 && (minor < 12 || (minor === 12 && patch < 1)))) {
+              throw new Error('Use patched Node.js 26.12.1 or later');
+            }
+            setGlobalProxyFromEnv();
+            const archive = path.join(process.env.RUNNER_TEMP, 'microsoft-jdk-25.0.4.1-windows-aarch64.zip');
+            try {
+              const response = await download(url), digest = createHash('sha256');
+              response.on('data', chunk => digest.update(chunk));
+              await pipeline(response, fs.createWriteStream(archive));
+              if (digest.digest('hex') !== checksum) throw new Error('Microsoft JDK checksum mismatch');
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, `archive=${archive}\n`);
+            } catch (error) { fs.rmSync(archive, { force: true }); throw error; }
+          }
+          main().catch(error => { console.error(error.message); process.exitCode = 1; });
+          NODE
       - parallel:
           - name: Cache SwiftSyntax build
             if: runner.os == 'Windows'
@@ -164,7 +212,8 @@ jobs:
               problem-matcher: false
           - uses: actions/setup-java@v6.1.0
             with:
-              distribution: ${{ matrix.platform == 'win32-arm64' && 'microsoft' || 'temurin' }}
+              distribution: ${{ matrix.platform == 'win32-arm64' && 'jdkfile' || 'temurin' }}
+              jdk-file: ${{ steps.microsoft-jdk.outputs.archive }}
               # Microsoft provides Windows ARM64 only on its current LTS line.
               java-version: ${{ matrix.platform == 'win32-arm64' && '25.0.4.1' || '27' }}
           - uses: actions/setup-go@v7.0.0

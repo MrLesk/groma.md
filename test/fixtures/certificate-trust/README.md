@@ -4,6 +4,10 @@
 [eMudhra incident](https://github.com/galadran/we-have-a-problem.com), including
 the affected intermediate keys and their root and cross-sign authentication paths.
 
+`unsupported-key-ca.pem` is a self-signed Ed448 test CA. Bun 1.4.3 can parse its
+certificate but cannot decode its public key. Trust filtering omits these unusable
+keys and fails closed when no usable authorities remain. No fixture private key is needed.
+
 `incident-server-emudhra.pem` and `incident-server-aaa.pem` contain the same
 localhost leaf certificate and the two original intermediate certificate variants.
 The leaf uses the existing test-only `registry-server-key.pem` public key and was
