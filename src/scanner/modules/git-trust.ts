@@ -55,9 +55,8 @@ async function caSettings(project: string, url?: string): Promise<[string, strin
 
 /** Keep PEM authorities and revocation lists; DER and unrelated directory entries are not copied. */
 async function directoryAuthority(source: string): Promise<string | undefined> {
-  if (!(await stat(source)).isFile()) return undefined
   const content = await readFile(source, 'utf8')
-  const certificates = content.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g) ?? []
+  const certificates = content.match(/-----BEGIN (TRUSTED )?CERTIFICATE-----[\s\S]*?-----END \1CERTIFICATE-----/g) ?? []
   const crls = content.match(/-----BEGIN X509 CRL-----[\s\S]*?-----END X509 CRL-----/g) ?? []
   const retained = [...(certificates.length ? trustedCertificates(certificates, 'native') : []), ...crls]
   return certificates.length || crls.length ? retained.join('\n') : undefined
@@ -83,16 +82,20 @@ async function filteredDirectory(source: string, target: string): Promise<void> 
   await mkdir(target)
   const hashes = new Map<string, Map<number, string | undefined>>()
   for (const name of await readdir(source)) {
-    const content = await directoryAuthority(path.join(source, name))
+    const filename = path.join(source, name)
+    const information = await stat(filename).catch(error => {
+      if (error.code === 'ENOENT') return undefined // Native CA lookup ignores dangling links.
+      throw error
+    })
+    if (!information?.isFile()) continue
+    const content = await directoryAuthority(filename)
     const match = /^([a-f0-9]{8})\.(0|[1-9][0-9]*)$/i.exec(name)
     if (!match) {
       if (content) await writeFile(path.join(target, name), content, { mode: 0o600 })
       continue
     }
     // OpenSSL may continue past an empty regular slot; never copy unknown bytes or remove that slot.
-    if ((await stat(path.join(source, name))).isFile()) {
-      await writeFile(path.join(target, name), '', { mode: 0o600 })
-    }
+    await writeFile(path.join(target, name), '', { mode: 0o600 })
     const entries = hashes.get(match[1]!) ?? new Map<number, string | undefined>()
     entries.set(Number(match[2]), content)
     hashes.set(match[1]!, entries)

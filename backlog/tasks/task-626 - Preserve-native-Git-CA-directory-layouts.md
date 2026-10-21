@@ -4,13 +4,14 @@ title: Preserve native Git CA directory layouts
 status: In Progress
 assignee: []
 created_date: '2026-10-21T17:47:00Z'
-updated_date: '2026-10-21T18:06:00Z'
+updated_date: '2026-10-21T18:16:00Z'
 labels: []
 dependencies: []
 references:
   - src/scanner/modules/git-trust.ts
   - test-bun/certificate-trust.test.ts
   - .github/workflows/architecture.yml
+  - src/certificate-trust.ts
 modified_files:
   - src/scanner/modules/git-trust.ts
   - test-bun/git-ca-directory.test.ts
@@ -33,6 +34,11 @@ modified_files:
     backlog/tasks/task-624.4 -
     Block-compromised-certificate-chains-in-hosted-native-CI-trust.md
   - .github/workflows/architecture.yml
+  - src/certificate-trust.ts
+  - test/fixtures/certificate-trust/trusted-registry-ca.pem
+  - test/fixtures/certificate-trust/rejected-registry-ca.pem
+  - test/fixtures/certificate-trust/trusted-compromised-cas.pem
+  - test-bun/certificate-trust.test.ts
 priority: high
 type: bug
 ordinal: 696000
@@ -62,4 +68,8 @@ Git installations using GnuTLS accept ordinary PEM filenames in CA directories. 
 
 <!-- SECTION:PLAN:BEGIN -->
 Preserve filtered ordinary PEM files and revocation lists under their original names. Compact only the original contiguous hash prefix; keep unrecognized regular hash slots empty and preserve original gaps and later names. Native Git regression coverage compares contiguous unrecognized prefixes, original gaps, private authorities and compromised authorities across direct and package-manager flows. The architecture workflow uses the pinned Action, current Node runtime and the latest published Groma and Backlog CLIs.
+
+Ignore dangling CA-directory entries while retaining valid authorities and native hash traversal.
+
+Preserve OpenSSL TRUSTED CERTIFICATE blocks and their auxiliary trust or rejection restrictions while filtering the same compromised keys; retain distinct trusted blocks and plain certificates independently.
 <!-- SECTION:PLAN:END -->

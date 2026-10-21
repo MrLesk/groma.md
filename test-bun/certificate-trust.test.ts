@@ -21,6 +21,14 @@ test.concurrent('compromised keys and their cross-signed copies cannot become tr
   expect(() => trustedCertificates(['not a certificate'])).toThrow('no PEM certificates')
 })
 
+test.concurrent('native trusted PEM retains distinct auxiliary trust restrictions while excluding incident keys', async () => {
+  const trusted = (await readFile(path.join(fixtures, 'trusted-registry-ca.pem'), 'utf8')).trim()
+  const rejected = (await readFile(path.join(fixtures, 'rejected-registry-ca.pem'), 'utf8')).trim()
+  const incident = await readFile(path.join(fixtures, 'trusted-compromised-cas.pem'), 'utf8')
+  expect(trustedCertificates([incident], 'native')).toEqual([])
+  expect(trustedCertificates([clean, trusted, rejected, trusted, incident], 'native')).toEqual([clean, trusted, rejected])
+})
+
 test.concurrent('unsupported platform CA keys are omitted and an unusable store fails closed', async () => {
   const unsupported = (await readFile(path.join(fixtures, 'unsupported-key-ca.pem'), 'utf8')).trim()
   expect(() => new X509Certificate(unsupported).publicKey).toThrow('PUBLIC_KEY_DECODE_ERROR')

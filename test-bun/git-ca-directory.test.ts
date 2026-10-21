@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { clean, directories, fixtures, fixtureTls } from './certificate-fixtures.ts'
@@ -27,39 +27,44 @@ async function nativeRequest(f: DirectoryFixture, url: string, guarded: boolean,
   return error
 }
 
-async function directoryConfiguration(f: DirectoryFixture, source: string) {
-  const otherCa = path.join(fixtures, 'other-registry-ca.pem').replaceAll('\\', '/')
+async function compareNativeTrust(f: DirectoryFixture, certificate: string, context: string) {
+  let requests = 0, authenticated = 0
+  const server = Bun.serve({ hostname: 'localhost', port: 0, tls: fixtureTls(certificate), fetch(request) {
+    requests++
+    if (request.headers.get('authorization') === 'Bearer directory-fixture') authenticated++
+    return new Response('No repository', { status: 404 })
+  } })
+  try {
+    const url = new URL('repository.git', server.url).href
+    await nativeRequest(f, url, false, false)
+    const nativeRequests = requests
+    expect(authenticated).toBe(nativeRequests)
+    for (const install of [false, true]) {
+      const before = requests, beforeAuthenticated = authenticated
+      const error = await nativeRequest(f, url, true, install)
+      const expected = certificate === 'registry-server.pem' ? nativeRequests : 0
+      expect(requests - before, `${context}: ${error}`).toBe(expected)
+      expect(authenticated - beforeAuthenticated).toBe(expected)
+    }
+  } finally { server.stop(true) }
+}
+
+async function directoryConfiguration(f: DirectoryFixture, source: string, cafile = path.join(fixtures, 'other-registry-ca.pem')) {
+  const otherCa = cafile.replaceAll('\\', '/')
   await writeFile(path.join(f.home, 'gitconfig'), `[http]\n sslCAInfo = ${otherCa}\n sslCAPath = ${source.replaceAll('\\', '/')}\n extraHeader = Authorization: Bearer directory-fixture\n schannelUseSSLCAInfo = true\n${process.platform === 'win32' ? ' sslBackend = openssl\n' : ''}`)
 }
 
 test.concurrent('Git preserves native ordinary PEM directory selection without retaining incident authorities', async () => {
   const f = await directories(), source = path.join(f.home, 'authorities')
   await mkdir(source)
+  if (process.platform !== 'win32') await symlink(path.join(f.home, 'missing-ca'), path.join(source, 'dangling.pem'))
   await directoryConfiguration(f, source)
   const corpus = [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n')
   try {
-    for (const name of ['ordinary.pem', 'ordinary.crt', 'ordinary']) {
+    for (const name of ['ordinary.pem', 'ordinary.crt', 'ordinary', '81ee7702.0']) {
       await writeFile(path.join(source, name), corpus)
       for (const certificate of ['registry-server.pem', 'incident-server-emudhra.pem', 'incident-server-aaa.pem']) {
-        let requests = 0, authenticated = 0
-        const server = Bun.serve({ hostname: 'localhost', port: 0, tls: fixtureTls(certificate), fetch(request) {
-          requests++
-          if (request.headers.get('authorization') === 'Bearer directory-fixture') authenticated++
-          return new Response('No repository', { status: 404 })
-        } })
-        try {
-          const url = new URL('repository.git', server.url).href
-          await nativeRequest(f, url, false, false)
-          const nativeRequests = requests
-          expect(authenticated).toBe(nativeRequests)
-          for (const install of [false, true]) {
-            const before = requests, beforeAuthenticated = authenticated
-            const error = await nativeRequest(f, url, true, install)
-            const expected = certificate === 'registry-server.pem' ? nativeRequests : 0
-            expect(requests - before, `${name}: ${error}`).toBe(expected)
-            expect(authenticated - beforeAuthenticated).toBe(expected)
-          }
-        } finally { server.stop(true) }
+        await compareNativeTrust(f, certificate, name)
       }
       await rm(path.join(source, name))
     }
@@ -69,7 +74,7 @@ test.concurrent('Git preserves native ordinary PEM directory selection without r
 test.concurrent('Git preserves native hash gaps and unrecognized regular prefixes', async () => {
   const f = await directories(), source = path.join(f.home, 'authorities')
   await mkdir(source)
-  // This subject hash belongs to the other private authority, which appears only after the original gap.
+  // OpenSSL subject hash for the private authority used below.
   const hash = '74640382', prefix = path.join(source, `${hash}.0`)
   const ordinary = await readFile(path.join(fixtures, 'unsupported-key-ca.pem'), 'utf8')
   const authority = await readFile(path.join(fixtures, 'other-registry-ca.pem'))
@@ -84,9 +89,11 @@ test.concurrent('Git preserves native hash gaps and unrecognized regular prefixe
   try {
     const url = new URL('repository.git', server.url).href
     for (const [index, content, blocked] of [[2, `${clean}\n${ordinary}`, false], [2, 'not PEM', false],
-      [1, 'not PEM', false], [1, '', false], [2, 'not PEM', true]] as const) {
+      [1, 'not PEM', false], [1, '', false], [2, 'not PEM', true], [1, null, false]] as const) {
+      if (content === null && process.platform === 'win32') continue // Creating file symlinks requires runner privileges.
       await writeFile(path.join(source, `${hash}.${index}`), authority)
-      await writeFile(prefix, blocked ? compromised.certificates[0]!.pem : content)
+      if (content === null) await symlink(path.join(f.home, 'missing-ca'), prefix)
+      else await writeFile(prefix, blocked ? compromised.certificates[0]!.pem : content)
       if (blocked) await writeFile(path.join(source, `${hash}.1`), content)
       const before = requests
       await nativeRequest(f, url, false, false)
@@ -98,7 +105,29 @@ test.concurrent('Git preserves native hash gaps and unrecognized regular prefixe
       }
       expect(authenticated).toBe(requests)
       await rm(path.join(source, `${hash}.${index}`))
+      await rm(prefix)
       if (blocked) await rm(path.join(source, `${hash}.1`))
     }
   } finally { server.stop(true); await f.close() }
 }, 30000)
+
+test.concurrent('Git preserves trusted PEM purposes for CAfiles and hash directories without retaining incident keys', async () => {
+  const f = await directories(), source = path.join(f.home, 'authorities')
+  await mkdir(source)
+  const incident = await readFile(path.join(fixtures, 'trusted-compromised-cas.pem'), 'utf8')
+  try {
+    for (const directory of [false, true]) {
+      const cafile = directory ? path.join(source, '81ee7702.0') : path.join(f.home, 'authorities.pem')
+      await directoryConfiguration(f, source, directory ? undefined : cafile)
+      for (const purpose of ['trusted', 'rejected']) {
+        const privateCa = await readFile(path.join(fixtures, `${purpose}-registry-ca.pem`), 'utf8')
+        await writeFile(cafile, `${privateCa}\n${incident}`)
+        for (const certificate of directory ? ['registry-server.pem'] :
+          ['registry-server.pem', 'incident-server-emudhra.pem', 'incident-server-aaa.pem']) {
+          await compareNativeTrust(f, certificate, purpose)
+        }
+      }
+      await rm(cafile)
+    }
+  } finally { await f.close() }
+}, 60000)

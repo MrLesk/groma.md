@@ -81,12 +81,14 @@ export function hasDistrustedCertificateKey(pem: string): boolean {
 export function trustedCertificates(bundles: readonly string[], runtime: 'bun' | 'native' = 'bun'): string[] {
   const certificates = new Map<string, string>()
   for (const bundle of bundles) {
-    const entries = bundle.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g)
+    const entries = bundle.match(/-----BEGIN (TRUSTED )?CERTIFICATE-----[\s\S]*?-----END \1CERTIFICATE-----/g)
     if (!entries?.length) throw new Error('The configured CA bundle contains no PEM certificates.')
     for (const pem of entries) {
       const certificate = new X509Certificate(pem)
       const key = certificateKey(certificate, runtime)
-      if (key && !distrustedKeys.has(key)) certificates.set(certificate.fingerprint256, pem)
+      // Trusted PEM includes auxiliary trust/rejection data outside the certificate fingerprint.
+      const identity = pem.startsWith('-----BEGIN TRUSTED CERTIFICATE-----') ? pem : certificate.fingerprint256
+      if (key && !distrustedKeys.has(key)) certificates.set(identity, pem)
     }
   }
   return [...certificates.values()]
