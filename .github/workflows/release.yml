@@ -32,6 +32,9 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs'), path = require('node:path'), tls = require('node:tls');
           const { X509Certificate, createHash } = require('node:crypto');
+          if (Object.keys(process.env).some(key => key.toUpperCase() === 'GIT_SSL_NO_VERIFY' && process.env[key] !== undefined)) {
+            throw new Error('Remove GIT_SSL_NO_VERIFY from the runner or workflow environment before continuing.');
+          }
           // CVE-2026-111943: protect action network calls; runner archive downloads happen earlier.
           const blocked = new Set([
             '0a6c2b2ca5b364207954171987ac9d2178561569d8205457e77ca90c32ede282',
@@ -56,19 +59,41 @@ jobs:
           if (!certificates.size) throw new Error('No trusted certificate authorities remain.');
           const directory = path.join(process.env.RUNNER_TEMP, 'groma-tls');
           const bundle = path.join(directory, 'ca.pem'), empty = path.join(directory, 'empty');
+          const proxy = path.join(directory, 'https-proxy-disabled');
           fs.mkdirSync(empty, { recursive: true });
           fs.writeFileSync(bundle, [...certificates.values()].join('\n') + '\n');
-          const gitSettings = Number(process.env.GIT_CONFIG_COUNT ?? 0);
-          if (!Number.isSafeInteger(gitSettings) || gitSettings < 0) throw new Error('Invalid GIT_CONFIG_COUNT.');
+          const repository = new URL(`${process.env.GITHUB_SERVER_URL.replace(/\/+$/, '')}/${process.env.GITHUB_REPOSITORY}`);
+          if (repository.protocol !== 'https:' || repository.username || repository.password) throw new Error('Expected a credential-free HTTPS GitHub server.');
+          const git = [['http.schannelUseSSLCAInfo', 'true'], ['http.sslVerify', 'true']];
+          for (const url of [repository.href, `${repository.href}.git`]) {
+            git.push([`http.${url}.sslVerify`, 'true'], [`http.${url}.schannelUseSSLCAInfo`, 'true']);
+          }
+          // Git cannot isolate proxy CApath. An impossible child of a regular file fails before authentication.
+          fs.writeFileSync(proxy, '', { mode: 0o600 });
+          const rawGitSettings = process.env.GIT_CONFIG_COUNT ?? '0';
+          const gitSettings = Number(rawGitSettings);
+          if (!/^(0|[1-9][0-9]*)$/.test(rawGitSettings) || !Number.isSafeInteger(gitSettings + git.length)) throw new Error('Invalid GIT_CONFIG_COUNT.');
           const settings = {
             SSL_CERT_FILE: bundle, SSL_CERT_DIR: empty,
             NODE_EXTRA_CA_CERTS: bundle, NODE_USE_SYSTEM_CA: '0', NODE_TLS_REJECT_UNAUTHORIZED: '1',
             GIT_SSL_CAINFO: bundle, GIT_SSL_CAPATH: empty, CURL_CA_BUNDLE: bundle,
-            GIT_CONFIG_COUNT: String(gitSettings + 2),
-            [`GIT_CONFIG_KEY_${gitSettings}`]: 'http.schannelUseSSLCAInfo', [`GIT_CONFIG_VALUE_${gitSettings}`]: 'true',
-            [`GIT_CONFIG_KEY_${gitSettings + 1}`]: 'http.sslVerify', [`GIT_CONFIG_VALUE_${gitSettings + 1}`]: 'true',
+            GIT_PROXY_SSL_CAINFO: path.join(proxy, 'unavailable.pem'),
             CARGO_HTTP_CAINFO: bundle, NPM_CONFIG_CAFILE: bundle,
           };
+          for (const [offset, [key, value]] of git.entries()) {
+            settings[`GIT_CONFIG_KEY_${gitSettings + offset}`] = key;
+            settings[`GIT_CONFIG_VALUE_${gitSettings + offset}`] = value;
+          }
+          settings.GIT_CONFIG_COUNT = String(gitSettings + git.length);
+          for (const key of Object.keys(process.env)) {
+            if (key.toUpperCase() === 'GIT_PROXY_SSL_CAINFO') settings[key] = settings.GIT_PROXY_SSL_CAINFO;
+          }
+          const quote = value => "'" + value.replaceAll("'", "'\\''") + "'";
+          settings.GIT_CONFIG_PARAMETERS = [process.env.GIT_CONFIG_PARAMETERS,
+            ...git.map(([key, value]) => quote(key) + '=' + quote(value))].filter(Boolean).join(' ');
+          for (const value of Object.values(settings)) {
+            if (/[\r\n]/.test(value)) throw new Error('TLS environment values must not contain newlines.');
+          }
           fs.appendFileSync(process.env.GITHUB_ENV, Object.entries(settings).map(([key, value]) => `${key}=${value}\n`).join(''));
           NODE
       - uses: actions/checkout@v7.0.1
@@ -191,6 +216,9 @@ jobs:
           }
           main().catch(error => { console.error(error.message); process.exitCode = 1; });
           NODE
+      - name: Prepare patched Rustup
+        run: node --use-env-proxy scripts/prepare-rustup.cjs
+        shell: bash
       - parallel:
           - name: Cache SwiftSyntax build
             if: runner.os == 'Windows'
@@ -224,7 +252,9 @@ jobs:
             with:
               dotnet-version: '10.0.402'
           - name: Install Rust build toolchain
-            run: rustup toolchain install 1.99.1 --profile minimal
+            run: |
+              [[ "$(rustup --version)" == "rustup 1.29.2 "* ]]
+              rustup toolchain install 1.99.1 --profile minimal
             shell: bash
       - name: Check native HTTPS trust
         run: node scripts/check-native-tls.cjs

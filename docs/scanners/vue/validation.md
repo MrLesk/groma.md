@@ -50,7 +50,7 @@ Scanner source/build/smoke lint and repository type checking passed.
 bun install --frozen-lockfile --ignore-scripts
 bun plugins/scanners/vue/build.ts
 bun test --timeout 20000 test-bun/vue-scanner.test.ts
-bunx biome lint plugins/scanners/vue/src plugins/scanners/vue/build.ts test-bun/vue-scanner.test.ts
+bun run biome lint plugins/scanners/vue/src plugins/scanners/vue/build.ts test-bun/vue-scanner.test.ts
 bun run typecheck
 ```
 

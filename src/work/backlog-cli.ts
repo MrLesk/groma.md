@@ -47,17 +47,45 @@ async function succeeds(command: string[], cwd?: string, environment = process.e
   }
 }
 
-/** Read only public CA settings through npm so its own config precedence remains authoritative. */
-async function npmCertificateSetting(key: 'ca' | 'cafile'): Promise<string | undefined> {
-  const child = Bun.spawn(['npm', 'config', 'get', key, '--global'], {
+/** Resolve only public effective CAs through the selected native npm, preserving its global-context precedence. */
+async function npmCertificates(): Promise<string[]> {
+  const executable = Bun.which('npm')
+  if (executable === null) throw new Error('Cannot locate npm to read its CA configuration.')
+  const source = `
+    const fs = require('node:fs'), path = require('node:path');
+    const executable = process.argv[1], directory = path.dirname(executable);
+    const candidates = [executable.endsWith('npm-cli.js') ? executable : '',
+      path.join(directory, 'node_modules/npm/bin/npm-cli.js')];
+    const cli = candidates.find(candidate => candidate && fs.existsSync(candidate));
+    if (!cli) throw new Error('Cannot locate the native npm CLI.');
+    const root = path.resolve(path.dirname(cli), '..');
+    const Config = require(path.join(root, 'node_modules/@npmcli/config'));
+    const { definitions, flatten, shorthands, nerfDarts } = require(path.join(root, 'node_modules/@npmcli/config/lib/definitions'));
+    const config = new Config({ npmPath: root, definitions, flatten, shorthands, nerfDarts,
+      argv: [process.execPath, cli, '--global'], warn: false });
+    config.load().then(() => {
+      // npm ignores unreadable cafiles. Reject only an effective selection; a higher inline CA may replace it.
+      let selectedFile;
+      for (const { data } of config.data.values()) for (const key of Object.keys(data)) {
+        if (key === 'ca') selectedFile = undefined;
+        else if (key === 'cafile' && data[key]) selectedFile = data[key];
+      }
+      if (selectedFile) fs.readFileSync(selectedFile);
+      process.stdout.write(JSON.stringify(config.flat.ca ?? null));
+    }).catch(() => { process.stderr.write('Cannot read native npm CA configuration.'); process.exitCode = 1; });
+  `
+  const child = Bun.spawn(['node', '-e', source, await realpath(executable)], {
     env: { ...process.env, NPM_CONFIG_UPDATE_NOTIFIER: 'false' }, stdout: 'pipe', stderr: 'pipe',
   })
-  const [code, stdout, stderr] = await Promise.all([
+  const [code, stdout] = await Promise.all([
     child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
   ])
-  if (code !== 0) throw new Error(`Could not read npm's ${key} setting: ${stderr.trim()}`)
-  const value = stdout.trim()
-  return value === 'null' || value === '' ? undefined : value
+  if (code !== 0) throw new Error("Could not read npm's effective CA configuration through its native CLI.")
+  const selected: unknown = JSON.parse(stdout)
+  if (selected === null) return runtimeCertificates()
+  if (typeof selected === 'string') return [selected]
+  if (Array.isArray(selected) && selected.every(value => typeof value === 'string')) return selected
+  throw new Error('Native npm returned an unsupported CA configuration.')
 }
 
 async function installerCertificates(installer: PackageInstaller): Promise<string[]> {
@@ -66,11 +94,7 @@ async function installerCertificates(installer: PackageInstaller): Promise<strin
     const file = process.env.CURL_CA_BUNDLE ?? process.env.SSL_CERT_FILE
     return file ? [await readFile(file, 'utf8')] : runtimeCertificates()
   }
-  const file = await npmCertificateSetting('cafile')
-  if (file !== undefined) return [await readFile(file, 'utf8')]
-  const ca = await npmCertificateSetting('ca')
-  if (ca !== undefined) return [ca]
-  return runtimeCertificates()
+  return npmCertificates()
 }
 
 /** Installs the current Backlog.md CLI, or updates an installed one when `upgrade` is set. */

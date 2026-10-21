@@ -1,4 +1,5 @@
 const { execFile } = require('node:child_process')
+const { X509Certificate } = require('node:crypto')
 const { once } = require('node:events')
 const { mkdtemp, readFile, rm, writeFile } = require('node:fs/promises')
 const https = require('node:https')
@@ -19,6 +20,8 @@ async function checkNativeTls() {
     const urls = []
     for (const name of ['incident-server-emudhra.pem', 'incident-server-aaa.pem']) {
       const cert = await readFile(path.join(fixture, name))
+      const leaf = new X509Certificate(cert), now = Date.now()
+      if (!(Date.parse(leaf.validFrom) <= now && now < Date.parse(leaf.validTo))) throw new Error(`TLS fixture ${name} is not currently valid.`)
       const server = https.createServer({ key, cert }, (_request, response) => { requests++; response.end('unexpected authenticated request') })
       servers.push(server)
       server.listen(0, '127.0.0.1')

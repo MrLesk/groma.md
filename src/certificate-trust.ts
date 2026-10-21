@@ -23,25 +23,69 @@ const distrustedKeys = new Set([
   '92c063d67e8f14db71d288e11266ffdaf69cbf115f7bab14f3bc2f68d25e0e30', // EM OV CS CA - G3C
 ])
 
-function certificateKey(certificate: X509Certificate): string | undefined {
-  try {
-    return createHash('sha256').update(certificate.publicKey.export({ type: 'spki', format: 'der' })).digest('hex')
-  } catch (error) {
-    // Platform stores can contain key algorithms Bun cannot use for TLS (for example Ed448).
-    if (error instanceof Error && 'code' in error && error.code === 'ERR_OSSL_X509_PUBLIC_KEY_DECODE_ERROR') return undefined
-    throw error
+// Read SubjectPublicKeyInfo only when Bun cannot instantiate a native-supported key.
+function nativeSubjectPublicKeyInfo(der: Buffer): Buffer {
+  function field(start: number, limit = der.length) {
+    if (start < 0 || start + 2 > limit) throw new Error('Invalid certificate DER field')
+    let offset = start
+    const tag = der[offset++]!
+    let length = der[offset++]!
+    if (length & 0x80) {
+      const count = length & 0x7f
+      if (!count || count > 4 || offset + count > limit) throw new Error('Invalid certificate DER length')
+      length = 0
+      for (let index = 0; index < count; index++) length = length * 256 + der[offset++]!
+    }
+    const end = offset + length
+    if (!Number.isSafeInteger(end) || end > limit) throw new Error('Invalid certificate DER field')
+    return { tag, content: offset, end }
   }
+  const sequence = field(0), tbs = field(sequence.content, sequence.end)
+  if (sequence.tag !== 0x30 || sequence.end !== der.length || tbs.tag !== 0x30) throw new Error('Invalid certificate sequence')
+  let offset = tbs.content
+  if (der[offset] === 0xa0) offset = field(offset, tbs.end).end // Optional explicit version.
+  for (const tag of [0x02, 0x30, 0x30, 0x30, 0x30]) { // serial, signature, issuer, validity, subject.
+    const entry = field(offset, tbs.end)
+    if (entry.tag !== tag) throw new Error('Invalid certificate identity field')
+    offset = entry.end
+  }
+  const spki = field(offset, tbs.end), algorithm = field(spki.content, spki.end)
+  const oid = field(algorithm.content, algorithm.end), key = field(algorithm.end, spki.end)
+  if (spki.tag !== 0x30 || algorithm.tag !== 0x30 || oid.tag !== 0x06 || oid.end <= oid.content ||
+    key.tag !== 0x03 || key.end !== spki.end || der[key.content] !== 0 || key.end <= key.content + 1) {
+    throw new Error('Invalid certificate SubjectPublicKeyInfo')
+  }
+  return der.subarray(offset, spki.end)
+}
+
+function certificateKey(certificate: X509Certificate, runtime: 'bun' | 'native' = 'bun'): string | undefined {
+  let spki: Buffer
+  try { spki = certificate.publicKey.export({ type: 'spki', format: 'der' }) }
+  catch (error) {
+    if (!(error instanceof Error && 'code' in error && error.code === 'ERR_OSSL_X509_PUBLIC_KEY_DECODE_ERROR')) throw error
+    // Bun TLS cannot use these keys. Git and Java can; inspect their bounded DER instead.
+    if (runtime === 'bun') return undefined
+    spki = nativeSubjectPublicKeyInfo(certificate.raw)
+  }
+  return createHash('sha256').update(spki).digest('hex')
+}
+
+/** Match the incident keys for native runtimes too; malformed certificates or SPKI structures throw. */
+export function hasDistrustedCertificateKey(pem: string): boolean {
+  const key = certificateKey(new X509Certificate(pem), 'native')
+  if (key === undefined) throw new Error('Cannot inspect the native certificate key.')
+  return distrustedKeys.has(key)
 }
 
 /** Keep the caller's trust policy while excluding keys affected by the CA compromise. */
-export function trustedCertificates(bundles: readonly string[]): string[] {
+export function trustedCertificates(bundles: readonly string[], runtime: 'bun' | 'native' = 'bun'): string[] {
   const certificates = new Map<string, string>()
   for (const bundle of bundles) {
     const entries = bundle.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g)
     if (!entries?.length) throw new Error('The configured CA bundle contains no PEM certificates.')
     for (const pem of entries) {
       const certificate = new X509Certificate(pem)
-      const key = certificateKey(certificate)
+      const key = certificateKey(certificate, runtime)
       if (key && !distrustedKeys.has(key)) certificates.set(certificate.fingerprint256, pem)
     }
   }
@@ -49,34 +93,50 @@ export function trustedCertificates(bundles: readonly string[]): string[] {
 }
 
 /** Include platform and explicitly added CAs, then remove the affected authentication paths. */
-export function runtimeCertificates(): string[] {
+export function runtimeCertificates(runtime: 'bun' | 'native' = 'bun'): string[] {
   return trustedCertificates([
     ...rootCertificates, ...getCACertificates('default'), ...getCACertificates('system'), ...getCACertificates('extra'),
-  ])
+  ], runtime)
 }
 
-/** Give one child process a filtered trust store without changing the parent environment. */
+/** Windows environment names are case insensitive, including inherited Git overrides. */
+export function gitEnvironmentSetting(name: 'GIT_SSL_CAINFO' | 'GIT_SSL_CAPATH' | 'GIT_CONFIG_COUNT' | 'GIT_CONFIG_PARAMETERS'): string | undefined {
+  const key = process.platform === 'win32' ? Object.keys(process.env).find(key => key.toUpperCase() === name) : name
+  return key === undefined ? undefined : process.env[key]
+}
+
+/** Scope a filtered trust store to a child; native runtimes may use key algorithms Bun cannot decode. */
 export async function withCertificateTrust<T>(
   certificates: readonly string[],
   operation: (cafile: string, environment: NodeJS.ProcessEnv) => Promise<T>,
+  runtime: 'bun' | 'native' = 'bun',
 ): Promise<T> {
   const directory = await mkdtemp(path.join(tmpdir(), 'groma-certificate-trust-'))
   try {
     const cafile = path.join(directory, 'ca.pem'), empty = path.join(directory, 'empty')
-    const trusted = trustedCertificates(certificates)
+    const proxy = path.join(directory, 'https-proxy-disabled')
+    const trusted = trustedCertificates(certificates, runtime)
     if (trusted.length === 0) throw new Error('No trusted certificate authorities remain.')
     await mkdir(empty)
     await writeFile(cafile, trusted.join('\n'), { mode: 0o600 })
-    const gitSettings = Number(process.env.GIT_CONFIG_COUNT ?? 0)
-    if (!Number.isSafeInteger(gitSettings) || gitSettings < 0) throw new Error('Invalid GIT_CONFIG_COUNT.')
-    return await operation(cafile, {
+    // Git cannot isolate proxy CApath. An impossible child of a regular file makes every native CA loader fail.
+    await writeFile(proxy, '', { mode: 0o600 })
+    const rawGitSettings = gitEnvironmentSetting('GIT_CONFIG_COUNT') ?? '0'
+    const gitSettings = Number(rawGitSettings)
+    if (!/^(0|[1-9][0-9]*)$/.test(rawGitSettings) || !Number.isSafeInteger(gitSettings + 2)) throw new Error('Invalid GIT_CONFIG_COUNT.')
+    const environment: NodeJS.ProcessEnv = {
       SSL_CERT_FILE: cafile, SSL_CERT_DIR: empty, CURL_CA_BUNDLE: cafile,
       GIT_SSL_CAINFO: cafile, GIT_SSL_CAPATH: empty, GIT_SSL_NO_VERIFY: undefined,
+      GIT_PROXY_SSL_CAINFO: path.join(proxy, 'unavailable.pem'),
       GIT_CONFIG_COUNT: String(gitSettings + 2),
       [`GIT_CONFIG_KEY_${gitSettings}`]: 'http.schannelUseSSLCAInfo', [`GIT_CONFIG_VALUE_${gitSettings}`]: 'true',
       [`GIT_CONFIG_KEY_${gitSettings + 1}`]: 'http.sslVerify', [`GIT_CONFIG_VALUE_${gitSettings + 1}`]: 'true',
       NODE_EXTRA_CA_CERTS: cafile, NODE_USE_SYSTEM_CA: '0', NODE_TLS_REJECT_UNAUTHORIZED: '1',
       NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --use-openssl-ca`.trim(),
-    })
+    }
+    for (const key of Object.keys(process.env)) {
+      if (key !== 'GIT_PROXY_SSL_CAINFO' && key.toUpperCase() === 'GIT_PROXY_SSL_CAINFO') environment[key] = undefined
+    }
+    return await operation(cafile, environment)
   } finally { await rm(directory, { recursive: true, force: true }) }
 }
