@@ -9,6 +9,10 @@ const outfile = process.env.GROMA_BUILD_OUTFILE
   ?? process.argv[2]
   ?? path.join('dist', process.platform === 'win32' ? 'groma.exe' : 'groma')
 const target = process.env.GROMA_BUILD_TARGET as Bun.Build.CompileTarget | undefined
+const executablePath = process.env.GROMA_BUILD_EXECUTABLE_PATH
+if (target !== undefined && executablePath === undefined) {
+  throw new Error('Prepare the target runtime with Node.js: node scripts/prepare-bun-runtime.cjs <target>')
+}
 const dependencyAssets = Object.entries({
   ...packageJson.dependencies,
   ...packageJson.devDependencies,
@@ -53,6 +57,7 @@ async function prepareRendererAsset(root: string): Promise<string> {
 const packedRoot = await mkdtemp(path.join(os.tmpdir(), 'groma-compile-assets-'))
 const compile: Bun.CompileBuildOptions = {
   outfile,
+  executablePath: executablePath ?? process.execPath,
   assets: [
     ...await prepareCreditAssets(packedRoot),
     await prepareRendererAsset(packedRoot),

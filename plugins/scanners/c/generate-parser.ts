@@ -6,7 +6,7 @@ import path from 'node:path'
 // Maintainer command only. Package builds and consumers use the checked-in WASM.
 const cli = process.argv[2] ?? 'tree-sitter'
 const version = execFileSync(cli, ['--version'], { encoding: 'utf8' }).trim()
-if (version !== 'tree-sitter 0.26.3') throw new Error(`Expected tree-sitter 0.26.3, received ${version}`)
+if (version !== 'tree-sitter 0.27.1') throw new Error(`Expected tree-sitter 0.27.1, received ${version}`)
 const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-c-grammar-'))
 try {
   await writeFile(path.join(temporary, 'tree-sitter.json'), JSON.stringify({

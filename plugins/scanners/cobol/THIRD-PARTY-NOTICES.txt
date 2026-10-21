@@ -1,5 +1,6 @@
-The COBOL scanner distributes the unmodified Eclipse COBOL Language Support
-2.5.1 server.jar from the published VS Code extension. It is licensed under
+The COBOL scanner distributes the Eclipse COBOL Language Support
+2.5.1 server.jar from the published VS Code extension, with the logging-library
+replacement described below. It is licensed under
 the Eclipse Public License 2.0. The license accompanies this package in
 ECLIPSE-LICENSE.txt. Copyright and dependency notices remain in engine.jar,
 including its META-INF license and notice resources.
@@ -14,3 +15,11 @@ https://github.com/eclipse-che4z/che-che4z-lsp-for-cobol/releases/tag/2.5.1
 The bundled Java runtime retains the build JDK's legal directory and license
 files. Groma's adapter and worker source are distributed under the repository's
 MIT license. The bundled @groma/scanner contract is covered by that license.
+
+Security modification: Groma removes the engine's embedded Logback 1.3.16 and
+SLF4J 2.0.9 classes, service-provider entry and Maven metadata. The package ships
+complete replacement JARs for Logback Core and Classic 1.6.5 and SLF4J API 2.0.20
+under dist/lib. Their original license and notice resources remain in those JARs.
+Logback is dual licensed under EPL 1.0 and LGPL 2.1; SLF4J is MIT licensed.
+https://github.com/qos-ch/logback/tree/v_1.6.5
+https://github.com/qos-ch/slf4j/tree/v_2.0.20

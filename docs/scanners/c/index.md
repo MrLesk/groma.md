@@ -244,6 +244,8 @@ and other unsupported syntax retain the uncertainty described above.
 From this repository, with its locked Bun dependencies installed:
 
 ```sh
+export TREE_SITTER_WASI_SDK_PATH=/path/to/wasi-sdk-34
+export TREE_SITTER_BINARYEN_PATH=/path/to/binaryen-version_133
 bun plugins/scanners/c/build.ts
 ```
 
@@ -260,11 +262,13 @@ release stage builds this portable package on each host.
 Only maintainers changing `grammar/grammar.cjs` regenerate the checked-in binary:
 
 ```sh
+export TREE_SITTER_WASI_SDK_PATH=/path/to/wasi-sdk-34
+export TREE_SITTER_BINARYEN_PATH=/path/to/binaryen-version_133
 bun plugins/scanners/c/generate-parser.ts /path/to/tree-sitter
 ```
 
-The generator requires Tree-sitter CLI 0.26.3 and its supported WASM build toolchain
-(WASI SDK or Emscripten). Consumers and normal package builds do not run it.
+The generator requires Tree-sitter CLI 0.27.1 and its supported WASM build toolchain
+(the checked-in asset uses WASI SDK 34 and Binaryen 133). Consumers and normal package builds do not run it.
 The grammar extension keeps source bytes and positions intact. Validate grammar
 changes against the pinned upstream syntax corpus as well as the scanner tests.
 

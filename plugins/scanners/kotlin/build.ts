@@ -5,6 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { runtimeCertificates } from '../../../src/certificate-trust.ts'
 import { buildJvmPackage, jdkTool } from '../jvm-package.ts'
 
 const execute = promisify(execFile)
@@ -18,15 +19,15 @@ const libraries = [
     'ef19419c765e7ac8404465fa026ca8fc4dbb8a822de0fc79aa53c8dce29f1d02'],
   [`org/jetbrains/kotlin/kotlin-stdlib/${kotlin}/kotlin-stdlib-${kotlin}.jar`,
     'bd8250210584cb659847dce9cda660f8e9906e5def7fbebcea93dc6dcb6a88a3'],
-  ['org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.8.0/kotlinx-coroutines-core-jvm-1.8.0.jar',
-    '9860906a1937490bf5f3b06d2f0e10ef451e65b95b269f22daf68a3d1f5065c5'],
+  ['org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.11.0/kotlinx-coroutines-core-jvm-1.11.0.jar',
+    'd1d75aa01dffbb4d1c520e67e4c4e7f5f6174718e7cb4632412503f2f0e604fa'],
 ] as const
 // Needed only while the compiler compiles the worker; never shipped.
-const buildOnly = ['org/jetbrains/annotations/13.0/annotations-13.0.jar',
-  'ace2a10dc8e2d5fd34925ecac03e4988b2c0f851650c94b8cef49ba1bd111478'] as const
+const buildOnly = ['org/jetbrains/annotations/26.1.0/annotations-26.1.0.jar',
+  'ebc7aec252ed0c7d2d04c039d7f00e69f7b86b1f493c741d67b3ef31b986b054'] as const
 
 async function download([artifact, hash]: readonly [string, string], directory: string): Promise<string> {
-  const response = await fetch(`${maven}/${artifact}`)
+  const response = await fetch(`${maven}/${artifact}`, { tls: { ca: runtimeCertificates() }, decompress: false, headers: { 'Accept-Encoding': 'identity' } })
   if (!response.ok) throw new Error(`Could not download ${artifact}: ${response.status}`)
   const jar = Buffer.from(await response.arrayBuffer())
   if (createHash('sha256').update(jar).digest('hex') !== hash) throw new Error(`Unexpected checksum for ${artifact}`)

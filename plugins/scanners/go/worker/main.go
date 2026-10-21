@@ -52,7 +52,7 @@ func scan(directory string, input io.Reader) (*observation, error) {
 	}
 	result := &observation{
 		SchemaVersion: 1,
-		Scanner:       identity{"go", "go", "go/parser + go/types", runtime.Version() + " / x/tools v0.49.0"},
+		Scanner:       identity{"go", "go", "go/parser + go/types", runtime.Version() + " / x/tools v0.52.0"},
 		Roots:         []root{}, Files: []sourceFile{},
 		Operations: []operation{}, Invocations: []invocation{},
 		EntryPoints:   []entryPoint{},

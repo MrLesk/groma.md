@@ -32,7 +32,7 @@ export async function writeNotices(manifest: string, output: string): Promise<vo
 }
 
 function upstreamNotice(item: CargoPackage): string {
-  const repository = item.repository?.split('/').at(4)
+  const repository = item.name.startsWith('ra_ap_') ? 'rust-analyzer' : item.repository?.split('/').at(4)?.replace(/\.git$/, '')
   const license = repository && upstreamLicenses[repository as keyof typeof upstreamLicenses]
   if (!license) throw new Error(`Review missing license texts for ${item.name}@${item.version}`)
   return `\nMIT license text from ${license.source}\n\n${license.text}\n`

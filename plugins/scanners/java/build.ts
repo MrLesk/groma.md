@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { jdkTool, writeNpmNotices } from '../jvm-package.ts'
+import { jdkTool, secureJavaTrustStore, writeNpmNotices } from '../jvm-package.ts'
 
 const execute = promisify(execFile)
 const pluginRoot = fileURLToPath(new URL('./', import.meta.url))
@@ -31,6 +31,7 @@ export async function buildPackage(destination: string): Promise<void> {
   await mkdir(path.dirname(runtime), { recursive: true })
   await execute(jdkTool('jlink'), ['--add-modules', 'jdk.compiler,java.xml,jdk.zipfs', '--strip-debug',
     '--no-header-files', '--no-man-pages', '--output', runtime])
+  await secureJavaTrustStore(path.join(runtime, 'lib/security/cacerts'))
   const settings = await execute(jdkTool('java'), ['-XshowSettings:properties', '-version'])
   const javaHome = settings.stderr.match(/java.home = (.+)/)?.[1]?.trim()
   if (!javaHome) throw new Error('Cannot locate the build JDK for compiler release definitions.')

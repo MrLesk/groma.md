@@ -1,13 +1,13 @@
 {
   "name": "@groma/scanner-typescript",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
     "@groma/scanner": "workspace:*",
-    "typescript": "7.1.0-dev.20260924.1"
+    "typescript": "7.1.0-beta"
   },
   "description": "TypeScript source and call evidence using the native TypeScript SDK.",
   "groma": {

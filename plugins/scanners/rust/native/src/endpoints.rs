@@ -367,7 +367,7 @@ impl Reader<'_, '_> {
         if let [function] = local.as_slice() { return Some(*function) }
         if !local.is_empty() { return None }
         let crate_members: Vec<_> = candidates.iter().copied()
-            .filter(|candidate| candidate.module(self.sema.db).krate() == module.krate()).collect();
+            .filter(|candidate| candidate.module(self.sema.db).krate(self.sema.db) == module.krate(self.sema.db)).collect();
         match crate_members.as_slice() { [function] => Some(*function), _ => None }
     }
 

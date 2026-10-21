@@ -1,6 +1,6 @@
 {
   "name": "@groma/scanner-mojo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
   "license": "MIT",
@@ -9,12 +9,37 @@
     "scanner": {
       "id": "mojo",
       "entry": "./src/index.ts",
-      "include": ["**/*.mojo", "**/*.🔥"],
-      "exclude": [".pixi/", "build/", "tests/", "test/", "test_*.mojo", "test_*.🔥"],
+      "include": [
+        "**/*.mojo",
+        "**/*.\ud83d\udd25"
+      ],
+      "exclude": [
+        ".pixi/",
+        "build/",
+        "tests/",
+        "test/",
+        "test_*.mojo",
+        "test_*.\ud83d\udd25"
+      ],
       "discovery": {
-        "technologies": ["mojo"],
-        "rules": [{ "type": "file", "files": ["**/*.mojo", "**/*.🔥"], "technology": "mojo", "kind": "language", "declaration": "Mojo source files" }],
-        "compatibility": { "groma": ">=0.6.6" }
+        "technologies": [
+          "mojo"
+        ],
+        "rules": [
+          {
+            "type": "file",
+            "files": [
+              "**/*.mojo",
+              "**/*.\ud83d\udd25"
+            ],
+            "technology": "mojo",
+            "kind": "language",
+            "declaration": "Mojo source files"
+          }
+        ],
+        "compatibility": {
+          "groma": ">=0.6.6"
+        }
       }
     }
   },

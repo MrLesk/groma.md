@@ -60,7 +60,7 @@ pub fn attribute_routes(function: &ast::Fn) -> Vec<(String, String)> {
         .filter_map(|attribute| {
             let name = attribute.path()?.segment()?.name_ref()?;
             let method = method_of(&name.text())?;
-            Some((method, first_string(&attribute.token_tree()?)?))
+            Some((method, first_string(&attribute_tokens(attribute)?)?))
         })
         .collect()
 }
@@ -71,10 +71,15 @@ pub fn ranked(function: &ast::Fn) -> bool {
         let name = attribute.path().and_then(|path| path.segment()?.name_ref());
         name.is_some_and(|name| method_of(&name.text()).is_some())
     });
-    let mut tokens = routes.filter_map(|attribute| attribute.token_tree()).flat_map(|tree| {
+    let mut tokens = routes.filter_map(attribute_tokens).flat_map(|tree| {
         tree.syntax().descendants_with_tokens().filter_map(|element| element.into_token()).collect::<Vec<_>>()
     });
     tokens.any(|token| token.kind() == SyntaxKind::IDENT && token.text() == "rank")
+}
+
+fn attribute_tokens(attribute: ast::Attr) -> Option<ast::TokenTree> {
+    let ast::Meta::TokenTreeMeta(meta) = attribute.meta()? else { return None };
+    meta.token_tree()
 }
 
 /// Parameters whose type is not `&str` or `String`.

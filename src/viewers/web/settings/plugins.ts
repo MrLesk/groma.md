@@ -1,7 +1,7 @@
 import type { WebDataSource } from '../data.ts'
 import { escaped } from '../atoms/escape.ts'
 import { scannerName } from '../scanners/name.ts'
-import { isNpmPackageName } from '../../../scanner/modules/published.ts'
+import { isNpmPackageName } from '../../../scanner/modules/package-name.ts'
 import { pluginGroups, pluginSettingAction, pluginUpgradeAction, scannerMatchReason, type PluginSetting, type ScannerSetting, type PluginSettings, type PluginSettingsAction } from '../../../plugins/settings-model.ts'
 
 export const pluginSettingsCss = `

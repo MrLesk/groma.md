@@ -6,7 +6,7 @@ import { createScanObservation, type CodeFile, type ScanDiagnostic, type Scanner
 
 const distribution = fileURLToPath(new URL('../dist/', import.meta.url))
 const runtime = path.join(distribution, `${process.platform}-${process.arch}`, 'runtime/bin', process.platform === 'win32' ? 'java.exe' : 'java')
-const classpath = ['worker.jar', 'engine.jar'].map(file => path.join(distribution, file)).join(path.delimiter)
+const classpath = ['worker.jar', 'lib/*', 'engine.jar'].map(file => path.join(distribution, file)).join(path.delimiter)
 
 interface Program {
   id: string; file: string; name: string; line: number; position: number; topLevel: boolean

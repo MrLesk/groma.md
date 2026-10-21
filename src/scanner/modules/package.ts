@@ -5,7 +5,8 @@ import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/p
 import path from 'node:path'
 import { exactVersion, stringArray } from '../../config.ts'
 import { installDependencies } from './package-manager.ts'
-import { isNpmPackageName } from './published.ts'
+import { isNpmPackageName } from './package-name.ts'
+import { runtimeCertificates, withCertificateTrust } from '../../certificate-trust.ts'
 
 export interface NpmScannerSource {
   kind: 'npm'
@@ -206,9 +207,9 @@ async function installNpmScanner(
   return resolved
 }
 
-async function git(directory: string, ...args: string[]): Promise<string> {
+async function runGit(directory: string, args: string[], environment = process.env): Promise<string> {
   const child = Bun.spawn(['git', ...args], {
-    cwd: directory, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    cwd: directory, env: { ...environment, GIT_TERMINAL_PROMPT: '0' },
     stdout: 'pipe', stderr: 'pipe', stdin: 'ignore',
   })
   const [code, stdout, stderr] = await Promise.all([
@@ -216,6 +217,19 @@ async function git(directory: string, ...args: string[]): Promise<string> {
   ])
   if (code !== 0) throw new Error(`could not install Git scanner: ${stderr.trim()}`)
   return stdout.trim()
+}
+
+async function git(directory: string, ...args: string[]): Promise<string> {
+  if (args[0] !== 'fetch') return runGit(directory, args)
+  // Git has its own CA configuration; preserve the selected bundle and remove compromised keys.
+  const configured = Bun.spawnSync(['git', 'config', '--path', '--get-urlmatch', 'http.sslCAInfo', args[2]!], {
+    cwd: directory, stdout: 'pipe', stderr: 'pipe',
+  })
+  if (configured.exitCode > 1) throw new Error(configured.stderr.toString().trim())
+  const file = process.env.GIT_SSL_CAINFO ?? (configured.stdout.toString().trim() || undefined)
+  const certificates = file ? [await readFile(path.resolve(directory, file), 'utf8')] : runtimeCertificates()
+  return withCertificateTrust(certificates, async (_cafile, environment) =>
+    runGit(directory, ['-c', `http.${args[2]}.sslVerify=true`, '-c', `http.${args[2]}.schannelUseSSLCAInfo=true`, ...args], { ...process.env, ...environment }))
 }
 
 async function installGitScanner(

@@ -15,8 +15,8 @@ import {
   type ImportClause,
   type Node,
   type SourceFile,
-} from 'typescript/unstable/ast'
-import type { Checker } from 'typescript/unstable/async'
+} from 'typescript/ast'
+import type { Checker } from 'typescript/async'
 
 interface ImportBinding {
   name: Identifier

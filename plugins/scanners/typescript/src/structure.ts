@@ -1,7 +1,7 @@
 import path from 'node:path'
 
-import { API } from 'typescript/unstable/async'
-import { SyntaxKind } from 'typescript/unstable/ast'
+import { API } from 'typescript/async'
+import { SyntaxKind } from 'typescript/ast'
 
 import type { CodeFile, SourceReference } from '@groma/scanner'
 import { outlineSource } from '../../typescript-outline.ts'

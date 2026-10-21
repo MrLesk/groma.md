@@ -11,5 +11,8 @@
   <ItemGroup>
     <Compile Remove="test/**/*.cs" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" PrivateAssets="all" />
+    <PackageReference Include="Humanizer.Core" Version="3.0.10" />
+    <PackageReference Include="System.Composition" Version="10.0.13" />
   </ItemGroup>
 </Project>

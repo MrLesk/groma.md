@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import { createHash } from 'node:crypto'
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -18,6 +19,17 @@ async function setup() {
     await cp(fixture, root, { recursive: true })
     if (process.env.GROMA_TEST_COBOL_PACKAGE) await cp(process.env.GROMA_TEST_COBOL_PACKAGE, artifact, { recursive: true })
     else await buildPackage(artifact)
+    const engine = await readFile(path.join(artifact, 'dist/engine.jar'))
+    // ZIP entry names remain literal in the central directory, even when class bodies are compressed.
+    expect(engine.includes(Buffer.from('ch/qos/logback/core/Context.class'))).toBeFalse()
+    expect(engine.includes(Buffer.from('org/slf4j/Logger.class'))).toBeFalse()
+    for (const [jar, hash] of [
+      ['logback-core-1.6.5.jar', '03dcbf053b40166849b8eb0a30cbde40c04a448820e9a7589c4b0a2ec3a9db63'],
+      ['logback-classic-1.6.5.jar', '2e8c73aadad525e854af1ac95793af3dc75ecedd53c010ea2389de44c08e729b'],
+      ['slf4j-api-2.0.20.jar', '7e1446499b359675d8aabe6af2de86b85e72ae8a2a932c0b40d0e5ba57097439'],
+    ]) {
+      expect(createHash('sha256').update(await readFile(path.join(artifact, 'dist/lib', jar!))).digest('hex')).toBe(hash!)
+    }
     const scanner: ScannerPlugin = (await import(pathToFileURL(path.join(artifact, 'src/index.js')).href)).default
     return { temporary, root, scanner }
   } catch (error) { await rm(temporary, { recursive: true, force: true }); throw error }

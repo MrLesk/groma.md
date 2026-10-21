@@ -1,7 +1,7 @@
-import * as ast from 'typescript/unstable/ast'
+import * as ast from 'typescript/ast'
 import {
   SymbolFlags, TypeFlags, type Checker as NativeChecker, type NodeHandle, type Symbol as NativeSymbol, type Type,
-} from 'typescript/unstable/async'
+} from 'typescript/async'
 
 import type { Checker } from '../../http-checker.ts'
 import type { RouterCompiler } from '../../http-routers.ts'

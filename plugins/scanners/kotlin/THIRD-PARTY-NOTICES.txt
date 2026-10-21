@@ -5,7 +5,7 @@ The package ships these unmodified jars under dist/lib:
 
   kotlin-compiler-embeddable 2.4.21   Apache License 2.0
   kotlin-stdlib 2.4.21                Apache License 2.0
-  kotlinx-coroutines-core-jvm 1.8.0   Apache License 2.0
+  kotlinx-coroutines-core-jvm 1.11.0   Apache License 2.0
 
 Kotlin 2.4.21
 https://github.com/JetBrains/kotlin/tree/v2.4.21/license
@@ -19,8 +19,8 @@ https://github.com/JetBrains/kotlin/tree/v2.4.21/license
    Kotlin Compiler
    Copyright 2010-2024 JetBrains s.r.o and respective authors and developers
 
-kotlinx.coroutines 1.8.0
-https://github.com/Kotlin/kotlinx.coroutines/blob/1.8.0/LICENSE.txt
+kotlinx.coroutines 1.11.0
+https://github.com/Kotlin/kotlinx.coroutines/blob/1.11.0/LICENSE.txt
 Copyright 2000-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
 
 Apache License 2.0, which applies to all three jars

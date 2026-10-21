@@ -53,7 +53,7 @@ pub fn operation_tokens(
 
 struct BodyTokens<'a, 'db> {
     sema: &'a Semantics<'db, RootDatabase>,
-    slots: HashMap<Local, usize>,
+    slots: HashMap<Local<'db>, usize>,
     /// The slots each local name is bound to, with the range where each binding is visible, for
     /// names inside macro arguments.
     bindings_by_name: HashMap<String, Vec<(usize, TextRange)>>,
@@ -62,7 +62,7 @@ struct BodyTokens<'a, 'db> {
     tokens: Vec<String>,
 }
 
-impl BodyTokens<'_, '_> {
+impl<'db> BodyTokens<'_, 'db> {
     fn push(&mut self, token: &SyntaxToken) {
         let kind = token.kind();
         if kind.is_trivia() {
@@ -124,19 +124,19 @@ impl BodyTokens<'_, '_> {
         let text = name.text();
         // Without the standard library, the engine reads unresolved names such as `None` or a
         // glob-imported `Less` as bindings. By Rust convention these are variants or constants.
-        if text.as_str().starts_with(char::is_uppercase) {
+        if text.starts_with(char::is_uppercase) {
             return None;
         }
         let local = self.sema.to_def(pattern)?;
         let slot = self.slot(local);
         if let Some(scope) = pattern.syntax().ancestors().find(|node| SCOPES.contains(&node.kind())) {
             let visible = visible_range(pattern.syntax(), &scope);
-            self.bindings_by_name.entry(text.as_str().to_owned()).or_default().push((slot, visible));
+            self.bindings_by_name.entry(text.to_owned()).or_default().push((slot, visible));
         }
         Some(slot)
     }
 
-    fn slot(&mut self, local: Local) -> usize {
+    fn slot(&mut self, local: Local<'db>) -> usize {
         let next = self.slots.len();
         *self.slots.entry(local).or_insert(next)
     }

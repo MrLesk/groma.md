@@ -1,8 +1,8 @@
 Bundled parser dependencies
 ==========================
 
-Scalameta 4.17.3
-https://raw.githubusercontent.com/scalameta/scalameta/v4.17.3/LICENSE.md
+Scalameta 4.17.4
+https://raw.githubusercontent.com/scalameta/scalameta/v4.17.4/LICENSE.md
 
 Copyright (c) 2014-2018 EPFL
 Copyright (c) 2016-2018 Twitter, Inc.
@@ -34,8 +34,8 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-Scala 3.9.0
-https://raw.githubusercontent.com/scala/scala3/3.9.0/LICENSE
+Scala 3.10.0
+https://raw.githubusercontent.com/scala/scala3/3.10.0/LICENSE
 
                                  Apache License
                            Version 2.0, January 2004
@@ -241,7 +241,7 @@ https://raw.githubusercontent.com/scala/scala3/3.9.0/LICENSE
 
 
 Scala notices
-https://raw.githubusercontent.com/scala/scala3/3.9.0/NOTICE.md
+https://raw.githubusercontent.com/scala/scala3/3.10.0/NOTICE.md
 
 Scala 3 (https://www.scala-lang.org)
 Copyright 2012-2026 EPFL

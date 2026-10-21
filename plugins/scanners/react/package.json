@@ -1,6 +1,6 @@
 {
   "name": "@groma/scanner-react",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": false,
   "type": "module",
   "license": "MIT",
@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@types/react": "19.3.0",
-    "react": "19.3.0"
+    "react": "19.3.1"
   },
   "description": "Complementary React framework evidence; a dependency declaration does not verify runtime use."
 }

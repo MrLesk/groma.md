@@ -1,13 +1,14 @@
 import { execFile } from 'node:child_process'
-import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import { access, cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
+import { runtimeCertificates } from '../../../src/certificate-trust.ts'
 
 const execute = promisify(execFile)
 const root = fileURLToPath(new URL('./', import.meta.url))
-const sdkVersion = '3.13.5'
+const sdkVersion = '3.13.6'
 
 /** Build only: the native executable embeds analyzer and a Dart runtime, so scans need neither SDK nor dependencies. */
 export async function buildPackage(destination: string): Promise<void> {
@@ -19,7 +20,16 @@ export async function buildPackage(destination: string): Promise<void> {
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-dart-build-'))
   try {
     await cp(path.join(root, 'worker'), temporary, { recursive: true, filter: source => path.basename(source) !== '.dart_tool' })
-    await execute(dart, ['pub', 'get', '--enforce-lockfile'], { cwd: temporary })
+    // The dart launcher does not forward certificate flags to dartdev's VM.
+    const certificates = path.join(temporary, 'ca-certificates.pem')
+    await writeFile(certificates, runtimeCertificates().join('\n'), { mode: 0o600 })
+    const runtime = path.join(path.dirname(dart), process.platform === 'win32' ? 'dartaotruntime.exe' : 'dartaotruntime')
+    const dartdev = path.join(path.dirname(dart), 'snapshots/dartdev_aot.dart.snapshot')
+    const resolution = await execute(runtime, [`--root-certs-file=${certificates}`, dartdev, 'pub', 'get', '--enforce-lockfile'], { cwd: temporary })
+    // Without its launcher, dartdev cannot propagate a failed command's exit code.
+    // A successful resolution must create this file; the source copy excludes it.
+    try { await access(path.join(temporary, '.dart_tool/package_config.json')) }
+    catch { throw new Error(`Dart package resolution failed: ${resolution.stderr || resolution.stdout}`) }
     await execute(dart, ['analyze', '--fatal-infos'], { cwd: temporary })
     const assets = path.join(destination, 'dist', `${process.platform}-${process.arch}`)
     await mkdir(assets, { recursive: true })

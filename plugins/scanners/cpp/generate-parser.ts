@@ -7,7 +7,7 @@ import path from 'node:path'
 // Maintainer command only. Normal package builds use the checked-in WASM file.
 const cli = process.argv[2] ?? 'tree-sitter'
 const version = execFileSync(cli, ['--version'], { encoding: 'utf8' }).trim()
-if (version !== 'tree-sitter 0.26.3') throw new Error(`Expected tree-sitter 0.26.3, received ${version}`)
+if (version !== 'tree-sitter 0.27.1') throw new Error(`Expected tree-sitter 0.27.1, received ${version}`)
 const require = createRequire(import.meta.url)
 const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-cpp-grammar-'))
 try {

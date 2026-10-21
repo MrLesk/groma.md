@@ -2,7 +2,7 @@ import {
   isCallExpression, isClassDeclaration, isDecorator, isIdentifier, isMethodDeclaration, isNewExpression,
   isPropertyAccessExpression,
   type CallExpression, type Node, type SourceFile,
-} from 'typescript/unstable/ast'
+} from 'typescript/ast'
 
 import { below, type Placed, type Placement } from '../../http-order.ts'
 import { blockedPath, endpointPath, readablePrefix } from '../../http-paths.ts'

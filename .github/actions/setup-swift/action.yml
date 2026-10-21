@@ -3,21 +3,21 @@ description: Install the compiler and native packaging tools used by scanner bui
 runs:
   using: composite
   steps:
-    # v1.14.0 runs on Node 24 and imports the Swift signing keys itself, with a keyserver fallback.
-    - uses: SwiftyLab/setup-swift@38f54a76b70d989321de9dc7c840618c08cf56e9
+    # v1.14.2 runs on Node 24 and imports the Swift signing keys itself, with a keyserver fallback.
+    - uses: SwiftyLab/setup-swift@d60245579ea3836a3f2fa65ebbe1e8891d577c76
       if: runner.os != 'Windows'
       with:
-        swift-version: '6.3.3'
+        swift-version: '6.4.1'
     # The swift.org compiler this installs does not find the macOS SDK the way Xcode's compiler does.
     - name: Point the Swift toolchain at the macOS SDK
       if: runner.os == 'macOS'
       run: echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> "$GITHUB_ENV"
       shell: bash
-    - uses: compnerd/gha-setup-swift@bbae8ce86bac5a3449f3992b3d88bc4ca25f2057
+    - uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f
       if: runner.os == 'Windows'
       with:
-        swift-version: swift-6.3.3-release
-        swift-build: 6.3.3-RELEASE
+        swift-version: swift-6.4.1-release
+        swift-build: 6.4.1-RELEASE
         build_arch: ${{ runner.arch == 'ARM64' && 'arm64' || 'amd64' }}
     - name: Install Linux library packaging tool
       if: runner.os == 'Linux'

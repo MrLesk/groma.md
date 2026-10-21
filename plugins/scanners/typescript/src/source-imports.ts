@@ -1,6 +1,6 @@
 import path from 'node:path'
-import { isStringLiteral, type SourceFile, type Node } from 'typescript/unstable/ast'
-import type { Checker } from 'typescript/unstable/async'
+import { isStringLiteral, type SourceFile, type Node } from 'typescript/ast'
+import type { Checker } from 'typescript/async'
 
 export async function resolvedImports(root: string, source: SourceFile, specifiers: string[], checker: Checker): Promise<string[]> {
   const used = new Set(specifiers)

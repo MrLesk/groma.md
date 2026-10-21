@@ -1,6 +1,8 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { packageManagerCertificates } from './package-trust.ts'
+import { withCertificateTrust } from '../../certificate-trust.ts'
 
 /**
  * The only code in `src/` that reads scanner releases from a package registry or downloads them. The release script
@@ -13,17 +15,19 @@ import path from 'node:path'
 
 /** Groma's own executable is Bun, and `BUN_BE_BUN` makes it act as the `bun` command. */
 async function runPackageManager(directory: string, args: string[], registry?: string, signal?: AbortSignal) {
-  const command = [process.execPath, ...args]
-  if (registry !== undefined) command.push(`--registry=${registry}`)
-  const child = Bun.spawn(command, {
-    cwd: directory,
-    env: { ...process.env, BUN_BE_BUN: '1' },
-    stdout: 'pipe', stderr: 'pipe', signal,
+  return withCertificateTrust(await packageManagerCertificates(directory), async (cafile, environment) => {
+    const command = [process.execPath, ...args, `--cafile=${cafile}`]
+    if (registry !== undefined) command.push(`--registry=${registry}`)
+    const child = Bun.spawn(command, {
+      cwd: directory,
+      env: { ...process.env, ...environment, BUN_BE_BUN: '1' },
+      stdout: 'pipe', stderr: 'pipe', signal,
+    })
+    const [exitCode, stdout, stderr] = await Promise.all([
+      child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
+    ])
+    return { exitCode, stdout, stderr }
   })
-  const [exitCode, stdout, stderr] = await Promise.all([
-    child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
-  ])
-  return { exitCode, stdout, stderr }
 }
 
 /**

@@ -1,4 +1,5 @@
-import { isNpmPackageName, publishedScannerSource } from './published.ts'
+import { publishedScannerSource } from './published.ts'
+import { isNpmPackageName } from './package-name.ts'
 import {
   readGromaConfig,
   updateGromaConfig,
