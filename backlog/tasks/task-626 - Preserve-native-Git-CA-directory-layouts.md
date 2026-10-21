@@ -4,7 +4,7 @@ title: Preserve native Git CA directory layouts
 status: In Progress
 assignee: []
 created_date: '2026-10-21T17:47:00Z'
-updated_date: '2026-10-21T18:16:00Z'
+updated_date: '2026-10-21T18:26:00Z'
 labels: []
 dependencies: []
 references:
@@ -12,6 +12,7 @@ references:
   - test-bun/certificate-trust.test.ts
   - .github/workflows/architecture.yml
   - src/certificate-trust.ts
+  - CONTRIBUTING.md
 modified_files:
   - src/scanner/modules/git-trust.ts
   - test-bun/git-ca-directory.test.ts
@@ -39,6 +40,7 @@ modified_files:
   - test/fixtures/certificate-trust/rejected-registry-ca.pem
   - test/fixtures/certificate-trust/trusted-compromised-cas.pem
   - test-bun/certificate-trust.test.ts
+  - CONTRIBUTING.md
 priority: high
 type: bug
 ordinal: 696000
@@ -67,9 +69,5 @@ Git installations using GnuTLS accept ordinary PEM filenames in CA directories. 
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-Preserve filtered ordinary PEM files and revocation lists under their original names. Compact only the original contiguous hash prefix; keep unrecognized regular hash slots empty and preserve original gaps and later names. Native Git regression coverage compares contiguous unrecognized prefixes, original gaps, private authorities and compromised authorities across direct and package-manager flows. The architecture workflow uses the pinned Action, current Node runtime and the latest published Groma and Backlog CLIs.
-
-Ignore dangling CA-directory entries while retaining valid authorities and native hash traversal.
-
-Preserve OpenSSL TRUSTED CERTIFICATE blocks and their auxiliary trust or rejection restrictions while filtering the same compromised keys; retain distinct trusted blocks and plain certificates independently.
+Preserve filtered ordinary PEM and OpenSSL trusted-PEM blocks, their auxiliary trust or rejection attributes, and revocation lists under original names. Compact whole files only within the original hash prefix, retain native empty regular hash slots, and preserve original gaps and later names. Ignore dangling directory entries and skip malformed ordinary sidecar certificates while retaining extracted CRLs; malformed certificate-bearing hash entries and CAfiles remain strict failures. Native Git regression coverage compares private authorities, compromised authorities, trusted-PEM purposes and native directory layouts across direct and package-manager flows. Architecture CI uses the pinned Action, current Node runtime and the latest published Groma and Backlog CLIs.
 <!-- SECTION:PLAN:END -->

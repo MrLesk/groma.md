@@ -104,9 +104,10 @@ to review the PR, then choose **Actions → Groma architecture → Run workflow*
 `pull-request`. The default `0` includes only same-repository PRs. A manual selection applies to that run; later fork
 pushes need another manual run. Each deployment replaces the site with that run's maps and comparisons.
 
-Comparison jobs keep the trusted base checked out and fetch the PR head as Git data. The workflow pins `groma-version`
-independently of the Action commit. Update that pin deliberately when upgrading the architecture reader; both compared
-commits must use a format it can read.
+Comparison jobs keep the trusted base checked out and fetch the PR head as Git data. The workflow pins the Action commit
+and selects the latest published Groma CLI independently through `groma-version: latest`. Both compared commits must use
+a format the current reader can read. After a Groma release, run this workflow to verify the reader against committed
+architecture.
 
 ## Before starting a feature
 

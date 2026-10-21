@@ -150,7 +150,7 @@ jobs:
           git fetch --no-tags origin "$HEAD"
           echo "from=$(git merge-base "$BASE" "$HEAD")" >> "$GITHUB_OUTPUT"
 
-      - uses: MrLesk/groma.md-action@e1757ef2ddc6e34b40c72547c292ab9b2532e226
+      - uses: MrLesk/groma.md-action@1fe0f59468e205725434e36ecdb0483d2ac41d93
         id: map
         with:
           groma-version: 'latest'

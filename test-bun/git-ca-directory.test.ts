@@ -58,6 +58,7 @@ test.concurrent('Git preserves native ordinary PEM directory selection without r
   const f = await directories(), source = path.join(f.home, 'authorities')
   await mkdir(source)
   if (process.platform !== 'win32') await symlink(path.join(f.home, 'missing-ca'), path.join(source, 'dangling.pem'))
+  await writeFile(path.join(source, 'malformed.pem'), '-----BEGIN CERTIFICATE-----\nnot-base64\n-----END CERTIFICATE-----')
   await directoryConfiguration(f, source)
   const corpus = [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n')
   try {

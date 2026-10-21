@@ -54,12 +54,17 @@ async function caSettings(project: string, url?: string): Promise<[string, strin
 }
 
 /** Keep PEM authorities and revocation lists; DER and unrelated directory entries are not copied. */
-async function directoryAuthority(source: string): Promise<string | undefined> {
+async function directoryAuthority(source: string, hashed: boolean): Promise<string | undefined> {
   const content = await readFile(source, 'utf8')
   const certificates = content.match(/-----BEGIN (TRUSTED )?CERTIFICATE-----[\s\S]*?-----END \1CERTIFICATE-----/g) ?? []
   const crls = content.match(/-----BEGIN X509 CRL-----[\s\S]*?-----END X509 CRL-----/g) ?? []
-  const retained = [...(certificates.length ? trustedCertificates(certificates, 'native') : []), ...crls]
-  return certificates.length || crls.length ? retained.join('\n') : undefined
+  try {
+    const retained = [...(certificates.length ? trustedCertificates(certificates, 'native') : []), ...crls]
+    return certificates.length || crls.length ? retained.join('\n') : undefined
+  } catch (error) {
+    if (hashed) throw error // Malformed certificate-bearing hash entries remain strict failures.
+    return crls.length ? crls.join('\n') : undefined
+  }
 }
 
 /** Compact files in the original prefix without making entries beyond its first gap reachable to OpenSSL. */
@@ -88,8 +93,8 @@ async function filteredDirectory(source: string, target: string): Promise<void> 
       throw error
     })
     if (!information?.isFile()) continue
-    const content = await directoryAuthority(filename)
     const match = /^([a-f0-9]{8})\.(0|[1-9][0-9]*)$/i.exec(name)
+    const content = await directoryAuthority(filename, match !== null)
     if (!match) {
       if (content) await writeFile(path.join(target, name), content, { mode: 0o600 })
       continue
