@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T10:51:00Z'
-updated_date: '2026-10-21T12:20:00Z'
+updated_date: '2026-10-21T12:40:00Z'
 labels: []
 dependencies: []
 references:
@@ -94,6 +94,8 @@ The runtime Git scanner fetch is another outbound HTTPS path found during source
 The external npm Backlog installer must keep npm global CA configuration authoritative. Existing trust regressions cover Bun and Git, not npm global installation. Add one real private-HTTPS npm install with NPM_CONFIG_CAFILE while the project has an unrelated blocked Bun CA; the package must install globally into a temporary prefix. This detects incorrectly reusing Bun/project CA selection for npm.
 
 Hosted Windows regression: retain only CAs with keys Bun can decode, dropping the explicit unsupported-public-key error while preserving other failures; cover a real Ed448 CA and fail-closed empty stores. Fix release Windows ARM64 latest Microsoft JDK setup through its verified official archive because the action manifest is stale.
+
+Windows completed source validation exposes test-harness assumptions: bootstrap verification must inspect Node-produced platform CAs through Node, since Bun cannot decode some valid Windows keys; preserve independent SPKI assertions over every CA. Private Git fixture lacks CRL metadata, so its isolated Schannel test configuration must match that fixture while retaining CA verification and all incident-negative assertions. No production TLS or scanner behavior changes.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -110,4 +112,6 @@ Hosted b983d7f Linux and macOS mandatory checks pass:24Node+952Bun/22skip/0fail,
 Gate fixes validated: latest local mandatory bun run check passes lint, TypeScript,24Node and951Bun tests/22skips; only the two unchanged PID-namespace ps-based liveness failures remain, matching prior independently verified environment behavior (975tests total). No disk-space failures occurred. Windows unsupported-key fixture passes10trust tests/142assertions. WindowsARM64 release setup now downloads official Microsoft25.0.4.1 through patched Node, verifies SHA2567118ce03f24d4460c5d4ccaae03a2c695a83cd3e48686fe9bbf3b34166dce588, and supplies setup-java jdkfile to bypass its stale manifest. Strict YAML, inline Node syntax and7 mocked download/security-path probes pass. Hosted native-trust subtask624.4 is Done from actual Linux/macOS/Windows default .NET probe evidence. Final hosted fullchecks and five release platforms remain required.
 
 Latest source head77127d passes complete Linux CI:24Node+953Bun/22skip/0fail, C#31, standalone/fresh packages. Mac CI and Linuxx64/mac release packaging hit only official NASM host ECONNREFUSED; no source or TLS failure. Release WindowsARM64 latest verified JDK installation succeeds, then native-probe offline restore hits its60-second cold SDK setup bound before any TLS assertion. The narrowly scoped helper adjustment gives only offline restore/build180seconds and prints timings; TLS process/HTTP bounds and all rejection assertions are unchanged. Local genuine native proof passes. Fresh exact-head CI/release dispatch will cover cold ARM setup and retry unchanged NASM downloads.
+
+Completed771 Windows job119212932081 proves the runtime unsupported-key fix: COBOL/Scala/Java/Kotlin/fresh-checkout packages, C#31 and standalone all pass. Full suite fails only4 test-harness assumptions:3 bootstrap assertions ask Bun to decode a Node-produced Windows-store key it does not support, and the private Git test CA lacks CRL metadata required by Schannel. Fixes are confined to certificate-trust.test.ts: Node independently inspects every SPKI in the complete bundle; extra Ed448 fixture makes the old inspection fail on allOS; isolated child Git config skips only CRL lookup for all positive/negative fixture commands. Certificate/hostname verification, filtered CA bundles and every incident-negative assertion remain. No production policy changed.10focused tests/148assertions, typecheck and changed-file Biome pass. Source/workflow/scanner/packaging qualification remains943415; subsequent test/task-only changes will be compared explicitly and final PR CI must pass.
 <!-- SECTION:NOTES:END -->

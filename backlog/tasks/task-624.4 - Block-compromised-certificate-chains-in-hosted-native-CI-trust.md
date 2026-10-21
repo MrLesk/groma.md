@@ -1,11 +1,11 @@
 ---
 id: TASK-624.4
 title: Block compromised certificate chains in hosted native CI trust
-status: In Progress
+status: Done
 assignee:
   - '@native-scanners'
 created_date: '2026-10-21T11:25:00Z'
-updated_date: '2026-10-21T12:20:00Z'
+updated_date: '2026-10-21T12:30:00Z'
 labels: []
 dependencies: []
 references:
@@ -35,13 +35,13 @@ Protect Windows and macOS hosted scanner build jobs whose native .NET TLS trust 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 Hosted runner trust mitigation refuses consumer or self-hosted environments and blocks the known compromised signing keys through native OS trust settings
-- [ ] #2 A default .NET HttpClient probe rejects both incident authentication paths while ordinary NuGet HTTPS remains available, with actual platform execution recorded
+- [x] #2 A default .NET HttpClient probe rejects both incident authentication paths while ordinary NuGet HTTPS remains available, with actual platform execution recorded
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [x] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -72,4 +72,12 @@ Hosted verification completed on b983d7f in CI run39594486176. Ubuntu job1192032
 Reopened for a concrete release-only WindowsARM64 setup bound: job119213534921 completed OS trust preparation and all SDK/JDK setup, then offline TrustProbe restore was killedSIGTERM at60seconds with no output. No TLS assertion executed and no trust bypass was observed. Prior Linux/macOS/Windowsx64 negative/positive proof remains valid. Scope the timeout adjustment to offline restore/build preparation and retain every TLS assertion and HTTP/probe deadline.
 
 Scoped ARM SDK setup fix implemented: restore/build each have180-second deadlines with phase start/completion timing; actual TLS execution remains60seconds and requests remain15/30seconds. CJS syntax passes. Genuine local default .NET TLS proof passes with filtered OpenSSL trust: restore1498ms/build2400ms, both incident handshakes rejected before HTTP, normal NuGet HTTPS available. Actual cold WindowsARM64 execution remains required. Other release failures at this head are official NASM host ECONNREFUSED, unrelated to certificate verification; parent will dispatch a fresh build-only workflow after this helper fix.
+
+Actual WindowsARM64 gate now passes on source943415: build-only Release run39599440332 job119219889111 reports Check native HTTPS trust SUCCESS after the scoped cold-SDK preparation adjustment. All five release scanner platforms have successful native-probe steps at this source head, including Windowsx64, macOSARM64, Linuxx64 and LinuxARM64. The probe still requires both original incident TLS chains to fail with AuthenticationException before HTTP and normal NuGet HTTPS to succeed; no assertion or HTTP/probe deadline was relaxed. Prior three-OS full raw log evidence remains above. Full ARM job logs/timing will be added with the final parent packaging evidence when complete.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Apply disposable hosted Windows Disallowed and macOS administrative deny settings before native SDK installers, refusing consumer/self-hosted environments. Genuine default .NET HTTPS probes reject both original incident authentication paths while normal NuGet HTTPS succeeds on all five release platforms, including WindowsARM64. Offline SDK restore/build have separate180-second cold-start bounds and phase timing; actual TLS/HTTP limits are unchanged. Source943415 hosted native steps pass; runner pre-job action archives remain outside this scoped protection.
+<!-- SECTION:FINAL_SUMMARY:END -->

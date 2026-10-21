@@ -121,6 +121,9 @@ test.concurrent('Git scanner HTTPS rejects incident chains and retains the confi
   try {
     const cafile = path.join(f.home, 'git.pem')
     await writeFile(cafile, [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n'))
+    // These local fixture certificates have no CRL endpoint; keep CA verification, but omit that fixture-only lookup.
+    const gitConfig = path.join(f.home, 'git-config')
+    await writeFile(gitConfig, '[http]\n  schannelCheckRevoke = false\n')
     for (const certificate of ['incident-server-emudhra.pem', 'incident-server-aaa.pem', 'registry-server.pem']) {
       let requests = 0
       const server = Bun.serve({ hostname: 'localhost', port: 0,
@@ -130,7 +133,7 @@ test.concurrent('Git scanner HTTPS rejects incident chains and retains the confi
       try {
         const child = Bun.spawn([process.execPath, '-e', source, `git+${server.url.href}repository#fixture`], {
           cwd: f.project, env: { ...process.env, ...f.environment, GIT_SSL_CAINFO: cafile,
-            GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '', NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' },
+            GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' },
           stdout: 'pipe', stderr: 'pipe',
         })
         const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
@@ -194,7 +197,8 @@ for (const workflow of ['ci', 'release', 'architecture']) {
       }
       const step = Object.values(config.jobs)[0]!.steps[0]!
       const extra = path.join(f.root, 'compromised.pem'), environmentFile = path.join(f.root, 'github-env')
-      await writeFile(extra, compromised.certificates.map(certificate => certificate.pem).join('\n'))
+      const unsupported = await readFile(path.join(fixtures, 'unsupported-key-ca.pem'), 'utf8')
+      await writeFile(extra, [...compromised.certificates.map(certificate => certificate.pem), unsupported].join('\n'))
       await writeFile(environmentFile, '')
       const child = Bun.spawn(['bash', '-c', step.run!], { env: { ...process.env, ...f.environment,
         ...config.env, RUNNER_TEMP: f.root, GITHUB_ENV: environmentFile, NODE_EXTRA_CA_CERTS: extra }, stdout: 'pipe', stderr: 'pipe' })
@@ -203,10 +207,20 @@ for (const workflow of ['ci', 'release', 'architecture']) {
       const settings = Object.fromEntries((await readFile(environmentFile, 'utf8')).trim().split('\n').map(line => {
         const split = line.indexOf('='); return [line.slice(0, split), line.slice(split + 1)]
       }))
-      const bundle = await readFile(settings.SSL_CERT_FILE!, 'utf8')
-      const certificates = bundle.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g)!.map(pem => new X509Certificate(pem))
+      // Node understands platform CA algorithms that Bun cannot decode; inspect every key independently.
+      const inspect = `const {readFileSync}=require('node:fs'); const {X509Certificate}=require('node:crypto');
+        const certificates=readFileSync(process.argv[1],'utf8').match(/-----BEGIN CERTIFICATE-----[\\s\\S]*?-----END CERTIFICATE-----/g)??[];
+        process.stdout.write(JSON.stringify(certificates.map(pem=>new X509Certificate(pem).publicKey.export({type:'spki',format:'der'}).toString('base64'))));`
+      const inspection = Bun.spawn(['node', '-e', inspect, settings.SSL_CERT_FILE!], { stdout: 'pipe', stderr: 'pipe' })
+      const [inspectionExit, output, inspectionError] = await Promise.all([
+        inspection.exited, new Response(inspection.stdout).text(), new Response(inspection.stderr).text(),
+      ])
+      expect(inspectionExit, inspectionError).toBe(0)
+      const keys = JSON.parse(output) as string[]
+      expect(keys.length).toBeGreaterThan(0)
       for (const blocked of compromised.certificates) {
-        expect(certificates.some(certificate => certificate.publicKey.equals(new X509Certificate(blocked.pem).publicKey)), blocked.name).toBe(false)
+        const key = new X509Certificate(blocked.pem).publicKey.export({ type: 'spki', format: 'der' }).toString('base64')
+        expect(keys, blocked.name).not.toContain(key)
       }
       expect(settings.NODE_EXTRA_CA_CERTS).toBe(settings.SSL_CERT_FILE)
       expect(settings.NODE_USE_SYSTEM_CA).toBe('0')
