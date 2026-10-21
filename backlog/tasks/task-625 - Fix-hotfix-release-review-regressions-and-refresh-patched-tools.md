@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T14:16:00Z'
-updated_date: '2026-10-21T16:35:00Z'
+updated_date: '2026-10-21T16:53:00Z'
 labels: []
 dependencies: []
 references:
@@ -44,6 +44,7 @@ modified_files:
   - test-bun/certificate-fixtures.ts
   - test-bun/certificate-bootstrap.test.ts
   - test-bun/git-proxy-trust.test.ts
+  - test-bun/git-rewrite-trust.test.ts
 priority: high
 type: bug
 ordinal: 695000
@@ -148,4 +149,8 @@ Fresh exact-head reviews confirmed analogous unrelated scoped CApath abort and a
 Hosted Action Ubuntu Git2.55/GnuTLS disproved the initial empty-proxy-file guard: an empty trust file returns zero imported anchors then still loads proxy CApath. Do not publish that candidate. The corrected guard creates an owned regular marker file and points GIT_PROXY_SSL_CAINFO at its impossible child unavailable.pem, producing a native CA-loader error before proxy requests; Windows aliases receive the same guard. Shared Groma and all three public bootstraps use it. Focused native controls preserve strict raw acceptance for private/both incident proxies with explicit Schannel CAinfo=true, then actual direct/PM calls (including HTTP origins) inherit false and must force strict handling and send zero requests/authentication. HTTP CONNECT/direct private-origin authentication positives pass. Unknown-PM unrelated missing/~user CApath now permits actual npm tarball installation; a selected missing directory retains additive default CAfile trust, whereas selected invalid ~user still fails inside native Git expansion with zero requests. Local trust/JVM suite22pass/506 assertions, typecheck and targeted lint pass; current hosted all-OS and Codex gates must qualify the corrected candidate.
 
 Fresh sibling review reproduced native Git fallback trust widening: with only NODE_EXTRA_CA_CERTS pointing at the private fixture CA, raw Git rejects with zero requests/auth, but pre-fix direct scanner and embedded PM each send one authenticated request. Narrow only the native Git fallback to getCACertificates('system'); explicit Git CAfile/CApath precedence and Bun/npm/runtime trust policies stay unchanged. The fresh-child regression failed before correction and now raw/direct/PM all reject zero requests/auth. The selected-invalid scoped CAfile positive now uses an explicit global Git CAfile, preserving the intended native default-vs-URL selection control without relying on Node-only trust. Document filtered OS system fallback and explicit Git CA configuration for custom native installations; do not claim every backend's compiled defaults are byte-identical. Focused23pass/1Windows-only skip/518 assertions. Earlier425 Linux/mac full suites964pass/23skip/0fail; new exact-head all3OS and code/security reviews remain required.
+
+Fresh actual direct-scanner controls found a distinct rewritten-URL CA-selection gap: both normal HTTPS insteadOf and bundled forced curl-helper rewrites selected the target's original unfiltered CAfile after the helper queried only the alias. Private and both incident peers each received one authenticated HTTP request. Resolve only known direct URLs with native git ls-remote --get-url (no network), strip the four bundled helper aliases before HTTP(S) policy lookup, and remove a rewritten authority password without reserializing the raw username. Original scanner source/fetch argv and unknown-PM CA mappings remain unchanged. New real regression includes ordinary HTTPS and http::/https::/ftp::/ftps:: aliases, raw strict acceptance controls, target-only CA/auth, an equals sign in rewritten username and a fake password. Reverting only effective selection fails all5 cases (incident HTTP/auth1); corrected5pass/150assertions. Full focused28pass/1Windows-only skip/668assertions, typecheck/lint/diffcheck pass. Native compiler/workflow/package sources unchanged; final new-head all3OS/reviews required.
+
+Final bounded compatibility control preserves existing HTTPS-to-SCP/SSH/local rewrites: non-HTTP effective destinations keep the original HTTP-policy lookup while actual Git fetch retains its rewrite. The native no-network SCP regression fails if this guard is omitted; the restored guard passes. Known bundled helper-prefix matching is case-insensitive for Windows. Final focused29pass/1Windows-only skip/671assertions across5files; typecheck/lint/diffcheck pass. Publish this approved source/test/doc/task delta and require new exact-head hosted suites plus both reviews; do not repeat unchanged native compiler preflight.
 <!-- SECTION:NOTES:END -->

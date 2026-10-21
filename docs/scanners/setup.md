@@ -61,7 +61,8 @@ The `proxy` and `https-proxy` keys of `.npmrc` are not read, and neither is a
 Native Git's fallback is the filtered OS system CA store. Configure
 `http.sslCAInfo` / `http.sslCAPath` or `GIT_SSL_CAINFO` / `GIT_SSL_CAPATH` for a
 private CA or a custom Git build with a different CA store. This keeps native Git
-trust separate from Node's bundled and `NODE_EXTRA_CA_CERTS` authorities.
+trust separate from Node's bundled and `NODE_EXTRA_CA_CERTS` authorities. Per-URL
+CA selection follows Git's effective rewritten URL.
 
 Native Git downloads temporarily reject proxy URLs starting with `https://`,
 including private HTTPS proxies. Git cannot isolate their fallback CA directory, which can still trust

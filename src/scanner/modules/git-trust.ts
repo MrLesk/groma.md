@@ -4,10 +4,10 @@ import { getCACertificates } from 'node:tls'
 import { gitEnvironmentSetting, trustedCertificates, withCertificateTrust } from '../../certificate-trust.ts'
 
 /** Read configuration without putting its credential-bearing key names in command arguments or errors. */
-async function configuration(project: string, args: string[]): Promise<string | null | undefined> {
+async function configuration(project: string, args: string[], command: 'config' | 'ls-remote' = 'config'): Promise<string | null | undefined> {
   let child: Bun.Subprocess<'ignore', 'pipe', 'pipe'>
   try {
-    child = Bun.spawn(['git', 'config', ...args], {
+    child = Bun.spawn(['git', command, ...args], {
       cwd: project, stdin: 'ignore', stdout: 'pipe', stderr: 'pipe',
     })
   } catch (error) {
@@ -20,6 +20,20 @@ async function configuration(project: string, args: string[]): Promise<string | 
   if (code === 1) return null
   if (code !== 0) throw new Error('Could not inspect Git TLS configuration.')
   return output
+}
+
+/** Ask Git to expand insteadOf without fetching; keep credentials out of subsequent configuration arguments. */
+async function effectiveUrl(project: string, url: string): Promise<string> {
+  const expanded = await configuration(project, ['--get-url', url], 'ls-remote')
+  if (!expanded) throw new Error('Could not resolve the Git download URL.')
+  const target = expanded.replace(/\r?\n$/, '').replace(/^(?:https?|ftps?)::(?=https?:\/\/)/i, '')
+  if (!/^https?:\/\//i.test(target)) return url // Preserve existing SSH/local rewrites, which do not use HTTP trust.
+  return target.replace(/^([a-z][a-z0-9+.-]*:\/\/)([^/?#]*)/i, (_match, scheme: string, authority: string) => {
+    const at = authority.lastIndexOf('@'), colon = authority.indexOf(':')
+    // Do not reserialize URL.href: Git distinguishes raw '=' usernames from percent-encoded ones.
+    const selected = colon >= 0 && colon < at ? authority.slice(0, colon) + authority.slice(at) : authority
+    return `${scheme}${selected}`
+  })
 }
 
 async function caSettings(project: string, url?: string): Promise<[string, string][]> {
@@ -151,7 +165,7 @@ export async function withGitCertificateTrust<T>(
 ): Promise<T> {
   const keys = await configuration(project, ['--null', '--name-only', '--get-regexp', '^http\\.(.*\\.)?(sslverify|schannelusesslcainfo)$'])
   if (keys === undefined) return operation({}) // Without Git, installation cannot start a Git HTTPS dependency.
-  const configured = await caSettings(project, url)
+  const configured = await caSettings(project, url === undefined ? undefined : await effectiveUrl(project, url))
   return withCertificateTrust(getCACertificates('system'), async (cafile, native) => {
     const files = { project, cafile, empty: native.GIT_SSL_CAPATH! }
     const explicit: NodeJS.ProcessEnv = { sslcainfo: gitEnvironmentSetting('GIT_SSL_CAINFO'), sslcapath: gitEnvironmentSetting('GIT_SSL_CAPATH') }
