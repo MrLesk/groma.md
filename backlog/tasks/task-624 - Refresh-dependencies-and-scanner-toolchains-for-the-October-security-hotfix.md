@@ -1,11 +1,11 @@
 ---
 id: TASK-624
 title: Refresh dependencies and scanner toolchains for the October security hotfix
-status: In Progress
+status: Done
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T10:51:00Z'
-updated_date: '2026-10-21T13:15:00Z'
+updated_date: '2026-10-21T13:44:00Z'
 labels: []
 dependencies: []
 references:
@@ -71,15 +71,15 @@ The eMudhra CA compromise exposes the embedded Bun package manager and developme
 <!-- AC:BEGIN -->
 - [x] #1 The embedded package-manager TLS path rejects the published compromised-intermediate test chains, including cross-signed paths
 - [x] #2 Root and scanner dependencies, native toolchains, and workflow actions are audited and updated to current compatible releases, with any held versions explained
-- [ ] #3 Required repository checks and scanner packaging validation pass before release
+- [x] #3 Required repository checks and scanner packaging validation pass before release
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -124,4 +124,20 @@ Exact9f8 head CI run39601908927 passes full Linux/macOS checks:24Node,953Bun/22s
 The upstream Windows setup-swift action emits a non-failing annotation when it attempts to export NODE_OPTIONS through GITHUB_ENV. Our workflow declares NODE_OPTIONS directly, and actual native TLS rejection checks after Swift setup pass; no trust environment loss is observed. Cold simplicity and full-context complexity reviews pass, with the final fixture correction reviewed by the coordinating agent. Root package version remains0.7.2; v0.7.3 starts by creating its GitHub Release only after merge/checks. Latest stable Bun1.4.3 still has the recorded native PM Brotli vendor limitation; no fully patched Bun runtime is claimed.
 
 The explicit Windows-only fixture backend correction passes all10 certificate-trust tests and151 assertions locally. Repository lint and typecheck pass, and24Node tests pass; the mandatory Bun suite is running in the recovered clean checkout. All production source/workflow/scanner/packaging trees remain unchanged from the five-platform-qualified source. Hosted Windows remains the only platform-specific confirmation for this test configuration.
+
+Final source qualification is green. Exact code/test head f005dd50b578cef079f03ddf041ed80275de4bef passes complete hosted CI run 39606463116 on Linux, macOS and Windows, with all 13 checks successful. Linux/macOS each pass 24 Node tests, 953 Bun tests (22 skips), 31 C# tests, standalone builds and fresh scanner packages. Windows passes 17 Node tests (7 platform skips), 945 Bun tests (30 skips), 31 C# tests, fresh packages and standalone. Its real private Git positive path, both incident-negative paths, all bootstrap regressions and private npm installation pass. All platforms reject both original incident authentication chains through default native .NET HTTPS while ordinary NuGet HTTPS remains available. Full logs: https://github.com/MrLesk/groma.md/actions/runs/39606463116 .
+
+Five-platform packaging qualification remains Release #62 run 39599440332, attempt 2, with publishing disabled: linux-x64, linux-arm64, darwin-arm64, win32-x64 and win32-arm64 all succeed. Runtime, scripts, workflows, scanners, package.json and bun.lock trees remain identical from qualified source 94341542d96f683868a7842a9fae47d14168830b through f005dd50; only trust-test fixtures and task evidence changed. The final umbrella closure is task-record-only and needs no manual code-suite repeat under AGENTS.md; actual GitHub branch requirements remain enforced. All four subtasks are Done. Cold simplicity and full-context complexity reviews pass; the final Windows-only fixture backend selection was reviewed separately. No production revocation policy changed. Qualification: https://github.com/MrLesk/groma.md/actions/runs/39599440332 .
+
+Recovery verification: the original scratch checkout/toolchains were partially lost independently of the repository; a fresh remote clone verifies the exact published source tree. Restoring the existing checked Bun archive by its official checksum and using the surviving patched Node allowed an offline frozen install. Mandatory bun run check was attempted again: lint, typecheck and 24 Node tests pass; the Bun suite reports 883 pass, 62 skip and 30 failures in this reduced environment, including absent native workers/SDK tools (jlink ENOENT), NASM archive ECONNRESET, and the two previously proved PID-namespace liveness limitations. The ten trust regressions still pass all 151 assertions. No native SDKs were rebuilt merely to compensate for scratch loss; the complete hosted checks and five-platform native qualification remain the release evidence.
+
+Final live incident recheck through patched Node 26 strict TLS finds 4 ancestor certificates/4 unique keys and 16 intermediate certificate variants/8 unique keys; every current key is in the committed fixture and SPKI blocklist. Latest upstream remains Bun 1.4.3 and Node 26.12.1, so the recorded Bun vendor limitation has not changed.
+
+Release coordination remains explicit: root package.json is still 0.7.2. After merge and required checks, create GitHub Release v0.7.3 first; the existing workflow prepares and syncs the released root version. This task completion records implementation/review qualification, not a completed release. Stable Bun 1.4.3 native PM Brotli exposure, build-only unused JLine advisories, incompatible/unpublished latest versions, unsupported generic Swift advisory auditing and the runner pre-job archive limitation remain documented in this task and PR #174.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Refreshed compatible dependencies, scanners, native toolchains and CI; scoped trust filtering rejects compromised eMudhra and AAA cross-sign paths while preserving usable private CA configuration. Complete hosted checks pass on Linux, macOS and Windows, and all five release platforms pass scanner packaging and native HTTPS qualification. Ten trust regressions pass 151 assertions; vulnerability-audit coverage and justified version/vendor limits are recorded. Stable Bun's native PM Brotli limitation remains. Release v0.7.3 must start through GitHub Releases after merge and required checks; the root version remains 0.7.2 until that workflow runs.
+<!-- SECTION:FINAL_SUMMARY:END -->
