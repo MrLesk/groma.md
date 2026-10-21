@@ -1,6 +1,6 @@
 {
   "name": "@groma/scanner-angular",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": false,
   "type": "module",
   "license": "MIT",
@@ -53,12 +53,12 @@
     }
   },
   "dependencies": {
-    "@angular/compiler": "22.2.0",
+    "@angular/compiler": "22.2.3",
     "@groma/scanner": "workspace:*",
     "typescript": "6.0.3"
   },
   "devDependencies": {
-    "@angular/core": "22.2.0"
+    "@angular/core": "22.2.3"
   },
   "description": "Complementary Angular framework evidence with its own compatible TypeScript tooling."
 }

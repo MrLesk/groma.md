@@ -94,10 +94,10 @@ level. Core owns file membership, component identity and relationship meaning.
 
 ## Maintainer build and validation
 
-Use Swift 6.3.3. macOS and Linux builds use its SwiftParser and SwiftSyntax host
+Use Swift 6.4.1. macOS and Linux builds use its SwiftParser and SwiftSyntax host
 libraries. macOS also uses Apple's linker and signing tools; Linux needs `ldd`
 and `patchelf`. Windows installers omit parser development modules, so the
-Windows build resolves the SwiftSyntax 603.0.2 commit pinned in `Package.swift`
+Windows build resolves the SwiftSyntax 604.0.0 commit pinned in `Package.swift`
 and links its source into the worker through SwiftPM. This needs Git and network
 access during packaging. Windows builds also use the toolchain's linker and
 `llvm-readobj`, with the Windows SDK and Visual C++ build tools available on CI.

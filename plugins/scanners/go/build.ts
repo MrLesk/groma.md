@@ -31,9 +31,9 @@ export async function buildPackage(destination: string, go = 'go'): Promise<void
   const licensePath = await access(license).then(() => license, () => path.join(goRoot, '../LICENSE'))
   await cp(licensePath, path.join(destination, 'GO-LICENSE'))
   const moduleCache = (await run(go, ['env', 'GOMODCACHE'], pluginRoot)).trim()
-  await cp(path.join(moduleCache, 'golang.org/x/tools@v0.49.0/LICENSE'), path.join(destination, 'GO-TOOLS-LICENSE'))
-  await cp(path.join(moduleCache, 'golang.org/x/sync@v0.22.0/LICENSE'), path.join(destination, 'GO-SYNC-LICENSE'))
-  await cp(path.join(moduleCache, 'golang.org/x/mod@v0.39.0/LICENSE'), path.join(destination, 'GO-MOD-LICENSE'))
+  await cp(path.join(moduleCache, 'golang.org/x/tools@v0.52.0/LICENSE'), path.join(destination, 'GO-TOOLS-LICENSE'))
+  await cp(path.join(moduleCache, 'golang.org/x/sync@v0.24.0/LICENSE'), path.join(destination, 'GO-SYNC-LICENSE'))
+  await cp(path.join(moduleCache, 'golang.org/x/mod@v0.42.0/LICENSE'), path.join(destination, 'GO-MOD-LICENSE'))
 }
 
 if (import.meta.main) {

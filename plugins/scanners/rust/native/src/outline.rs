@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use ra_ap_syntax::ast::{self, HasAttrs, HasGenericParams, HasModuleItem, HasName, VisibilityKind};
-use ra_ap_syntax::{AstNode, Edition, SyntaxElement, SyntaxKind, SyntaxNode};
+use ra_ap_syntax::{AstNode, Edition, SyntaxNode};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -178,34 +178,20 @@ fn top_level(items: impl Iterator<Item = ast::Item>, module: &[String]) -> Vec<S
 
 /// Test code, which the scan does not read either: an item whose `cfg` condition requires `test`.
 fn gated_by_test(node: &impl HasAttrs) -> bool {
-    let conditions = node.attrs().filter(|attr| attr.path().is_some_and(|path| path.syntax().text() == "cfg"));
-    let mut predicates = conditions.filter_map(|attr| attr.token_tree()).map(|tree| arguments(&tree));
-    predicates.any(|arguments| arguments.first().is_some_and(|predicate| requires_test(predicate)))
+    node.attrs().filter_map(|attr| match attr.meta()? {
+        ast::Meta::CfgMeta(meta) => meta.cfg_predicate(),
+        _ => None,
+    }).any(requires_test)
 }
 
 /// `test` itself, or `all(...)` with an argument that requires `test`.
-fn requires_test(predicate: &[SyntaxElement]) -> bool {
-    let named = |element: &SyntaxElement, name: &str| element.as_token().is_some_and(|token| token.text() == name);
+fn requires_test(predicate: ast::CfgPredicate) -> bool {
     match predicate {
-        [condition] => named(condition, "test"),
-        [condition, nested] if named(condition, "all") => {
-            let tree = nested.as_node().cloned().and_then(ast::TokenTree::cast);
-            tree.is_some_and(|tree| arguments(&tree).iter().any(|argument| requires_test(argument)))
-        }
-        _ => false,
+        ast::CfgPredicate::CfgAtom(atom) => atom.eq_token().is_none()
+            && atom.ident_token().is_some_and(|token| token.text() == "test"),
+        ast::CfgPredicate::CfgComposite(composite) => composite.keyword().is_some_and(|token| token.text() == "all")
+            && composite.cfg_predicates().any(requires_test),
     }
-}
-
-/// The comma-separated arguments inside a parenthesized token tree.
-fn arguments(tree: &ast::TokenTree) -> Vec<Vec<SyntaxElement>> {
-    let elements: Vec<SyntaxElement> = tree
-        .syntax()
-        .children_with_tokens()
-        .filter(|element| !element.kind().is_trivia())
-        .filter(|element| !matches!(element.kind(), SyntaxKind::L_PAREN | SyntaxKind::R_PAREN))
-        .collect();
-    let groups = elements.split(|element| element.kind() == SyntaxKind::COMMA);
-    groups.filter(|group| !group.is_empty()).map(<[_]>::to_vec).collect()
 }
 
 /// A top-level fn, or a closure written directly as a `const` or `static` value.

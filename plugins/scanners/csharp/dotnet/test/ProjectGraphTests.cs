@@ -14,7 +14,7 @@ public sealed class ProjectGraphTests
         fixture.Write("G/Lib/Calc.cs", "namespace G; public static class Calc { public static int Score(int a, int b) { int total = a + b; return total * 2; } }");
         fixture.Write("G/One.slnx", "<Solution><Project Path=\"Lib/Lib.csproj\" /></Solution>");
         fixture.Write("G/Two.slnx", "<Solution><Project Path=\"Lib/Lib.csproj\" /></Solution>");
-        ScanObservation scan = await new RoslynScanner().ScanAsync(fixture.Request(["G/One.slnx", "G/Two.slnx"]));
+        ScanObservation scan = await new RoslynScanner().ScanAsync(fixture.Request(["G/One.slnx", "G/Two.slnx"]), TestContext.Current.CancellationToken);
         Assert.Single(scan.Roots, root => root.Kind == "project");
         Assert.Single(scan.Operations!, operation => operation.Name == "G.Calc.Score(int, int)");
     }
@@ -30,7 +30,7 @@ public sealed class ProjectGraphTests
         fixture.Write("G/Core/Core.csproj", Library);
         fixture.Write("G/Core/Helper.cs", "namespace G.Core; public static class Helper { public static int Twice(int value) => value * 2; }");
         fixture.Write("G/Shared/Clock.cs", "namespace G; public static class Clock { }");
-        ScanObservation scan = await new RoslynScanner().ScanAsync(fixture.Request(["G/App/App.csproj"]));
+        ScanObservation scan = await new RoslynScanner().ScanAsync(fixture.Request(["G/App/App.csproj"]), TestContext.Current.CancellationToken);
         Assert.Equal(["G/App/Use.cs", "G/Core/Helper.cs", "G/Mid/Step.cs", "G/Shared/Clock.cs"], scan.Files.Select(file => file.File));
         // The SDK passes references on, so App reaches Core through Mid.
         Assert.Contains(scan.Invocations!, call => call.Member == "Twice" && !call.Unresolved);
@@ -50,7 +50,7 @@ public sealed class ProjectGraphTests
         fixture.Write("G/Old/Old.cs", "class Old { }");
         fixture.Write("G/All.slnx", "<Solution><Project Path=\"Host/Host.csproj\" /><Project Path=\"Ui/Ui.csproj\" /><Project Path=\"Tool/Tool.csproj\" />"
             + "<Project Path=\"Old/Old.csproj\" /><Project Path=\"Native/Native.vcxproj\" /></Solution>");
-        ScanObservation scan = await new RoslynScanner().ScanAsync(fixture.Request(["G/All.slnx"]));
+        ScanObservation scan = await new RoslynScanner().ScanAsync(fixture.Request(["G/All.slnx"]), TestContext.Current.CancellationToken);
         Assert.Equal(["G/Host/Host.csproj", "G/Tool/Tool.csproj", "G/Ui/Ui.csproj"], scan.Roots.Where(root => root.Kind == "project").Select(root => root.File));
         // Top-level statements are only valid in an executable, and MSBuild reads OutputType in any case.
         Assert.Equal(["G/Host/Program.cs", "G/Tool/Tool.cs"], scan.EntryPoints!.Select(entry => entry.File));
@@ -84,7 +84,7 @@ public sealed class ProjectGraphTests
         fixture.Write("G/App/Helpers/Log.cs", "namespace G.Helpers; public static class Log { public static void Warn(string message) { } }");
         fixture.Write("G/App/Legacy/Drop.cs", "namespace G; public static class Drop { }");
         fixture.Write("G/App/Legacy/Keep.cs", "namespace G; public static class Keep { }");
-        ScanObservation scan = await new RoslynScanner().ScanAsync(fixture.Request(["G/App/App.csproj"]));
+        ScanObservation scan = await new RoslynScanner().ScanAsync(fixture.Request(["G/App/App.csproj"]), TestContext.Current.CancellationToken);
         // ImplicitUsings from Directory.Build.props supplies HttpClient and Task, and the Using item supplies Log.
         Assert.Single(scan.HttpRequests!);
         Assert.Contains(scan.Invocations!, call => call.Member == "Warn" && !call.Unresolved);

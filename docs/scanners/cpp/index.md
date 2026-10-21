@@ -18,6 +18,8 @@ groma plugin add @groma/scanner-cpp
 For development before publication, build and install a local package:
 
 ```sh
+export TREE_SITTER_WASI_SDK_PATH=/path/to/wasi-sdk-34
+export TREE_SITTER_BINARYEN_PATH=/path/to/binaryen-version_133
 bun plugins/scanners/cpp/build.ts /tmp/groma-cpp-package
 groma plugin add /tmp/groma-cpp-package
 ```
@@ -139,9 +141,11 @@ configuration, resolved includes or a buildable application.
 
 `grammar/grammar.cjs` extends the pinned official grammar. Its generated
 `grammar/tree-sitter-cpp.wasm` is checked in; package builds never generate it.
-To change it, a maintainer uses Tree-sitter CLI 0.26.3 and its WASI SDK:
+To change it, a maintainer uses Tree-sitter CLI 0.27.1, WASI SDK 34, and Binaryen 133:
 
 ```sh
+export TREE_SITTER_WASI_SDK_PATH=/path/to/wasi-sdk-34
+export TREE_SITTER_BINARYEN_PATH=/path/to/binaryen-version_133
 bun plugins/scanners/cpp/generate-parser.ts /path/to/tree-sitter
 ```
 

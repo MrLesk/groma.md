@@ -49,120 +49,123 @@ pub fn scan(input: Input) -> anyhow::Result<Value> {
         kind: ra_ap_project_model::ProjectWorkspaceKind::Json(project),
         sysroot: ra_ap_project_model::Sysroot::empty(),
         rustc_cfg: Vec::new(), toolchain: None,
-        target_layout: Err("No target compiler is used for source scanning".into()),
+        target: Err("No target compiler is used for source scanning".into()),
         cfg_overrides: Default::default(), extra_includes: Vec::new(), set_test: false,
     };
     let load = ra_ap_load_cargo::LoadCargoConfig {
         load_out_dirs_from_check: false,
         with_proc_macro_server: ra_ap_load_cargo::ProcMacroServerChoice::None,
         prefill_caches: false,
+        num_worker_threads: 1, proc_macro_processes: 1,
     };
     let (db, vfs, _) =
         ra_ap_load_cargo::load_workspace(workspace, &Default::default(), &load)
             .context("rust-analyzer could not load the source crate graph")?;
-    let sema = Semantics::new(&db);
-    let selected: HashSet<_> = input.targets.iter().collect();
-    let crates: Vec<_> = Crate::all(&db)
-        .into_iter()
-        .filter(|krate| selected.contains(&vfs.file_path(krate.root_file(&db)).to_string()))
-        .collect();
-    if crates.is_empty() {
-        bail!("rust-analyzer loaded no selected library or binary targets");
-    }
-    let relative = |file: &str| -> anyhow::Result<String> {
-        Ok(std::fs::canonicalize(file)?.strip_prefix(&repository_root)?.to_string_lossy().replace('\\', "/"))
-    };
-    let readable = |file: FileId| {
-        relative(&vfs.file_path(file).to_string()).is_ok_and(|path| input.files.contains(&path))
-    };
-    let mut physical = BTreeMap::<_, Vec<FileId>>::new();
-    for file_id in selected_files(&crates, &sema, &db, &readable)? {
-        let path = std::fs::canonicalize(vfs.file_path(file_id).to_string())?;
-        physical.entry(path).or_default().push(file_id);
-    }
-    let mut entry_points = Vec::new();
-    for executable in &input.executables {
-        let krate = crates.iter().find(|krate| vfs.file_path(krate.root_file(&db)).to_string() == executable.file);
-        // A root file the scan may not read declares no entry point: its file list would leave out the root itself,
-        // which the evidence contract rejects.
-        if let Some(krate) = krate && readable(krate.root_file(&db)) {
-            let members = selected_files(&[*krate], &sema, &db, &readable)?;
-            let own_files: Vec<_> = members.into_iter()
-                .map(|file| relative(&vfs.file_path(file).to_string())).collect::<anyhow::Result<_>>()?;
-            entry_points.push(json!({"file": relative(&executable.file)?,
-                "declaration": relative(&executable.declaration)?, "name": executable.name, "files": own_files}));
+    ra_ap_hir::attach_db(&db, || {
+        let sema = Semantics::new(&db);
+        let selected: HashSet<_> = input.targets.iter().collect();
+        let crates: Vec<_> = Crate::all(&db)
+            .into_iter()
+            .filter(|krate| selected.contains(&vfs.file_path(krate.root_file(&db)).to_string()))
+            .collect();
+        if crates.is_empty() {
+            bail!("rust-analyzer loaded no selected library or binary targets");
         }
-    }
-    let mut files = Vec::new();
-    let mut sources = Vec::new();
-    let mut diagnostics = vec![json!({
-        "severity": "information", "code": "rust-analysis-scope",
-        "message": "Declared default features and library/binary source only; external crates and standard library types remain unresolved. Build-script output, procedural macros, expanded calls, trait dispatch and callback value flow are not extracted."
-    })];
-    for (absolute, variants) in physical {
-        let file = absolute
-            .strip_prefix(&repository_root)
-            .context("selected source is outside the repository")?
+        let relative = |file: &str| -> anyhow::Result<String> {
+            Ok(std::fs::canonicalize(file)?.strip_prefix(&repository_root)?.to_string_lossy().replace('\\', "/"))
+        };
+        let readable = |file: FileId| {
+            relative(&vfs.file_path(file).to_string()).is_ok_and(|path| input.files.contains(&path))
+        };
+        let mut physical = BTreeMap::<_, Vec<FileId>>::new();
+        for file_id in selected_files(&crates, &sema, &db, &readable)? {
+            let path = std::fs::canonicalize(vfs.file_path(file_id).to_string())?;
+            physical.entry(path).or_default().push(file_id);
+        }
+        let mut entry_points = Vec::new();
+        for executable in &input.executables {
+            let krate = crates.iter().find(|krate| vfs.file_path(krate.root_file(&db)).to_string() == executable.file);
+            // A root file the scan may not read declares no entry point: its file list would leave out the root itself,
+            // which the evidence contract rejects.
+            if let Some(krate) = krate && readable(krate.root_file(&db)) {
+                let members = selected_files(&[*krate], &sema, &db, &readable)?;
+                let own_files: Vec<_> = members.into_iter()
+                    .map(|file| relative(&vfs.file_path(file).to_string())).collect::<anyhow::Result<_>>()?;
+                entry_points.push(json!({"file": relative(&executable.file)?,
+                    "declaration": relative(&executable.declaration)?, "name": executable.name, "files": own_files}));
+            }
+        }
+        let mut files = Vec::new();
+        let mut sources = Vec::new();
+        let mut diagnostics = vec![json!({
+            "severity": "information", "code": "rust-analysis-scope",
+            "message": "Declared default features and library/binary source only; external crates and standard library types remain unresolved. Build-script output, procedural macros, expanded calls, trait dispatch and callback value flow are not extracted."
+        })];
+        for (absolute, variants) in physical {
+            let file = absolute
+                .strip_prefix(&repository_root)
+                .context("selected source is outside the repository")?
+                .to_string_lossy()
+                .replace('\\', "/");
+            let contexts: usize = variants.iter().map(|id| sema.file_to_module_defs(*id).count()).sum();
+            files.push(json!({"file": file, "symbols": []}));
+            if contexts != 1 {
+                diagnostics.push(json!({
+                    "severity": "warning", "code": "rust-unsupported-compilation-contexts",
+                    "file": file,
+                    "message": format!("{contexts} compilation contexts; declarations and calls are omitted. The physical source keeps one curated owner.")
+                }));
+                continue;
+            }
+            let file_id = variants[0];
+            let text = std::fs::read_to_string(&absolute)?;
+            let edition = sema
+                .file_to_module_defs(file_id)
+                .next()
+                .unwrap()
+                .krate(&db)
+                .edition(&db);
+            let parsed = ast::SourceFile::parse(&text, edition);
+            if !parsed.errors().is_empty() {
+                bail!("{file}: invalid Rust syntax: {:?}", parsed.errors());
+            }
+            let syntax = sema.parse_guess_edition(file_id);
+            sources.push(Source { file, text, syntax });
+        }
+        sources.sort_by(|a, b| a.file.cmp(&b.file));
+        let (operations, functions) = declarations(&sources, &sema);
+        for file in &mut files {
+            file["symbols"] = Value::Array(
+                operations
+                    .iter()
+                    .filter(|op| op["file"] == file["file"])
+                    .map(|op| json!({"id": op["id"], "name": op["name"], "kind": "function"}))
+                    .collect(),
+            );
+        }
+        let invocations = calls(&sources, &sema, &db, &functions);
+        let constants = url::constants(sources.iter().map(|source| source.syntax.syntax().clone()));
+        let http_endpoints = endpoints::endpoints(&sema, &constants, &sources, &functions);
+        let http_requests = requests::requests(&sema, &constants, &sources, &functions);
+        let scope = Path::new(&input.manifest)
+            .strip_prefix(&input.root)
+            .context("manifest is outside the repository")?
             .to_string_lossy()
             .replace('\\', "/");
-        let contexts: usize = variants.iter().map(|id| sema.file_to_module_defs(*id).count()).sum();
-        files.push(json!({"file": file, "symbols": []}));
-        if contexts != 1 {
-            diagnostics.push(json!({
-                "severity": "warning", "code": "rust-unsupported-compilation-contexts",
-                "file": file,
-                "message": format!("{contexts} compilation contexts; declarations and calls are omitted. The physical source keeps one curated owner.")
-            }));
-            continue;
+        for file in &mut files {
+            file["roots"] = json!([scope]);
         }
-        let file_id = variants[0];
-        let text = std::fs::read_to_string(&absolute)?;
-        let edition = sema
-            .file_to_module_defs(file_id)
-            .next()
-            .unwrap()
-            .krate()
-            .edition(&db);
-        let parsed = ast::SourceFile::parse(&text, edition);
-        if !parsed.errors().is_empty() {
-            bail!("{file}: invalid Rust syntax: {:?}", parsed.errors());
-        }
-        let syntax = sema.parse_guess_edition(file_id);
-        sources.push(Source { file, text, syntax });
-    }
-    sources.sort_by(|a, b| a.file.cmp(&b.file));
-    let (operations, functions) = declarations(&sources, &sema);
-    for file in &mut files {
-        file["symbols"] = Value::Array(
-            operations
-                .iter()
-                .filter(|op| op["file"] == file["file"])
-                .map(|op| json!({"id": op["id"], "name": op["name"], "kind": "function"}))
-                .collect(),
-        );
-    }
-    let invocations = calls(&sources, &sema, &db, &functions);
-    let constants = url::constants(sources.iter().map(|source| source.syntax.syntax().clone()));
-    let http_endpoints = endpoints::endpoints(&sema, &constants, &sources, &functions);
-    let http_requests = requests::requests(&sema, &constants, &sources, &functions);
-    let scope = Path::new(&input.manifest)
-        .strip_prefix(&input.root)
-        .context("manifest is outside the repository")?
-        .to_string_lossy()
-        .replace('\\', "/");
-    for file in &mut files {
-        file["roots"] = json!([scope]);
-    }
-    Ok(json!({
-        "schemaVersion": 1,
-        "scanner": {"id": "rust", "technology": "rust", "engine": "rust-analyzer-hir", "engineVersion": "0.0.301"},
-        "roots": [{"id": scope, "kind": "cargo", "name": input.name, "file": scope}],
-        "files": files,
-        "entryPoints": entry_points,
-        "operations": operations, "invocations": invocations,
-        "httpEndpoints": http_endpoints, "httpRequests": http_requests,
-        "diagnostics": diagnostics,
-    }))
+        Ok(json!({
+            "schemaVersion": 1,
+            "scanner": {"id": "rust", "technology": "rust", "engine": "rust-analyzer-hir", "engineVersion": "0.0.358"},
+            "roots": [{"id": scope, "kind": "cargo", "name": input.name, "file": scope}],
+            "files": files,
+            "entryPoints": entry_points,
+            "operations": operations, "invocations": invocations,
+            "httpEndpoints": http_endpoints, "httpRequests": http_requests,
+            "diagnostics": diagnostics,
+        }))
+    })
 }
 
 /// Module files of these crates that the scan may read. The scan never reads another module file, so such a file
@@ -335,10 +338,11 @@ fn call_nodes(body: &SyntaxNode, sema: &Semantics<'_, RootDatabase>) -> Vec<Synt
 pub(crate) fn disabled(sema: &Semantics<'_, RootDatabase>, node: &SyntaxNode) -> bool {
     let Some(item) = ast::AnyHasAttrs::cast(node.clone()) else { return false };
     item.attrs().any(|attr| {
-        let Some(path) = attr.path() else { return false };
-        let name = path.syntax().text().to_string();
-        name == "test" || (name == "cfg" && attr.token_tree()
-            .and_then(|tree| sema.check_cfg_attr(&tree)) == Some(false))
+        if attr.simple_name().as_deref() == Some("test") { return true }
+        let Some(ast::Meta::CfgMeta(meta)) = attr.meta() else { return false };
+        meta.cfg_predicate().zip(sema.scope(node)).is_some_and(|(predicate, scope)| {
+            scope.krate().cfg(sema.db).check(&ra_ap_cfg::CfgExpr::parse_from_ast(predicate)) == Some(false)
+        })
     })
 }
 

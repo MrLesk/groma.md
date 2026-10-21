@@ -79,10 +79,12 @@ ownership instead of expanding tokens or inventing owners.
 
 ## Regeneration
 
-Build provenance: tree-sitter CLI 0.26.3, wasi-sdk 29, macOS arm64.
+Build provenance: tree-sitter CLI 0.27.1, wasi-sdk 34, Binaryen 133, Linux x64.
 With that CLI version on PATH, rebuild in a checkout of the pinned grammar:
 
 ```sh
+export TREE_SITTER_WASI_SDK_PATH=/path/to/wasi-sdk-34
+export TREE_SITTER_BINARYEN_PATH=/path/to/binaryen-version_133
 npm ci --ignore-scripts --no-audit --no-fund
 git apply --unidiff-zero /path/to/groma/plugins/scanners/mql5/assets/grammar.patch
 tree-sitter generate --abi 15
@@ -90,7 +92,7 @@ tree-sitter test
 tree-sitter build --wasm -o tree-sitter-mql5.wasm
 ```
 
-SHA-256: `2b6ab7d8b63d329b6a0784f15032950857e0bec50bb09e4f845c2a43d66e7110`.
+SHA-256: `fbb6c8ac45ce243c775c887c2e3dd4ef45ad23965bbee0db55a4dfeae2aa8c45`.
 The scanner reports the upstream revision with the suffix `+groma.5`.
 Normal scanner builds copy this portable asset; consumers need no compiler,
 SDK, native add-on, MetaTrader or MetaEditor. No upstream install script runs.

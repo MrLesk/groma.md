@@ -47,7 +47,7 @@ public sealed class CoverageTests
     {
         // First analyzes Shared/Linked.cs. Second, which makes the calls, compiles it with FLAG and with usings First lacks.
         using ScannerFixture fixture = new("csharp-linked-file");
-        ScanObservation scan = await new RoslynScanner().ScanAsync(fixture.Request(["First/First.csproj", "Second/Second.csproj"]));
+        ScanObservation scan = await new RoslynScanner().ScanAsync(fixture.Request(["First/First.csproj", "Second/Second.csproj"]), TestContext.Current.CancellationToken);
         Dictionary<string, ScanOperation> operations = scan.Operations!.ToDictionary(operation => operation.Id);
         ScanInvocation Call(string member) => Assert.Single(scan.Invocations!, call => call.Member == member);
         // Both projects read one declaration of Same, though only Second can bind its parameter type.

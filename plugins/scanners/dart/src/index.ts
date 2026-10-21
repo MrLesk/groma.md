@@ -18,7 +18,7 @@ export default {
     const evidence = await readEvidence(root, selected, files)
     const units = sourceUnits(evidence)
     return createScanObservation({
-      scanner: { id: 'dart', technology: 'dart', engine: 'Dart analyzer (source parser)', engineVersion: '14.5.0' },
+      scanner: { id: 'dart', technology: 'dart', engine: 'Dart analyzer (source parser)', engineVersion: '14.6.0' },
       roots: [{ id: 'dart-source', kind: 'source-group', name: path.basename(root) }],
       files: evidence.map(file => ({ file: file.file, symbols: file.symbols, roots: ['dart-source'] })),
       sourceUnits: units,

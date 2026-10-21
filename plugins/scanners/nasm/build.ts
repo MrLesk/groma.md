@@ -6,6 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { runtimeCertificates } from '../../../src/certificate-trust.ts'
 import { reservedWords } from './src/reserved-words.ts'
 
 const execute = promisify(execFile)
@@ -18,7 +19,7 @@ async function archive(): Promise<string> {
   const file = path.join(root, `dist/nasm-${version}.tar.xz`)
   await mkdir(path.dirname(file), { recursive: true })
   if (!existsSync(file)) {
-    const response = await fetch(`https://www.nasm.us/pub/nasm/releasebuilds/${version}/nasm-${version}.tar.xz`)
+    const response = await fetch(`https://www.nasm.us/pub/nasm/releasebuilds/${version}/nasm-${version}.tar.xz`, { tls: { ca: runtimeCertificates() }, decompress: false, headers: { 'Accept-Encoding': 'identity' } })
     if (!response.ok) throw new Error(`NASM download failed: ${response.status}`)
     await writeFile(file, new Uint8Array(await response.arrayBuffer()))
   }
@@ -68,7 +69,7 @@ export async function buildPackage(destination: string): Promise<void> {
   try {
     // Git Bash tar interprets a Windows drive prefix as a remote archive host.
     const tar = process.platform === 'win32' ? path.join(process.env.SystemRoot!, 'System32/tar.exe') : 'tar'
-    await execute(tar, ['-xf', await archive(), '-C', temporary])
+    await execute(tar, ['--no-same-owner', '-xf', await archive(), '-C', temporary])
     const source = path.join(temporary, `nasm-${version}`)
     await checkReservedWords(source)
     const main = path.join(source, 'asm/nasm.c')

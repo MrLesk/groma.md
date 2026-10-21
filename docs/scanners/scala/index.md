@@ -21,7 +21,7 @@ source layout.
 
 It does not evaluate `build.sbt`, discover sbt modules, inspect dependencies, or
 generate source. A `.scala` file is a discovery clue; it does not prove a
-compiler version. Files are parsed with Scalameta 4.17.3's Scala 3.9 dialect.
+compiler version. Files are parsed with Scalameta 4.17.4's Scala 3.9 dialect.
 Scala 2 syntax and newer syntax outside that parser's support are not promised.
 
 ## Evidence and outlines

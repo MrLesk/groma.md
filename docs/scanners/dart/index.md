@@ -8,7 +8,7 @@ operation and unresolved call evidence, `main` entries and explicit library part
 groma plugin add @groma/scanner-dart
 ```
 
-The package contains Dart analyzer 14.5.0 compiled with Dart SDK 3.13.5 into a
+The package contains Dart analyzer 14.6.0 compiled with Dart SDK 3.13.6 into a
 standalone executable. Scanning requires no installed Dart or Flutter SDK,
 project dependencies, package download, `pub get`, build or code generation.
 The package passed [fresh-checkout fixture checks](https://github.com/MrLesk/groma.md/actions/runs/38817786034)
@@ -88,7 +88,7 @@ checks reciprocal library associations. Core owns architecture placement and
 relationship interpretation. Existing OKF Markdown and Code links stay readable
 without this scanner; no Dart-specific architecture metadata or C4 level is added.
 
-Maintainers need Dart SDK 3.13.5 only when building the package:
+Maintainers need Dart SDK 3.13.6 only when building the package:
 
 ```bash
 bun plugins/scanners/dart/build.ts /tmp/scanner-packages/dart
@@ -96,8 +96,10 @@ GROMA_TEST_PACKAGES=/tmp/scanner-packages bun test test-bun/scanner-fresh-checko
 ```
 
 The build resolves only the worker's committed dependency lock, compiles a native
-executable and carries all dependency license notices. Each target is built on
-its native CI host. The packaged scanner never executes project tooling.
+executable and carries all dependency license notices. Package downloads use a
+build-only CA bundle that excludes compromised signing paths and retains platform
+and `NODE_EXTRA_CA_CERTS` authorities. Each target is built on its native CI host.
+The packaged scanner never executes project tooling.
 
 ## Real-project qualification
 

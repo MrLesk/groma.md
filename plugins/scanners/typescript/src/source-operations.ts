@@ -5,8 +5,8 @@ import {
   isParenthesizedExpression, isPropertyAccessExpression, isPropertyAssignment, isShorthandPropertyAssignment,
   isVariableDeclaration, isSpreadAssignment, NodeFlags, SyntaxKind,
   type CallExpression, type Node, type SourceFile,
-} from 'typescript/unstable/ast'
-import { SymbolFlags, type Checker as NativeChecker, type Symbol as CompilerSymbol } from 'typescript/unstable/async'
+} from 'typescript/ast'
+import { SymbolFlags, type Checker as NativeChecker, type Symbol as CompilerSymbol } from 'typescript/async'
 import type { ScanHttpEndpoint, ScanHttpRequest, ScanInvocation, ScanOperation } from '@groma/scanner'
 
 import { inBatches, type Checker } from '../../http-checker.ts'

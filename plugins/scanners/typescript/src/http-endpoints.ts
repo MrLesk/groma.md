@@ -1,5 +1,5 @@
 import type { ScanHttpEndpoint } from '@groma/scanner'
-import type { CallExpression, SourceFile } from 'typescript/unstable/ast'
+import type { CallExpression, SourceFile } from 'typescript/ast'
 
 import { withOrder } from '../../http-order.ts'
 import type { RouterContext } from '../../http-routers.ts'

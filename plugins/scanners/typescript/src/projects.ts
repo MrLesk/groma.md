@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { stat } from 'node:fs/promises'
 import type { ScanDiagnostic } from '@groma/scanner'
-import type { API, ParsedCommandLine } from 'typescript/unstable/async'
+import type { API, ParsedCommandLine } from 'typescript/async'
 import type { BuildOutput } from '../../workspace-packages.ts'
 
 export interface TypeScriptProject { key: string; config?: ParsedCommandLine; files: string[] }

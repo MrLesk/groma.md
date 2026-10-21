@@ -10,8 +10,9 @@ permissions:
   contents: read
 
 env:
+  NODE_OPTIONS: --use-openssl-ca
   BUN_VERSION: 1.4.3
-  RUST_VERSION: 1.91.1
+  RUST_VERSION: 1.99.1
 
 jobs:
   check:
@@ -22,11 +23,55 @@ jobs:
         os: [ubuntu-24.04, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v7
+      - &prepare-trust
+        name: Block compromised certificate authorities before network steps
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs'), path = require('node:path'), tls = require('node:tls');
+          const { X509Certificate, createHash } = require('node:crypto');
+          // CVE-2026-111943: protect action network calls; runner archive downloads happen earlier.
+          const blocked = new Set([
+            '0a6c2b2ca5b364207954171987ac9d2178561569d8205457e77ca90c32ede282',
+            '43bffa19d6ef651451f6841e019931e96f6f2eaeff28ab4b6f1ce4576de2717b',
+            '49dd353dc2b919a3770645117d0e60c16115e7d1bc259eefe734b00ea434fe5f',
+            '5c0660a2b164910d8ff589c18e14552e9e0ec237dcefe2cb736d41a4811f81a0',
+            '63ecefee431d49523bc1136c4e72d0206a477086caf606cd5cf025686c109cf8',
+            '8d417db2dd8bf5e3084d1e3f196d583849d81bdd4c00c70b9d39369e96b8c782',
+            '92c063d67e8f14db71d288e11266ffdaf69cbf115f7bab14f3bc2f68d25e0e30',
+            'bd153ed7b0434f6886b17bce8bbe84ed340c7132d702a8f4fa318f756ecbd6f3',
+            'c619e4780ed8e0abeda24ad732567de4383a7ea941338f6d1a7d1b49ac792fe9',
+            'e0254c7fcdc265e2f0f8a428dabb75ab4ae039b4872d62f5ee57f0877d5a8a41',
+            'ebed6475c2c2d80fcb199f3fe8dd6e6b3ce60b77eb15d4e42c3dec0c6f5b5105',
+            'ec4ffa1ad0ac88081314b7aaffef6a91f97cd57291bb5ba686c5415f5eb4f6b6',
+          ]);
+          const certificates = new Map();
+          for (const pem of [...tls.getCACertificates('default'), ...tls.getCACertificates('system'), ...tls.getCACertificates('extra')]) {
+            const certificate = new X509Certificate(pem);
+            const key = createHash('sha256').update(certificate.publicKey.export({ type: 'spki', format: 'der' })).digest('hex');
+            if (!blocked.has(key)) certificates.set(certificate.fingerprint256, pem);
+          }
+          if (!certificates.size) throw new Error('No trusted certificate authorities remain.');
+          const directory = path.join(process.env.RUNNER_TEMP, 'groma-tls');
+          const bundle = path.join(directory, 'ca.pem'), empty = path.join(directory, 'empty');
+          fs.mkdirSync(empty, { recursive: true });
+          fs.writeFileSync(bundle, [...certificates.values()].join('\n') + '\n');
+          const settings = {
+            SSL_CERT_FILE: bundle, SSL_CERT_DIR: empty,
+            NODE_EXTRA_CA_CERTS: bundle, NODE_USE_SYSTEM_CA: '0', NODE_TLS_REJECT_UNAUTHORIZED: '1',
+            GIT_SSL_CAINFO: bundle, GIT_SSL_CAPATH: empty, CURL_CA_BUNDLE: bundle,
+            CARGO_HTTP_CAINFO: bundle, NPM_CONFIG_CAFILE: bundle,
+          };
+          fs.appendFileSync(process.env.GITHUB_ENV, Object.entries(settings).map(([key, value]) => `${key}=${value}\n`).join(''));
+          NODE
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 26.12.1
       - parallel:
           - name: Cache Swift test package
             id: swift-package
-            uses: actions/cache@v6
+            uses: actions/cache@v6.1.0
             with:
               path: scanner-packages/swift
               key: >-
@@ -38,7 +83,7 @@ jobs:
                   'LICENSE') }}
           - name: Cache C# test package
             id: csharp-package
-            uses: actions/cache@v6
+            uses: actions/cache@v6.1.0
             with:
               path: scanner-packages/csharp
               key: >-
@@ -50,7 +95,7 @@ jobs:
                   'bun.lock', 'LICENSE') }}
           - name: Cache Rust test package
             id: rust-package
-            uses: actions/cache@v6
+            uses: actions/cache@v6.1.0
             with:
               path: plugins/scanners/rust/dist
               key: >-
@@ -63,7 +108,7 @@ jobs:
       - parallel:
           - name: Cache SwiftSyntax build
             if: runner.os == 'Windows' && steps.swift-package.outputs.cache-hit != 'true'
-            uses: actions/cache@v6
+            uses: actions/cache@v6.1.0
             with:
               path: .groma/swift-syntax-build
               key: >-
@@ -72,31 +117,31 @@ jobs:
                   'plugins/scanners/swift/Package.swift') }}
           - uses: ./.github/actions/setup-swift
             if: steps.swift-package.outputs.cache-hit != 'true'
-          - uses: dart-lang/setup-dart@v1
+          - uses: dart-lang/setup-dart@v1.8.1
             with:
-              sdk: '3.13.5'
+              sdk: '3.13.6'
               # Swift's Windows setup exports its own action path; Dart analysis still runs below.
               problem-matcher: false
-          - uses: actions/setup-java@v6
+          - uses: actions/setup-java@v6.1.0
             with:
               distribution: temurin
-              java-version: '25'
-          - uses: actions/setup-go@v7
+              java-version: '27'
+          - uses: actions/setup-go@v7.0.0
             with:
               go-version-file: plugins/scanners/go/worker/go.mod
               cache-dependency-path: plugins/scanners/go/worker/go.sum
-          - uses: actions/setup-dotnet@v6
+          - uses: actions/setup-dotnet@v6.0.0
             with:
-              dotnet-version: '10.0.x'
+              dotnet-version: '10.0.402'
           - name: Install Rust build toolchain
             if: steps.rust-package.outputs.cache-hit != 'true'
             run: rustup toolchain install "$RUST_VERSION" --profile minimal
             shell: bash
-          - uses: oven-sh/setup-bun@v2
+          - uses: oven-sh/setup-bun@v2.2.0
             with:
               bun-version: ${{ env.BUN_VERSION }}
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install --frozen-lockfile --cafile="$SSL_CERT_FILE"
         shell: bash
       - parallel:
           - name: Build Swift test package

@@ -1,6 +1,6 @@
 {
   "name": "@groma/scanner-c",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
   "license": "MIT",
@@ -9,15 +9,37 @@
     "scanner": {
       "id": "c",
       "entry": "./src/index.ts",
-      "include": ["**/*.c", "**/*.h"],
+      "include": [
+        "**/*.c",
+        "**/*.h"
+      ],
       "exclude": [],
       "discovery": {
-        "technologies": ["c"],
-        "rules": [{"type": "file", "files": ["**/*.c"], "technology": "c", "kind": "language", "declaration": "C source; preprocessor and build configuration unverified"}],
-        "compatibility": {"groma": ">=0.6.6"}
+        "technologies": [
+          "c"
+        ],
+        "rules": [
+          {
+            "type": "file",
+            "files": [
+              "**/*.c"
+            ],
+            "technology": "c",
+            "kind": "language",
+            "declaration": "C source; preprocessor and build configuration unverified"
+          }
+        ],
+        "compatibility": {
+          "groma": ">=0.6.6"
+        }
       }
     }
   },
-  "dependencies": {"@groma/scanner": "workspace:*", "web-tree-sitter": "0.27.1"},
-  "devDependencies": {"tree-sitter-c": "0.24.1"}
+  "dependencies": {
+    "@groma/scanner": "workspace:*",
+    "web-tree-sitter": "0.27.1"
+  },
+  "devDependencies": {
+    "tree-sitter-c": "0.24.1"
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@groma/scanner-cobol",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "type": "module",
   "license": "MIT",
@@ -9,20 +9,35 @@
     "scanner": {
       "id": "cobol",
       "entry": "./src/index.ts",
-      "include": ["**/*.[cC][bB][lL]", "**/*.[cC][oO][bB]", "**/*.[cC][pP][yY]"],
+      "include": [
+        "**/*.[cC][bB][lL]",
+        "**/*.[cC][oO][bB]",
+        "**/*.[cC][pP][yY]"
+      ],
       "exclude": [],
       "discovery": {
-        "technologies": ["cobol"],
-        "rules": [{
-          "type": "file",
-          "files": ["**/*.[cC][bB][lL]", "**/*.[cC][oO][bB]"],
-          "technology": "cobol",
-          "kind": "language",
-          "declaration": "COBOL source files; dialect and runtime configuration unverified"
-        }],
-        "compatibility": { "groma": ">=0.6.6" }
+        "technologies": [
+          "cobol"
+        ],
+        "rules": [
+          {
+            "type": "file",
+            "files": [
+              "**/*.[cC][bB][lL]",
+              "**/*.[cC][oO][bB]"
+            ],
+            "technology": "cobol",
+            "kind": "language",
+            "declaration": "COBOL source files; dialect and runtime configuration unverified"
+          }
+        ],
+        "compatibility": {
+          "groma": ">=0.6.6"
+        }
       }
     }
   },
-  "dependencies": { "@groma/scanner": "workspace:*" }
+  "dependencies": {
+    "@groma/scanner": "workspace:*"
+  }
 }

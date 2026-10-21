@@ -117,7 +117,7 @@ const PASS_THROUGH: [&str; 10] =
 /// The receiver of a call that keeps the text, such as `url.to_string()`.
 fn pass_through(call: &ast::MethodCallExpr) -> Option<ast::Expr> {
     let name = call.name_ref()?;
-    PASS_THROUGH.contains(&name.text().as_str()).then(|| call.receiver())?
+    PASS_THROUGH.contains(&name.text()).then(|| call.receiver())?
 }
 
 /// A call that keeps its argument's text, such as `String::from(url)`, or reads the environment.

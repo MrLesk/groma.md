@@ -1,6 +1,6 @@
 import path from 'node:path'
-import { API, ModuleKind, ModuleResolutionKind, type CompilerOptions } from 'typescript/unstable/async'
-import { SyntaxKind, type SourceFile } from 'typescript/unstable/ast'
+import { API, ModuleKind, ModuleResolutionKind, type CompilerOptions } from 'typescript/async'
+import { SyntaxKind, type SourceFile } from 'typescript/ast'
 import type { ScanDiagnostic, ScanHttpEndpoint, ScanHttpRequest, ScanSymbol, ScanOperation, ScanInvocation } from '@groma/scanner'
 
 import { usedImportSpecifiers } from './source-usage.ts'

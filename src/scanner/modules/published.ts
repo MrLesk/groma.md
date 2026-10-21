@@ -9,10 +9,6 @@ export interface PublishedScanner {
   groma?: { scanner?: { id?: string; entry?: string; discovery?: { compatibility?: { groma?: string } } } }
 }
 
-export function isNpmPackageName(value: string): boolean {
-  return /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(value)
-}
-
 function supports(values: string[] | undefined, current: string): boolean {
   if (!values) return true
   return !values.includes(`!${current}`)

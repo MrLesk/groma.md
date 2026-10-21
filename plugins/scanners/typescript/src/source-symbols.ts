@@ -2,7 +2,7 @@ import {
   isArrayBindingPattern, isBindingElement, isClassDeclaration, isEnumDeclaration, isFunctionDeclaration, isIdentifier,
   isInterfaceDeclaration, isObjectBindingPattern, isTypeAliasDeclaration, isVariableStatement,
   NodeFlags, SyntaxKind, type Node, type SourceFile, type VariableDeclarationList,
-} from 'typescript/unstable/ast'
+} from 'typescript/ast'
 import type { ScanSymbol } from '@groma/scanner'
 
 import { listedExportNames } from '../../typescript-outline.ts'

@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { promisify } from 'node:util'
+import { trustedCertificates } from '../../src/certificate-trust.ts'
 
 const execute = promisify(execFile)
 
@@ -9,6 +10,32 @@ const execute = promisify(execFile)
 export function jdkTool(name: string): string {
   const executable = process.platform === 'win32' ? `${name}.exe` : name
   return process.env.JAVA_HOME ? path.join(process.env.JAVA_HOME, 'bin', executable) : executable
+}
+
+/** Remove compromised certificate authorities while preserving the build JDK's other trusted certificates. */
+export async function secureJavaTrustStore(store: string): Promise<void> {
+  const keytool = jdkTool('keytool')
+  const options = ['-J-Duser.language=en', '-J-Duser.country=US', '-keystore', store, '-storepass', 'changeit']
+  const { stdout } = await execute(keytool, ['-list', '-rfc', ...options])
+  const entries = [...stdout.matchAll(/Alias name: ([^\r\n]+)[\s\S]*?(-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----)/g)]
+  if (entries.length === 0 || entries.length !== stdout.match(/Alias name: /g)?.length) {
+    throw new Error(`Could not inspect the Java trust store: ${store}`)
+  }
+  for (const entry of entries) {
+    if (trustedCertificates([entry[2]!]).length === 0) {
+      await execute(keytool, ['-delete', '-alias', entry[1]!, ...options])
+    }
+  }
+}
+
+/** An isolated trust store for build tools that download Maven artifacts. The maintainer's JDK is never modified. */
+export async function prepareJavaTrustStore(destination: string): Promise<string> {
+  const { stderr } = await execute(jdkTool('java'), ['-XshowSettings:properties', '-version'])
+  const home = stderr.match(/java.home = (.+)/)?.[1]?.trim()
+  if (!home) throw new Error('Cannot locate the build JDK trust store.')
+  await cp(path.join(home, 'lib/security/cacerts'), destination)
+  await secureJavaTrustStore(destination)
+  return destination
 }
 
 /** Writes a notices file: the preface, then the license text of each npm package found among the bundle input paths. */
@@ -39,6 +66,7 @@ export async function buildJvmPackage(
   await mkdir(path.dirname(runtime), { recursive: true })
   await execute(jdkTool('jlink'), ['--add-modules', modules,
     '--strip-debug', '--no-header-files', '--no-man-pages', '--output', runtime])
+  await secureJavaTrustStore(path.join(runtime, 'lib/security/cacerts'))
   const built = await Bun.build({
     entrypoints: [path.join(pluginRoot, 'src/index.ts')],
     outdir: path.join(destination, 'src'), target: 'bun', format: 'esm', naming: 'index.js', metafile: true,

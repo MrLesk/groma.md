@@ -101,8 +101,10 @@ bun test test-bun/cobol-scanner.test.ts
 ```
 
 The build downloads one pinned upstream VSIX into the ignored `dist/` directory,
-checks its SHA-256, and packages its unmodified engine, licenses, worker, and
-host runtime. Later builds reuse that verified archive. The release script
+checks its SHA-256, and removes the bundled old Logback/SLF4J libraries. It ships
+checksum-pinned Logback 1.6.5 and SLF4J 2.0.20 JARs with their original licenses,
+the remaining engine, the worker, and a host runtime whose trust store excludes
+the compromised authorities. Later builds reuse that verified upstream archive. The release script
 combines host runtimes through the same mechanism as the Java scanner. The
 installed package has no project dependency installation or tool download step.
 

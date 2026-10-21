@@ -1,6 +1,6 @@
 {
   "name": "groma.md",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Your architecture as Markdown in Git, and one C4 map you can walk. Scanned from source, curated by people and agents.",
   "license": "MIT",
   "author": "Alex Gavrilescu",
@@ -39,8 +39,8 @@
   },
   "packageManager": "bun@1.4.3",
   "engines": {
-    "bun": ">=1.4.1",
-    "node": ">=20.19.0"
+    "bun": ">=1.4.3",
+    "node": ">=26.12.1"
   },
   "scripts": {
     "cli": "bun src/cli.ts",
@@ -59,21 +59,21 @@
     "@groma/scanner": "workspace:*",
     "@groma/work-source": "workspace:*",
     "@groma/work-source-backlog": "workspace:*",
-    "@opentui/core": "0.6.0",
+    "@opentui/core": "0.6.6",
     "@parcel/watcher": "2.6.0",
     "@resvg/resvg-wasm": "2.6.2",
     "comark": "0.7.0",
     "commander": "15.0.0",
     "diff": "9.0.0",
     "fuse.js": "7.5.0",
-    "ignore": "7.0.12"
+    "ignore": "7.0.13"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
-    "@types/bun": "1.4.2",
+    "@types/bun": "1.4.3",
     "@types/node": "26.6.5",
     "tsx": "4.23.15",
-    "typescript": "7.1.0-dev.20261011.1"
+    "typescript": "7.1.0-beta"
   },
   "patchedDependencies": {
     "@parcel/watcher@2.6.0": "patches/@parcel%2Fwatcher@2.6.0.patch"

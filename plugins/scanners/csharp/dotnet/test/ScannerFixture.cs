@@ -1,3 +1,4 @@
+using Xunit;
 
 namespace Groma.CSharpScanner.Tests;
 
@@ -28,7 +29,7 @@ internal sealed class ScannerFixture : IDisposable
     }
 
     public Task<ScanObservation> ScanAsync(string? input = null, int maxProjects = 128, int maxFiles = 20_000) =>
-        new RoslynScanner().ScanAsync(Request([input ?? Project], maxProjects, maxFiles));
+        new RoslynScanner().ScanAsync(Request([input ?? Project], maxProjects, maxFiles), TestContext.Current.CancellationToken);
 
     /// <summary>A request over every C# file in the fixture, as the adapter sends the scanner's files.</summary>
     public ScanRequest Request(IReadOnlyList<string> inputs, int maxProjects = 128, int maxFiles = 20_000) =>

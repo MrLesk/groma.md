@@ -1,4 +1,6 @@
 import { realpath } from 'node:fs/promises'
+import { withCertificateTrust } from '../certificate-trust.ts'
+import { packageManagerCertificates } from '../scanner/modules/package-trust.ts'
 
 /**
  * The Backlog.md command-line tool, which the bundled Backlog.md work source reads tasks through. groma.md installs
@@ -36,9 +38,9 @@ export async function packageInstaller(): Promise<PackageInstaller | undefined> 
   return (['bun', 'npm', 'brew'] as const).find(installer => Bun.which(installer) !== null)
 }
 
-async function succeeds(command: string[], cwd?: string): Promise<boolean> {
+async function succeeds(command: string[], cwd?: string, environment = process.env): Promise<boolean> {
   try {
-    const child = Bun.spawn(command, { cwd, stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })
+    const child = Bun.spawn(command, { cwd, env: environment, stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })
     return await child.exited === 0
   } catch {
     return false
@@ -50,7 +52,13 @@ export async function installBacklogCli(upgrade: boolean): Promise<void> {
   const installer = await packageInstaller()
   if (installer === undefined) throw new Error('Install bun, npm or Homebrew to install the Backlog.md CLI.')
   const command = installationCommand(installer, upgrade)
-  if (!await succeeds(command)) throw new Error(`Could not run ${command.join(' ')}.`)
+  await withCertificateTrust(await packageManagerCertificates(process.cwd()), async (cafile, environment) => {
+    if (installer !== 'brew') command.push(`--cafile=${cafile}`)
+    if (installer === 'npm') command.push('--strict-ssl=true')
+    if (!await succeeds(command, undefined, { ...process.env, ...environment })) {
+      throw new Error(`Could not run ${command.join(' ')}.`)
+    }
+  })
 }
 
 export function backlogInitialized(repositoryRoot: string): Promise<boolean> {

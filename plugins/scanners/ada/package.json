@@ -1,6 +1,6 @@
 {
   "name": "@groma/scanner-ada",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
   "license": "MIT",
@@ -9,14 +9,39 @@
     "scanner": {
       "id": "ada",
       "entry": "./src/index.ts",
-      "include": ["**/*.ads", "**/*.adb"],
-      "exclude": ["/alire/", "/obj/", "tests/"],
+      "include": [
+        "**/*.ads",
+        "**/*.adb"
+      ],
+      "exclude": [
+        "/alire/",
+        "/obj/",
+        "tests/"
+      ],
       "discovery": {
-        "technologies": ["ada"],
-        "rules": [{ "type": "file", "files": ["**/*.ads", "**/*.adb"], "technology": "ada", "kind": "language", "declaration": "Ada source; build configuration and entry points unverified" }],
-        "compatibility": { "groma": ">=0.6.6" }
+        "technologies": [
+          "ada"
+        ],
+        "rules": [
+          {
+            "type": "file",
+            "files": [
+              "**/*.ads",
+              "**/*.adb"
+            ],
+            "technology": "ada",
+            "kind": "language",
+            "declaration": "Ada source; build configuration and entry points unverified"
+          }
+        ],
+        "compatibility": {
+          "groma": ">=0.6.6"
+        }
       }
     }
   },
-  "dependencies": { "@groma/scanner": "workspace:*", "web-tree-sitter": "0.27.1" }
+  "dependencies": {
+    "@groma/scanner": "workspace:*",
+    "web-tree-sitter": "0.27.1"
+  }
 }

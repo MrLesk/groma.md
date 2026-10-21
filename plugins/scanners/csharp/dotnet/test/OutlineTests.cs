@@ -11,7 +11,7 @@ public sealed class OutlineTests
         CodeFile[] files = SourceOutline.Read(new OutlineRequest(fixture.Root, [
             new SourceReference("Orders/OrderService.cs", ["OrderService", "OrderService.Retry"]),
             new SourceReference("Orders/OrderService.Audit.cs", []),
-        ]));
+        ]), TestContext.Current.CancellationToken);
         static string Entry(bool entry) => entry ? " entry" : "";
         static string Summary(CodeType type) => $"{type.Name}:{type.Line} {type.Visibility}{Entry(type.Entry)} ["
             + string.Join(", ", type.Members.Select(member => $"{member.Name}:{member.Line} {member.Visibility}{Entry(member.Entry)}")) + "]";
@@ -44,7 +44,7 @@ public sealed class OutlineTests
         fixture.Write("App/Text.cs", "namespace Fixture; public static class Text { extension(string value) { public int Twice() => value.Length * 2; } }");
         ScanObservation scan = await fixture.ScanAsync();
         Assert.Contains(scan.Operations!, operation => operation.File == "App/Text.cs" && operation.Name.Contains("Twice", StringComparison.Ordinal));
-        CodeFile file = Assert.Single(SourceOutline.Read(new OutlineRequest(fixture.Root, [new SourceReference("App/Text.cs", [])])));
+        CodeFile file = Assert.Single(SourceOutline.Read(new OutlineRequest(fixture.Root, [new SourceReference("App/Text.cs", [])]), TestContext.Current.CancellationToken));
         Assert.Equal(["Twice"], Assert.Single(file.Declarations).Members.Select(member => member.Name));
     }
 }
