@@ -132,6 +132,13 @@ overlap or when the current work is about to create a real file-level conflict.
 
 Preserve unrelated changes made by the user or other agents. Do not revert or reformat them.
 
+## Releases
+
+Start each release by creating a GitHub Release. The [release workflow](.github/workflows/release.yml) takes the version
+from that release's tag, sets the root `package.json` version for publication, and syncs the released version back to
+`main`. Do not manually bump the root package version before creating the GitHub Release. Scanner packages are separate
+publishable packages and still need their own version bumps when their contents change.
+
 ## Commit messages
 
 When the user confirms that a task is done, commit that task's files

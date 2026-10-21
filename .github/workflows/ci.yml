@@ -46,7 +46,7 @@ jobs:
             'ec4ffa1ad0ac88081314b7aaffef6a91f97cd57291bb5ba686c5415f5eb4f6b6',
           ]);
           const certificates = new Map();
-          for (const pem of [...tls.getCACertificates('default'), ...tls.getCACertificates('system'), ...tls.getCACertificates('extra')]) {
+          for (const pem of [...tls.rootCertificates, ...tls.getCACertificates('default'), ...tls.getCACertificates('system'), ...tls.getCACertificates('extra')]) {
             const certificate = new X509Certificate(pem);
             const key = createHash('sha256').update(certificate.publicKey.export({ type: 'spki', format: 'der' })).digest('hex');
             if (!blocked.has(key)) certificates.set(certificate.fingerprint256, pem);
@@ -56,10 +56,15 @@ jobs:
           const bundle = path.join(directory, 'ca.pem'), empty = path.join(directory, 'empty');
           fs.mkdirSync(empty, { recursive: true });
           fs.writeFileSync(bundle, [...certificates.values()].join('\n') + '\n');
+          const gitSettings = Number(process.env.GIT_CONFIG_COUNT ?? 0);
+          if (!Number.isSafeInteger(gitSettings) || gitSettings < 0) throw new Error('Invalid GIT_CONFIG_COUNT.');
           const settings = {
             SSL_CERT_FILE: bundle, SSL_CERT_DIR: empty,
             NODE_EXTRA_CA_CERTS: bundle, NODE_USE_SYSTEM_CA: '0', NODE_TLS_REJECT_UNAUTHORIZED: '1',
             GIT_SSL_CAINFO: bundle, GIT_SSL_CAPATH: empty, CURL_CA_BUNDLE: bundle,
+            GIT_CONFIG_COUNT: String(gitSettings + 2),
+            [`GIT_CONFIG_KEY_${gitSettings}`]: 'http.schannelUseSSLCAInfo', [`GIT_CONFIG_VALUE_${gitSettings}`]: 'true',
+            [`GIT_CONFIG_KEY_${gitSettings + 1}`]: 'http.sslVerify', [`GIT_CONFIG_VALUE_${gitSettings + 1}`]: 'true',
             CARGO_HTTP_CAINFO: bundle, NPM_CONFIG_CAFILE: bundle,
           };
           fs.appendFileSync(process.env.GITHUB_ENV, Object.entries(settings).map(([key, value]) => `${key}=${value}\n`).join(''));
@@ -68,6 +73,9 @@ jobs:
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 26.12.1
+      - name: Prepare native HTTPS trust on disposable hosted runners
+        run: node scripts/prepare-hosted-runner-trust.cjs
+        shell: bash
       - parallel:
           - name: Cache Swift test package
             id: swift-package
@@ -140,6 +148,9 @@ jobs:
           - uses: oven-sh/setup-bun@v2.2.0
             with:
               bun-version: ${{ env.BUN_VERSION }}
+      - name: Check native HTTPS trust
+        run: node scripts/check-native-tls.cjs
+        shell: bash
       - name: Install dependencies
         run: bun install --frozen-lockfile --cafile="$SSL_CERT_FILE"
         shell: bash

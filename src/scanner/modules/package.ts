@@ -229,7 +229,7 @@ async function git(directory: string, ...args: string[]): Promise<string> {
   const file = process.env.GIT_SSL_CAINFO ?? (configured.stdout.toString().trim() || undefined)
   const certificates = file ? [await readFile(path.resolve(directory, file), 'utf8')] : runtimeCertificates()
   return withCertificateTrust(certificates, async (_cafile, environment) =>
-    runGit(directory, ['-c', 'http.sslVerify=true', ...args], { ...process.env, ...environment }))
+    runGit(directory, ['-c', `http.${args[2]}.sslVerify=true`, '-c', `http.${args[2]}.schannelUseSSLCAInfo=true`, ...args], { ...process.env, ...environment }))
 }
 
 async function installGitScanner(

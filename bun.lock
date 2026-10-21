@@ -38,7 +38,7 @@
     },
     "plugins/scanners/ada": {
       "name": "@groma/scanner-ada",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "web-tree-sitter": "0.27.1",
@@ -46,7 +46,7 @@
     },
     "plugins/scanners/angular": {
       "name": "@groma/scanner-angular",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@angular/compiler": "22.2.3",
         "@groma/scanner": "workspace:*",
@@ -58,7 +58,7 @@
     },
     "plugins/scanners/c": {
       "name": "@groma/scanner-c",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "web-tree-sitter": "0.27.1",
@@ -69,14 +69,14 @@
     },
     "plugins/scanners/cobol": {
       "name": "@groma/scanner-cobol",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@groma/scanner": "workspace:*",
       },
     },
     "plugins/scanners/cpp": {
       "name": "@groma/scanner-cpp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "web-tree-sitter": "0.27.1",
@@ -108,7 +108,7 @@
     },
     "plugins/scanners/java": {
       "name": "@groma/scanner-java",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "good-enough-parser": "1.1.23",
@@ -116,7 +116,7 @@
     },
     "plugins/scanners/javascript": {
       "name": "@groma/scanner-javascript",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "typescript": "6.0.3",
@@ -124,14 +124,14 @@
     },
     "plugins/scanners/kotlin": {
       "name": "@groma/scanner-kotlin",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dependencies": {
         "@groma/scanner": "workspace:*",
       },
     },
     "plugins/scanners/mojo": {
       "name": "@groma/scanner-mojo",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "web-tree-sitter": "0.27.1",
@@ -139,7 +139,7 @@
     },
     "plugins/scanners/mql5": {
       "name": "@groma/scanner-mql5",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "web-tree-sitter": "0.27.1",
@@ -147,7 +147,7 @@
     },
     "plugins/scanners/nasm": {
       "name": "@groma/scanner-nasm",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@groma/scanner": "workspace:*",
       },
@@ -170,7 +170,7 @@
     },
     "plugins/scanners/react": {
       "name": "@groma/scanner-react",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "typescript": "6.0.3",
@@ -189,7 +189,7 @@
     },
     "plugins/scanners/scala": {
       "name": "@groma/scanner-scala",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@groma/scanner": "workspace:*",
       },
@@ -211,7 +211,7 @@
     },
     "plugins/scanners/vue": {
       "name": "@groma/scanner-vue",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "@volar/typescript": "2.4.28",

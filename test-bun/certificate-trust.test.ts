@@ -104,6 +104,78 @@ test.concurrent('metadata lookup and tarball installation use verified HTTPS wit
   } finally { server.stop(true); await f.close() }
 })
 
+test.concurrent('Git scanner HTTPS rejects incident chains and retains the configured private CA', async () => {
+  const f = await directories()
+  const module = pathToFileURL(path.resolve(import.meta.dir, '../src/scanner/modules/package.ts')).href
+  const source = `import { parseScannerSource, installScannerPackage } from ${JSON.stringify(module)};
+    await installScannerPackage(parseScannerSource(process.cwd(), process.argv[1]), process.cwd() + '/cache');`
+  try {
+    const cafile = path.join(f.home, 'git.pem')
+    await writeFile(cafile, [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n'))
+    for (const certificate of ['incident-server-emudhra.pem', 'incident-server-aaa.pem', 'registry-server.pem']) {
+      let requests = 0
+      const server = Bun.serve({ hostname: 'localhost', port: 0,
+        tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, certificate)) },
+        fetch() { requests++; return new Response('No repository', { status: 404 }) },
+      })
+      try {
+        const child = Bun.spawn([process.execPath, '-e', source, `git+${server.url.href}repository#fixture`], {
+          cwd: f.project, env: { ...process.env, ...f.environment, GIT_SSL_CAINFO: cafile,
+            GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '', NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' },
+          stdout: 'pipe', stderr: 'pipe',
+        })
+        const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
+        expect(exit).not.toBe(0)
+        if (certificate === 'registry-server.pem') {
+          expect(requests, error).toBeGreaterThan(0)
+          expect(error).toContain('not found')
+        } else {
+          expect(requests, error).toBe(0)
+          expect(error).toMatch(/certificate|issuer/i)
+        }
+      } finally { server.stop(true) }
+    }
+  } finally { await f.close() }
+})
+
+test.concurrent('npm global installation keeps npm CA configuration instead of project Bun trust', async () => {
+  const f = await directories()
+  const manifest = { name: 'backlog.md', version: '1.0.0' }
+  const tarball = await new Bun.Archive({ 'package/package.json': JSON.stringify(manifest) }, { compress: 'gzip' }).bytes()
+  const integrity = `sha512-${createHash('sha512').update(tarball).digest('base64')}`
+  const server = Bun.serve({ hostname: 'localhost', port: 0,
+    tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, 'registry-server.pem')) },
+    fetch(request) {
+      const url = new URL(request.url)
+      if (url.pathname === '/fixture.tgz') return new Response(tarball)
+      return Response.json({ name: manifest.name, 'dist-tags': { latest: manifest.version }, versions: { [manifest.version]: {
+        ...manifest, dist: { tarball: `${url.origin}/fixture.tgz`, integrity },
+      } } })
+    },
+  })
+  try {
+    const cafile = path.join(f.home, 'npm.pem'), prefix = path.join(f.home, 'prefix')
+    await writeFile(cafile, [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n'))
+    await writeFile(path.join(f.project, 'blocked.pem'), compromised.certificates[0]!.pem)
+    await writeFile(path.join(f.project, '.npmrc'), 'cafile=blocked.pem\n')
+    await writeFile(path.join(f.project, 'bunfig.toml'), '[install]\ncafile="blocked.pem"\n')
+    const launcher = path.join(f.project, 'node_modules', 'fixture', 'install.ts')
+    await mkdir(path.dirname(launcher), { recursive: true })
+    const module = pathToFileURL(path.resolve(import.meta.dir, '../src/work/backlog-cli.ts')).href
+    await writeFile(launcher, `import { installBacklogCli } from ${JSON.stringify(module)}; await installBacklogCli(false);`)
+    const child = Bun.spawn([process.execPath, launcher], { cwd: f.project,
+      env: { ...process.env, ...f.environment, NPM_CONFIG_CAFILE: cafile, NPM_CONFIG_PREFIX: prefix,
+        NPM_CONFIG_REGISTRY: server.url.href, NPM_CONFIG_CACHE: path.join(f.home, 'cache'), NPM_CONFIG_AUDIT: 'false',
+        NPM_CONFIG_USERCONFIG: path.join(f.home, '.npmrc'), NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' },
+      stdout: 'pipe', stderr: 'pipe',
+    })
+    const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
+    expect(exit, error).toBe(0)
+    const modules = process.platform === 'win32' ? prefix : path.join(prefix, 'lib')
+    expect(JSON.parse(await readFile(path.join(modules, 'node_modules', manifest.name, 'package.json'), 'utf8')).version).toBe(manifest.version)
+  } finally { server.stop(true); await f.close() }
+})
+
 for (const workflow of ['ci', 'release', 'architecture']) {
   test.concurrent(`${workflow} bootstraps safe TLS for action network calls`, async () => {
     const f = await directories()

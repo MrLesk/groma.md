@@ -1,5 +1,5 @@
 import { createHash, X509Certificate } from 'node:crypto'
-import { getCACertificates } from 'node:tls'
+import { getCACertificates, rootCertificates } from 'node:tls'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -41,7 +41,7 @@ export function trustedCertificates(bundles: readonly string[]): string[] {
 /** Include platform and explicitly added CAs, then remove the affected authentication paths. */
 export function runtimeCertificates(): string[] {
   return trustedCertificates([
-    ...getCACertificates('default'), ...getCACertificates('system'), ...getCACertificates('extra'),
+    ...rootCertificates, ...getCACertificates('default'), ...getCACertificates('system'), ...getCACertificates('extra'),
   ])
 }
 
@@ -57,9 +57,14 @@ export async function withCertificateTrust<T>(
     if (trusted.length === 0) throw new Error('No trusted certificate authorities remain.')
     await mkdir(empty)
     await writeFile(cafile, trusted.join('\n'), { mode: 0o600 })
+    const gitSettings = Number(process.env.GIT_CONFIG_COUNT ?? 0)
+    if (!Number.isSafeInteger(gitSettings) || gitSettings < 0) throw new Error('Invalid GIT_CONFIG_COUNT.')
     return await operation(cafile, {
       SSL_CERT_FILE: cafile, SSL_CERT_DIR: empty, CURL_CA_BUNDLE: cafile,
-      GIT_SSL_CAINFO: cafile, GIT_SSL_CAPATH: empty, GIT_SSL_NO_VERIFY: 'false',
+      GIT_SSL_CAINFO: cafile, GIT_SSL_CAPATH: empty, GIT_SSL_NO_VERIFY: undefined,
+      GIT_CONFIG_COUNT: String(gitSettings + 2),
+      [`GIT_CONFIG_KEY_${gitSettings}`]: 'http.schannelUseSSLCAInfo', [`GIT_CONFIG_VALUE_${gitSettings}`]: 'true',
+      [`GIT_CONFIG_KEY_${gitSettings + 1}`]: 'http.sslVerify', [`GIT_CONFIG_VALUE_${gitSettings + 1}`]: 'true',
       NODE_EXTRA_CA_CERTS: cafile, NODE_USE_SYSTEM_CA: '0', NODE_TLS_REJECT_UNAUTHORIZED: '1',
       NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --use-openssl-ca`.trim(),
     })
