@@ -122,8 +122,9 @@ test.concurrent('Git scanner HTTPS rejects incident chains and retains the confi
     const cafile = path.join(f.home, 'git.pem')
     await writeFile(cafile, [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n'))
     // These local fixture certificates have no CRL endpoint; keep CA verification, but omit that fixture-only lookup.
+    // Git applies this Schannel setting only when its backend is explicit; the fixture excludes system config.
     const gitConfig = path.join(f.home, 'git-config')
-    await writeFile(gitConfig, '[http]\n  schannelCheckRevoke = false\n')
+    await writeFile(gitConfig, `[http]\n  schannelCheckRevoke = false\n${process.platform === 'win32' ? '  sslBackend = schannel\n' : ''}`)
     for (const certificate of ['incident-server-emudhra.pem', 'incident-server-aaa.pem', 'registry-server.pem']) {
       let requests = 0
       const server = Bun.serve({ hostname: 'localhost', port: 0,
