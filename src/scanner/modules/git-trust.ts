@@ -83,11 +83,22 @@ async function selectedCa(files: CaFiles, key: string, value: string, index: num
   return filteredCa(files.project, value, target, directory)
 }
 
+/** An unusable PM scope must not abort unrelated requests; selecting it must still fail closed. */
+async function configuredAuthority(files: CaFiles, key: string, value: string, index: number): Promise<string> {
+  try { return await selectedCa(files, key, value, index) }
+  catch (error) {
+    if (!/^http\..+\.sslcainfo$/.test(key)) throw error
+    const invalid = path.join(path.dirname(files.cafile), `git-unusable-${index}.pem`)
+    await writeFile(invalid, '', { mode: 0o600 })
+    return invalid
+  }
+}
+
 async function configuredCa(files: CaFiles, configured: [string, string][], explicit: NodeJS.ProcessEnv) {
   const settings: [string, string][] = [['http.sslCAInfo', files.cafile], ['http.sslCAPath', files.empty]]
   for (const [index, [key, value]] of configured.entries()) {
     const kind = key.endsWith('.sslcapath') ? 'sslcapath' : 'sslcainfo'
-    if (explicit[kind] === undefined) settings.push([key, await selectedCa(files, kind, value, index)])
+    if (explicit[kind] === undefined) settings.push([key, await configuredAuthority(files, key, value, index)])
   }
   return settings
 }

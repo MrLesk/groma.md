@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T14:16:00Z'
-updated_date: '2026-10-21T15:33:00Z'
+updated_date: '2026-10-21T15:40:00Z'
 labels: []
 dependencies: []
 references:
@@ -39,6 +39,7 @@ modified_files:
   - test/fixtures/certificate-trust/incident-server-emudhra.pem
   - test/fixtures/certificate-trust/incident-server-aaa.pem
   - .github/workflows/architecture.yml
+  - scripts/check-native-tls.cjs
 priority: high
 type: bug
 ordinal: 695000
@@ -129,4 +130,8 @@ Final PARAMETERS encoding quotes key and value separately, preserving usernames 
 Root's targeted pre-checkout CI review found the same Git environment precedence gap in all three inline workflow bootstraps: inherited NO_VERIFY was unchecked and strict settings were generic/indexed only. Extend existing real bootstrap tests with actual Git URL-scoped/PARAMETERS/auth controls and false/empty/mixed-case NO_VERIFY rejection. Fix only these public-repository CI paths: fail closed before exports and append exact credential-free repository plus .git strict pairs through both Git configuration channels, preserving inherited authentication and proxy settings.
 
 All three actual inline bootstrap regressions failed before the fix with native Git returning sslVerify=false despite indexed strict settings. After correction,19 trust/JVM tests pass340 assertions, including141 assertions in the three bootstrap cases: exact repository/.git verification and Schannel strictness, preserved indexed/opaque authentication, and false/empty/mixed-case NO_VERIFY rejection before any GITHUB_ENV export. Canonical inherited counts are bounded and exported values reject CR/LF. Typecheck, changed-file lint and diff checks pass. Source f763 hosted Linux/mac suites completed SUCCESS; Windows and Codex remain pending, and the final workflow-only correction requires current-head checks. Mandatory command is repeated on the final bootstrap source.
+
+Codex P2 is confirmed by actual raw-Bun versus Groma npm-only install: raw exits0 while Groma throws ENOENT reading unrelated URL-scoped CAfile. Root approved only PM unknown-URL scoped CAfile failures mapping to an owned empty CAfile under the same config key; direct/explicit/global policies stay eager fail-closed. Extend existing registry install regression and add actual PM Git selected-invalid coverage with a positive default-trust control proving the same loopback leaf is trusted. Add explicit leaf-validity guards at shared loopback fixture creation and separate native probe so future expiry cannot make incident-zeroHTTP assertions pass falsely.
+
+Codex P2 regression failed before correction in both real tarball installation and selected-invalid PM Git cases. Only unknown-URL scoped CAfile failures now map the same key to an owned empty CAfile; direct URL, generic/global settings and explicit CA environment still fail eagerly. Actual PM Git default-trust control reaches the private HTTPS server, while selecting missing, empty or malformed scoped CAfile then sends zero HTTP requests and reports a native Git failure. Unrelated npm installation succeeds and re-downloads its tarball from a fresh cache. All loopback server creation now asserts current leaf validity, including separate .NET probe setup. Focused20trust/JVM tests pass353 assertions under CI-like parent CA environment; typecheck, lint, CJS syntax and diff checks pass. Latest exact-head hosted reviews/build qualification remain release gates.
 <!-- SECTION:NOTES:END -->

@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
 import { createHash, X509Certificate } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -10,6 +11,13 @@ import { packageManagerCertificates } from '../src/scanner/modules/package-trust
 
 const fixtures = path.resolve(import.meta.dir, '../test/fixtures/certificate-trust')
 const clean = (await readFile(path.join(fixtures, 'registry-ca.pem'), 'utf8')).trim()
+
+function fixtureTls(certificate: string) {
+  const file = path.join(fixtures, certificate), leaf = new X509Certificate(readFileSync(file))
+  const now = Date.now()
+  if (!(Date.parse(leaf.validFrom) <= now && now < Date.parse(leaf.validTo))) throw new Error(`TLS fixture ${certificate} is not currently valid.`)
+  return { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(file) }
+}
 
 async function directories() {
   const root = await mkdtemp(path.join(tmpdir(), 'groma-ca-test-'))
@@ -92,7 +100,7 @@ test.concurrent('metadata lookup and tarball installation use verified HTTPS wit
   const integrity = `sha512-${createHash('sha512').update(tarball).digest('base64')}`
   const requests: string[] = []
   const server = Bun.serve({ hostname: 'localhost', port: 0,
-    tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, 'registry-server.pem')) },
+    tls: fixtureTls('registry-server.pem'),
     fetch(request) {
       const url = new URL(request.url)
       requests.push(url.pathname)
@@ -124,6 +132,13 @@ test.concurrent('metadata lookup and tarball installation use verified HTTPS wit
     await writeFile(path.join(f.home, '.npmrc'), `cafile=${path.join(f.home, 'registry.pem').replaceAll('\\', '/')}\n`)
     const trusted = await run()
     expect(trusted.exit, trusted.error).toBe(0)
+    const gitConfig = path.join(f.home, 'unrelated-git-config')
+    await writeFile(gitConfig, '[http "https://unrelated.invalid/repository"]\n sslCAInfo=/missing/unrelated-ca.pem\n')
+    await rm(path.join(f.project, 'node_modules'), { recursive: true, force: true })
+    const before = requests.filter(request => request === '/fixture.tgz').length
+    const unrelated = await run({ GIT_CONFIG_GLOBAL: gitConfig, GIT_CONFIG_NOSYSTEM: '1', BUN_INSTALL_CACHE_DIR: path.join(f.home, 'unrelated-cache') })
+    expect(unrelated.exit, unrelated.error).toBe(0)
+    expect(requests.filter(request => request === '/fixture.tgz').length).toBeGreaterThan(before)
     const withoutGit = await run({ PATH: '' })
     expect(withoutGit.exit, withoutGit.error).toBe(0)
     expect(requests).toContain('/fixture.tgz')
@@ -149,7 +164,7 @@ test.concurrent('Git scanner HTTPS rejects incident chains and retains the confi
     for (const certificate of certificates) {
       let requests = 0
       const server = Bun.serve({ hostname: 'localhost', port: 0,
-        tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, certificate)) },
+        tls: fixtureTls(certificate),
         fetch() { requests++; return new Response('No repository', { status: 404 }) },
       })
       try {
@@ -185,7 +200,7 @@ test.concurrent('package-manager Git dependencies reject URL-scoped TLS opt-outs
     for (const certificate of ['incident-server-emudhra.pem', 'incident-server-aaa.pem', 'registry-server.pem']) {
       let requests = 0, authenticated = 0
       const server = Bun.serve({ hostname: 'localhost', port: 0,
-        tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, certificate)) },
+        tls: fixtureTls(certificate),
         fetch(request) {
           requests++
           if (request.headers.get('authorization') === 'Bearer private-git-fixture') authenticated++
@@ -223,7 +238,7 @@ test.concurrent('package-manager Git dependencies reject URL-scoped TLS opt-outs
 
 async function privateGitCase(
   f: Awaited<ReturnType<typeof directories>>, repository: string,
-  { mode, install, cafile, caDirectory }: { mode: string; install: boolean; cafile: string; caDirectory: string },
+  { mode, install, cafile, caDirectory, defaultCa = '' }: { mode: string; install: boolean; cafile: string; caDirectory: string; defaultCa?: string },
 ) {
   const config = path.join(f.home, 'git-only-config')
   const isPath = mode.endsWith('path'), selected = isPath ? caDirectory : cafile
@@ -245,7 +260,7 @@ async function privateGitCase(
         ? `'http.extraHeader=Authorization: Bearer parameters-fixture' ${[
           [`http.${repository}.sslVerify`, 'false'], [`http.${repository}.sslCAInfo`, cafile],
         ].map(pair => pair.map(value => `'${value!.replaceAll("'", "'\\''")}'`).join('=')).join(' ')}` : undefined,
-      NODE_EXTRA_CA_CERTS: '', BUN_INSTALL_CACHE_DIR: path.join(f.home, 'cache'),
+      NODE_EXTRA_CA_CERTS: defaultCa, BUN_INSTALL_CACHE_DIR: path.join(f.home, 'cache'),
       NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' }, stdout: 'pipe', stderr: 'pipe',
   })
   const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
@@ -263,7 +278,7 @@ test.concurrent('direct and package-manager Git preserve Git-only CA file and ha
   await writeFile(path.join(caDirectory, 'unrelated.txt'), 'not a certificate')
   await writeFile(path.join(caDirectory, '81ee7702.r0'), 'not a certificate')
   const server = Bun.serve({ hostname: 'localhost', port: 0,
-    tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, 'registry-server.pem')) },
+    tls: fixtureTls('registry-server.pem'),
     fetch() { requests++; return new Response('No repository', { status: 404 }) },
   })
   let requests = 0
@@ -297,7 +312,7 @@ test.concurrent(`Git ${mode}, package-manager=${install} retains private trust w
     for (const certificate of ['incident-server-emudhra.pem', 'incident-server-aaa.pem', 'registry-server.pem']) {
       let requests = 0, authenticated = 0
       const server = Bun.serve({ hostname: 'localhost', port: 0,
-        tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, certificate)) },
+        tls: fixtureTls(certificate),
         fetch(request) {
           requests++
           if (request.headers.get('authorization') === 'Bearer parameters-fixture') authenticated++
@@ -323,13 +338,39 @@ test.concurrent(`Git ${mode}, package-manager=${install} retains private trust w
   } finally { await f.close() }
 }, 60000)
 
+test.concurrent('PM-selected unusable scoped Git CAfiles fail closed even when default trust accepts the peer', async () => {
+  const f = await directories(), defaultCa = path.join(f.home, 'default.pem')
+  await writeFile(defaultCa, clean)
+  let requests = 0
+  const server = Bun.serve({ hostname: 'localhost', port: 0, tls: fixtureTls('registry-server.pem'),
+    fetch() { requests++; return new Response('No repository', { status: 404 }) },
+  })
+  try {
+    const repository = new URL('repository.git', server.url).href
+    await writeFile(path.join(f.project, 'package.json'), JSON.stringify({ dependencies: { fixture: `git+${repository}` } }))
+    const options = { install: true, cafile: defaultCa, caDirectory: f.home, defaultCa }
+    const control = await privateGitCase(f, repository, { ...options, mode: 'env-default' })
+    expect(control.exit).not.toBe(0)
+    expect(requests, control.error).toBeGreaterThan(0)
+    for (const content of [undefined, '', 'not a certificate']) {
+      const cafile = path.join(f.home, 'unusable.pem')
+      if (content !== undefined) await writeFile(cafile, content)
+      const before = requests
+      const rejected = await privateGitCase(f, repository, { ...options, cafile, mode: 'url-file' })
+      expect(rejected.exit).not.toBe(0)
+      expect(requests, rejected.error).toBe(before)
+      expect(rejected.error).toContain('git failed with exit code')
+    }
+  } finally { server.stop(true); await f.close() }
+}, 30000)
+
 test.concurrent('npm global installation keeps npm CA configuration instead of project Bun trust', async () => {
   const f = await directories()
   const manifest = { name: 'backlog.md', version: '1.0.0' }
   const tarball = await new Bun.Archive({ 'package/package.json': JSON.stringify(manifest) }, { compress: 'gzip' }).bytes()
   const integrity = `sha512-${createHash('sha512').update(tarball).digest('base64')}`
   const server = Bun.serve({ hostname: 'localhost', port: 0,
-    tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, 'registry-server.pem')) },
+    tls: fixtureTls('registry-server.pem'),
     fetch(request) {
       const url = new URL(request.url)
       if (url.pathname === '/fixture.tgz') return new Response(tarball)
