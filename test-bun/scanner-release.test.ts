@@ -2,7 +2,42 @@ import { expect, test } from 'bun:test'
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { waitForPublishedScanner } from '../scripts/scanner-release.ts'
+
+for (const response of [
+  { name: 'scalar version', output: '"1.2.3"', code: 0, published: true },
+  { name: 'single-result version array', output: '["1.2.3"]', code: 0, published: true },
+  { name: 'different scalar version', output: '"1.2.4"', code: 0, published: undefined },
+  { name: 'different version array', output: '["1.2.4"]', code: 0, published: undefined },
+  { name: 'ambiguous version array', output: '["1.2.3","1.2.4"]', code: 0, published: undefined },
+  { name: 'empty version array', output: '[]', code: 0, published: undefined },
+  { name: 'malformed JSON', output: '{', code: 0, published: undefined },
+  { name: 'missing exact version', output: '{"error":{"code":"E404"}}', code: 1, published: false },
+  { name: 'registry failure', output: '{"error":{"code":"E403"}}', code: 1, published: undefined },
+]) {
+  test.concurrent(`scanner publication checks ${response.name}`, async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'groma-published-version-'))
+    try {
+      await writeFile(path.join(directory, 'package.json'), JSON.stringify({ name: '@example/scanner', version: '1.2.3' }))
+      const child = Bun.spawn([process.execPath, '--eval', `
+        const [modulePath, directory, output, code] = process.argv.slice(-4)
+        const { isPublished } = await import(modulePath)
+        Bun.spawn = () => ({ stdout: new Blob([output]).stream(), stderr: new Blob([]).stream(), exited: Promise.resolve(Number(code)) })
+        console.log(JSON.stringify(await isPublished(directory)))
+      `, pathToFileURL(path.resolve(import.meta.dir, '../scripts/scanner-release.ts')).href, directory, response.output, String(response.code)],
+      { stdout: 'pipe', stderr: 'pipe' })
+      const [output, error, code] = await Promise.all([
+        new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited,
+      ])
+      if (response.published === undefined) expect(code, error).not.toBe(0)
+      else {
+        expect(code, error).toBe(0)
+        expect(output.trim()).toBe(JSON.stringify(response.published))
+      }
+    } finally { await rm(directory, { recursive: true, force: true }) }
+  })
+}
 
 test.concurrent('release metadata waits for the exact uploaded scanner version', async () => {
   const staged = { name: '@example/scanner', version: '1.2.3' }

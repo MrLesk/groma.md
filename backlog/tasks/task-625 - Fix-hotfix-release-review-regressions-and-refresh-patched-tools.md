@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T14:16:00Z'
-updated_date: '2026-10-21T17:51:00Z'
+updated_date: '2026-10-21T19:16:00Z'
 labels: []
 dependencies: []
 references:
@@ -14,6 +14,8 @@ references:
   - plugins/scanners/go/build.ts
   - .github/workflows/release.yml
   - package.json
+  - scripts/scanner-release.ts
+  - test-bun/scanner-release.test.ts
 modified_files:
   - plugins/scanners/jvm-package.ts
   - test-bun/jvm-trust.test.ts
@@ -49,6 +51,7 @@ modified_files:
   - test/fixtures/certificate-trust/other-registry-ca.pem
   - test/fixtures/certificate-trust/other-registry-server.pem
   - test-bun/npm-trust.test.ts
+  - test-bun/scanner-release.test.ts
 priority: high
 type: bug
 ordinal: 695000
@@ -77,3 +80,9 @@ Preserve source Java trust stores and native private CA policies while excluding
 - [ ] #3 Public contracts or documentation are updated when behavior changes.
 - [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+Scanner release preparation recognizes an existing exact npm version supplied as either a string or a single-element string array. Mismatched, ambiguous and malformed output remains an error. The release test covers these response forms because an existing contract must be reused without attempting publication, while unexpected metadata must stop publication.
+<!-- SECTION:PLAN:END -->

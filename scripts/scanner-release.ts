@@ -132,7 +132,7 @@ async function catalog(input: string) {
 }
 
 /** Existing exact versions are reused; a release may change only some packages. */
-async function isPublished(directory: string): Promise<boolean> {
+export async function isPublished(directory: string): Promise<boolean> {
   const value = await manifest(directory)
   const source = `${value.name}@${value.version}`
   const child = Bun.spawn(['npm', 'view', source, 'version', '--json'], { stdout: 'pipe', stderr: 'pipe' })
@@ -140,7 +140,8 @@ async function isPublished(directory: string): Promise<boolean> {
     new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited,
   ])
   const result = JSON.parse(output)
-  if (code === 0 && result === value.version) return true
+  const version = Array.isArray(result) && result.length === 1 ? result[0] : result
+  if (code === 0 && version === value.version) return true
   if (result.error?.code === 'E404') return false
   throw new Error(`Cannot check ${source}: ${error || output}`)
 }
