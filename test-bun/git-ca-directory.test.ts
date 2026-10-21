@@ -66,13 +66,13 @@ test.concurrent('Git preserves native ordinary PEM directory selection without r
   } finally { await f.close() }
 }, 60000)
 
-test.concurrent('Git does not promote CA files across an original hash gap or unreadable PEM entry', async () => {
+test.concurrent('Git preserves native hash gaps and unrecognized regular prefixes', async () => {
   const f = await directories(), source = path.join(f.home, 'authorities')
   await mkdir(source)
   // This subject hash belongs to the other private authority, which appears only after the original gap.
   const hash = '74640382', prefix = path.join(source, `${hash}.0`)
   const ordinary = await readFile(path.join(fixtures, 'unsupported-key-ca.pem'), 'utf8')
-  await writeFile(path.join(source, `${hash}.2`), await readFile(path.join(fixtures, 'other-registry-ca.pem')))
+  const authority = await readFile(path.join(fixtures, 'other-registry-ca.pem'))
   // An explicit CAfile excluding the peer keeps this an independent directory-policy check.
   await writeFile(path.join(f.home, 'gitconfig'), `[http]\n sslCAInfo = ${path.join(fixtures, 'registry-ca.pem').replaceAll('\\', '/')}\n sslCAPath = ${source.replaceAll('\\', '/')}\n extraHeader = Authorization: Bearer directory-fixture\n${process.platform === 'win32' ? ' sslBackend = openssl\n' : ''}`)
   let requests = 0, authenticated = 0
@@ -83,8 +83,11 @@ test.concurrent('Git does not promote CA files across an original hash gap or un
   } })
   try {
     const url = new URL('repository.git', server.url).href
-    for (const content of [`${clean}\n${ordinary}`, 'not PEM']) {
-      await writeFile(prefix, content)
+    for (const [index, content, blocked] of [[2, `${clean}\n${ordinary}`, false], [2, 'not PEM', false],
+      [1, 'not PEM', false], [1, '', false], [2, 'not PEM', true]] as const) {
+      await writeFile(path.join(source, `${hash}.${index}`), authority)
+      await writeFile(prefix, blocked ? compromised.certificates[0]!.pem : content)
+      if (blocked) await writeFile(path.join(source, `${hash}.1`), content)
       const before = requests
       await nativeRequest(f, url, false, false)
       const nativeRequests = requests - before
@@ -94,6 +97,8 @@ test.concurrent('Git does not promote CA files across an original hash gap or un
         expect(requests - current, error).toBe(nativeRequests)
       }
       expect(authenticated).toBe(requests)
+      await rm(path.join(source, `${hash}.${index}`))
+      if (blocked) await rm(path.join(source, `${hash}.1`))
     }
   } finally { server.stop(true); await f.close() }
 }, 30000)

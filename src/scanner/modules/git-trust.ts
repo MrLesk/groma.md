@@ -89,6 +89,10 @@ async function filteredDirectory(source: string, target: string): Promise<void> 
       if (content) await writeFile(path.join(target, name), content, { mode: 0o600 })
       continue
     }
+    // OpenSSL may continue past an empty regular slot; never copy unknown bytes or remove that slot.
+    if ((await stat(path.join(source, name))).isFile()) {
+      await writeFile(path.join(target, name), '', { mode: 0o600 })
+    }
     const entries = hashes.get(match[1]!) ?? new Map<number, string | undefined>()
     entries.set(Number(match[2]), content)
     hashes.set(match[1]!, entries)

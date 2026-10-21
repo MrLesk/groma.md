@@ -150,14 +150,10 @@ jobs:
           git fetch --no-tags origin "$HEAD"
           echo "from=$(git merge-base "$BASE" "$HEAD")" >> "$GITHUB_OUTPUT"
 
-      # The published action requests Node 24; prewarm its latest patched runtime.
-      - uses: actions/setup-node@v7.1.0
-        with:
-          node-version: 24.22.1
-      - uses: MrLesk/groma.md-action@ea7042367a573e3b07ae00437767df04bcf284f2
+      - uses: MrLesk/groma.md-action@89dd5ac60f73f8b1f8902d76a15201ccfdec5f4a
         id: map
         with:
-          groma-version: '0.7.2'
+          groma-version: 'latest'
           output: groma-comparison
           theme: ${{ env.GROMA_THEME }}
           from: ${{ steps.commits.outputs.from }}
@@ -202,7 +198,7 @@ jobs:
       - name: Install dependencies
         run: |
           bun install --frozen-lockfile --cafile="$SSL_CERT_FILE"
-          bun add --global backlog.md@1.55.0 --cafile="$SSL_CERT_FILE"
+          bun add --global backlog.md@latest --cafile="$SSL_CERT_FILE"
 
       - name: Restore released scanner runtimes
         # Export reads saved architecture; source readiness is required only for a new scan.
