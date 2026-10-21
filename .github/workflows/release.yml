@@ -59,6 +59,7 @@ jobs:
           if (!certificates.size) throw new Error('No trusted certificate authorities remain.');
           const directory = path.join(process.env.RUNNER_TEMP, 'groma-tls');
           const bundle = path.join(directory, 'ca.pem'), empty = path.join(directory, 'empty');
+          const proxy = path.join(directory, 'https-proxy-disabled');
           fs.mkdirSync(empty, { recursive: true });
           fs.writeFileSync(bundle, [...certificates.values()].join('\n') + '\n');
           const repository = new URL(`${process.env.GITHUB_SERVER_URL.replace(/\/+$/, '')}/${process.env.GITHUB_REPOSITORY}`);
@@ -67,6 +68,8 @@ jobs:
           for (const url of [repository.href, `${repository.href}.git`]) {
             git.push([`http.${url}.sslVerify`, 'true'], [`http.${url}.schannelUseSSLCAInfo`, 'true']);
           }
+          // Git cannot isolate proxy CApath. An impossible child of a regular file fails before authentication.
+          fs.writeFileSync(proxy, '', { mode: 0o600 });
           const rawGitSettings = process.env.GIT_CONFIG_COUNT ?? '0';
           const gitSettings = Number(rawGitSettings);
           if (!/^(0|[1-9][0-9]*)$/.test(rawGitSettings) || !Number.isSafeInteger(gitSettings + git.length)) throw new Error('Invalid GIT_CONFIG_COUNT.');
@@ -74,6 +77,7 @@ jobs:
             SSL_CERT_FILE: bundle, SSL_CERT_DIR: empty,
             NODE_EXTRA_CA_CERTS: bundle, NODE_USE_SYSTEM_CA: '0', NODE_TLS_REJECT_UNAUTHORIZED: '1',
             GIT_SSL_CAINFO: bundle, GIT_SSL_CAPATH: empty, CURL_CA_BUNDLE: bundle,
+            GIT_PROXY_SSL_CAINFO: path.join(proxy, 'unavailable.pem'),
             CARGO_HTTP_CAINFO: bundle, NPM_CONFIG_CAFILE: bundle,
           };
           for (const [offset, [key, value]] of git.entries()) {
@@ -81,6 +85,9 @@ jobs:
             settings[`GIT_CONFIG_VALUE_${gitSettings + offset}`] = value;
           }
           settings.GIT_CONFIG_COUNT = String(gitSettings + git.length);
+          for (const key of Object.keys(process.env)) {
+            if (key.toUpperCase() === 'GIT_PROXY_SSL_CAINFO') settings[key] = settings.GIT_PROXY_SSL_CAINFO;
+          }
           const quote = value => "'" + value.replaceAll("'", "'\\''") + "'";
           settings.GIT_CONFIG_PARAMETERS = [process.env.GIT_CONFIG_PARAMETERS,
             ...git.map(([key, value]) => quote(key) + '=' + quote(value))].filter(Boolean).join(' ');

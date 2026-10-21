@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T14:16:00Z'
-updated_date: '2026-10-21T15:45:00Z'
+updated_date: '2026-10-21T16:21:00Z'
 labels: []
 dependencies: []
 references:
@@ -40,6 +40,10 @@ modified_files:
   - test/fixtures/certificate-trust/incident-server-aaa.pem
   - .github/workflows/architecture.yml
   - scripts/check-native-tls.cjs
+  - docs/scanners/setup.md
+  - test-bun/certificate-fixtures.ts
+  - test-bun/certificate-bootstrap.test.ts
+  - test-bun/git-proxy-trust.test.ts
 priority: high
 type: bug
 ordinal: 695000
@@ -138,4 +142,8 @@ Codex P2 regression failed before correction in both real tarball installation a
 Fresh sibling control confirms bulk git config --path expansion aborts npm-only installation on an unrelated nonexistent ~user CApath before scoped containment. Native --file - --path --default VALUE --get groma.path performs exact Git expansion per value and ignores inherited command-scope overrides in both tested configuration channels. Root approved raw bulk enumeration plus this fixed-key native per-entry query inside existing scoped-CAfile failure containment; direct URL selection remains unchanged. Extend actual regressions with unrelated/selected nonexistent ~user and valid ~/private CA selection.
 
 The native-path-expansion regressions failed before correction. PM enumeration now reads raw values; each fixed-key native --file - --null --path --default VALUE query expands its own path inside scoped containment, ignoring inherited command-scope overrides. Actual ~/default.pem private CA selection succeeds; unrelated nonexistent ~user does not block fresh-cache npm tarball installation; selecting the invalid scope still sends zero requests despite default trust accepting the peer. Focused20trust/JVM tests pass360 assertions under CI-like parent CA environment, typecheck/lint/diffcheck pass, testfile489lines. The preceding mandatory attempt finished893pass/62skip/29knownenvironmentfail after lint/type/24Node pass; repeat final command on this corrected source. Final3OS CI and exact-head reviews remain required.
+
+Fresh exact-head reviews confirmed analogous unrelated scoped CApath abort and a separate HTTPS-proxy trust gap. Actual Groma direct/PM proxy controls send one CONNECT plus fake proxy authentication through both incident chains. A private-only proxy CAfile still accepts the emudhra path via libcurl's separate system proxy CApath, which Git cannot override. Root approved a temporary material restriction: owned empty GIT_PROXY_SSL_CAINFO makes all native Git HTTPS proxies fail closed, including valid private proxies; direct HTTPS and HTTP CONNECT proxies retain origin verification/authentication. No proxy resolver, relay or CAfile-only mitigation claim. Combine only scoped unknown-PM CApath failure mapping to owned empty directory, retaining eager known/global/env handling, and prove actual transport controls.
+
+Hosted Action Ubuntu Git2.55/GnuTLS disproved the initial empty-proxy-file guard: an empty trust file returns zero imported anchors then still loads proxy CApath. Do not publish that candidate. The corrected guard creates an owned regular marker file and points GIT_PROXY_SSL_CAINFO at its impossible child unavailable.pem, producing a native CA-loader error before proxy requests; Windows aliases receive the same guard. Shared Groma and all three public bootstraps use it. Focused native controls preserve strict raw acceptance for private/both incident proxies with explicit Schannel CAinfo=true, then actual direct/PM calls (including HTTP origins) inherit false and must force strict handling and send zero requests/authentication. HTTP CONNECT/direct private-origin authentication positives pass. Unknown-PM unrelated missing/~user CApath now permits actual npm tarball installation; a selected missing directory retains additive default CAfile trust, whereas selected invalid ~user still fails inside native Git expansion with zero requests. Local trust/JVM suite22pass/506 assertions, typecheck and targeted lint pass; current hosted all-OS and Codex gates must qualify the corrected candidate.
 <!-- SECTION:NOTES:END -->

@@ -114,21 +114,29 @@ export async function withCertificateTrust<T>(
   const directory = await mkdtemp(path.join(tmpdir(), 'groma-certificate-trust-'))
   try {
     const cafile = path.join(directory, 'ca.pem'), empty = path.join(directory, 'empty')
+    const proxy = path.join(directory, 'https-proxy-disabled')
     const trusted = trustedCertificates(certificates, runtime)
     if (trusted.length === 0) throw new Error('No trusted certificate authorities remain.')
     await mkdir(empty)
     await writeFile(cafile, trusted.join('\n'), { mode: 0o600 })
+    // Git cannot isolate proxy CApath. An impossible child of a regular file makes every native CA loader fail.
+    await writeFile(proxy, '', { mode: 0o600 })
     const rawGitSettings = gitEnvironmentSetting('GIT_CONFIG_COUNT') ?? '0'
     const gitSettings = Number(rawGitSettings)
     if (!/^(0|[1-9][0-9]*)$/.test(rawGitSettings) || !Number.isSafeInteger(gitSettings + 2)) throw new Error('Invalid GIT_CONFIG_COUNT.')
-    return await operation(cafile, {
+    const environment: NodeJS.ProcessEnv = {
       SSL_CERT_FILE: cafile, SSL_CERT_DIR: empty, CURL_CA_BUNDLE: cafile,
       GIT_SSL_CAINFO: cafile, GIT_SSL_CAPATH: empty, GIT_SSL_NO_VERIFY: undefined,
+      GIT_PROXY_SSL_CAINFO: path.join(proxy, 'unavailable.pem'),
       GIT_CONFIG_COUNT: String(gitSettings + 2),
       [`GIT_CONFIG_KEY_${gitSettings}`]: 'http.schannelUseSSLCAInfo', [`GIT_CONFIG_VALUE_${gitSettings}`]: 'true',
       [`GIT_CONFIG_KEY_${gitSettings + 1}`]: 'http.sslVerify', [`GIT_CONFIG_VALUE_${gitSettings + 1}`]: 'true',
       NODE_EXTRA_CA_CERTS: cafile, NODE_USE_SYSTEM_CA: '0', NODE_TLS_REJECT_UNAUTHORIZED: '1',
       NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --use-openssl-ca`.trim(),
-    })
+    }
+    for (const key of Object.keys(process.env)) {
+      if (key !== 'GIT_PROXY_SSL_CAINFO' && key.toUpperCase() === 'GIT_PROXY_SSL_CAINFO') environment[key] = undefined
+    }
+    return await operation(cafile, environment)
   } finally { await rm(directory, { recursive: true, force: true }) }
 }

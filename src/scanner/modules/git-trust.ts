@@ -92,7 +92,8 @@ async function configuredAuthority(files: CaFiles, key: string, value: string, i
     return await selectedCa(files, key, expanded.replace(/\0$/, ''), index)
   }
   catch (error) {
-    if (!/^http\..+\.sslcainfo$/.test(key)) throw error
+    if (!/^http\..+\.(sslcainfo|sslcapath)$/.test(key)) throw error
+    if (key.endsWith('.sslcapath')) return files.empty
     const invalid = path.join(path.dirname(files.cafile), `git-unusable-${index}.pem`)
     await writeFile(invalid, '', { mode: 0o600 })
     return invalid
