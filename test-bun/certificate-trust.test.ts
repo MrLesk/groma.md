@@ -366,44 +366,6 @@ test.concurrent('PM-selected unusable scoped Git CAfiles fail closed even when d
   } finally { server.stop(true); await f.close() }
 }, 30000)
 
-test.concurrent('npm global installation keeps npm CA configuration instead of project Bun trust', async () => {
-  const f = await directories()
-  const manifest = { name: 'backlog.md', version: '1.0.0' }
-  const tarball = await new Bun.Archive({ 'package/package.json': JSON.stringify(manifest) }, { compress: 'gzip' }).bytes()
-  const integrity = `sha512-${createHash('sha512').update(tarball).digest('base64')}`
-  const server = Bun.serve({ hostname: 'localhost', port: 0,
-    tls: fixtureTls('registry-server.pem'),
-    fetch(request) {
-      const url = new URL(request.url)
-      if (url.pathname === '/fixture.tgz') return new Response(tarball)
-      return Response.json({ name: manifest.name, 'dist-tags': { latest: manifest.version }, versions: { [manifest.version]: {
-        ...manifest, dist: { tarball: `${url.origin}/fixture.tgz`, integrity },
-      } } })
-    },
-  })
-  try {
-    const cafile = path.join(f.home, 'npm.pem'), prefix = path.join(f.home, 'prefix')
-    await writeFile(cafile, [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n'))
-    await writeFile(path.join(f.project, 'blocked.pem'), compromised.certificates[0]!.pem)
-    await writeFile(path.join(f.project, '.npmrc'), 'cafile=blocked.pem\n')
-    await writeFile(path.join(f.project, 'bunfig.toml'), '[install]\ncafile="blocked.pem"\n')
-    const launcher = path.join(f.project, 'node_modules', 'fixture', 'install.ts')
-    await mkdir(path.dirname(launcher), { recursive: true })
-    const module = pathToFileURL(path.resolve(import.meta.dir, '../src/work/backlog-cli.ts')).href
-    await writeFile(launcher, `import { installBacklogCli } from ${JSON.stringify(module)}; await installBacklogCli(false);`)
-    const child = Bun.spawn([process.execPath, launcher], { cwd: f.project,
-      env: { ...process.env, ...f.environment, NPM_CONFIG_CAFILE: cafile, NPM_CONFIG_PREFIX: prefix,
-        NPM_CONFIG_REGISTRY: server.url.href, NPM_CONFIG_CACHE: path.join(f.home, 'cache'), NPM_CONFIG_AUDIT: 'false',
-        NPM_CONFIG_USERCONFIG: path.join(f.home, '.npmrc'), NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' },
-      stdout: 'pipe', stderr: 'pipe',
-    })
-    const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
-    expect(exit, error).toBe(0)
-    const modules = process.platform === 'win32' ? prefix : path.join(prefix, 'lib')
-    expect(JSON.parse(await readFile(path.join(modules, 'node_modules', manifest.name, 'package.json'), 'utf8')).version).toBe(manifest.version)
-  } finally { server.stop(true); await f.close() }
-})
-
 test.concurrent('native Git does not inherit Node-only extra trust for scanner or PM downloads', async () => {
   const f = await directories(), config = path.join(f.home, 'git-config')
   let requests = 0, authenticated = 0

@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T14:16:00Z'
-updated_date: '2026-10-21T16:53:00Z'
+updated_date: '2026-10-21T17:21:00Z'
 labels: []
 dependencies: []
 references:
@@ -45,6 +45,10 @@ modified_files:
   - test-bun/certificate-bootstrap.test.ts
   - test-bun/git-proxy-trust.test.ts
   - test-bun/git-rewrite-trust.test.ts
+  - src/work/backlog-cli.ts
+  - test/fixtures/certificate-trust/other-registry-ca.pem
+  - test/fixtures/certificate-trust/other-registry-server.pem
+  - test-bun/npm-trust.test.ts
 priority: high
 type: bug
 ordinal: 695000
