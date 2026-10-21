@@ -5,14 +5,15 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T10:51:00Z'
-updated_date: '2026-10-21T12:08:00Z'
+updated_date: '2026-10-21T12:20:00Z'
 labels: []
 dependencies: []
 references:
   - package.json
   - bun.lock
-  - .github/workflows
-  - plugins/scanners
+  - .github/workflows/ci.yml
+  - .github/workflows/release.yml
+  - .github/workflows/architecture.yml
 modified_files:
   - package.json
   - plugins/scanners/angular/package.json
@@ -54,6 +55,7 @@ modified_files:
   - scripts/prepare-hosted-runner-trust.cjs
   - test/fixtures/certificate-trust/README.md
   - test/fixtures/certificate-trust/unsupported-key-ca.pem
+  - scripts/check-native-tls.cjs
 priority: high
 type: chore
 ordinal: 690000
@@ -106,4 +108,6 @@ Hosted review corrections: include Node bundled rootCertificates before filterin
 Hosted b983d7f Linux and macOS mandatory checks pass:24Node+952Bun/22skip/0fail, C#31pass, standalone builds and fresh-checkout packages. Native default .NET HTTPS rejects both eMudhra and AAA fixture paths on all3OS; normal NuGet HTTPS succeeds. Windows then exposed a real Bun platform-store key decoding failure during COBOL download. A valid Ed448 CA reproduces the identical PUBLIC_KEY_DECODE_ERROR locally. Filtering now omits only that explicit unusable-key error, retains strict handling of malformed/other failures, and an all-unsupported store fails closed before network.10trust regressions/142assertions, TypeScript and changed-file Biome pass. Release-only WindowsARM64 exposed the setup-java Microsoft manifest lagging official25.0.4.1; native agent is switching to the checksum-verified official archive without downgrading. Final hosted gates remain required.
 
 Gate fixes validated: latest local mandatory bun run check passes lint, TypeScript,24Node and951Bun tests/22skips; only the two unchanged PID-namespace ps-based liveness failures remain, matching prior independently verified environment behavior (975tests total). No disk-space failures occurred. Windows unsupported-key fixture passes10trust tests/142assertions. WindowsARM64 release setup now downloads official Microsoft25.0.4.1 through patched Node, verifies SHA2567118ce03f24d4460c5d4ccaae03a2c695a83cd3e48686fe9bbf3b34166dce588, and supplies setup-java jdkfile to bypass its stale manifest. Strict YAML, inline Node syntax and7 mocked download/security-path probes pass. Hosted native-trust subtask624.4 is Done from actual Linux/macOS/Windows default .NET probe evidence. Final hosted fullchecks and five release platforms remain required.
+
+Latest source head77127d passes complete Linux CI:24Node+953Bun/22skip/0fail, C#31, standalone/fresh packages. Mac CI and Linuxx64/mac release packaging hit only official NASM host ECONNREFUSED; no source or TLS failure. Release WindowsARM64 latest verified JDK installation succeeds, then native-probe offline restore hits its60-second cold SDK setup bound before any TLS assertion. The narrowly scoped helper adjustment gives only offline restore/build180seconds and prints timings; TLS process/HTTP bounds and all rejection assertions are unchanged. Local genuine native proof passes. Fresh exact-head CI/release dispatch will cover cold ARM setup and retry unchanged NASM downloads.
 <!-- SECTION:NOTES:END -->

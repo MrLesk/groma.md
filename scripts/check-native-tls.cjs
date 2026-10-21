@@ -53,8 +53,16 @@ response.EnsureSuccessStatusCode();
 Console.WriteLine("Normal NuGet HTTPS remains available.");
 `)
     const options = { cwd: temporary, timeout: 60000, maxBuffer: 4 * 1024 * 1024, windowsHide: true }
-    await execute('dotnet', ['restore', project, '--configfile', config, '--nologo', '--verbosity', 'quiet'], options)
-    await execute('dotnet', ['build', project, '--no-restore', '--nologo', '--verbosity', 'quiet'], options)
+    // Cold Windows ARM64 SDK startup needs more time than the actual TLS probe.
+    for (const [phase, args] of [
+      ['restore', [project, '--configfile', config, '--nologo', '--verbosity', 'quiet']],
+      ['build', [project, '--no-restore', '--nologo', '--verbosity', 'quiet']],
+    ]) {
+      const started = Date.now()
+      console.log(`Preparing native HTTPS probe: dotnet ${phase}`)
+      await execute('dotnet', [phase, ...args], { ...options, timeout: 180000 })
+      console.log(`Native HTTPS probe ${phase} completed in ${Date.now() - started}ms`)
+    }
     const result = await execute('dotnet', [path.join(temporary, 'bin/Debug/net10.0/TrustProbe.dll'), ...urls], options)
     process.stdout.write(result.stdout)
     if (requests !== 0) throw new Error(`Incident HTTPS servers received ${requests} authenticated requests.`)
