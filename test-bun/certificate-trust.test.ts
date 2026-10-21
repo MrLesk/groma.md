@@ -373,8 +373,18 @@ for (const workflow of ['ci', 'release', 'architecture']) {
       const unsupported = await readFile(path.join(fixtures, 'unsupported-key-ca.pem'), 'utf8')
       await writeFile(extra, [...compromised.certificates.map(certificate => certificate.pem), unsupported].join('\n'))
       await writeFile(environmentFile, '')
-      const child = Bun.spawn(['bash', '-c', step.run!], { env: { ...process.env, ...f.environment,
-        ...config.env, RUNNER_TEMP: f.root, GITHUB_ENV: environmentFile, NODE_EXTRA_CA_CERTS: extra }, stdout: 'pipe', stderr: 'pipe' })
+      const repository = 'https://github.com/MrLesk/groma.md'
+      const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
+        !/^git_(?:config_(?:count|parameters|key_\d+|value_\d+)|ssl_no_verify)$/i.test(key)))
+      const environment = { ...inherited, ...f.environment, ...config.env,
+        RUNNER_TEMP: f.root, GITHUB_ENV: environmentFile, NODE_EXTRA_CA_CERTS: extra,
+        GITHUB_SERVER_URL: 'https://github.com', GITHUB_REPOSITORY: 'MrLesk/groma.md',
+        GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.extraHeader', GIT_CONFIG_VALUE_0: 'X-Indexed: preserved',
+        GIT_CONFIG_PARAMETERS: `'http.extraHeader'='X-Parameters: preserved' 'http.${repository}.sslVerify'='false' 'http.${repository}.git.schannelUseSSLCAInfo'='false'`,
+        GIT_CONFIG_GLOBAL: path.join(f.home, 'git-config'), GIT_CONFIG_NOSYSTEM: '1',
+      }
+      await writeFile(environment.GIT_CONFIG_GLOBAL, '')
+      const child = Bun.spawn(['bash', '-c', step.run!], { env: environment, stdout: 'pipe', stderr: 'pipe' })
       const [exit, error] = await Promise.all([child.exited, new Response(child.stderr).text()])
       expect(exit, error).toBe(0)
       const settings = Object.fromEntries((await readFile(environmentFile, 'utf8')).trim().split('\n').map(line => {
@@ -400,6 +410,33 @@ for (const workflow of ['ci', 'release', 'architecture']) {
       expect(settings.NODE_EXTRA_CA_CERTS).toBe(settings.SSL_CERT_FILE)
       expect(settings.NODE_USE_SYSTEM_CA).toBe('0')
       expect(config.env.NODE_OPTIONS).toBe('--use-openssl-ca')
+      for (const url of [repository, `${repository}.git`]) for (const key of ['http.sslVerify', 'http.schannelUseSSLCAInfo']) {
+        const query = Bun.spawn(['git', 'config', '--get-urlmatch', key, url], {
+          cwd: f.project, env: { ...environment, ...settings }, stdout: 'pipe', stderr: 'pipe',
+        })
+        const [code, output, error] = await Promise.all([query.exited, new Response(query.stdout).text(), new Response(query.stderr).text()])
+        expect(code, error).toBe(0)
+        expect(output.trim()).toBe('true')
+      }
+      expect(settings.GIT_CONFIG_PARAMETERS!.startsWith(`${environment.GIT_CONFIG_PARAMETERS} `)).toBe(true)
+      const authentication = Bun.spawn(['git', 'config', '--get-all', 'http.extraHeader'], {
+        cwd: f.project, env: { ...environment, ...settings }, stdout: 'pipe', stderr: 'pipe',
+      })
+      const [authCode, headers, authError] = await Promise.all([
+        authentication.exited, new Response(authentication.stdout).text(), new Response(authentication.stderr).text(),
+      ])
+      expect(authCode, authError).toBe(0)
+      expect(headers.trim().split('\n')).toEqual(['X-Indexed: preserved', 'X-Parameters: preserved'])
+      for (const [key, value] of [['GIT_SSL_NO_VERIFY', 'false'], ['GIT_SSL_NO_VERIFY', ''], ['gIt_SsL_nO_vErIfY', 'true']]) {
+        await writeFile(environmentFile, '')
+        const rejected = Bun.spawn(['bash', '-c', step.run!], {
+          env: { ...environment, [key!]: value! }, stdout: 'pipe', stderr: 'pipe',
+        })
+        const [code, error] = await Promise.all([rejected.exited, new Response(rejected.stderr).text(), new Response(rejected.stdout).text()])
+        expect(code).not.toBe(0)
+        expect(error).toContain('Remove GIT_SSL_NO_VERIFY')
+        expect(await readFile(environmentFile, 'utf8')).toBe('')
+      }
     } finally { await f.close() }
   })
 }

@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T14:16:00Z'
-updated_date: '2026-10-21T15:22:00Z'
+updated_date: '2026-10-21T15:33:00Z'
 labels: []
 dependencies: []
 references:
@@ -38,6 +38,7 @@ modified_files:
   - src/scanner/modules/git-trust.ts
   - test/fixtures/certificate-trust/incident-server-emudhra.pem
   - test/fixtures/certificate-trust/incident-server-aaa.pem
+  - .github/workflows/architecture.yml
 priority: high
 type: bug
 ordinal: 695000
@@ -124,4 +125,8 @@ Root's fresh targeted review found two concrete native Git precedence gaps. Actu
 The targeted precedence regressions failed before correction: direct URL-scoped CAfile and opaque PARAMETERS in direct/actual embedded-PM installation each allowed one incident HTTP request; PM per-key URL CAfile control already rejected. Corrected native Git selection uses the filtered CA environment for its known URL and appends the same filtered CA/TLS pairs after inherited opaque PARAMETERS using Git shell quoting, without parsing or replacing original auth/proxy parameters. Four real HTTPS regression cases now reject both incident paths with zero requests and retain private-CA/authentication positives, including apostrophe-containing CA paths and lower-case-only Windows PARAMETERS input. Final focused trust/JVM suite passes19 tests/280 assertions; typecheck, changed-file lint and diff checks pass. Mandatory repository check is repeated on this corrected source; exact-head hosted/Codex gates will restart. No release retry/publication.
 
 Final PARAMETERS encoding quotes key and value separately, preserving usernames containing '=' without ambiguous first-equals parsing. The actual PM fixture includes a raw private=fixture username, mixed old/new inherited parameter formats, a CAfile path containing an apostrophe, and unchanged authentication. Hosted33776061 Linux/mac suites each had956pass/1fail at the private-positive fixture because its inherited CI GIT_SSL_CAINFO correctly outranked Git-config-only private trust. Setting a public GIT_SSL_CAINFO locally reproduced that exact failure; explicitly clearing inherited CAINFO/CAPATH in this isolated fixture fixes it without changing production precedence. The full19-test/280-assertion trust/JVM suite now passes with that public parent CA setting present. Typecheck, lint and diff checks pass; exact-head hosted checks remain required.
+
+Root's targeted pre-checkout CI review found the same Git environment precedence gap in all three inline workflow bootstraps: inherited NO_VERIFY was unchecked and strict settings were generic/indexed only. Extend existing real bootstrap tests with actual Git URL-scoped/PARAMETERS/auth controls and false/empty/mixed-case NO_VERIFY rejection. Fix only these public-repository CI paths: fail closed before exports and append exact credential-free repository plus .git strict pairs through both Git configuration channels, preserving inherited authentication and proxy settings.
+
+All three actual inline bootstrap regressions failed before the fix with native Git returning sslVerify=false despite indexed strict settings. After correction,19 trust/JVM tests pass340 assertions, including141 assertions in the three bootstrap cases: exact repository/.git verification and Schannel strictness, preserved indexed/opaque authentication, and false/empty/mixed-case NO_VERIFY rejection before any GITHUB_ENV export. Canonical inherited counts are bounded and exported values reject CR/LF. Typecheck, changed-file lint and diff checks pass. Source f763 hosted Linux/mac suites completed SUCCESS; Windows and Codex remain pending, and the final workflow-only correction requires current-head checks. Mandatory command is repeated on the final bootstrap source.
 <!-- SECTION:NOTES:END -->
