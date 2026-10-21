@@ -113,6 +113,10 @@ jobs:
                   'plugins/scanners/observations.ts',
                   'packages/scanner/**',
                   'bun.lock', 'LICENSE') }}
+      - name: Prepare patched Rustup
+        if: steps.rust-package.outputs.cache-hit != 'true'
+        run: node --use-env-proxy scripts/prepare-rustup.cjs
+        shell: bash
       - parallel:
           - name: Cache SwiftSyntax build
             if: runner.os == 'Windows' && steps.swift-package.outputs.cache-hit != 'true'
@@ -143,7 +147,9 @@ jobs:
               dotnet-version: '10.0.402'
           - name: Install Rust build toolchain
             if: steps.rust-package.outputs.cache-hit != 'true'
-            run: rustup toolchain install "$RUST_VERSION" --profile minimal
+            run: |
+              [[ "$(rustup --version)" == "rustup 1.29.2 "* ]]
+              rustup toolchain install "$RUST_VERSION" --profile minimal
             shell: bash
           - uses: oven-sh/setup-bun@v2.2.0
             with:

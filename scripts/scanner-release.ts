@@ -36,6 +36,8 @@ async function stage(output: string) {
   await cp('LICENSE', path.join(contract, 'LICENSE'))
   await writeManifest(contract, { ...await manifest('packages/scanner'), license: 'MIT', repository,
     files: ['src', 'LICENSE'], publishConfig: { access: 'public' } })
+  // Give the cold Go build its own resources before starting the other compiler workers.
+  await (await import('../plugins/scanners/go/build.ts')).buildPackage(path.join(output, 'go'))
   const builders = {
     c: (await import('../plugins/scanners/c/build.ts')).buildPackage,
     cpp: (await import('../plugins/scanners/cpp/build.ts')).buildPackage,
@@ -51,7 +53,6 @@ async function stage(output: string) {
     scala: (await import('../plugins/scanners/scala/build.ts')).buildPackage,
     kotlin: (await import('../plugins/scanners/kotlin/build.ts')).buildPackage,
     dart: (await import('../plugins/scanners/dart/build.ts')).buildPackage,
-    go: (await import('../plugins/scanners/go/build.ts')).buildPackage,
     rust: (await import('../plugins/scanners/rust/build.ts')).buildPackage,
     angular: (await import('../plugins/scanners/angular/build.ts')).buildPackage,
     vue: (await import('../plugins/scanners/vue/build.ts')).buildPackage,

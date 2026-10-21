@@ -12,7 +12,7 @@ from proving Spring runtime relationships. That distinction remains unchanged.
 
 ```sh
 GROMA_TEST_MAVEN=/absolute/path/to/mvn bun test test-bun/java-scanner.test.ts
-bunx biome lint plugins/scanners/java test-bun/java-scanner.test.ts
+bun run biome lint plugins/scanners/java test-bun/java-scanner.test.ts
 bun run typecheck
 ```
 

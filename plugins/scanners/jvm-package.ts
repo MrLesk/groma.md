@@ -33,7 +33,7 @@ export async function prepareJavaTrustStore(destination: string): Promise<string
   const { stderr } = await execute(jdkTool('java'), ['-XshowSettings:properties', '-version'])
   const home = stderr.match(/java.home = (.+)/)?.[1]?.trim()
   if (!home) throw new Error('Cannot locate the build JDK trust store.')
-  await cp(path.join(home, 'lib/security/cacerts'), destination)
+  await cp(path.join(home, 'lib/security/cacerts'), destination, { dereference: true })
   await secureJavaTrustStore(destination)
   return destination
 }

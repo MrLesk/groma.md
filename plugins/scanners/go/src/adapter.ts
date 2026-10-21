@@ -15,7 +15,7 @@ export function run(command: string, args: string[], root: string,
   return new Promise((resolve, reject) => {
     const child = execFile(command, args, { cwd: root, env, encoding: 'utf8', timeout: 120000,
       killSignal: 'SIGKILL', maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) => {
-      if (error) reject(new Error(stderr.trim() || stdout.trim() || error.message))
+      if (error) reject(new Error(stderr.trim() || stdout.trim() || error.message, { cause: error }))
       else resolve(stdout)
     })
     if (input !== undefined) child.stdin?.end(input)

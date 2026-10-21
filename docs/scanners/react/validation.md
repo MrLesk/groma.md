@@ -49,7 +49,7 @@ repository TypeScript check passed.
 
 ```sh
 bun test --timeout 20000 test-bun/react-scanner.test.ts
-bunx biome lint plugins/scanners/react/src plugins/scanners/react/build.ts test-bun/react-scanner.test.ts
+bun run biome lint plugins/scanners/react/src plugins/scanners/react/build.ts test-bun/react-scanner.test.ts
 bun run typecheck
 ```
 

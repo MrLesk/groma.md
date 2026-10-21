@@ -56,7 +56,7 @@ Run the focused checks with:
 
 ```sh
 bun test --timeout 20000 test-bun/angular-scanner.test.ts
-bunx biome lint plugins/scanners/angular/src plugins/scanners/angular/build.ts test-bun/angular-scanner.test.ts
+bun run biome lint plugins/scanners/angular/src plugins/scanners/angular/build.ts test-bun/angular-scanner.test.ts
 bun run typecheck
 ```
 

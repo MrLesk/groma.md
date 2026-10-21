@@ -488,3 +488,11 @@ goTest('Go reports what each net/http request proves and leaves the rest unknown
     ].sort())
   } finally { await rm(root, { recursive: true, force: true }) }
 }, 60000)
+
+
+test.concurrent('Go failures preserve stderr and native termination details', async () => {
+  const failure = await run(process.execPath, ['--eval', 'console.error("build failed"); process.exit(23)'], os.tmpdir()).catch(error => error)
+  expect(failure).toBeInstanceOf(Error)
+  expect(failure.message).toBe('build failed')
+  expect(failure.cause).toMatchObject({ code: 23, killed: false, signal: null })
+})
