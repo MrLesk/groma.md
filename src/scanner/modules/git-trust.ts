@@ -30,7 +30,7 @@ async function caSettings(project: string, url?: string): Promise<[string, strin
     if (directory != null) settings.push(['http.sslcapath', directory.replace(/\r?\n$/, '')])
     return settings
   }
-  const output = await configuration(project, ['--null', '--path', '--get-regexp', '^http\\.(.*\\.)?(sslcainfo|sslcapath)$'])
+  const output = await configuration(project, ['--null', '--get-regexp', '^http\\.(.*\\.)?(sslcainfo|sslcapath)$'])
   return (output ?? '').split('\0').filter(Boolean).map(entry => {
     const separator = entry.indexOf('\n')
     if (separator < 0) throw new Error('Could not inspect Git CA configuration.')
@@ -85,7 +85,12 @@ async function selectedCa(files: CaFiles, key: string, value: string, index: num
 
 /** An unusable PM scope must not abort unrelated requests; selecting it must still fail closed. */
 async function configuredAuthority(files: CaFiles, key: string, value: string, index: number): Promise<string> {
-  try { return await selectedCa(files, key, value, index) }
+  try {
+    // Let Git expand each path; an unrelated invalid ~user must not abort bulk enumeration.
+    const expanded = await configuration(files.project, ['--file', '-', '--null', '--path', '--default', value, '--get', 'groma.path'])
+    if (expanded == null) throw new Error('Could not expand the Git CA path.')
+    return await selectedCa(files, key, expanded.replace(/\0$/, ''), index)
+  }
   catch (error) {
     if (!/^http\..+\.sslcainfo$/.test(key)) throw error
     const invalid = path.join(path.dirname(files.cafile), `git-unusable-${index}.pem`)

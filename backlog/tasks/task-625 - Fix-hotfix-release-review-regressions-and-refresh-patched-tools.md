@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T14:16:00Z'
-updated_date: '2026-10-21T15:40:00Z'
+updated_date: '2026-10-21T15:45:00Z'
 labels: []
 dependencies: []
 references:
@@ -134,4 +134,8 @@ All three actual inline bootstrap regressions failed before the fix with native 
 Codex P2 is confirmed by actual raw-Bun versus Groma npm-only install: raw exits0 while Groma throws ENOENT reading unrelated URL-scoped CAfile. Root approved only PM unknown-URL scoped CAfile failures mapping to an owned empty CAfile under the same config key; direct/explicit/global policies stay eager fail-closed. Extend existing registry install regression and add actual PM Git selected-invalid coverage with a positive default-trust control proving the same loopback leaf is trusted. Add explicit leaf-validity guards at shared loopback fixture creation and separate native probe so future expiry cannot make incident-zeroHTTP assertions pass falsely.
 
 Codex P2 regression failed before correction in both real tarball installation and selected-invalid PM Git cases. Only unknown-URL scoped CAfile failures now map the same key to an owned empty CAfile; direct URL, generic/global settings and explicit CA environment still fail eagerly. Actual PM Git default-trust control reaches the private HTTPS server, while selecting missing, empty or malformed scoped CAfile then sends zero HTTP requests and reports a native Git failure. Unrelated npm installation succeeds and re-downloads its tarball from a fresh cache. All loopback server creation now asserts current leaf validity, including separate .NET probe setup. Focused20trust/JVM tests pass353 assertions under CI-like parent CA environment; typecheck, lint, CJS syntax and diff checks pass. Latest exact-head hosted reviews/build qualification remain release gates.
+
+Fresh sibling control confirms bulk git config --path expansion aborts npm-only installation on an unrelated nonexistent ~user CApath before scoped containment. Native --file - --path --default VALUE --get groma.path performs exact Git expansion per value and ignores inherited command-scope overrides in both tested configuration channels. Root approved raw bulk enumeration plus this fixed-key native per-entry query inside existing scoped-CAfile failure containment; direct URL selection remains unchanged. Extend actual regressions with unrelated/selected nonexistent ~user and valid ~/private CA selection.
+
+The native-path-expansion regressions failed before correction. PM enumeration now reads raw values; each fixed-key native --file - --null --path --default VALUE query expands its own path inside scoped containment, ignoring inherited command-scope overrides. Actual ~/default.pem private CA selection succeeds; unrelated nonexistent ~user does not block fresh-cache npm tarball installation; selecting the invalid scope still sends zero requests despite default trust accepting the peer. Focused20trust/JVM tests pass360 assertions under CI-like parent CA environment, typecheck/lint/diffcheck pass, testfile489lines. The preceding mandatory attempt finished893pass/62skip/29knownenvironmentfail after lint/type/24Node pass; repeat final command on this corrected source. Final3OS CI and exact-head reviews remain required.
 <!-- SECTION:NOTES:END -->

@@ -133,12 +133,14 @@ test.concurrent('metadata lookup and tarball installation use verified HTTPS wit
     const trusted = await run()
     expect(trusted.exit, trusted.error).toBe(0)
     const gitConfig = path.join(f.home, 'unrelated-git-config')
-    await writeFile(gitConfig, '[http "https://unrelated.invalid/repository"]\n sslCAInfo=/missing/unrelated-ca.pem\n')
-    await rm(path.join(f.project, 'node_modules'), { recursive: true, force: true })
-    const before = requests.filter(request => request === '/fixture.tgz').length
-    const unrelated = await run({ GIT_CONFIG_GLOBAL: gitConfig, GIT_CONFIG_NOSYSTEM: '1', BUN_INSTALL_CACHE_DIR: path.join(f.home, 'unrelated-cache') })
-    expect(unrelated.exit, unrelated.error).toBe(0)
-    expect(requests.filter(request => request === '/fixture.tgz').length).toBeGreaterThan(before)
+    for (const ca of ['/missing/unrelated-ca.pem', '~groma-missing-user-625/ca.pem']) {
+      await writeFile(gitConfig, `[http "https://unrelated.invalid/repository"]\n sslCAInfo=${ca}\n`)
+      await rm(path.join(f.project, 'node_modules'), { recursive: true, force: true })
+      const before = requests.filter(request => request === '/fixture.tgz').length
+      const unrelated = await run({ GIT_CONFIG_GLOBAL: gitConfig, GIT_CONFIG_NOSYSTEM: '1', BUN_INSTALL_CACHE_DIR: path.join(f.home, `cache-${requests.length}`) })
+      expect(unrelated.exit, unrelated.error).toBe(0)
+      expect(requests.filter(request => request === '/fixture.tgz').length).toBeGreaterThan(before)
+    }
     const withoutGit = await run({ PATH: '' })
     expect(withoutGit.exit, withoutGit.error).toBe(0)
     expect(requests).toContain('/fixture.tgz')
@@ -352,8 +354,12 @@ test.concurrent('PM-selected unusable scoped Git CAfiles fail closed even when d
     const control = await privateGitCase(f, repository, { ...options, mode: 'env-default' })
     expect(control.exit).not.toBe(0)
     expect(requests, control.error).toBeGreaterThan(0)
-    for (const content of [undefined, '', 'not a certificate']) {
-      const cafile = path.join(f.home, 'unusable.pem')
+    const beforeExpanded = requests
+    const expanded = await privateGitCase(f, repository, { ...options, cafile: '~/default.pem', mode: 'url-file' })
+    expect(expanded.exit).not.toBe(0)
+    expect(requests, expanded.error).toBeGreaterThan(beforeExpanded)
+    const invalid = path.join(f.home, 'unusable.pem')
+    for (const [cafile, content] of [[invalid, undefined], [invalid, ''], [invalid, 'not a certificate'], ['~groma-missing-user-625/ca.pem', undefined]] as const) {
       if (content !== undefined) await writeFile(cafile, content)
       const before = requests
       const rejected = await privateGitCase(f, repository, { ...options, cafile, mode: 'url-file' })
