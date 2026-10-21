@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T14:16:00Z'
-updated_date: '2026-10-21T15:11:00Z'
+updated_date: '2026-10-21T15:22:00Z'
 labels: []
 dependencies: []
 references:
@@ -118,4 +118,10 @@ Final focused suite passed 15 trust/JVM tests and 246 assertions. Changed-file l
 The served incident fixture chains now append their already committed public self-signed ECC/AAA roots. This changes peer-supplied chains only: client trust, zero-HTTP rejection assertions and request bounds are unchanged. Unpatched Bun 1.4.3 with the explicit incident roots still accepts each complete chain (HTTP 200 and one request), preserving the unsafe baseline control. Prior Linux and independent Windows handshake stalls are consistent with issuer discovery; that attribution remains an inference. Final hosted gates must prove rejection on this source head.
 
 Final Windows regression uses lower-case-only inherited Git CAfile/count/bypass inputs, preserving the original indexed authentication header. Windows-only reads honor native case-insensitive names; final child overrides clear only equivalent spellings of keys they replace. Final focused trust/JVM suite passed 15 tests/246 assertions, changed-file lint and typecheck passed. Mandatory check is being repeated on the frozen source; hosted exact-head checks and Codex reviews remain pending. No release was retried or published.
+
+Root's fresh targeted review found two concrete native Git precedence gaps. Actual Git control confirms inherited GIT_CONFIG_PARAMETERS overrides indexed sslVerify=true. Direct URL-selected CAs were sanitized into generic settings, leaving original URL-specific raw CAs with higher priority. Add actual direct/embedded-install incident-negative regressions for URL-scoped CA bundles and opaque PARAMETERS with private-CA/auth positives; indexed-only/private-positive coverage did not detect either incorrect result. Root authorized appending sanitized pairs to preserved PARAMETERS and selecting direct-URL filtered CAs through child environment.
+
+The targeted precedence regressions failed before correction: direct URL-scoped CAfile and opaque PARAMETERS in direct/actual embedded-PM installation each allowed one incident HTTP request; PM per-key URL CAfile control already rejected. Corrected native Git selection uses the filtered CA environment for its known URL and appends the same filtered CA/TLS pairs after inherited opaque PARAMETERS using Git shell quoting, without parsing or replacing original auth/proxy parameters. Four real HTTPS regression cases now reject both incident paths with zero requests and retain private-CA/authentication positives, including apostrophe-containing CA paths and lower-case-only Windows PARAMETERS input. Final focused trust/JVM suite passes19 tests/280 assertions; typecheck, changed-file lint and diff checks pass. Mandatory repository check is repeated on this corrected source; exact-head hosted/Codex gates will restart. No release retry/publication.
+
+Final PARAMETERS encoding quotes key and value separately, preserving usernames containing '=' without ambiguous first-equals parsing. The actual PM fixture includes a raw private=fixture username, mixed old/new inherited parameter formats, a CAfile path containing an apostrophe, and unchanged authentication. Hosted33776061 Linux/mac suites each had956pass/1fail at the private-positive fixture because its inherited CI GIT_SSL_CAINFO correctly outranked Git-config-only private trust. Setting a public GIT_SSL_CAINFO locally reproduced that exact failure; explicitly clearing inherited CAINFO/CAPATH in this isolated fixture fixes it without changing production precedence. The full19-test/280-assertion trust/JVM suite now passes with that public parent CA setting present. Typecheck, lint and diff checks pass; exact-head hosted checks remain required.
 <!-- SECTION:NOTES:END -->

@@ -100,7 +100,7 @@ export function runtimeCertificates(runtime: 'bun' | 'native' = 'bun'): string[]
 }
 
 /** Windows environment names are case insensitive, including inherited Git overrides. */
-export function gitEnvironmentSetting(name: 'GIT_SSL_CAINFO' | 'GIT_SSL_CAPATH' | 'GIT_CONFIG_COUNT'): string | undefined {
+export function gitEnvironmentSetting(name: 'GIT_SSL_CAINFO' | 'GIT_SSL_CAPATH' | 'GIT_CONFIG_COUNT' | 'GIT_CONFIG_PARAMETERS'): string | undefined {
   const key = process.platform === 'win32' ? Object.keys(process.env).find(key => key.toUpperCase() === name) : name
   return key === undefined ? undefined : process.env[key]
 }

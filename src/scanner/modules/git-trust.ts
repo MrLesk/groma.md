@@ -120,6 +120,10 @@ function indexedSettings(environment: NodeJS.ProcessEnv, settings: [string, stri
     environment[`GIT_CONFIG_VALUE_${count + offset}`] = value
   }
   environment.GIT_CONFIG_COUNT = String(count + settings.length)
+  // Git reads opaque PARAMETERS after indexed settings. Preserve it, then enforce the same filtered values last.
+  const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
+  const parameters = settings.map(([key, value]) => `${quote(key)}=${quote(value)}`).join(' ')
+  environment.GIT_CONFIG_PARAMETERS = [gitEnvironmentSetting('GIT_CONFIG_PARAMETERS'), parameters].filter(Boolean).join(' ')
   return environment
 }
 
@@ -132,7 +136,12 @@ export async function withGitCertificateTrust<T>(
   const configured = await caSettings(project, url)
   return withCertificateTrust(runtimeCertificates('native'), async (cafile, native) => {
     const files = { project, cafile, empty: native.GIT_SSL_CAPATH! }
-    const explicit = { sslcainfo: gitEnvironmentSetting('GIT_SSL_CAINFO'), sslcapath: gitEnvironmentSetting('GIT_SSL_CAPATH') }
+    const explicit: NodeJS.ProcessEnv = { sslcainfo: gitEnvironmentSetting('GIT_SSL_CAINFO'), sslcapath: gitEnvironmentSetting('GIT_SSL_CAPATH') }
+    // For a known URL the native-selected CA must outrank its original URL-specific setting.
+    if (url !== undefined) for (const [key, value] of configured) {
+      const kind = key.endsWith('.sslcapath') ? 'sslcapath' : 'sslcainfo'
+      explicit[kind] ??= value
+    }
     const settings = await configuredCa(files, configured, explicit)
     for (const key of new Set((keys ?? '').split('\0').filter(Boolean))) settings.push([key, 'true'])
     const environment = { ...native, ...await explicitCa(files, explicit, configured.length) }

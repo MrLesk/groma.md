@@ -199,6 +199,7 @@ test.concurrent('package-manager Git dependencies reject URL-scoped TLS opt-outs
         await writeFile(config, `[http]\n  sslCAInfo = ${cafile.replaceAll('\\', '/')}\n  schannelCheckRevoke = false\n${process.platform === 'win32' ? '  sslBackend = schannel\n' : ''}[http "${repository.href}"]\n  sslVerify = false\n  schannelUseSSLCAInfo = false\n`)
         const child = Bun.spawn([process.execPath, '-e', source], { cwd: f.project,
           env: { ...process.env, ...f.environment, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: config,
+            GIT_SSL_CAINFO: undefined, GIT_SSL_CAPATH: undefined,
             GIT_CONFIG_COUNT: process.platform === 'win32' ? undefined : '1', git_config_count: process.platform === 'win32' ? '1' : undefined,
             ...(process.platform === 'win32' ? { git_ssl_cainfo: cafile, git_ssl_no_verify: '1' } : {}),
             GIT_CONFIG_KEY_0: 'http.extraHeader', GIT_CONFIG_VALUE_0: 'Authorization: Bearer private-git-fixture',
@@ -239,6 +240,11 @@ async function privateGitCase(
   const child = Bun.spawn([process.execPath, '-e', source], { cwd: f.project,
     env: { ...process.env, ...f.environment, GIT_CONFIG_GLOBAL: config, GIT_CONFIG_NOSYSTEM: '1',
       GIT_SSL_CAINFO: mode === 'env-file' ? cafile : undefined, GIT_SSL_CAPATH: mode === 'env-path' ? caDirectory : undefined,
+      GIT_CONFIG_PARAMETERS: undefined,
+      [process.platform === 'win32' ? 'git_config_parameters' : 'GIT_CONFIG_PARAMETERS']: mode === 'parameters'
+        ? `'http.extraHeader=Authorization: Bearer parameters-fixture' ${[
+          [`http.${repository}.sslVerify`, 'false'], [`http.${repository}.sslCAInfo`, cafile],
+        ].map(pair => pair.map(value => `'${value!.replaceAll("'", "'\\''")}'`).join('=')).join(' ')}` : undefined,
       NODE_EXTRA_CA_CERTS: '', BUN_INSTALL_CACHE_DIR: path.join(f.home, 'cache'),
       NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' }, stdout: 'pipe', stderr: 'pipe',
   })
@@ -280,6 +286,41 @@ test.concurrent('direct and package-manager Git preserve Git-only CA file and ha
       expect(error).toContain('configured Git CA file is empty')
     }
   } finally { server.stop(true); await f.close() }
+}, 60000)
+
+for (const mode of ['url-file', 'parameters']) for (const install of [false, true])
+test.concurrent(`Git ${mode}, package-manager=${install} retains private trust without incident paths`, async () => {
+  const f = await directories()
+  const cafile = path.join(f.home, "scoped'private.pem")
+  await writeFile(cafile, [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n'))
+  try {
+    for (const certificate of ['incident-server-emudhra.pem', 'incident-server-aaa.pem', 'registry-server.pem']) {
+      let requests = 0, authenticated = 0
+      const server = Bun.serve({ hostname: 'localhost', port: 0,
+        tls: { key: Bun.file(path.join(fixtures, 'registry-server-key.pem')), cert: Bun.file(path.join(fixtures, certificate)) },
+        fetch(request) {
+          requests++
+          if (request.headers.get('authorization') === 'Bearer parameters-fixture') authenticated++
+          return new Response('No repository', { status: 404 })
+        },
+      })
+      try {
+        // Git accepts an equals sign in a username; PARAMETERS must quote key and value independently.
+        const repository = `${server.url.href.replace('://', install ? '://private=fixture@' : '://')}repository.git`
+        await writeFile(path.join(f.project, 'package.json'), JSON.stringify({ dependencies: { fixture: `git+${repository}` } }))
+        const before = requests, beforeAuthenticated = authenticated
+        const { exit, error } = await privateGitCase(f, repository, { mode, install, cafile, caDirectory: f.home })
+        expect(exit).not.toBe(0)
+        if (certificate === 'registry-server.pem') {
+          expect(requests - before, error).toBeGreaterThan(0)
+          if (mode === 'parameters') expect(authenticated - beforeAuthenticated).toBe(requests - before)
+        } else {
+          expect(requests - before, error).toBe(0)
+          expect(error).toMatch(/certificate|issuer/i)
+        }
+      } finally { server.stop(true) }
+    }
+  } finally { await f.close() }
 }, 60000)
 
 test.concurrent('npm global installation keeps npm CA configuration instead of project Bun trust', async () => {
