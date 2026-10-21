@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T10:51:00Z'
-updated_date: '2026-10-21T12:40:00Z'
+updated_date: '2026-10-21T12:42:00Z'
 labels: []
 dependencies: []
 references:
@@ -114,4 +114,6 @@ Gate fixes validated: latest local mandatory bun run check passes lint, TypeScri
 Latest source head77127d passes complete Linux CI:24Node+953Bun/22skip/0fail, C#31, standalone/fresh packages. Mac CI and Linuxx64/mac release packaging hit only official NASM host ECONNREFUSED; no source or TLS failure. Release WindowsARM64 latest verified JDK installation succeeds, then native-probe offline restore hits its60-second cold SDK setup bound before any TLS assertion. The narrowly scoped helper adjustment gives only offline restore/build180seconds and prints timings; TLS process/HTTP bounds and all rejection assertions are unchanged. Local genuine native proof passes. Fresh exact-head CI/release dispatch will cover cold ARM setup and retry unchanged NASM downloads.
 
 Completed771 Windows job119212932081 proves the runtime unsupported-key fix: COBOL/Scala/Java/Kotlin/fresh-checkout packages, C#31 and standalone all pass. Full suite fails only4 test-harness assumptions:3 bootstrap assertions ask Bun to decode a Node-produced Windows-store key it does not support, and the private Git test CA lacks CRL metadata required by Schannel. Fixes are confined to certificate-trust.test.ts: Node independently inspects every SPKI in the complete bundle; extra Ed448 fixture makes the old inspection fail on allOS; isolated child Git config skips only CRL lookup for all positive/negative fixture commands. Certificate/hostname verification, filtered CA bundles and every incident-negative assertion remain. No production policy changed.10focused tests/148assertions, typecheck and changed-file Biome pass. Source/workflow/scanner/packaging qualification remains943415; subsequent test/task-only changes will be compared explicitly and final PR CI must pass.
+
+Final targeted test review adds an independent positive assertion: Node derives the injected Ed448 SPKI from its fixture, and each bootstrap output must retain that exact key while excluding all compromised SPKIs. This prevents the regression from passing by silently dropping Node-supported platform CAs.10trust tests151assertions, TypeScript and scoped Biome pass. Git fixture configuration applies identically to all positive/negative child commands and changes no production revocation policy. Parser and hosted-native subtasks are now Done with scoped evidence; umbrella remains InProgress pending final exact-head required CI and final release-platform gate.
 <!-- SECTION:NOTES:END -->

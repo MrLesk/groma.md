@@ -1,11 +1,11 @@
 ---
 id: TASK-624.2
 title: Audit and refresh packaged parser engines for the security hotfix
-status: In Progress
+status: Done
 assignee:
   - '@parser-engines'
 created_date: '2026-10-21T10:53:00Z'
-updated_date: '2026-10-21T11:21:00Z'
+updated_date: '2026-10-21T12:42:00Z'
 labels: []
 dependencies: []
 references:
@@ -67,7 +67,7 @@ The security hotfix requires checking the JVM and vendored parser build inputs, 
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [x] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -98,4 +98,12 @@ Transitive OSV audit queried132 current Maven coordinates from actual sbt boot J
 Validation: Kotlin full build/package on verified Temurin27+35, Kotlin+JVM regressions3pass38assertions; Scala sbt2/Scala3.10 full package and regression1pass34assertions; Java/COBOL/NASM suite13pass69assertions; final patched COBOL package regression1pass24assertions proves vulnerable class entries removed, replacement JAR hashes correct and parsing preserved. Biome check of all changed TS files passed. TypeScript noEmit passed. Actual Java PKIX verifier rejects all12 published incident chains, including AAA cross-sign paths, using packaged Kotlin trust (baseline JDK27 accepted6). Also verified Microsoft25.0.4.1 WindowsARM64 ZIP against official SHA2567118ce03f24d4460c5d4ccaae03a2c695a83cd3e48686fe9bbf3b34166dce588, extracted/sanitized cacerts and rejected all12 chains. Microsoft27 and Temurin27 WindowsARM64 binaries are unavailable; parent workflow uses available Microsoft25.0.4.1 for that target.
 
 Parent owns root/npm/scanner package versions, the mandatory combined bun run check, cross-platform release verification and the cohesive PR. Subtask remains In Progress until the combined repository check is recorded. No groma/ architecture files changed.
+
+Combined repository checks are now recorded on qualified source943415: complete Linux/macOS CI passes24Node+953Bun/22skips/0fail plus C#31, standalone and fresh-checkout packages. Completed Windows771 job119212932081 builds COBOL/Scala/Java/Kotlin and passes their scanner regressions, launcher rejection and NASM cases; its only four failures are parent trust-test harness assumptions, not parser/engine behavior. Source/workflow/scanner/packaging blobs are identical to943415. Build-only Release39599440332 has successful Linuxx64/LinuxARM64/macOSARM64/WindowsARM64 package builds and installed/fresh-checkout validation; Windowsx64 qualification remains a parent release gate. The exact rebuilt C++WASM is remotely uploaded with blob2c997f4dfa78bbeca9068dcd669d044b50a571c0 matching the reviewed local artifact. No parser/engine blocker remains; parent tracks final Windows full-check and release readiness.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Refresh Scala/sbt/Kotlin dependencies and all five WASM grammars, verify executable downloads and filter copied JVM trust stores. Replace vulnerable COBOL logging classes with checksum-pinned current libraries.736grammar corpus cases and focused scanner/security regressions pass; actual production Maven graph audit finds no shipped advisories, with unused interactive sbt/JLine build-tool advisories explicitly held. Combined Linux/macOS checks and Windows parser/native package regressions pass; parent owns final release gates.
+<!-- SECTION:FINAL_SUMMARY:END -->

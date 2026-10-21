@@ -210,14 +210,16 @@ for (const workflow of ['ci', 'release', 'architecture']) {
       // Node understands platform CA algorithms that Bun cannot decode; inspect every key independently.
       const inspect = `const {readFileSync}=require('node:fs'); const {X509Certificate}=require('node:crypto');
         const certificates=readFileSync(process.argv[1],'utf8').match(/-----BEGIN CERTIFICATE-----[\\s\\S]*?-----END CERTIFICATE-----/g)??[];
-        process.stdout.write(JSON.stringify(certificates.map(pem=>new X509Certificate(pem).publicKey.export({type:'spki',format:'der'}).toString('base64'))));`
-      const inspection = Bun.spawn(['node', '-e', inspect, settings.SSL_CERT_FILE!], { stdout: 'pipe', stderr: 'pipe' })
+        const key=pem=>new X509Certificate(pem).publicKey.export({type:'spki',format:'der'}).toString('base64');
+        process.stdout.write(JSON.stringify({keys:certificates.map(key),extra:key(readFileSync(process.argv[2],'utf8'))}));`
+      const inspection = Bun.spawn(['node', '-e', inspect, settings.SSL_CERT_FILE!, path.join(fixtures, 'unsupported-key-ca.pem')], { stdout: 'pipe', stderr: 'pipe' })
       const [inspectionExit, output, inspectionError] = await Promise.all([
         inspection.exited, new Response(inspection.stdout).text(), new Response(inspection.stderr).text(),
       ])
       expect(inspectionExit, inspectionError).toBe(0)
-      const keys = JSON.parse(output) as string[]
+      const { keys, extra: expectedExtra } = JSON.parse(output) as { keys: string[]; extra: string }
       expect(keys.length).toBeGreaterThan(0)
+      expect(keys).toContain(expectedExtra)
       for (const blocked of compromised.certificates) {
         const key = new X509Certificate(blocked.pem).publicKey.export({ type: 'spki', format: 'der' }).toString('base64')
         expect(keys, blocked.name).not.toContain(key)

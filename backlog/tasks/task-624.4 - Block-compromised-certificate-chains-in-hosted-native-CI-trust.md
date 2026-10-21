@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@native-scanners'
 created_date: '2026-10-21T11:25:00Z'
-updated_date: '2026-10-21T12:30:00Z'
+updated_date: '2026-10-21T12:42:00Z'
 labels: []
 dependencies: []
 references:
@@ -74,6 +74,8 @@ Reopened for a concrete release-only WindowsARM64 setup bound: job119213534921 c
 Scoped ARM SDK setup fix implemented: restore/build each have180-second deadlines with phase start/completion timing; actual TLS execution remains60seconds and requests remain15/30seconds. CJS syntax passes. Genuine local default .NET TLS proof passes with filtered OpenSSL trust: restore1498ms/build2400ms, both incident handshakes rejected before HTTP, normal NuGet HTTPS available. Actual cold WindowsARM64 execution remains required. Other release failures at this head are official NASM host ECONNREFUSED, unrelated to certificate verification; parent will dispatch a fresh build-only workflow after this helper fix.
 
 Actual WindowsARM64 gate now passes on source943415: build-only Release run39599440332 job119219889111 reports Check native HTTPS trust SUCCESS after the scoped cold-SDK preparation adjustment. All five release scanner platforms have successful native-probe steps at this source head, including Windowsx64, macOSARM64, Linuxx64 and LinuxARM64. The probe still requires both original incident TLS chains to fail with AuthenticationException before HTTP and normal NuGet HTTPS to succeed; no assertion or HTTP/probe deadline was relaxed. Prior three-OS full raw log evidence remains above. Full ARM job logs/timing will be added with the final parent packaging evidence when complete.
+
+Full WindowsARM64 job119219889111 log is now available and confirms the actual source943415 proof: offline restore4548ms, build3751ms, both Rejected incident chain through default native TLS messages, then Normal NuGet HTTPS remains available. The job completes SUCCESS, including seven Swift package tests and22 fresh-checkout installed-scanner tests. SDK setup timings are diagnostic only; every TLS/HTTP bound and rejection assertion remains intact. Link: https://github.com/MrLesk/groma.md/actions/runs/39599440332/job/119219889111 .
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
