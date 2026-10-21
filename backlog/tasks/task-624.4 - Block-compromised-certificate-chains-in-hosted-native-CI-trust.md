@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@native-scanners'
 created_date: '2026-10-21T11:25:00Z'
-updated_date: '2026-10-21T12:42:00Z'
+updated_date: '2026-10-21T17:53:00Z'
 labels: []
 dependencies: []
 references:
@@ -13,7 +13,7 @@ references:
     https://learn.microsoft.com/en-us/troubleshoot/azure/virtual-machines/windows/windows-vm-imds-certissues
   - >-
     https://github.com/apple-oss-distributions/Security/blob/main/SecurityTool/macOS/security.c
-  - 'https://docs.github.com/en/actions/reference/workflows-and-actions/variables'
+  - https://docs.github.com/en/actions/reference/workflows-and-actions/variables
 modified_files:
   - scripts/prepare-hosted-runner-trust.cjs
   - scripts/check-native-tls.cjs
@@ -45,41 +45,3 @@ Protect Windows and macOS hosted scanner build jobs whose native .NET TLS trust 
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
-
-## Implementation Plan
-
-<!-- SECTION:PLAN:BEGIN -->
-1. Derive affected SPKI keys and public certificate variants from the incident fixture. 2. Apply bounded Windows Disallowed or macOS administrative deny settings only in GitHub-hosted runners. 3. Exercise original incident chains against a localhost HTTPS fixture with default .NET TLS, then verify the normal registry. 4. Require Windows and macOS CI execution before release.
-
-WindowsARM64 release validation exposed the initial offline SDK restore hitting the shared60-second process bound before TLS ran. Give only restore/build180seconds for cold SDK preparation, retain the probe60-second and HTTP15/30-second limits, and log phase timing; require actual ARM64 execution before finalization.
-<!-- SECTION:PLAN:END -->
-
-## Implementation Notes
-
-<!-- SECTION:NOTES:BEGIN -->
-Implemented a hosted-only native OS mitigation and a genuine .NET TLS probe. The entrypoint refuses both non-GitHub and self-hosted environments before creating temporary files or changing trust. Windows matches certificate SPKI SHA-256 values in LocalMachine and CurrentUser Root/CA stores, removes all affected keys, and installs all 20 known public variants (12 signing keys) into LocalMachine Disallowed with presence checks. macOS uses 30-second bounded noninteractive administrative deny settings for those exact variants; it does not alter the read-only system root keychain. All mutation is confined to disposable GitHub-hosted runners.
-
-The dependency-free net10 probe restores/builds offline from installed framework packs, then uses default HttpClient TLS with proxies disabled for loopback incident servers. Both affected eMudhra and AAA authentication paths must fail with AuthenticationException before any HTTP request. Normal NuGet HTTPS must still return success. Fixtures reuse the existing test-only server private key, contain no intermediate private keys and are valid for localhost/127.0.0.1 through 2027-10-01.
-
-Local Linux evidence: exact script passes with filtered SSL_CERT_FILE and an empty SSL_CERT_DIR; both incident handshakes reject and ordinary NuGet HTTPS succeeds. Original-root controls authenticate both fixture chains, proving the fixture signatures and local transport work. node --check passes for both helpers; git diff --check is clean. Biome excludes CJS helper paths by existing repository configuration, so no claim of Biome coverage is made for them.
-
-Windows/macOS native command execution and genuine .NET rejection are still REQUIRED CI RELEASE GATES, not locally proven. The task remains In Progress with acceptance criteria unchecked until those hosted jobs succeed. Parent task owns workflow wiring after setup-node/setup-dotnet and before native package restore. The macOS trust command is bounded and any command error/timeout fails the job rather than proceeding with unproven trust.
-
-Review correction: native OS distrust now runs immediately after checkout and patched Node, BEFORE setup-dotnet, Swift and other native installer actions. The default .NET HTTPS probe is a separate post-SDK workflow step, so the SDK installer itself cannot run through an unmitigated native store. The helper no longer invokes the probe itself. Windows/macOS execution remains the same required gate.
-
-Hosted verification completed on b983d7f in CI run39594486176. Ubuntu job119203293783, macOS job119203294285 and Windows job119203294317 all pass both Prepare native HTTPS trust and Check native HTTPS trust. Full logs on each platform show two Rejected incident chain through default native TLS messages and Normal NuGet HTTPS remains available. Thus both original eMudhra and AAA cross-sign handshakes fail before HTTP through default .NET TLS, and ordinary NuGet works. Linux/macOS full jobs pass; the later unrelated Windows Bun key-decoding build failure is tracked and fixed in TASK-624 and does not invalidate this native OS probe. The helper guard was separately checked for consumer/self-hosted rejection before mutation. Final ordering is native OS prepare before SDK installer actions, then .NET probe after SDK setup and before restore; documentation describes exact scope and runner pre-job archive limitation. Links: https://github.com/MrLesk/groma.md/actions/runs/39594486176/job/119203293783 ; https://github.com/MrLesk/groma.md/actions/runs/39594486176/job/119203294285 ; https://github.com/MrLesk/groma.md/actions/runs/39594486176/job/119203294317 .
-
-Reopened for a concrete release-only WindowsARM64 setup bound: job119213534921 completed OS trust preparation and all SDK/JDK setup, then offline TrustProbe restore was killedSIGTERM at60seconds with no output. No TLS assertion executed and no trust bypass was observed. Prior Linux/macOS/Windowsx64 negative/positive proof remains valid. Scope the timeout adjustment to offline restore/build preparation and retain every TLS assertion and HTTP/probe deadline.
-
-Scoped ARM SDK setup fix implemented: restore/build each have180-second deadlines with phase start/completion timing; actual TLS execution remains60seconds and requests remain15/30seconds. CJS syntax passes. Genuine local default .NET TLS proof passes with filtered OpenSSL trust: restore1498ms/build2400ms, both incident handshakes rejected before HTTP, normal NuGet HTTPS available. Actual cold WindowsARM64 execution remains required. Other release failures at this head are official NASM host ECONNREFUSED, unrelated to certificate verification; parent will dispatch a fresh build-only workflow after this helper fix.
-
-Actual WindowsARM64 gate now passes on source943415: build-only Release run39599440332 job119219889111 reports Check native HTTPS trust SUCCESS after the scoped cold-SDK preparation adjustment. All five release scanner platforms have successful native-probe steps at this source head, including Windowsx64, macOSARM64, Linuxx64 and LinuxARM64. The probe still requires both original incident TLS chains to fail with AuthenticationException before HTTP and normal NuGet HTTPS to succeed; no assertion or HTTP/probe deadline was relaxed. Prior three-OS full raw log evidence remains above. Full ARM job logs/timing will be added with the final parent packaging evidence when complete.
-
-Full WindowsARM64 job119219889111 log is now available and confirms the actual source943415 proof: offline restore4548ms, build3751ms, both Rejected incident chain through default native TLS messages, then Normal NuGet HTTPS remains available. The job completes SUCCESS, including seven Swift package tests and22 fresh-checkout installed-scanner tests. SDK setup timings are diagnostic only; every TLS/HTTP bound and rejection assertion remains intact. Link: https://github.com/MrLesk/groma.md/actions/runs/39599440332/job/119219889111 .
-<!-- SECTION:NOTES:END -->
-
-## Final Summary
-
-<!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Apply disposable hosted Windows Disallowed and macOS administrative deny settings before native SDK installers, refusing consumer/self-hosted environments. Genuine default .NET HTTPS probes reject both original incident authentication paths while normal NuGet HTTPS succeeds on all five release platforms, including WindowsARM64. Offline SDK restore/build have separate180-second cold-start bounds and phase timing; actual TLS/HTTP limits are unchanged. Source943415 hosted native steps pass; runner pre-job action archives remain outside this scoped protection.
-<!-- SECTION:FINAL_SUMMARY:END -->
