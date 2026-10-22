@@ -404,7 +404,7 @@ jobs:
           GROMA_BUILD_OUTFILE: dist/${{ matrix.binary }}
         run: bun scripts/build.ts
         shell: bash
-      - name: Check packaged native command without Node or Bun
+      - name: Check standalone and npm runtime requirements
         env:
           GROMA_TEST_CLI: dist/${{ matrix.binary }}
         run: bun test --timeout 60000 test-bun/npm-packaging.test.ts --test-name-pattern '^packaged Groma'
@@ -501,27 +501,7 @@ jobs:
               RELEASE_TAG: ${{ github.ref_name }}
             run: |
               version="${RELEASE_TAG#v}"
-              mkdir -p package
-              cp "artifact/${{ matrix.binary }}" "package/${{ matrix.binary }}"
-              cp LICENSE package/
-              if [[ "${{ matrix.npm_os }}" != "win32" ]]; then
-                chmod +x "package/${{ matrix.binary }}"
-              fi
-              node - "$version" "${{ matrix.package }}" "${{ matrix.npm_os }}" "${{ matrix.npm_cpu }}" "${{ matrix.binary }}" <<'NODE'
-              const fs = require('node:fs')
-              const [version, name, os, cpu, binary] = process.argv.slice(2)
-              const manifest = {
-                name,
-                version,
-                description: 'Groma standalone architecture CLI',
-                license: 'MIT',
-                repository: { type: 'git', url: 'https://github.com/MrLesk/groma.md.git' },
-                os: [os],
-                cpu: [cpu],
-                files: [binary, 'package.json', 'LICENSE'],
-              }
-              fs.writeFileSync('package/package.json', `${JSON.stringify(manifest, null, 2)}\n`)
-              NODE
+              node scripts/package-cli.ts platform package "$version" "${{ matrix.package }}" "${{ matrix.npm_os }}" "${{ matrix.npm_cpu }}" "artifact/${{ matrix.binary }}"
             shell: bash
           - name: Use current npm for trusted publishing
             run: npm install --global npm@12.2.0
@@ -542,15 +522,12 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: https://registry.npmjs.org
-      - uses: oven-sh/setup-bun@v2.2.0
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
       - parallel:
           - name: Prepare npm wrapper package
             env:
               RELEASE_TAG: ${{ github.ref_name }}
             run: |
-              bun scripts/package-cli.ts package "${RELEASE_TAG#v}"
+              node scripts/package-cli.ts wrapper package "${RELEASE_TAG#v}"
             shell: bash
           - name: Use current npm for trusted publishing
             run: npm install --global npm@12.2.0
