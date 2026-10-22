@@ -1,11 +1,11 @@
 ---
 id: TASK-627
 title: Separate Groma runtime requirements from build tools
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-22T20:31:00Z'
-updated_date: '2026-10-22T21:39:00Z'
+updated_date: '2026-10-22T21:53:00Z'
 labels: []
 dependencies: []
 references:
@@ -34,53 +34,56 @@ ordinal: 697000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-The published npm wrapper inherits the checkout's current Node and Bun build requirements. Keep generic npm installation compatible with an older tested Node runtime and disabled lifecycle scripts. Native downloads continue to run without external Node or Bun. The rejected postinstall copy design must be removed; Backlog packaging stays unchanged.
+Keep npm installation compatible with an older tested Node runtime and disabled lifecycle scripts. Publish only launcher runtime requirements, independently of checkout build tools. Preserve native downloads without external Node or Bun, supported platform selection, arguments, exit status and cleanup. Backlog packaging stays unchanged.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The generic npm package installs with lifecycle scripts disabled and strict engine checks and runs with Node 16.20.2 and its npm on supported Windows, Linux and macOS test hosts.
-- [ ] #2 The published npm manifest declares its own tested Node minimum, requires no separate Bun installation, and uses exact-version platform payloads without copying development requirements.
-- [ ] #3 The npm command preserves platform selection, arguments, native exit status and termination cleanup; macOS remains Apple Silicon only.
-- [ ] #4 The standalone Groma executable runs with neither Node nor a separate Bun on PATH, and installation documentation distinguishes the two routes.
+- [x] #1 The generic npm package installs with lifecycle scripts disabled and strict engine checks and runs with Node 16.20.2 and its npm on supported Windows, Linux and macOS test hosts.
+- [x] #2 The published npm manifest declares its own tested Node minimum, requires no separate Bun installation, and uses exact-version platform payloads without copying development requirements.
+- [x] #3 The npm command preserves platform selection, arguments, native exit status and termination cleanup; macOS remains Apple Silicon only.
+- [x] #4 The standalone Groma executable runs with neither Node nor a separate Bun on PATH, and installation documentation distinguishes the two routes.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Stage the wrapper with its own Node16.20.2 runtime minimum, exact-version optional payloads and no lifecycle hook; keep newer development requirements only in the checkout.
-2. Stage platform packages in the same build script. Let x64 npm install the Darwin ARM64 payload under Rosetta, while retaining the existing launcher hardware check and unsupported Intel behavior.
-3. Verify real local/global packed installations with --ignore-scripts --engine-strict, argument/exit handling and cleanup. Verify the standalone with an empty runtime PATH and the npm command with only Node. CI covers Windows, Linux and macOS with Node16.20.2 and adds real macOS Rosetta execution.
-4. Document native and npm installation/runtime requirements separately. Do not change Backlog, add Nix support, or expand current OS/CPU support.
-5. Run bun run check and platform CI; complete the cold simplicity, implementer specification/quality, and full-context complexity reviews, then finalize the task and PR with the exact evidence. No OKF/C4 model changes are required.
-
-CI regression coverage: macOS showed the launcher itself dying from SIGINT during native startup. A deterministic local probe reproduces exit130 while spawnBinary has not returned, before the launcher installs signal listeners. Extend the existing launcher test to send SIGINT during that call and require the native exit7. Existing readiness-based tests do not force this startup window. Install the same listeners before spawning and remove them on a synchronous spawn throw; preserve all existing forwarding rules.
+1. Stage the wrapper with its own tested Node16.20.2 minimum, exact-version optional payloads and no lifecycle hook; keep development requirements only in the checkout.
+2. Stage platform manifests in the same build script. Allow x64 npm under Rosetta to install the Darwin ARM64 payload while retaining the launcher hardware check and Intel rejection.
+3. Register launcher signal handlers before native spawn, preserving forwarding, exit status and native cleanup. Prove the observed startup race with a deterministic regression.
+4. Verify real packed local/global installs with --ignore-scripts --engine-strict, arguments/exit status and cleanup. Test the standalone with no runtime on PATH and npm with only Node; run full Windows/Linux/macOS CI plus Node16 and macOS Rosetta checks.
+5. Document npm, native and development requirements separately. Leave Backlog, Nix packaging and OS/CPU scope unchanged.
+6. Complete cold simplicity, implementer specification/quality, full-context complexity and targeted startup-regression reviews; record exact verification evidence.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Final design: scripts/package-cli.ts owns npm wrapper and platform staging. The wrapper declares Node>=16.20.2, exact-version optional payloads, and no lifecycle hooks. It does not publish checkout build requirements. npm owns the command link; the unchanged CommonJS launcher selects and starts the payload; the compiled CLI owns application behavior and cleanup. Direct native executables run without external Node or Bun. Backlog and Groma's supported OS/CPU targets are unchanged; no Nix packaging was added. This is delivery knowledge, not a new OKF concept or C4 element.
+Final flow: scripts/package-cli.ts stages the wrapper and platform payloads. The npm manifest declares Node>=16.20.2, exact-version optional payloads and no lifecycle hook, independently of the checkout's newer Node/Bun build requirements. npm owns the command link. The small CommonJS launcher selects and starts the native payload; the compiled CLI owns application behavior and cleanup. Direct native downloads run without external Node or Bun. Backlog and current OS/CPU support are unchanged. No new Nix package, OKF metadata or C4 element is introduced.
 
-Rosetta: a real x64 Node16.20.2 installation on Apple Silicon skipped cpu:[arm64] payloads and failed to launch. Allowing cpu:[arm64,x64] installed the ARM64 payload and ran Groma 0.7.6. The existing hardware probe still rejects Intel Macs. Release staging and automated tests now share this metadata.
+Rosetta: a real x64 Node16/npm8 installation on Apple Silicon skipped the old ARM64-only CPU-filtered payload. Shared staging now allows x64 npm to install that ARM64 payload; the existing hardware probe still rejects Intel Macs. The actual installation failed before the metadata fix and succeeds after it.
 
-Verification: actual Node16.20.2/npm8.19.4 passes local/global installation with --ignore-scripts --engine-strict, argument and nonzero-exit checks, and native cleanup. The full standalone binary runs with an empty runtime PATH; the npm command runs with only Node available. All three package tests pass under native ARM64 Node16 and real x64 Node16/Rosetta. All eight existing launcher lifecycle tests pass. Both staging CLI entry points execute with Node, and focused lint/type checks pass. Windows/Linux/macOS CI is running at code commit 2e63e318.
+Startup lifecycle: the launcher installs signal listeners before spawning. A fast native process can become ready before spawn returns, so installing listeners afterwards allowed terminal SIGINT to kill the launcher during startup. A deterministic regression failed before the fix and passes afterwards. The fix uses the same forwarding rules and no signal queue; synchronous spawn errors release listeners and preserve the error.
 
-Repository check outside the sandbox: Biome, typecheck, and all 24 Node tests pass. Bun reports 929 passes, 64 optional skips and 19 certificate-related failures. Earlier clean-main focused verification reproduced 11 of those failures in two trust files (7 pass/11 fail); no TLS code or tests changed. The first sandboxed run also hit macOS FSEvents and blocked downloads; those disappear outside the sandbox.
+Verification: code commit 818a66b475d704a03699971d679f7f6a0555f271 passed full Windows, Linux and macOS CI in https://github.com/MrLesk/groma.md/actions/runs/39859095516 . Each platform passed the full repository check, the standalone/npm command smoke and the Node16.20.2 installation checks with scripts disabled. macOS also passed real x64 Node/Rosetta installation. Architecture workflow https://github.com/MrLesk/groma.md/actions/runs/39859093105 passed. Local real Node16.20.2/npm8.19.4 checks cover local/global installation, Windows shell entry points in platform CI, arguments, nonzero exits and cleanup. Both release staging CLI entry points were exercised.
 
-Reviews: cold simplicity review and final full-context complexity review report no blocking findings. Implementer specification review confirms the wrapper/native route distinction and retained launcher semantics; platform CI remains the outstanding verification. Implementer quality review traces release staging -> npm link -> launcher -> native CLI, checks output-stream completion and process-group cleanup, and removes the unnecessary PID comparison. No groma/ files changed.
+Local repository check with exact CI Node26.12.1: lint/types and all 25 Node tests pass; Bun reports 929 passes, 64 optional skips and 19 certificate-related failures. Earlier clean-main focused verification reproduced 11 of these failures in two trust files (7 pass/11 fail). No TLS code or tests changed. Full platform CI passes its complete checks.
 
-History: the earlier postinstall-copy approach was rejected because package managers can block lifecycle scripts. It was never merged or released. Its script-enabled CI evidence does not establish the current design; the implementation and tests were replaced.
+Reviews: cold simplicity and full-context complexity reviews found no blocking design issues. Implementer specification/quality reviews confirm all task criteria, clear staging/launcher/native ownership, tests with independent temporary resources and complete output collection. The CI-discovered startup race received a deterministic failing-before/passing-after test and targeted specification/quality review. No groma/ files changed.
 
-Platform CI at 2e63e318 found an existing launcher startup race on macOS: the full native/npm package check passed, but the Node lifecycle suite reported launcher signal SIGINT rather than native exit23. Exact CI Node26.12.1 passes the test alone. A deterministic synchronous child-spawn probe reproduces launcher exit130 before signal handlers are registered, so this is a supported-flow race, not a reason to add retries or relax assertions.
-
-Startup-race fix: the same signal listeners are now registered before spawnBinary runs; forwarding callbacks execute after the synchronous spawn returns, so no queue or extra lifecycle state is needed. A synchronous spawn throw releases listeners and preserves its original error. The deterministic SIGINT regression failed before the fix (launcher killed by SIGINT) and passes after it. All nine launcher tests now pass under exact CI Node26.12.1, and all three real Node16 x64/Rosetta package tests pass again. Targeted specification/quality re-review found no forwarding or cleanup regression; the full repository check with Node26 is running.
+History: the initial postinstall-copy design was rejected because package managers may block lifecycle scripts. It was never merged or released. The final change restores a small runtime launcher, separates consumer requirements from build requirements and documents direct native installation. No release was created.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Separated published npm requirements from build tools: Node16.20.2 is tested and Bun is embedded; lifecycle scripts can remain disabled. Native downloads need neither external runtime. Shared package staging fixes real Rosetta installation, and the launcher now handles interrupts before spawning. Full Windows/Linux/macOS CI, older-Node checks, macOS Rosetta and architecture comparison passed at 818a66b4. Local certificate-test limitations and clean-main reproduction are recorded. Backlog is unchanged. PR #178 is prepared for review; nothing was released.
+<!-- SECTION:FINAL_SUMMARY:END -->
