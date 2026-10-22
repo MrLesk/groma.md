@@ -1,11 +1,11 @@
 ---
 id: TASK-625
 title: Fix hotfix release review regressions and refresh patched tools
-status: In Progress
+status: Done
 assignee:
   - '@groma-hotfix'
 created_date: '2026-10-21T14:16:00Z'
-updated_date: '2026-10-21T19:16:00Z'
+updated_date: '2026-10-22T19:04:00Z'
 labels: []
 dependencies: []
 references:
@@ -65,24 +65,36 @@ Preserve source Java trust stores and native private CA policies while excluding
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Preparing a filtered Java trust store preserves the original keystore when the source cacerts path is a symlink
-- [ ] #2 Verified current patched build tools and dependency versions are used before their network operations
-- [ ] #3 The supported scanner release path passes with bounded runtime operations and actionable build failure diagnostics
-- [ ] #4 Fresh source review and relevant hosted checks pass before the coordinated GitHub Release
-- [ ] #5 Java preserves valid Ed448 private authorities; native Git preserves authorities supported by its TLS backend, all incident keys remain excluded and Bun's unusable-store behavior stays fail closed.
-- [ ] #6 Package-manager Git dependencies cannot disable certificate verification through effective URL-scoped settings, while private CA and inherited authentication remain functional.
+- [x] #1 Preparing a filtered Java trust store preserves the original keystore when the source cacerts path is a symlink
+- [x] #2 Verified current patched build tools and dependency versions are used before their network operations
+- [x] #3 The supported scanner release path passes with bounded runtime operations and actionable build failure diagnostics
+- [x] #4 Fresh source review and relevant hosted checks pass before the coordinated GitHub Release
+- [x] #5 Java preserves valid Ed448 private authorities; native Git preserves authorities supported by its TLS backend, all incident keys remain excluded and Bun's unusable-store behavior stays fail closed.
+- [x] #6 Package-manager Git dependencies cannot disable certificate verification through effective URL-scoped settings, while private CA and inherited authentication remain functional.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-Scanner release preparation recognizes an existing exact npm version supplied as either a string or a single-element string array. Mismatched, ambiguous and malformed output remains an error. The release test covers these response forms because an existing contract must be reused without attempting publication, while unexpected metadata must stop publication.
+Preserve source Java keystores and native Git/npm trust selections while filtering compromised signing keys. Use patched build tools, publish scanner packages before building the CLI catalog, and recognize both supported npm exact-version response forms. Validate native trust and release targets before publication.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Native trust regressions and repository checks passed on Linux, macOS and Windows. All five scanner builds, CLI builds and package publishing jobs passed for v0.7.6. Release verification: https://github.com/MrLesk/groma.md/actions/runs/39664262109
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Released in Groma 0.7.6. Java source trust stores and supported native Git/npm certificate policies are preserved while compromised signing keys are excluded. Scanner publication and all supported release targets passed.
+<!-- SECTION:FINAL_SUMMARY:END -->
