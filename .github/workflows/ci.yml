@@ -249,6 +249,10 @@ jobs:
           - name: Run C# worker tests
             run: bun run test:csharp
             shell: bash
-          - name: Build standalone binary
-            run: bun run build
+          - name: Build and check standalone npm command
+            run: |
+              bun run build
+              binary=dist/groma
+              if [[ "$RUNNER_OS" == Windows ]]; then binary=dist/groma.exe; fi
+              GROMA_TEST_CLI="$binary" bun test --timeout 60000 test-bun/npm-packaging.test.ts --test-name-pattern '^packaged Groma'
             shell: bash

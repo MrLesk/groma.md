@@ -77,19 +77,20 @@ notes. Publishing creates the tag and starts the release workflow; do not push t
 The build accepts `GROMA_BUILD_TARGET` and `GROMA_BUILD_OUTFILE` for cross-target release jobs. It embeds the shipped
 instruction guide, web assets, package metadata, and dependency credit metadata into each executable, so the binary
 does not need the source checkout at runtime. All binary builds and npm package manifests must use the prepared version.
-The release workflow publishes platform packages before the `groma.md` wrapper, verifies installation on the
-supported runner platforms, and commits the released version to `main` only after those checks succeed. macOS ships
-`groma.md-darwin-arm64` only. The npm wrapper reports Intel Macs as an unsupported architecture. The root
-`groma.md` manifest is public; the workflow stages its Node wrapper around the compiled binaries so
-the workspace-only development dependencies are not part of the published package.
+The release workflow publishes platform packages before `groma.md` and commits the released version to `main` after
+publication. macOS ships `groma.md-darwin-arm64` only; Intel Macs are unsupported. The source manifest keeps the
+Node and Bun requirements used to develop and publish Groma. They are not copied into the published CLI package.
 
-`scripts/npm/cli.cjs` selects the platform executable and preserves its command lifetime. The native CLI owns server,
-watcher, and terminal cleanup. On Unix, the launcher forwards `SIGTERM`, `SIGHUP`, and `SIGQUIT` addressed to its PID,
-waits for native exit, and reports its exit code or `128 + signal number`. Ctrl+C already reaches both foreground
-processes, so the launcher waits without sending a second `SIGINT`; a `SIGINT` addressed only to the launcher is not
-forwarded. Native web and scan-watch shutdown share `src/cli-lifecycle.ts`: cleanup starts once, and repeated
-`SIGTERM` waits for it to finish. A second Ctrl+C can still interrupt cleanup. Windows keeps its existing launcher
-behavior. The release workflow copies this launcher into the npm package.
+`scripts/package-cli.ts` stages the npm package. Its install-only `scripts/npm/install.cjs` selects the platform
+package and copies its executable to `bin/groma.exe`. That suffix is used on every OS so one npm manifest can point
+to a native command on both Windows and Unix. npm links the command before running `postinstall`; the staged target
+has no shebang, so Windows command shims call the executable directly. npm installation requires lifecycle scripts
+and optional dependencies. Once installed, `groma` requires neither Node nor a separate Bun installation.
+
+The native CLI owns server, watcher, and terminal cleanup. Web and scan-watch shutdown share `src/cli-lifecycle.ts`:
+cleanup starts once, and repeated `SIGTERM` waits for it to finish. A second Ctrl+C can still interrupt cleanup.
+`test-bun/npm-packaging.test.ts` verifies local and global npm installs with no JavaScript runtime on `PATH`, including
+arguments, exit status, and native cleanup. CI also runs the full packaged standalone CLI with that restricted `PATH`.
 
 After every successful groma.md release, update the `groma-version` default in
 [`groma.md-action/action.yml`](https://github.com/MrLesk/groma.md-action/blob/main/action.yml) and follow the
