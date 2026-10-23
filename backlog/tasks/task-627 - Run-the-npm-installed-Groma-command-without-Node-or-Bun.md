@@ -1,11 +1,11 @@
 ---
 id: TASK-627
 title: Separate Groma runtime requirements from build tools
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-22T20:31:00Z'
-updated_date: '2026-10-23T17:55:00Z'
+updated_date: '2026-10-23T18:59:00Z'
 labels: []
 dependencies: []
 references:
@@ -41,16 +41,16 @@ Keep npm installation compatible with an older tested Node runtime and disabled 
 <!-- AC:BEGIN -->
 - [x] #1 The generic npm package installs with lifecycle scripts disabled and strict engine checks and runs with Node 16.20.2 and its npm on supported Windows, Linux and macOS test hosts.
 - [x] #2 The published npm manifest declares its own tested Node minimum, requires no separate Bun installation, and uses exact-version platform payloads without copying development requirements.
-- [ ] #3 The npm command preserves platform selection, arguments, native exit status and termination cleanup; macOS remains Apple Silicon only.
+- [x] #3 The npm command preserves platform selection, arguments, native exit status and termination cleanup; macOS remains Apple Silicon only.
 - [x] #4 The standalone Groma executable runs with neither Node nor a separate Bun on PATH, and installation documentation distinguishes the two routes.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -88,10 +88,12 @@ History: the initial postinstall-copy design was rejected because package manage
 Alex approved treating Codex's npm-bootstrap certificate finding as an installation-environment advisory, not a Groma release blocker. The local probe confirms the old Node default trust risk, but the launcher makes no network requests and a package's engines field cannot secure an already compromised installer. Keep Node16 compatibility and Groma's own download protections. README now separates compatibility from patched installation tools; CONTRIBUTING records responsibility. No runtime gate, CA-store repair or configuration mutation was added. This update is documentation/task administration only; the existing code CI remains applicable.
 
 PR178 Codex P2 addressed: the launcher queues a signal received before the native process exists, then forwards it after attaching child lifecycle listeners. Normal process-group Ctrl+C is not forwarded twice. The new pre-creation regression fails before the fix (exit 7 instead of 130) and all 10 lifecycle tests pass after it with Node26.12.1. The earlier npm-bootstrap security advisory remains non-blocking per Alex; no user Node gate is added.
+
+Final PR178 review: both threads are resolved. The relevant P2 startup signal finding is fixed in b2bb9873 with failing-before/passing-after evidence. The P1 npm bootstrap advisory stays an environment responsibility under Alex explicit decision; no older-Node gate was added. Final PR178 CI39999077829 passed with complete Windows/Linux/macOS, Node16 installation, Rosetta and architecture checks passing. The one unrelated macOS lock timeout did not recur on the complete job rerun. The coordinated Bun1.4.4 source passed26 Node and930 Bun tests with63 optional skips, and hosted all-platform CI40003380577. PR178 merged as50aaac6a and is included in the single full Groma0.7.7 release. Publishing workflow40003386302 passed all builds, native/npm smoke checks, platform publications, wrapper publication and main-version sync. The native assets and checksums are public. No groma/ changes were caused by this task.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Separated published npm requirements from build tools: Node16.20.2 is tested and Bun is embedded; lifecycle scripts can remain disabled. Native downloads need neither external runtime. Shared package staging fixes real Rosetta installation, and the launcher now handles interrupts before spawning. Full Windows/Linux/macOS CI, older-Node checks, macOS Rosetta and architecture comparison passed at 818a66b4. Local certificate-test limitations and clean-main reproduction are recorded. Alex approved treating the installer certificate finding as an environment advisory; README and CONTRIBUTING separate compatibility from security maintenance of installation tools. Backlog is unchanged. PR #178 is prepared for review; nothing was released.
+Separated npm runtime requirements from build tools. npm installs with Node16.20.2, disabled lifecycle scripts and exact-version native payloads; it needs no separate Bun. Direct native downloads need neither Node nor Bun. Rosetta payload selection and early Ctrl+C forwarding are fixed. PR178 merged and ships in Groma0.7.7. Full Windows/Linux/macOS, older-Node and Rosetta checks passed; both review threads are resolved. User-owned npm/Node security maintenance remains outside Groma, as approved.
 <!-- SECTION:FINAL_SUMMARY:END -->
