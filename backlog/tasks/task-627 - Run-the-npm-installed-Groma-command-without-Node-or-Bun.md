@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-22T20:31:00Z'
-updated_date: '2026-10-22T21:53:00Z'
+updated_date: '2026-10-23T06:22:00Z'
 labels: []
 dependencies: []
 references:
@@ -62,6 +62,8 @@ Keep npm installation compatible with an older tested Node runtime and disabled 
 4. Verify real packed local/global installs with --ignore-scripts --engine-strict, arguments/exit status and cleanup. Test the standalone with no runtime on PATH and npm with only Node; run full Windows/Linux/macOS CI plus Node16 and macOS Rosetta checks.
 5. Document npm, native and development requirements separately. Leave Backlog, Nix packaging and OS/CPU scope unchanged.
 6. Complete cold simplicity, implementer specification/quality, full-context complexity and targeted startup-regression reviews; record exact verification evidence.
+
+Security review boundary, approved by Alex: keep Node16 runtime compatibility; document that compatibility is separate from the security maintenance of the user-installed package manager. Treat pre-install npm certificate trust as an installation-environment advisory. Do not add runtime version gates, installer hooks, system trust mutations or user-config repair.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -80,10 +82,12 @@ Local repository check with exact CI Node26.12.1: lint/types and all 25 Node tes
 Reviews: cold simplicity and full-context complexity reviews found no blocking design issues. Implementer specification/quality reviews confirm all task criteria, clear staging/launcher/native ownership, tests with independent temporary resources and complete output collection. The CI-discovered startup race received a deterministic failing-before/passing-after test and targeted specification/quality review. No groma/ files changed.
 
 History: the initial postinstall-copy design was rejected because package managers may block lifecycle scripts. It was never merged or released. The final change restores a small runtime launcher, separates consumer requirements from build requirements and documents direct native installation. No release was created.
+
+Alex approved treating Codex's npm-bootstrap certificate finding as an installation-environment advisory, not a Groma release blocker. The local probe confirms the old Node default trust risk, but the launcher makes no network requests and a package's engines field cannot secure an already compromised installer. Keep Node16 compatibility and Groma's own download protections. README now separates compatibility from patched installation tools; CONTRIBUTING records responsibility. No runtime gate, CA-store repair or configuration mutation was added. This update is documentation/task administration only; the existing code CI remains applicable.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Separated published npm requirements from build tools: Node16.20.2 is tested and Bun is embedded; lifecycle scripts can remain disabled. Native downloads need neither external runtime. Shared package staging fixes real Rosetta installation, and the launcher now handles interrupts before spawning. Full Windows/Linux/macOS CI, older-Node checks, macOS Rosetta and architecture comparison passed at 818a66b4. Local certificate-test limitations and clean-main reproduction are recorded. Backlog is unchanged. PR #178 is prepared for review; nothing was released.
+Separated published npm requirements from build tools: Node16.20.2 is tested and Bun is embedded; lifecycle scripts can remain disabled. Native downloads need neither external runtime. Shared package staging fixes real Rosetta installation, and the launcher now handles interrupts before spawning. Full Windows/Linux/macOS CI, older-Node checks, macOS Rosetta and architecture comparison passed at 818a66b4. Local certificate-test limitations and clean-main reproduction are recorded. Alex approved treating the installer certificate finding as an environment advisory; README and CONTRIBUTING separate compatibility from security maintenance of installation tools. Backlog is unchanged. PR #178 is prepared for review; nothing was released.
 <!-- SECTION:FINAL_SUMMARY:END -->

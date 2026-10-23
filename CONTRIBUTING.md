@@ -89,6 +89,10 @@ page run without external Node or Bun. Platform packages contain the payload onl
 The same staging script writes platform manifests. The macOS payload accepts x64 npm so Rosetta installations receive
 the ARM64 executable; the launcher still checks the hardware and rejects Intel Macs.
 
+The Node minimum describes launcher compatibility. Security maintenance of the user's installation tools and
+certificate store belongs to that environment; the launcher does not repair those settings or block compatible Node
+versions. Groma owns the runtime it ships, release tooling, and certificate checks for downloads it performs.
+
 The native CLI owns server, watcher, and terminal cleanup. Web and scan-watch shutdown share `src/cli-lifecycle.ts`:
 cleanup starts once, and repeated `SIGTERM` waits for it to finish. A second Ctrl+C can still interrupt cleanup.
 `test-bun/npm-packaging.test.ts` verifies local and global npm installs with scripts disabled and strict engine checks,
