@@ -14,7 +14,7 @@ const worker = fileURLToPath(new URL('./fixtures/npm-launcher/native.cjs', impor
 const { platformPackageName } = require(wrapper)
 const unix = process.platform !== 'win32'
 
-async function startLauncher(t: TestContext, mode = 'handled', exitCode = 23, interruptDuringSpawn = false) {
+async function startLauncher(t: TestContext, mode = 'handled', exitCode = 23, interruptDuringSpawn: boolean | 'before' = false) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-npm-launcher-'))
   const resultFile = path.join(root, 'closed.json')
   const platformPackage = path.join(root, 'node_modules', platformPackageName())
@@ -27,9 +27,10 @@ async function startLauncher(t: TestContext, mode = 'handled', exitCode = 23, in
     const { spawn, spawnSync } = require('node:child_process')
     require('./cli.cjs').runWrapper({
       spawnBinary: (_binary, _args, options) => {
+        if (${JSON.stringify(interruptDuringSpawn)} === 'before') process.emit('SIGINT', 'SIGINT')
         const child = spawn(${JSON.stringify(mode === 'groma' ? 'bun' : process.execPath)},
           [${JSON.stringify(worker)}, ${JSON.stringify(mode)}, ${JSON.stringify(resultFile)}, ${JSON.stringify(String(exitCode))}], options)
-        if (${interruptDuringSpawn}) {
+        if (${JSON.stringify(interruptDuringSpawn)} === true) {
           // Deliver the signal before spawn returns, independently of host scheduling.
           spawnSync(process.execPath, ['-e', 'process.kill(process.ppid, "SIGINT")'])
         }
@@ -110,6 +111,11 @@ test('npm launcher preserves normal native exit codes on every platform', { conc
 test('npm launcher listens for terminal interrupts before starting the native process', { concurrency: true, skip: !unix, timeout: 5000 }, async t => {
   const run = await startLauncher(t, 'exit', 7, true)
   assert.deepEqual(await run.exited, { code: 7, signal: null })
+})
+
+test('npm launcher preserves Ctrl+C received before native process creation', { concurrency: true, skip: !unix, timeout: 5000 }, async t => {
+  const run = await startLauncher(t, 'exit', 7, 'before')
+  assert.deepEqual(await run.exited, { code: 128 + os.constants.signals.SIGINT, signal: null })
 })
 
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {

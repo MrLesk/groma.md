@@ -1,11 +1,11 @@
 ---
 id: TASK-627
 title: Separate Groma runtime requirements from build tools
-status: Done
+status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-22T20:31:00Z'
-updated_date: '2026-10-23T06:22:00Z'
+updated_date: '2026-10-23T17:55:00Z'
 labels: []
 dependencies: []
 references:
@@ -41,16 +41,16 @@ Keep npm installation compatible with an older tested Node runtime and disabled 
 <!-- AC:BEGIN -->
 - [x] #1 The generic npm package installs with lifecycle scripts disabled and strict engine checks and runs with Node 16.20.2 and its npm on supported Windows, Linux and macOS test hosts.
 - [x] #2 The published npm manifest declares its own tested Node minimum, requires no separate Bun installation, and uses exact-version platform payloads without copying development requirements.
-- [x] #3 The npm command preserves platform selection, arguments, native exit status and termination cleanup; macOS remains Apple Silicon only.
+- [ ] #3 The npm command preserves platform selection, arguments, native exit status and termination cleanup; macOS remains Apple Silicon only.
 - [x] #4 The standalone Groma executable runs with neither Node nor a separate Bun on PATH, and installation documentation distinguishes the two routes.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [x] #1 Acceptance criteria have objective verification evidence.
-- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [ ] #1 Acceptance criteria have objective verification evidence.
+- [ ] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
-- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -64,6 +64,8 @@ Keep npm installation compatible with an older tested Node runtime and disabled 
 6. Complete cold simplicity, implementer specification/quality, full-context complexity and targeted startup-regression reviews; record exact verification evidence.
 
 Security review boundary, approved by Alex: keep Node16 runtime compatibility; document that compatibility is separate from the security maintenance of the user-installed package manager. Treat pre-install npm certificate trust as an installation-environment advisory. Do not add runtime version gates, installer hooks, system trust mutations or user-config repair.
+
+PR178 review regression: Ctrl+C delivered before native process creation must not be lost. Existing coverage interrupts only after child creation. Add one deterministic pre-spawn signal test that expects the signal exit status, then queue that early signal until the child exists without duplicating normal terminal group delivery.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -84,6 +86,8 @@ Reviews: cold simplicity and full-context complexity reviews found no blocking d
 History: the initial postinstall-copy design was rejected because package managers may block lifecycle scripts. It was never merged or released. The final change restores a small runtime launcher, separates consumer requirements from build requirements and documents direct native installation. No release was created.
 
 Alex approved treating Codex's npm-bootstrap certificate finding as an installation-environment advisory, not a Groma release blocker. The local probe confirms the old Node default trust risk, but the launcher makes no network requests and a package's engines field cannot secure an already compromised installer. Keep Node16 compatibility and Groma's own download protections. README now separates compatibility from patched installation tools; CONTRIBUTING records responsibility. No runtime gate, CA-store repair or configuration mutation was added. This update is documentation/task administration only; the existing code CI remains applicable.
+
+PR178 Codex P2 addressed: the launcher queues a signal received before the native process exists, then forwards it after attaching child lifecycle listeners. Normal process-group Ctrl+C is not forwarded twice. The new pre-creation regression fails before the fix (exit 7 instead of 130) and all 10 lifecycle tests pass after it with Node26.12.1. The earlier npm-bootstrap security advisory remains non-blocking per Alex; no user Node gate is added.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
