@@ -1,11 +1,11 @@
 ---
 id: TASK-628
 title: Release the native packaging and Git settings hotfix with Bun 1.4.4
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-23T17:56:00Z'
-updated_date: '2026-10-23T18:07:00Z'
+updated_date: '2026-10-23T19:27:00Z'
 labels: []
 dependencies: []
 references:
@@ -46,18 +46,18 @@ Groma 0.7.6 embeds Bun 1.4.3 and changes native Git certificate and proxy policy
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Groma-owned native executables and workflows use Bun1.4.4 with verified target archives and current available patch releases of existing build tools.
-- [ ] #2 Direct Git scanner installation and Git dependencies of scanner packages retain inherited Git CA, verification, proxy, rewrite and authentication settings.
-- [ ] #3 Groma-owned downloads retain their certificate checks and npm installation keeps PR178 older-Node and Rosetta behavior.
-- [ ] #4 Relevant regressions and full CI pass on Windows Linux and macOS before one full hotfix release; the Action is then updated and released.
+- [x] #1 Groma-owned native executables and workflows use Bun1.4.4 with verified target archives and current available patch releases of existing build tools.
+- [x] #2 Direct Git scanner installation and Git dependencies of scanner packages retain inherited Git CA, verification, proxy, rewrite and authentication settings.
+- [x] #3 Groma-owned downloads retain their certificate checks and npm installation keeps PR178 older-Node and Rosetta behavior.
+- [x] #4 Relevant regressions and full CI pass on Windows Linux and macOS before one full hotfix release; the Action is then updated and released.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -76,4 +76,12 @@ Cold simplicity review found no blockers. Accepted its two scoped suggestions: r
 Implementer specification review: runtime/archive pins and native Git policy criteria are implemented with direct regression evidence; consumer packaging remains PR178. Platform CI and coordinated publication remain gated steps, not claimed complete. Quality review: installScannerPackage calls native git with inherited env plus noninteractive prompting; registry work delegates to embedded Bun with explicit CA while scoped Node overrides do not affect Git. Existing cleanup removes temporary CA files. The new tests pair raw Git with both entry points using isolated private servers and auth, so a silent blocked connection or replaced verification setting fails. Deleted tests required the superseded Git policy. Changed flow has no new layer or dependency. Own CI trust is unchanged. Full repository checks are being rerun after final simplification.
 
 Final local repository check passed with Bun1.4.4 and Node26.12.1: lint/type checks, 26 Node tests and 930 Bun tests passed, with63 optional skips and no failures. Full-context complexity review found no blocker; accepted the Action installation filter simplification in TASK-12. No source changes followed this final Groma check. PR178 hosted Windows and Linux checks pass; macOS packaged/standalone checks pass but an unrelated existing detach test hit a5s project-lock timeout. The identical detach scenario passed25 consecutive runs with its pinned Bun1.4.3, and full changed-source Bun1.4.4 suite passes. No timeout, assertion or CI retry policy was changed; the macOS job is being rerun to check for recurrence.
+
+Delivery complete: PR178 merged as50aaac6a and PR179 as a81a77f7. Final Groma source passed full Windows/Linux/macOS CI40003380577 and architecture40003380722; local checks passed26 Node and930 Bun tests with63 optional skips. All eight Bun1.4.4 archive digests were verified; all five released native targets passed their standalone/npm smoke. The one full Groma0.7.7 release is https://github.com/MrLesk/groma.md/releases/tag/v0.7.7 . Publishing40003386302 succeeded, all six exact npm0.7.7 records are public, native binaries/checksums are present, and main version synced. ActionPR11 merged; tested source de3067b has the same tree as release commit c9cb937. Actionv1.2.3 is published on GitHub and Marketplace. Both final PR checks40010143214 and release40010793051 passed unit/export/committed-comparison checks on Windows/Linux/macOS, and v1 equals c9cb937. Relevant reviews are resolved: PR178 early signal fix and approved older-Node boundary; Action Node trust, privileged publisher child trust, Windows launcher/exclusion behavior and streaming output regressions fixed with concrete evidence. No new root release, prerelease, runtime requirement or project Git trust override was added. Task-scoped groma/ status remains clean.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Released Groma0.7.7 with PR178, embedded Bun1.4.4, npm12.2.1 build publishing and native Git CA/proxy/verification ownership. Owned downloads retain certificate checks; consumer npm compatibility stays at tested Node16.20.2, with no separate Bun and standalone downloads needing neither runtime. Published all platform packages/assets and the wrapper through one full release. Released Actionv1.2.3 on Marketplace and advanced v1 after all three-platform checks passed. Review findings are addressed at the responsible process boundary; project Git configuration stays with its environment.
+<!-- SECTION:FINAL_SUMMARY:END -->
