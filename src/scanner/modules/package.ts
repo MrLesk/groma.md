@@ -6,7 +6,6 @@ import path from 'node:path'
 import { exactVersion, stringArray } from '../../config.ts'
 import { installDependencies } from './package-manager.ts'
 import { isNpmPackageName } from './package-name.ts'
-import { withGitCertificateTrust } from './git-trust.ts'
 
 export interface NpmScannerSource {
   kind: 'npm'
@@ -207,9 +206,9 @@ async function installNpmScanner(
   return resolved
 }
 
-async function runGit(directory: string, args: string[], environment = process.env): Promise<string> {
+async function git(directory: string, ...args: string[]): Promise<string> {
   const child = Bun.spawn(['git', ...args], {
-    cwd: directory, env: { ...environment, GIT_TERMINAL_PROMPT: '0' },
+    cwd: directory, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
     stdout: 'pipe', stderr: 'pipe', stdin: 'ignore',
   })
   const [code, stdout, stderr] = await Promise.all([
@@ -217,11 +216,6 @@ async function runGit(directory: string, args: string[], environment = process.e
   ])
   if (code !== 0) throw new Error(`could not install Git scanner: ${stderr.trim()}`)
   return stdout.trim()
-}
-
-async function git(directory: string, ...args: string[]): Promise<string> {
-  if (args[0] !== 'fetch') return runGit(directory, args)
-  return withGitCertificateTrust(directory, environment => runGit(directory, args, { ...process.env, ...environment }), args[2]!)
 }
 
 async function installGitScanner(

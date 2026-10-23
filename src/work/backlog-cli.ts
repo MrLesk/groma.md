@@ -104,7 +104,8 @@ export async function installBacklogCli(upgrade: boolean): Promise<void> {
   const command = installationCommand(installer, upgrade)
   const certificates = await installerCertificates(installer)
   await withCertificateTrust(certificates, async (cafile, environment) => {
-    if (installer !== 'brew') command.push(`--cafile=${cafile}`)
+    if (installer === 'brew') environment.CURL_CA_BUNDLE = cafile
+    else command.push(`--cafile=${cafile}`)
     if (installer === 'npm') command.push('--strict-ssl=true')
     if (!await succeeds(command, undefined, { ...process.env, ...environment })) {
       throw new Error(`Could not run ${command.join(' ')}.`)

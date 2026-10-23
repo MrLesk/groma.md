@@ -17,7 +17,7 @@ permissions:
 
 env:
   NODE_OPTIONS: --use-openssl-ca
-  BUN_VERSION: 1.4.3
+  BUN_VERSION: 1.4.4
   NODE_VERSION: 26.12.1
 
 jobs:
@@ -311,7 +311,7 @@ jobs:
           - name: Assemble scanner packages
             run: bun scripts/scanner-release.ts assemble scanner-artifacts scanner-packages
           - name: Use current npm for trusted publishing
-            run: npm install --global npm@12.2.0
+            run: npm install --global npm@12.2.1
       - name: Publish contract and official scanners
         run: bun scripts/scanner-release.ts publish scanner-packages
         env:
@@ -504,7 +504,7 @@ jobs:
               node scripts/package-cli.ts platform package "$version" "${{ matrix.package }}" "${{ matrix.npm_os }}" "${{ matrix.npm_cpu }}" "artifact/${{ matrix.binary }}"
             shell: bash
           - name: Use current npm for trusted publishing
-            run: npm install --global npm@12.2.0
+            run: npm install --global npm@12.2.1
       - name: Publish platform package
         working-directory: package
         run: npm publish --access public
@@ -530,7 +530,7 @@ jobs:
               node scripts/package-cli.ts wrapper package "${RELEASE_TAG#v}"
             shell: bash
           - name: Use current npm for trusted publishing
-            run: npm install --global npm@12.2.0
+            run: npm install --global npm@12.2.1
       - name: Publish groma.md
         working-directory: package
         run: npm publish --access public

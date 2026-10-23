@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { packageManagerCertificates } from './package-trust.ts'
 import { withCertificateTrust } from '../../certificate-trust.ts'
-import { withGitCertificateTrust } from './git-trust.ts'
 
 /**
  * The only code in `src/` that reads scanner releases from a package registry or downloads them. The release script
@@ -19,18 +18,15 @@ async function runPackageManager(directory: string, args: string[], registry?: s
   return withCertificateTrust(await packageManagerCertificates(directory), async (cafile, environment) => {
     const command = [process.execPath, ...args, `--cafile=${cafile}`]
     if (registry !== undefined) command.push(`--registry=${registry}`)
-    const execute = async (git: NodeJS.ProcessEnv = {}) => {
-      const child = Bun.spawn(command, {
-        cwd: directory,
-        env: { ...process.env, ...environment, ...git, BUN_BE_BUN: '1' },
-        stdout: 'pipe', stderr: 'pipe', signal,
-      })
-      const [exitCode, stdout, stderr] = await Promise.all([
-        child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
-      ])
-      return { exitCode, stdout, stderr }
-    }
-    return args[0] === 'install' ? withGitCertificateTrust(directory, execute) : execute()
+    const child = Bun.spawn(command, {
+      cwd: directory,
+      env: { ...process.env, ...environment, BUN_BE_BUN: '1' },
+      stdout: 'pipe', stderr: 'pipe', signal,
+    })
+    const [exitCode, stdout, stderr] = await Promise.all([
+      child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
+    ])
+    return { exitCode, stdout, stderr }
   })
 }
 
