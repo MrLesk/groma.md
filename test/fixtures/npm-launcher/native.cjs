@@ -3,6 +3,10 @@
 const fs = require('node:fs')
 const [mode, resultFile, exitCode] = process.argv.slice(2)
 
+if (mode === 'args') {
+  console.log(JSON.stringify(process.argv.slice(3)))
+  process.exit(0)
+}
 if (mode === 'exit') process.exit(Number(exitCode))
 
 setInterval(() => {}, 1000)

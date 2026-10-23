@@ -55,16 +55,11 @@ function resolveBinaryPath(packageName, binaryName, resolver = require.resolve) 
 }
 
 /** The native process owns cleanup; the launcher stays until its exit is reported. */
-function relayTerminationSignals(child, platform) {
+function relayTerminationSignals(forward, platform) {
   if (platform === 'win32') return () => {}
-  const signals = ['SIGTERM', 'SIGHUP', 'SIGQUIT']
-  const forward = signal => child.kill(signal)
-  // The terminal already sends Ctrl+C to both foreground processes. Do not send it twice.
-  const waitForInterrupt = () => {}
-  process.on('SIGINT', waitForInterrupt)
+  const signals = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT']
   for (const signal of signals) process.on(signal, forward)
   return () => {
-    process.off('SIGINT', waitForInterrupt)
     for (const signal of signals) process.off(signal, forward)
   }
 }
@@ -93,8 +88,20 @@ function runWrapper({
     return { spawned: false }
   }
 
-  const child = spawnBinary(binary, argv, { stdio: 'inherit' })
-  const releaseSignals = relayTerminationSignals(child, platform)
+  // A fast child can become ready before spawn returns. Listen before it starts.
+  let child
+  let pendingSignal
+  const releaseSignals = relayTerminationSignals(signal => {
+    if (child === undefined) pendingSignal = signal
+    // The terminal already sends Ctrl+C to both existing foreground processes.
+    else if (signal !== 'SIGINT') child.kill(signal)
+  }, platform)
+  try {
+    child = spawnBinary(binary, argv, { stdio: 'inherit' })
+  } catch (error) {
+    releaseSignals()
+    throw error
+  }
   child.once('error', error => {
     releaseSignals()
     writeError(error instanceof Error ? error.message : String(error))
@@ -104,6 +111,7 @@ function runWrapper({
     releaseSignals()
     process.exitCode = code ?? (platform !== 'win32' && signal !== null ? 128 + os.constants.signals[signal] : 1)
   })
+  if (pendingSignal !== undefined) child.kill(pendingSignal)
   return { spawned: true, child }
 }
 

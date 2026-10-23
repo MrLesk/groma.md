@@ -60,6 +60,9 @@ Three steps. Scan your code, then review and curate the map yourself or with you
 npm i -g groma.md backlog.md
 ```
 
+The npm command supports Node.js 16.20.2 or newer and needs no separate Bun installation. Installation scripts can stay disabled. This is a compatibility minimum; use security-patched tools to download packages.
+To run without Node or Bun, download the [native executable](https://github.com/MrLesk/groma.md/releases/latest) for your platform, rename it to `groma` (`groma.exe` on Windows), make it executable on Unix, and put it on `PATH`.
+
 Backlog.md provides the tasks shown on the map once the project's `config.json` lists it: answer yes in `groma init`, or run `groma plugin add backlog`. groma.md works without it. macOS requires Apple Silicon.
 
 ### 2. Scan

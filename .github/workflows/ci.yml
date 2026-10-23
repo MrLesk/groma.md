@@ -249,6 +249,29 @@ jobs:
           - name: Run C# worker tests
             run: bun run test:csharp
             shell: bash
-          - name: Build standalone binary
-            run: bun run build
+          - name: Build and check standalone and npm commands
+            run: |
+              bun run build
+              binary=dist/groma
+              if [[ "$RUNNER_OS" == Windows ]]; then binary=dist/groma.exe; fi
+              GROMA_TEST_CLI="$binary" bun test --timeout 60000 test-bun/npm-packaging.test.ts --test-name-pattern '^packaged Groma'
             shell: bash
+      - name: Use the minimum supported npm runtime
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 16.20.2
+      - name: Check installation with older Node and scripts disabled
+        run: |
+          binary=dist/groma
+          if [[ "$RUNNER_OS" == Windows ]]; then binary=dist/groma.exe; fi
+          GROMA_TEST_CLI="$binary" bun test --timeout 60000 test-bun/npm-packaging.test.ts
+        shell: bash
+      - name: Use x64 Node under Rosetta
+        if: runner.os == 'macOS'
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 16.20.2
+          architecture: x64
+      - name: Check npm installation under Rosetta
+        if: runner.os == 'macOS'
+        run: GROMA_TEST_CLI=dist/groma bun test --timeout 60000 test-bun/npm-packaging.test.ts

@@ -17,7 +17,7 @@ not need a pull request.
 
 ## Set up the repository
 
-groma.md requires Bun 1.4.1 or newer and Node.js 20.19 or newer. Published macOS binaries are Apple Silicon only; Intel Macs are not a supported architecture.
+Developing groma.md requires Bun 1.4.3 or newer and Node.js 26.12.1 or newer. Published macOS binaries are Apple Silicon only; Intel Macs are not a supported architecture.
 
 ```sh
 bun install
@@ -77,19 +77,28 @@ notes. Publishing creates the tag and starts the release workflow; do not push t
 The build accepts `GROMA_BUILD_TARGET` and `GROMA_BUILD_OUTFILE` for cross-target release jobs. It embeds the shipped
 instruction guide, web assets, package metadata, and dependency credit metadata into each executable, so the binary
 does not need the source checkout at runtime. All binary builds and npm package manifests must use the prepared version.
-The release workflow publishes platform packages before the `groma.md` wrapper, verifies installation on the
-supported runner platforms, and commits the released version to `main` only after those checks succeed. macOS ships
-`groma.md-darwin-arm64` only. The npm wrapper reports Intel Macs as an unsupported architecture. The root
-`groma.md` manifest is public; the workflow stages its Node wrapper around the compiled binaries so
-the workspace-only development dependencies are not part of the published package.
+The release workflow publishes platform packages before `groma.md` and commits the released version to `main` after
+publication. macOS ships `groma.md-darwin-arm64` only; Intel Macs are unsupported. The source manifest keeps the
+Node and Bun requirements used to develop and publish Groma. They are not copied into the published CLI package.
 
-`scripts/npm/cli.cjs` selects the platform executable and preserves its command lifetime. The native CLI owns server,
-watcher, and terminal cleanup. On Unix, the launcher forwards `SIGTERM`, `SIGHUP`, and `SIGQUIT` addressed to its PID,
-waits for native exit, and reports its exit code or `128 + signal number`. Ctrl+C already reaches both foreground
-processes, so the launcher waits without sending a second `SIGINT`; a `SIGINT` addressed only to the launcher is not
-forwarded. Native web and scan-watch shutdown share `src/cli-lifecycle.ts`: cleanup starts once, and repeated
-`SIGTERM` waits for it to finish. A second Ctrl+C can still interrupt cleanup. Windows keeps its existing launcher
-behavior. The release workflow copies this launcher into the npm package.
+`scripts/package-cli.ts` stages the npm package with its own Node 16.20.2 minimum. It does not copy the checkout's
+development requirements. npm installs the exact-version optional platform dependency and links `groma` to
+`scripts/npm/cli.cjs` (published as `cli.cjs`). That small Node launcher selects and starts the native executable;
+the application runs in embedded Bun. Lifecycle scripts can remain disabled. Direct downloads from the release
+page run without external Node or Bun. Platform packages contain the payload only; the root npm package owns the command.
+The same staging script writes platform manifests. The macOS payload accepts x64 npm so Rosetta installations receive
+the ARM64 executable; the launcher still checks the hardware and rejects Intel Macs.
+
+The Node minimum describes launcher compatibility. Security maintenance of the user's installation tools and
+certificate store belongs to that environment; the launcher does not repair those settings or block compatible Node
+versions. Groma owns the runtime it ships, release tooling, and certificate checks for downloads it performs.
+
+The native CLI owns server, watcher, and terminal cleanup. Web and scan-watch shutdown share `src/cli-lifecycle.ts`:
+cleanup starts once, and repeated `SIGTERM` waits for it to finish. A second Ctrl+C can still interrupt cleanup.
+`test-bun/npm-packaging.test.ts` verifies local and global npm installs with scripts disabled and strict engine checks,
+including shell entry points, arguments, exit status, and cleanup. CI runs these checks with Node 16.20.2 and its npm.
+macOS also runs them with x64 Node under Rosetta.
+The full executable is also tested with an empty runtime `PATH`; its npm command is tested with only Node available.
 
 After every successful groma.md release, update the `groma-version` default in
 [`groma.md-action/action.yml`](https://github.com/MrLesk/groma.md-action/blob/main/action.yml) and follow the
