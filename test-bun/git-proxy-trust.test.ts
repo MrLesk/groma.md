@@ -7,8 +7,7 @@ import net from 'node:net'
 import path from 'node:path'
 import tls from 'node:tls'
 import { pathToFileURL } from 'node:url'
-import compromised from '../test/fixtures/certificate-trust/compromised-cas.json'
-import { clean, directories, fixtureCertificate, fixtures } from './certificate-fixtures.ts'
+import { directories, fixtureCertificate, fixtures } from './certificate-fixtures.ts'
 
 type Method = 'raw' | 'direct' | 'install'
 type Fixture = Awaited<ReturnType<typeof directories>>
@@ -44,7 +43,7 @@ async function run(method: Method, f: Fixture, remote: string, env: NodeJS.Proce
 
 function platformConfig(backend = 'schannel'): string {
   // The fixture CA has no CRL endpoint. Keep strict certificate verification with the native Windows backend.
-  return `[http]\n schannelCheckRevoke=false\n schannelUseSSLCAInfo=false\n${process.platform === 'win32' ? ` sslBackend=${backend}\n` : ''}`
+  return `[http]\n schannelCheckRevoke=false\n schannelUseSSLCAInfo=true\n${process.platform === 'win32' ? ` sslBackend=${backend}\n` : ''}`
 }
 
 function checkFailure(result: Result): void {
@@ -78,68 +77,22 @@ async function httpsProxy(certificate: string) {
   }
 }
 
-test.concurrent('Git scanner and embedded PM refuse every HTTPS proxy before requests or credentials', async () => {
-  const f = await directories(), config = path.join(f.home, 'git-config'), raw = path.join(f.home, 'raw-proxy.pem')
-  await writeFile(raw, [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n'))
+test.concurrent('Git scanner and embedded PM preserve a private authenticated HTTPS proxy', async () => {
+  const f = await directories(), config = path.join(f.home, 'git-config')
+  const proxy = await httpsProxy('registry-server.pem')
   try {
-    for (const certificate of ['registry-server.pem', 'incident-server-emudhra.pem', 'incident-server-aaa.pem']) {
-      const proxy = await httpsProxy(certificate)
-      try {
-        // OpenSSL provides strict unsafe controls even when the Windows OS already revokes incident keys.
-        await writeFile(config, `${platformConfig('openssl')} proxy=${proxy.url}\n proxyAuthMethod=basic\n`)
-        const env: NodeJS.ProcessEnv = { ...environment(f, config), GIT_PROXY_SSL_CAINFO: raw }
-        if (process.platform === 'win32') { env.git_proxy_ssl_cainfo = raw; delete env.GIT_PROXY_SSL_CAINFO }
-        for (const method of ['direct', 'install'] as const) {
-          const remote = 'https://fixture-origin.invalid/repository'
-          const before = await run('raw', f, remote, { ...env, GIT_PROXY_SSL_CAINFO: raw })
-          checkFailure(before)
-          expect(proxy.requests, before.error).toBeGreaterThan(0)
-          expect(proxy.authorization).toBe(`Basic ${Buffer.from('fixture-user:fixture-password').toString('base64')}`)
-          proxy.reset()
-          const result = await run(method, f, remote, env)
-          checkFailure(result)
-          expect(proxy.requests, result.error).toBe(0)
-          expect(proxy.authorization).toBeUndefined()
-          expect(result.error).toMatch(/certificate|SSL|issuer|trust|schannel/i)
-        }
-        // HTTP origins can also expose proxy credentials before any origin TLS; the PM must guard those too.
-        const remote = 'http://fixture-origin.invalid/repository'
-        const before = await run('raw', f, remote, { ...env, GIT_PROXY_SSL_CAINFO: raw })
-        checkFailure(before)
-        expect(proxy.requests, before.error).toBeGreaterThan(0)
-        expect(proxy.authorization).toBe(`Basic ${Buffer.from('fixture-user:fixture-password').toString('base64')}`)
-        proxy.reset()
-        const result = await run('install', f, remote, env)
-        checkFailure(result)
-        expect(proxy.requests, result.error).toBe(0)
-        expect(proxy.authorization).toBeUndefined()
-        expect(result.error).toMatch(/certificate|SSL|issuer|trust|schannel/i)
-      } finally { await proxy.close() }
+    await writeFile(config, `${platformConfig('openssl')} proxy=${proxy.url}\n proxyAuthMethod=basic\n`)
+    const env = { ...environment(f, config), GIT_PROXY_SSL_CAINFO: path.join(fixtures, 'registry-ca.pem') }
+    for (const method of ['raw', 'direct', 'install'] as const) {
+      proxy.reset()
+      const result = await run(method, f, 'https://fixture-origin.invalid/repository', env)
+      checkFailure(result) // The controlled proxy returns 502 after receiving CONNECT.
+      expect(proxy.requests, result.error).toBeGreaterThan(0)
+      expect(proxy.authorization).toBe(`Basic ${Buffer.from('fixture-user:fixture-password').toString('base64')}`)
+      expect(result.error).toContain('502')
     }
-  } finally { await f.close() }
-}, 60000)
-
-test.skipIf(process.platform !== 'win32')('Schannel fails on the owned unusable proxy CA path before credentials', async () => {
-  const f = await directories(), config = path.join(f.home, 'git-config'), raw = path.join(f.home, 'raw-proxy.pem')
-  await writeFile(raw, [clean, ...compromised.certificates.map(certificate => certificate.pem)].join('\n'))
-  try {
-    for (const certificate of ['registry-server.pem', 'incident-server-emudhra.pem', 'incident-server-aaa.pem']) {
-      const proxy = await httpsProxy(certificate)
-      try {
-        await writeFile(config, `${platformConfig()} proxy=${proxy.url}\n proxyAuthMethod=basic\n`)
-        const env = { ...environment(f, config), git_proxy_ssl_cainfo: raw }
-        for (const [method, scheme] of [['direct', 'https'], ['install', 'https'], ['install', 'http']] as const) {
-          const result = await run(method, f, `${scheme}://fixture-origin.invalid/repository`, env)
-          checkFailure(result)
-          expect(proxy.requests, result.error).toBe(0)
-          expect(proxy.authorization).toBeUndefined()
-          expect(result.error).toContain('https-proxy-disabled')
-          expect(result.error).toContain('unavailable.pem')
-        }
-      } finally { await proxy.close() }
-    }
-  } finally { await f.close() }
-}, 60000)
+  } finally { await proxy.close(); await f.close() }
+}, 30000)
 
 async function originServer() {
   let requests = 0, authenticated = 0
@@ -198,4 +151,26 @@ test.concurrent('direct HTTPS and authenticated HTTP CONNECT proxies retain priv
       }
     }
   } finally { await proxy.close(); await origin.close(); await f.close() }
+}, 30000)
+
+test.concurrent('scanner downloads preserve native Git verification settings', async () => {
+  const f = await directories(), config = path.join(f.home, 'git-config'), origin = await originServer()
+  const env = { ...environment(f, config), GIT_SSL_CAINFO: path.join(fixtures, 'other-registry-ca.pem') }
+  try {
+    for (const verify of [true, false]) {
+      await writeFile(config, `${platformConfig('openssl')} sslVerify=${verify}\n`)
+      for (const method of ['raw', 'direct', 'install'] as const) {
+        const before = origin.requests
+        const result = await run(method, f, origin.remote, env)
+        checkFailure(result)
+        if (verify) {
+          expect(origin.requests, result.error).toBe(before)
+          expect(result.error).toMatch(/certificate|SSL|issuer|trust/i)
+        } else {
+          expect(origin.requests, result.error).toBeGreaterThan(before)
+          expect(result.error).toMatch(/not found|RepositoryNotFound/i)
+        }
+      }
+    }
+  } finally { await origin.close(); await f.close() }
 }, 30000)

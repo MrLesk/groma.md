@@ -37,9 +37,9 @@
   "bin": {
     "groma": "src/cli.ts"
   },
-  "packageManager": "bun@1.4.3",
+  "packageManager": "bun@1.4.4",
   "engines": {
-    "bun": ">=1.4.3",
+    "bun": ">=1.4.4",
     "node": ">=26.12.1"
   },
   "scripts": {
@@ -70,7 +70,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.2",
-    "@types/bun": "1.4.3",
+    "@types/bun": "1.4.4",
     "@types/node": "26.6.5",
     "tsx": "4.23.15",
     "typescript": "7.1.0-beta"

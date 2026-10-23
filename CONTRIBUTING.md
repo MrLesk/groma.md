@@ -17,7 +17,7 @@ not need a pull request.
 
 ## Set up the repository
 
-Developing groma.md requires Bun 1.4.3 or newer and Node.js 26.12.1 or newer. Published macOS binaries are Apple Silicon only; Intel Macs are not a supported architecture.
+Developing groma.md requires Bun 1.4.4 or newer and Node.js 26.12.1 or newer. Published macOS binaries are Apple Silicon only; Intel Macs are not a supported architecture.
 
 ```sh
 bun install
@@ -58,7 +58,7 @@ The repository uses Bun workspaces. The directory names describe responsibility:
 
 ## Build and release versions
 
-Build a single-file executable with Bun 1.4.2 bytecode:
+Build a single-file executable with Bun 1.4.4 bytecode:
 
 ```sh
 bun run build
