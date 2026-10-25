@@ -42,6 +42,30 @@ The shared fresh-checkout suite uses the coverage fixture, with language tools
 absent and network access disabled. It compares repeated observations and verifies
 that source files remain unchanged. Application gems are not installed or loaded.
 
+## Repository check result and open delivery gate
+
+The qualification run completed the focused Ruby suite (7 tests, 71 assertions),
+the tool-free fresh-checkout package test (1 test, 7 assertions), type checking
+and changed-code lint successfully. The full `bun run check` command exited with
+failures: Node tests passed 26/26; Bun reported 906 passed, 64 skipped and 31 failed.
+
+| Failing tests | Observed cause |
+| --- | --- |
+| 22 Java/JVM and COBOL packaging tests | The test environment could not find required build tools: `java`, `javac`, `jar` or `keytool`. |
+| 6 Swift tests | The test environment could not find `swiftc`, which builds the packaged Swift scanner. |
+| 3 npm certificate-configuration tests | A child process could not read npm's effective CA configuration. The underlying cause has not been established. |
+
+The failing test names exactly match the earlier qualification run, with no new
+failing names. None is a failing Ruby assertion. This comparison supports the
+absence of newly failing tests in that run; it does not prove those tests would
+pass with the required tools available or establish the npm failures' root cause.
+
+TASK-632 therefore keeps Definition of Done item 2, “Relevant checks pass and
+changes remain task-scoped,” unchecked and remains In Progress. Clearing this
+gate requires a successful full-suite run in an environment with the required
+build tools and working npm configuration, such as the project's configured CI
+environment. The focused Ruby results alone do not clear the full-suite gate.
+
 ## NomadNest qualification
 
 On 25 October 2026, the local package was tested against NomadNest commit
