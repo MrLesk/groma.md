@@ -1,10 +1,10 @@
 ---
 id: TASK-629
 title: Read HTTP requests through a fetch wrapper and a URL helper
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-10-25 11:00'
-updated_date: '2026-10-25 13:38'
+updated_date: '2026-10-25 14:14'
 labels: []
 dependencies: []
 references:
@@ -71,5 +71,5 @@ Helper inlining and the ?? fallback are opt-in (RequestScope) so server route an
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Shared HTTP client readers now follow a local single-expression URL helper (apiUrl) and report a fetch wrapper's request at each call (fetchWithAuth), reading 'configured ?? literal' as configured. Affects the TypeScript, React, Vue and JavaScript scanners; docs updated. Verified by the new typescript-http-wrapper test and updated React/JavaScript expectations.
+Shared HTTP client readers follow a local single-expression URL helper (apiUrl) and report a fetch wrapper's request at each call, by name or as a member of an imported module, reading 'configured ?? literal' as configured. A wrapper parameter with a default is not forwarded, and an async or generator helper is a computed value. Affects the TypeScript, React, Vue and JavaScript scanners; docs updated. Verified by the typescript-http-wrapper test and the React/JavaScript expectations; biome, typecheck and test:node pass, and the 32 test-bun failures are the same on the baseline (missing Java/Swift/Kotlin/Scala/COBOL/npm toolchains).
 <!-- SECTION:FINAL_SUMMARY:END -->
