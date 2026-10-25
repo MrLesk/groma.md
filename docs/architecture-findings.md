@@ -91,12 +91,13 @@ The covered languages are
 [Go](scanners/go/index.md#compared-operations),
 [Rust](scanners/rust/index.md#compared-operations),
 [Python](scanners/python/index.md#compared-operations),
+[Ruby](scanners/ruby/index.md#compared-operations),
 [PHP](scanners/php/index.md#compared-operations) and
 [Swift](scanners/swift/index.md#evidence-and-outlines), whose page states these
 rules under that heading. Each page lists the operations its scanner compares and
 its own exceptions, including whether a function literal assigned to a name is
 compared: TypeScript, JavaScript, Go, Vue and Swift compare those, while Java,
-C#, Rust, Python and PHP treat every closure and lambda as an anonymous
+C#, Rust, Python, Ruby and PHP treat every closure and lambda as an anonymous
 callback. The methods of an anonymous class, such as a TypeScript class
 expression, a PHP `new class` or a Java anonymous class body, are compared in
 TypeScript, JavaScript, Vue and PHP and are anonymous callbacks in Java; the
