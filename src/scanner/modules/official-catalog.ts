@@ -17,6 +17,7 @@ import swift from '../../../plugins/scanners/swift/package.json'
 import javascript from '../../../plugins/scanners/javascript/package.json'
 import scala from '../../../plugins/scanners/scala/package.json'
 import kotlin from '../../../plugins/scanners/kotlin/package.json'
+import r from '../../../plugins/scanners/r/package.json'
 
 import c from '../../../plugins/scanners/c/package.json'
 import cpp from '../../../plugins/scanners/cpp/package.json'
@@ -48,5 +49,5 @@ export function scannerCatalogEntry(manifest: {
 // This is the official selection. Imported JSON is embedded by Groma's existing build.
 // Detection and compatibility information live exclusively in the selected packages.
 export const officialScannerCatalog: readonly OfficialScanner[] = [
-  typescript, java, scala, kotlin, c, cpp, ada, dart, mql5, mojo, cobol, nasm, angular, vue, react, csharp, go, rust, python, php, swift, javascript,
+  typescript, java, scala, kotlin, c, cpp, ada, dart, mql5, mojo, cobol, nasm, angular, vue, react, csharp, go, rust, python, php, swift, javascript, r,
 ].map(scannerCatalogEntry)
