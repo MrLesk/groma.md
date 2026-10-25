@@ -1,11 +1,12 @@
 import { isReservedDocument } from './architecture-path.ts'
 
 export function kebabCase(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+  return name.toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu)?.join('-') ?? ''
+}
+
+/** Architecture identities use the same Unicode word format that new names receive. */
+export function isArchitectureId(id: string): boolean {
+  return id !== '' && id === kebabCase(id)
 }
 
 export function displayName(kebab: string): string {

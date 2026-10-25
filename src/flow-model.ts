@@ -1,6 +1,7 @@
 import { collectNodes, elementOverview, nodeText, relationshipTargetFilename, tableHeaderNames } from './architecture-markdown.ts'
 import { ArchitectureModelError } from './architecture-model.ts'
 import { requireGromaMapping } from './okf-profile.ts'
+import { isArchitectureId } from './naming.ts'
 import type { ArchitectureDocument, ArchitectureFlow, ArchitectureModel, FlowStep, MarkdownElement, MarkdownNode } from './types.ts'
 
 function invalid(document: ArchitectureDocument, message: string): never {
@@ -62,7 +63,7 @@ export function resolveFlows(documents: readonly ArchitectureDocument[], model: 
   return documents.map(document => {
     const groma = requireGromaMapping(document.frontmatter, document.sourceFilename)
     const id = textField(document, groma.id, 'groma.id')
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) invalid(document, 'groma.id must be lowercase kebab-case')
+    if (!isArchitectureId(id)) invalid(document, 'groma.id must be lowercase kebab-case')
     if (ids.has(id)) invalid(document, `duplicate id "${id}"`)
     ids.add(id)
     if (document.sourceFilename.split('/').slice(1).join('/') !== `flows/${id}.md`) {

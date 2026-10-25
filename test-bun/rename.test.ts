@@ -8,6 +8,7 @@ import { loadArchitecture } from '../src/architecture-reader.ts'
 import { loadAnnotatedArchitecture, reconcileScanObservations } from '../src/core.ts'
 import type { StructuralResult } from '../src/curate.ts'
 import { editArchitecture } from '../src/edit.ts'
+import { draftElement } from '../src/draft.ts'
 import { addFlow } from '../src/flow-authoring.ts'
 import { requireGromaMapping } from '../src/okf-profile.ts'
 import { addRelation } from '../src/relation.ts'
@@ -196,5 +197,35 @@ test.concurrent('a taken or reserved id is refused and nothing is written', asyn
     await expect(editArchitecture(root, { id: 'a', newId: 'Relation' })).rejects.toThrow('is reserved')
     await expect(editArchitecture(root, { id: 'a', newId: 'later', combine: ['b'] })).rejects.toThrow('separate edit')
     expect((await loadAnnotatedArchitecture(root)).elements).toEqual(before.elements)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('Unicode IDs survive authoring, parent references, flow links, and structural renaming', async () => {
+  const root = await repository()
+  try {
+    const actor = await addThing(root, { thing: 'actor', name: 'Студент', overview: 'Starts a request.' })
+    const external = await addThing(root, { thing: 'external', name: 'Склад', overview: 'Stores the result.' })
+    const draft = await addThing(root, { thing: 'draft', name: 'План', overview: 'Handle the request.' })
+    const system = await draftElement(root, { kind: 'system', name: 'Система', overview: '' })
+    const container = await draftElement(root, { kind: 'container', name: '应用', parent: system, overview: '' })
+    const component = await draftElement(root, { kind: 'component', name: 'परीक्षण', parent: container, draft, overview: '' })
+    expect([actor, external, draft, system, container, component]).toEqual(['студент', 'склад', 'план', 'система', '应用', 'परीक्षण'])
+    await addRelation(root, { source: actor, target: component, description: 'Starts processing', technology: 'Browser' })
+    const link = async (id: string) => path.posix.relative('groma/flows', (await documentOf(root, id))!)
+    const flow = await addFlow(root, 'Вход студента', {
+      overview: 'The student starts processing.',
+      steps: `| From | To | Action |\n| --- | --- | --- |\n| [Student](${await link(actor)}) | [Handler](${await link(component)}) | Start |`,
+    })
+    expect(flow).toBe('вход-студента')
+
+    await editArchitecture(root, { id: component, newId: 'Обработка' })
+
+    const after = await loadAnnotatedArchitecture(root)
+    expect(element(after, 'обработка')).toMatchObject({ parent: container, draft })
+    expect(element(after, container)?.parent).toBe(system)
+    expect(after.flows.find(item => item.id === flow)?.steps).toEqual([
+      expect.objectContaining({ source: actor, target: 'обработка' }),
+    ])
+    await expect(addThing(root, { thing: 'actor', name: 'СТУДЕНТ', overview: 'Same name.' })).rejects.toThrow('already exists')
   } finally { await rm(root, { recursive: true, force: true }) }
 })

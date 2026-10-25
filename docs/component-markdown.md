@@ -168,6 +168,12 @@ groma.md-only fields live together under `groma`:
 | `technology` | no | Free text naming implementation technology, comma-separated. |
 | `code` | no | Scanner-produced source evidence. |
 
+Architecture IDs use lowercase Unicode words separated by hyphens. Each word
+starts with a letter or digit and keeps its letters, digits, and combining
+marks. For example, `Студент` receives `студент` and `Вход студента` receives
+`вход-студента`. Elements, parent references, draft records and tags, and flows
+use this same Groma naming rule; it does not add an OKF or C4 requirement.
+
 There is no `kind` field. The standard `type` carries the C4 type, and the
 body does not repeat `title` as a level-one heading.
 
