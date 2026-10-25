@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -187,6 +187,37 @@ test.concurrent('scan stores selected interactions without analysis graphs and r
     expect((await loadAnnotatedArchitecture(root)).relationships).toEqual([])
   } finally { await rm(root, { recursive: true, force: true }) }
 })
+
+for (const destination of ['stored', 'literal'] as const) {
+  test.concurrent(`moving an owner preserves a relationship to a ${destination} route-group path`, async () => {
+    const root = await repository()
+    try {
+      await mkdir(path.join(root, 'src/(tabs)'))
+      await rename(path.join(root, 'src/provider.ts'), path.join(root, 'src/(tabs)/index.tsx'))
+      await writeFile(path.join(root, 'src/api.ts'), "export { deliver as send } from './(tabs)/index.tsx'\n")
+      await writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'fixture' }))
+      await cp(path.resolve(import.meta.dir, '../test/fixtures/curation/groma/systems/shop'), path.join(root, 'groma/systems/shop'), { recursive: true })
+      await scanRepository(root)
+      const before = await loadAnnotatedArchitecture(root)
+      const source = owner(before, 'worker')
+      const connections = before.relationships.flatMap(row => row.connections ?? [])
+      expect(connections).toEqual([expect.objectContaining({ source: ends.source, target: 'src/(tabs)/index.tsx' })])
+      if (destination === 'literal') {
+        const records = await loadArchitecture(root)
+        const document = records.documents.find(item => (item.frontmatter.groma as { id: string }).id === source.id)!
+        const filename = path.join(root, document.sourceFilename)
+        const stored = await readFile(filename, 'utf8')
+        await writeFile(filename, stored.replaceAll('%28', '(').replaceAll('%29', ')'))
+      }
+
+      await editArchitecture(root, { id: source.id, parent: 'shop-shop' })
+
+      const after = await loadAnnotatedArchitecture(root)
+      expect(owner(after, 'worker').parent).toBe('shop-shop')
+      expect(after.relationships.flatMap(row => row.connections ?? [])).toEqual(connections)
+    } finally { await rm(root, { recursive: true, force: true }) }
+  })
+}
 
 test.concurrent('editing a derived interaction takes authorship and preserves its meaning through rescans', async () => {
   const root = await repository()
