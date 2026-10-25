@@ -1,8 +1,9 @@
 import type { ScanHttpRequest } from '@groma/scanner'
+import { forwardedFetch } from './http-forwarding.ts'
 import { holderOf, unwrapped, urlText, type Held, type Node } from './http-syntax.ts'
 import { computedPart, joinBase, methodText, requestUrl, withBase, type UrlPart } from './http-url.ts'
 import {
-  declarationOf, heldAt, heldParts, importOrigin, literalText, methodName, runtimeGlobal, urlParts, type UrlContext,
+  declarationOf, heldAt, heldParts, importOrigin, literalText, methodName, requestScope, runtimeGlobal, urlParts, type UrlContext,
 } from './http-values.ts'
 
 /*
@@ -38,7 +39,7 @@ async function declaredMethod(context: UrlContext, options: Node | undefined, fa
 async function optionsBase(context: UrlContext, config: Node | undefined, fallback: UrlPart[]): Promise<UrlPart[]> {
   if (config === undefined) return fallback
   const base = await heldAt(context, config, 'baseURL')
-  return base === 'absent' ? fallback : heldParts(context, base)
+  return base === 'absent' ? fallback : heldParts(context, base, requestScope)
 }
 
 /**
@@ -69,22 +70,29 @@ async function urlWithoutMethod(context: UrlContext, url: Node, input: Held): Pr
   return context.checker.primitiveAt(url)
 }
 
+/** A request through `kind`, whose options state the method of a URL and, for ofetch, its `baseURL`. */
+async function fetched(context: UrlContext, kind: FetchClient, url: Node, options: Node | undefined): Promise<RequestFact> {
+  const input = await heldAt(context, url)
+  const method = await urlWithoutMethod(context, url, input) ? await declaredMethod(context, options, 'GET') : undefined
+  const parts = await urlParts(context, url, 0, requestScope)
+  const target = kind === 'ofetch' ? withBase(await optionsBase(context, options, []), parts) : parts
+  return { ...(method === undefined ? {} : { method }), ...requestUrl(target) }
+}
+
 /**
- * A request through a fetch-style client, which `client` recognizes from the callee. The options state
- * the method of a URL, while any other input, such as a `Request`, carries a method of its own; ofetch
- * also reads a `baseURL` option.
+ * A request through a fetch-style client, which `client` recognizes from the callee, or through a local
+ * wrapper that forwards its URL and options to the runtime's `fetch`. The options state the method of a
+ * URL, while any other input, such as a `Request`, carries a method of its own; ofetch also reads a
+ * `baseURL` option.
  */
 export async function fetchRequest(
   context: UrlContext, call: Call, client: (callee: Node) => Promise<FetchClient | undefined>,
 ): Promise<RequestFact | undefined> {
   const [url, options] = call.arguments
   const kind = url === undefined ? undefined : await client(call.expression)
-  if (url === undefined || kind === undefined) return undefined
-  const input = await heldAt(context, url)
-  const method = await urlWithoutMethod(context, url, input) ? await declaredMethod(context, options, 'GET') : undefined
-  const parts = await urlParts(context, url)
-  const target = kind === 'ofetch' ? withBase(await optionsBase(context, options, []), parts) : parts
-  return { ...(method === undefined ? {} : { method }), ...requestUrl(target) }
+  if (url !== undefined && kind !== undefined) return fetched(context, kind, url, options)
+  const forwarded = await forwardedFetch(context, call, async callee => (await client(callee)) === 'fetch' ? 'fetch' : undefined)
+  return forwarded === undefined ? undefined : fetched(context, 'fetch', forwarded.url, forwarded.options)
 }
 
 /**
@@ -98,7 +106,7 @@ async function withDefaults(context: UrlContext, client: Client, holders: readon
   const methods = found.flatMap(settings => settings.assigned.get('method') ?? [])
   if (found.some(settings => settings.changed) || bases.length > 1 || methods.length > 1) return { base: [computedPart], method: undefined }
   return {
-    base: bases[0] === undefined ? client.base : await urlParts(context, bases[0]),
+    base: bases[0] === undefined ? client.base : await urlParts(context, bases[0], 0, requestScope),
     method: methods[0] === undefined ? client.method : methodText(await literalText(context, methods[0])),
   }
 }
@@ -123,7 +131,7 @@ async function sent(
 /** The `axios(config)` and `axios.request(config)` forms, whose URL is one of the options. */
 async function configRequest(context: UrlContext, client: Client, config: Node | undefined): Promise<RequestFact | undefined> {
   const url = config === undefined ? 'absent' : await heldAt(context, config, 'url')
-  return url === 'absent' ? undefined : sent(context, client, await heldParts(context, url), undefined, config)
+  return url === 'absent' ? undefined : sent(context, client, await heldParts(context, url, requestScope), undefined, config)
 }
 
 async function holdsObject(context: UrlContext, node: Node): Promise<boolean> {
@@ -181,7 +189,7 @@ async function memberRequest(context: UrlContext, receiver: Node, member: string
   if (client === undefined) return undefined
   const [first, second, third] = call.arguments
   if (method !== undefined && first !== undefined) {
-    return sent(context, client, await urlParts(context, first), method, WITH_BODY.has(member) ? third : second)
+    return sent(context, client, await urlParts(context, first, 0, requestScope), method, WITH_BODY.has(member) ? third : second)
   }
   return member === 'request' ? configRequest(context, client, first) : undefined
 }
@@ -197,5 +205,5 @@ export async function axiosRequest(context: UrlContext, call: Call): Promise<Req
   const client = await axiosClient(context, callee)
   if (client === undefined || first === undefined) return undefined
   if (await holdsObject(context, first)) return configRequest(context, client, first)
-  return sent(context, client, await urlParts(context, first), undefined, second)
+  return sent(context, client, await urlParts(context, first, 0, requestScope), undefined, second)
 }

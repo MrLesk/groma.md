@@ -135,8 +135,17 @@ The [producer decisions](../evidence.md#producer-checklist) for this ecosystem:
 3. **Dynamic or unknown.** `` `/talks/${id}` `` is dynamic;
    `` `/talks/${id}-latest` ``, a path built from a parameter, and an
    unresolvable value are unknown. A query string is dropped, computed or not.
-4. **Local helpers.** Not supported: the URL is read at the client call only, so
-   a helper that forwards a parameter reports unknown text. Author those rows.
+4. **Local helpers.** Two kinds are read at the client call. A function whose
+   body is one expression, or one `return`, is that expression with the call's
+   arguments for its parameters, so `apiUrl('/talks')` reads the template
+   `apiUrl` returns. A function that makes exactly one `fetch` request is a
+   wrapper when its URL is a parameter the program never assigns and its
+   options are absent, that parameter, or an object that spreads that parameter
+   and states no `method`; each call of the wrapper reports the request with
+   the URL and options the call gives. A helper with a default, rest or
+   destructured parameter or more statements, and a wrapper that states a
+   method, makes two requests or forwards to another wrapper, report unknown
+   text. A wrapper is read for `fetch` only. Author those rows.
 5. **Bases.** A variable with a literal initializer that the program never
    assigns again, a property of an object literal it holds while nothing in the
    program can change that property, a string enum member such as
@@ -146,9 +155,10 @@ The [producer decisions](../evidence.md#producer-checklist) for this ecosystem:
    `declare` statement states, and an imported package constant. A field read
    through `this` holds its one plain assignment, as the [React
    scanner](../react/index.md#http-endpoints-and-requests) states in its
-   decision 5. Text that continues a configured value's last segment instead of
+   decision 5. A configured value with a fallback, such as
+   `import.meta.env.X ?? '/api'`, is still configuration. Text that continues a configured value's last segment instead of
    starting with `/`, a literal scheme and host, also when literal pieces only
-   state it together, a parameter, a value a call returns, and any other
+   state it together, a parameter, a value a call returns other than a helper, and any other
    computed value report a leading unknown segment.
 6. **File-location routes.** None: TypeScript projects declare routes in code,
    so every endpoint names its resolved handler, or the registering operation

@@ -228,7 +228,6 @@ test.concurrent('JavaScript client calls report the method and the path parts th
       ['DELETE', '/status', 'client/axios.mjs'],
       ['DELETE', '/status', 'client/jquery.js'],
       // A string the scan cannot read is still a URL, which carries no method.
-      ['GET', '/?', 'client/fetch.mjs'],
       ['GET', '/?', 'client/globals.js'],
       ['GET', '/?', 'client/jquery.js'],
       ['GET', '/?', 'client/options.mjs'],
@@ -253,6 +252,8 @@ test.concurrent('JavaScript client calls report the method and the path parts th
       ['GET', '/scripts/app.js', 'client/jquery.js'],
       ['GET', '/talks/{}', 'client/fetch.mjs'],
       ['GET', '/talks/{}', 'client/jquery.js'],
+      // A local function that returns the URL is read at its call.
+      ['GET', '/talks/{}/votes', 'client/fetch.mjs'],
       ['GET', 'configured /files', 'client/axios.mjs'],
       // The one assignment to a required client's defaults sets its base.
       ['GET', 'configured /required', 'client/commonjs.js'],

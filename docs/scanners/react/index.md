@@ -162,9 +162,11 @@ The [producer decisions](../evidence.md#producer-checklist) for this ecosystem:
    dynamic. `` `/talks/${id}-latest` ``, a path built from a parameter, and an
    unresolvable value are unknown. The query and fragment are dropped, computed
    or not.
-4. **Local helpers.** Not supported: the URL is read at the client call, so a
-   helper that forwards a path parameter reports unknown text, and its callers
-   report nothing. Author those rows.
+4. **Local helpers.** Read as the [TypeScript
+   scanner's](../typescript/index.md#http-endpoints-and-requests) decision 4
+   states: a function that returns one expression is that URL at its call, and
+   a wrapper around `fetch` reports the request at each of its calls. Author
+   the rows it does not read.
 5. **Bases.** A root-relative literal path has no base. A variable with a
    literal initializer that the project never assigns again is literal text. So
    is a property of an object literal such a variable holds: the last property

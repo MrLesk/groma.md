@@ -1,0 +1,26 @@
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api'
+
+export const apiUrl = (path: string): string => `${API_BASE}${path}`
+
+export function joined(path: string): string {
+  return '/v2' + path
+}
+
+export const decorated = (path: string): string => {
+  const prefix = path.startsWith('/') ? '' : '/'
+  return `/v3${prefix}${path}`
+}
+
+export const forwarding = async (input: string, init?: RequestInit): Promise<Response> => {
+  const response = await fetch(input, { credentials: 'include', ...init })
+  return response
+}
+
+export const plain = (input: string): Promise<Response> => fetch(input)
+
+export const posting = (input: string, init?: RequestInit): Promise<Response> => fetch(input, { ...init, method: 'POST' })
+
+export const retrying = async (input: string): Promise<Response> => {
+  const first = await fetch(input)
+  return first.ok ? first : fetch(input)
+}
