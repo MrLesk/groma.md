@@ -1,7 +1,7 @@
 import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
-import { isReservedId, kebabCase } from './naming.ts'
+import { isArchitectureId, isReservedId, kebabCase } from './naming.ts'
 import { DRAFT_TYPE, c4Kind, requireGromaMapping } from './okf-profile.ts'
 import { storedConnections } from './relationship-markdown.ts'
 import { sourceRelationships } from './source-relationships.ts'
@@ -20,7 +20,6 @@ export const expectedParentKinds = new Map<C4Kind, C4Kind>([
 ])
 const rootKinds = new Set<C4Kind>(['actor', 'system'])
 const statuses = new Set<string>(['draft', 'stable'])
-const idPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export class ArchitectureModelError extends Error {
   readonly code: string
@@ -82,7 +81,7 @@ function optionalText(
 }
 
 function requireId(value: unknown, sourceFilename: string, label: string): string {
-  if (typeof value !== 'string' || !idPattern.test(value)) {
+  if (typeof value !== 'string' || !isArchitectureId(value)) {
     invalidElement(sourceFilename, `${label} requires a lowercase kebab-case stable id`)
   }
   return value as string
@@ -120,7 +119,7 @@ function identityOf(
 
 function draftOf(groma: Record<string, unknown>, sourceFilename: string): string | undefined {
   const draft = optionalText(groma.draft, 'draft', sourceFilename)
-  if (draft !== undefined && !idPattern.test(draft)) {
+  if (draft !== undefined && !isArchitectureId(draft)) {
     invalidElement(sourceFilename, 'draft must name a draft record by its kebab-case id')
   }
   return draft
