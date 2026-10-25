@@ -75,6 +75,7 @@ export function withStoredRelationships(
   concepts: ReadonlyMap<string, string>,
 ): string {
   const href = (endpoint: string) => path.posix.relative(path.posix.dirname(filename), concepts.get(endpoint) ?? endpoint)
+    .split('/').map(encodeURIComponent).join('/').replaceAll('(', '%28').replaceAll(')', '%29')
   const sections = new Map<string, string[]>()
   for (const row of rows) {
     const heading = row.authored ? (row.status === 'draft' ? '## Draft relationships' : '## Relationships') : '## Derived relationships'
