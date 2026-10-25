@@ -139,13 +139,14 @@ The [producer decisions](../evidence.md#producer-checklist) for this ecosystem:
    body is one expression, or one `return`, is that expression with the call's
    arguments for its parameters, so `apiUrl('/talks')` reads the template
    `apiUrl` returns. A function that makes exactly one `fetch` request is a
-   wrapper when its URL is a parameter the program never assigns and its
-   options are absent, that parameter, or an object that spreads that parameter
-   and states no `method`; each call of the wrapper reports the request with
-   the URL and options the call gives. A helper with a default, rest or
-   destructured parameter or more statements, and a wrapper that states a
-   method, makes two requests or forwards to another wrapper, report unknown
-   text. A wrapper is read for `fetch` only. Author those rows.
+   wrapper when its URL is a parameter the program never assigns and has no
+   default, and its options are absent, such a parameter, or an object that
+   spreads one and states no `method`; each call of the wrapper, by its name or
+   as a member of an imported module, reports the request with the URL and
+   options the call gives. A helper that is async or a generator, or has a
+   default, rest or destructured parameter or more statements, and a wrapper
+   that states a method, makes two requests or forwards to another wrapper,
+   report unknown text. A wrapper is read for `fetch` only. Author those rows.
 5. **Bases.** A variable with a literal initializer that the program never
    assigns again, a property of an object literal it holds while nothing in the
    program can change that property, a string enum member such as

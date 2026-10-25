@@ -2,7 +2,7 @@ import { bindingUses, type Bindings } from './http-bindings.ts'
 import type { Checker } from './http-checker.ts'
 import {
   ownProperty, propertyKey, unwrapped,
-  type Held, type ImportOrigin, type Node, type SourceFile, type SyntaxCompiler, type TextNode, type Wrapped,
+  type Call, type Held, type ImportOrigin, type Node, type SourceFile, type SyntaxCompiler, type TextNode, type Wrapped,
 } from './http-syntax.ts'
 import { computedPart, configuredPart, methodText, type UrlPart } from './http-url.ts'
 import { boundExport, requiredModule, useAt, type IndexCompiler } from './http-uses.ts'
@@ -27,12 +27,16 @@ interface ClassLike extends Node { heritageClauses?: ArrayLike<{ token: number; 
 interface Enum extends Node { members: readonly (Node & { name: Node; initializer?: Node })[] }
 interface Parameter extends Node { name: Node; initializer?: Node; dotDotDotToken?: Node }
 /** A function with the parameters and body the scan reads; an arrow function may have an expression body. */
-export interface FunctionBody extends Node { parameters: readonly Parameter[]; body?: Node }
-interface Call extends Node { expression: Node; arguments: readonly Node[] }
+export interface FunctionBody extends Node {
+  parameters: readonly Parameter[]
+  body?: Node
+  modifiers?: readonly { kind: number }[]
+  asteriskToken?: Node
+}
 
 export interface UrlCompiler extends IndexCompiler, SyntaxCompiler {
   SyntaxKind: IndexCompiler['SyntaxKind'] & SyntaxCompiler['SyntaxKind'] & {
-    ThisKeyword: number; ExtendsKeyword: number; QuestionQuestionToken: number; BarBarToken: number
+    ThisKeyword: number; ExtendsKeyword: number; AsyncKeyword: number; QuestionQuestionToken: number; BarBarToken: number
   }
   NodeFlags: { Const: number }
   isStringLiteral(node: Node): node is TextNode
@@ -315,16 +319,22 @@ function returned(ts: UrlCompiler, fn: FunctionBody): Node | undefined {
   return rest.length === 0 && only !== undefined && ts.isReturnStatement(only) ? only.expression : undefined
 }
 
+/** An async or generator function returns a Promise or an iterator, not what its body returns. */
+function deferred(ts: UrlCompiler, fn: FunctionBody): boolean {
+  return fn.asteriskToken !== undefined || fn.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.AsyncKeyword) === true
+}
+
 /**
  * A call to a local helper that returns a URL, read as that URL with the call's arguments in place of its
- * parameters. A helper with a default, rest or destructured parameter, or one whose body does more than
- * return an expression, is a value a call returns.
+ * parameters. An async or generator helper returns a Promise or an iterator, not the URL, and a helper with
+ * a default, rest or destructured parameter, or one whose body does more than return an expression, is a
+ * value a call returns.
  */
 async function helperParts(context: UrlContext, call: Call, depth: number, scope: RequestScope): Promise<UrlPart[]> {
   const { ts } = context
   const fn = ts.isIdentifier(call.expression) ? await functionOf(context, call.expression) : undefined
   const result = fn === undefined ? undefined : returned(ts, fn)
-  if (fn === undefined || result === undefined) return [computedPart]
+  if (fn === undefined || result === undefined || deferred(ts, fn)) return [computedPart]
   const parameters = new Map<Node, UrlPart[]>()
   for (const [position, parameter] of fn.parameters.entries()) {
     if (!ts.isIdentifier(parameter.name) || parameter.initializer !== undefined || parameter.dotDotDotToken !== undefined) return [computedPart]

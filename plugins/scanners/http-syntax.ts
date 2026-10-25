@@ -15,6 +15,8 @@ export interface Node {
 export interface SourceFile extends Node { fileName: string }
 export interface TextNode extends Node { text: string }
 export interface Wrapped extends Node { expression: Node }
+/** A call expression: the callee and the arguments it passes. */
+export interface Call extends Node { expression: Node; arguments: readonly Node[] }
 interface Binary extends Node { operatorToken: { kind: number } }
 interface Property extends Node { name?: Node }
 interface ObjectLiteral extends Node { properties: readonly Property[] }

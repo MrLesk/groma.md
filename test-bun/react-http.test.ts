@@ -91,8 +91,8 @@ test.concurrent('the built React package reports fetch and axios requests', asyn
       'external GET /<unknown>/talks',
       // A base the caller supplies is computed.
       'fromBase GET /<unknown>/talks',
-      // A helper reads its path from a string parameter, which is a URL rather than a Request, so its
-      // caller reports the request.
+      // A helper reads its path from a string parameter, which is a URL rather than a Request, so the
+      // helper itself reports a request with an unknown path.
       'helper GET /<unknown>',
       // An instance joins its base and a path with one slash, and uses the method its configuration states.
       'joined POST /api/talks',

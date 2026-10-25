@@ -1,6 +1,6 @@
 import type { ScanHttpRequest } from '@groma/scanner'
 import { forwardedFetch } from './http-forwarding.ts'
-import { holderOf, unwrapped, urlText, type Held, type Node } from './http-syntax.ts'
+import { holderOf, unwrapped, urlText, type Call, type Held, type Node } from './http-syntax.ts'
 import { computedPart, joinBase, methodText, requestUrl, withBase, type UrlPart } from './http-url.ts'
 import {
   declarationOf, heldAt, heldParts, importOrigin, literalText, methodName, requestScope, runtimeGlobal, urlParts, type UrlContext,
@@ -13,7 +13,6 @@ import {
  * literal it once held. Each scanner keeps only the recognition its ecosystem needs, such as which name
  * is its runtime `fetch`.
  */
-interface Call extends Node { expression: Node; arguments: readonly Node[] }
 
 /** An axios client: the base it starts every path with, and the method of a request that states none. */
 interface Client {

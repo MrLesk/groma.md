@@ -24,3 +24,7 @@ export const retrying = async (input: string): Promise<Response> => {
   const first = await fetch(input)
   return first.ok ? first : fetch(input)
 }
+
+export const defaulted = (input: string, init: RequestInit = { method: 'POST' }): Promise<Response> => fetch(input, init)
+
+export const delayed = async (path: string): Promise<string> => '/v4' + path

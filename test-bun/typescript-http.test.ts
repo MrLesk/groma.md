@@ -238,10 +238,13 @@ test.concurrent('a request through a fetch wrapper and a URL helper is reported 
       'listPlans GET configured:/billing/plans',
       'loadPlan GET configured:/billing/plans/<dynamic>',
       'unknownMethod no-method configured:/billing/method',
-      // A helper with more than one statement is a value a call returns. A wrapper that may state its
-      // method, or makes two requests, reports nothing at its calls.
+      // A helper with more than one statement, or that is async, is a value a call returns. A wrapper that
+      // may state its method, even by a default, or makes two requests, reports nothing at its calls.
+      'viaAlias GET /v2/billing/alias',
       'viaDecorated GET /<unknown>',
+      'viaDelayed no-method /<unknown>',
       'viaDirect DELETE configured:/billing/direct',
+      'viaNamespace GET /v2/billing/namespace',
       'viaPlain GET /v2/billing/plain',
     ])
   } finally { await clean() }

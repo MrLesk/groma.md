@@ -4,7 +4,7 @@ title: Read HTTP requests through a fetch wrapper and a URL helper
 status: In Progress
 assignee: []
 created_date: '2026-10-25 11:00'
-updated_date: '2026-10-25 11:12'
+updated_date: '2026-10-25 13:38'
 labels: []
 dependencies: []
 references:
@@ -15,6 +15,10 @@ modified_files:
   - plugins/scanners/http-values.ts
   - plugins/scanners/http-forwarding.ts
   - plugins/scanners/http-clients.ts
+  - plugins/scanners/http-syntax.ts
+  - plugins/scanners/http-uses.ts
+  - plugins/scanners/http-routers.ts
+  - plugins/scanners/http-routes.ts
   - test/fixtures/typescript-http-wrapper/api.ts.fixture
   - test/fixtures/typescript-http-wrapper/client.ts.fixture
   - test-bun/typescript-http.test.ts
@@ -44,7 +48,7 @@ GitHub issue #182. A frontend that sends requests through a local forwarding wra
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [x] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -61,7 +65,7 @@ Tests: the incorrect result is an unknown leading segment / no request at the ca
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Helper inlining and the ?? fallback are opt-in (RequestScope) so server route and mount reading keep treating helper calls as computed. Wrapper forwarding applies to fetch only; ofetch/axios wrappers are not followed. Verified in a scratch copy of the repo because plugins/scanners/typescript/node_modules holds an old typescript dev build without ./async that shadows the root install: typescript/react/vue/javascript/angular HTTP tests and test:node pass; the 53 remaining test-bun failures are identical on the untouched baseline (listing needs .git, Java/Swift/npm environment). bun run typecheck has pre-existing errors in tree-sitter scanners only; none in changed files. biome lint clean on http-*.ts.
+Helper inlining and the ?? fallback are opt-in (RequestScope) so server route and mount reading keep treating helper calls as computed. Wrapper forwarding applies to fetch only; ofetch/axios wrappers are not followed. A wrapper is called by name or as a member of an imported module; what it forwards is cached per UrlContext. A parameter with a default is not forwarded, and an async or generator helper is a computed value. Call is declared once in http-syntax.ts. Verified: biome, typecheck, test:node and the TypeScript/React/JavaScript HTTP tests pass. 32 test-bun failures (Java, Swift, Kotlin, Scala, COBOL, npm packaging) are identical on the baseline commit and come from missing toolchains.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

@@ -1,4 +1,4 @@
-import { propertyKey, unwrapped, type Node } from './http-syntax.ts'
+import { propertyKey, unwrapped, type Call, type Node } from './http-syntax.ts'
 import { declarationOf, functionOf, type FunctionBody, type UrlContext } from './http-values.ts'
 
 /*
@@ -6,7 +6,6 @@ import { declarationOf, functionOf, type FunctionBody, type UrlContext } from '.
  * callers describe. The wrapper's own `fetch` call reads a parameter, so the request is reported at each
  * call of the wrapper, with the URL and options its caller gives.
  */
-interface Call extends Node { expression: Node; arguments: readonly Node[] }
 
 /** Which of the wrapper's parameters reach `fetch`: its URL, and the options that may state the method. */
 interface Forwarding {
@@ -20,15 +19,16 @@ export interface ForwardedFetch {
   options: Node | undefined
 }
 
-const forwardings = new WeakMap<Node, Promise<Forwarding | undefined>>()
+/** A context has one way of recognizing `fetch`, so what a wrapper forwards is read once per context. */
+const forwardings = new WeakMap<UrlContext, Map<Node, Promise<Forwarding | undefined>>>()
 
-/** The position of the parameter a name is, when the sources never assign it again. */
+/** The position of the parameter a name is, when it has no default and the sources never assign it again. */
 async function parameterAt(context: UrlContext, fn: FunctionBody, name: Node): Promise<number> {
   if (!context.ts.isIdentifier(unwrapped(context.ts, name))) return -1
   const declaration = await declarationOf(context, unwrapped(context.ts, name))
   const position = declaration === undefined ? -1 : (fn.parameters as readonly Node[]).indexOf(declaration)
   const plain = position >= 0 && context.ts.isIdentifier(fn.parameters[position]!.name)
-    && fn.parameters[position]!.dotDotDotToken === undefined
+    && fn.parameters[position]!.dotDotDotToken === undefined && fn.parameters[position]!.initializer === undefined
   return plain && !await context.bindings.reassigned(declaration!) ? position : -1
 }
 
@@ -91,37 +91,25 @@ async function forwardingOf(
   return url < 0 || options === undefined ? undefined : { url, options: options.position }
 }
 
-/** The function a name declares, when it is spelled like a callee. */
-function declaredFunction(context: UrlContext, name: Node): FunctionBody | undefined {
-  const { ts } = context
-  const { parent } = name
-  if (ts.isFunctionDeclaration(parent)) return parent
-  if (!ts.isVariableDeclaration(parent) || parent.initializer === undefined) return undefined
-  const value = unwrapped(ts, parent.initializer)
-  return ts.isArrowFunction(value) || ts.isFunctionExpression(value) ? value : undefined
-}
-
 /**
  * The URL and options a call hands to a wrapper that forwards them to `fetch`, where `client` recognizes
- * the runtime's `fetch`. Only a wrapper with one `fetch` call is read, and one wrapper does not forward to another.
+ * the runtime's `fetch`. The wrapper is a name or a member of an imported module, such as `api.send(url)`.
+ * Only a wrapper with one `fetch` call is read, and one wrapper does not forward to another.
  */
 export async function forwardedFetch(
   context: UrlContext, call: Call, client: (callee: Node) => Promise<unknown>,
 ): Promise<ForwardedFetch | undefined> {
-  const callee = call.expression
-  if (!context.ts.isIdentifier(callee) || call.arguments.length === 0) return undefined
-  const named = context.bindings.named(callee.text).map(name => declaredFunction(context, name)).filter(fn => fn !== undefined)
-  for (const fn of named) {
-    let forwarding = forwardings.get(fn)
-    if (forwarding === undefined) {
-      forwarding = forwardingOf(context, fn, client)
-      forwardings.set(fn, forwarding)
-    }
-    const found = await forwarding
-    if (found === undefined || await functionOf(context, callee) !== fn) continue
-    const url = call.arguments[found.url]
-    if (url === undefined) return undefined
-    return { url, options: found.options === undefined ? undefined : call.arguments[found.options] }
-  }
-  return undefined
+  const { ts } = context
+  const callee = ts.isPropertyAccessExpression(call.expression) ? call.expression.name : call.expression
+  if (!ts.isIdentifier(callee) || call.arguments.length === 0) return undefined
+  const fn = await functionOf(context, callee)
+  if (fn === undefined) return undefined
+  const known = forwardings.get(context) ?? new Map<Node, Promise<Forwarding | undefined>>()
+  forwardings.set(context, known)
+  const forwarding = known.get(fn) ?? forwardingOf(context, fn, client)
+  known.set(fn, forwarding)
+  const found = await forwarding
+  const url = found === undefined ? undefined : call.arguments[found.url]
+  return found === undefined || url === undefined ? undefined
+    : { url, options: found.options === undefined ? undefined : call.arguments[found.options] }
 }
