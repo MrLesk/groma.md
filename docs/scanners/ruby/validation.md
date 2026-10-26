@@ -28,6 +28,10 @@ extractor rules or copied test architecture.
 
 The project/entry, comparison, HTTP, blocker and receiver-isolation regressions
 were observed failing before their corresponding implementations or fixes.
+The nested-project fixture uses a one-character directory to distinguish it from
+the repository root. Compared-body checks also distinguish a block-only local
+from a later method call, while preserving equivalent block-local renaming and
+captured outer locals.
 
 Run the package and repository checks:
 
@@ -118,12 +122,21 @@ claims of complete Ruby support.
 
 ## Maintainer regression and repository checks
 
-The private-action redefinition and block-parameter URL regressions failed before
-the fixes and pass afterward. The first reuses the existing controller-route
+The private-action redefinition, block-parameter URL, nearest-project ranking and
+block-local token regressions failed before their fixes and pass afterward. The first reuses the existing controller-route
 assertion; the second adds one assertion to the existing HTTP test. The built
 package also includes this validation record beside its README.
 
-The focused Ruby suite passes 7 tests with 72 assertions. The isolated package
+The block-local correction follows [Ruby assignment scope](https://ruby-doc.org/3.3/syntax/assignment_rdoc.html#label-Local+Variable+Scope):
+new block locals stay in their block, and existing outer locals remain captured.
+The token visitor now binds assignments in its current scope and source order.
+A separate automated URL suggestion was not applied: the shared
+[HTTP producer rule](../evidence.md#producer-checklist) classifies a computed
+value filling one complete source segment as dynamic, without asking whether its
+runtime value might contain slashes. Leading unknown bases and partial computed
+segments retain their existing uncertainty.
+
+The focused Ruby suite passes 7 tests with 74 assertions. The isolated package
 check passes 1 test with 7 assertions. Required development tools are Bun 1.4.4
 and Node 26.12.1; the complete check uses Node's bundled npm 11.20.0.
 `bun run check` passes: lint, TypeScript, 26 Node tests, and 937 Bun tests

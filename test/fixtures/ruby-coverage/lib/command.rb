@@ -1,4 +1,4 @@
-require_relative "../packages/library/shared"
+require_relative "../a/shared"
 class Command
   def run
     puts "ready"
