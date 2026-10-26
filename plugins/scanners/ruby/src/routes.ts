@@ -208,6 +208,8 @@ export function resolveRailsRoutes(file: string, routes: Route[], sources: RubyS
 function publicTargets(route: Route, project: string, sources: RubySource[]) {
   const file = path.posix.join(project, 'app/controllers', `${route.controller}_controller.rb`)
   const name = `${controllerName(route.controller!)}#${route.action}`
-  return sources.filter(source => source.file === file).flatMap(source => source.operations.filter(operation =>
-    operation.name === name && source.publicInstanceMethods.includes(operation.id)))
+  return sources.filter(source => source.file === file).flatMap(source => {
+    const targets = source.operations.filter(operation => operation.name === name)
+    return targets.length === 1 && source.publicInstanceMethods.includes(targets[0]!.id) ? targets : []
+  })
 }

@@ -1,8 +1,8 @@
 # Ruby scanner validation
 
-Automated fixtures describe generic language and framework rules. NomadNest is
-an external validation target, never a source of application-specific extractor
-rules or copied test architecture.
+Automated fixtures describe generic language and framework rules. Public projects
+and NomadNest are external validation targets, never sources of application-specific
+extractor rules or copied test architecture.
 
 ## Packaged regression checks
 
@@ -42,29 +42,96 @@ The shared fresh-checkout suite uses the coverage fixture, with language tools
 absent and network access disabled. It compares repeated observations and verifies
 that source files remain unchanged. Application gems are not installed or loaded.
 
-## Repository check result and open delivery gate
+## Maintainer qualification on six public repositories
 
-The qualification run completed the focused Ruby suite (7 tests, 71 assertions),
-the tool-free fresh-checkout package test (1 test, 7 assertions), type checking
-and changed-code lint successfully. The full `bun run check` command exited with
-failures: Node tests passed 26/26; Bun reported 906 passed, 64 skipped and 31 failed.
+On 26 October 2026, the built package passed with default selection and exclusion
+settings on all six snapshots below. No extra exclusions were added. Scanner
+execution had an empty PATH and rejected network fetches. No Ruby installation,
+project dependency installation, project build or application execution was used.
 
-| Failing tests | Observed cause |
+| Repository | Exact commit | Selected inputs | Ruby sources | Named methods | Files with outlines |
+| --- | --- | ---: | ---: | ---: | ---: |
+| [puma](https://github.com/puma/puma) | `bbffd8dfb78bc37b557c8a78c04582498f8da38f` | 66 | 63 | 658 | 52 |
+| [rails](https://github.com/rails/rails) | `ad242026bf6a7f3f0db133749e80cf40884a9060` | 1627 | 1598 | 15711 | 1529 |
+| [rack](https://github.com/rack/rack) | `412b7e5250612e8b23095eee65ee3268addb4776` | 53 | 51 | 567 | 50 |
+| [sinatra](https://github.com/sinatra/sinatra) | `cb22afd7902b566b6eaba6c4ea89739494a65d12` | 63 | 57 | 569 | 50 |
+| [lobsters](https://github.com/lobsters/lobsters) | `ceb5e71f0d9f5b8ea20b4d96c6c46e1aed27a913` | 393 | 390 | 1017 | 319 |
+| [chatwoot](https://github.com/chatwoot/chatwoot) | `bfa47377144440959bb1074e65d53a153818e31b` | 1848 | 1845 | 10889 | 1786 |
+
+Each snapshot passed readiness, source listing, two complete scans with reversed
+input order, and outline loading for every reported source. The complete
+observations were identical. Every named method's UTF-16 position and line range
+was checked against source text; three declaration witnesses per repository were
+inspected. SHA-256 hashes of every selected input matched before and after the
+checks, and all original Git checkouts remained clean.
+
+Representative declaration witnesses are `Puma::DSL#http_content_length_limit`
+(`lib/puma/dsl.rb:1662`), `ActionCable::Channel::Base#defer_subscription_confirmation!`
+(`actioncable/lib/action_cable/channel/base.rb:266`),
+`Rack::Auth::AbstractHandler#initialize` (`lib/rack/auth/abstract/handler.rb:15`),
+`Sinatra::Helpers#logger` (`lib/sinatra/base.rb:373`),
+`AboutController#four_oh_four` (`app/controllers/about_controller.rb:7`), and
+`ContactIdentifyAction#merge_if_existing_email_contact`
+(`app/actions/contact_identify_action.rb:36`). These are source checks, not
+application-specific extractor rules or automated fixtures.
+
+Lobsters supplies two execution entries, 118 resolved handler facts and 97
+uncertainty blockers. Chatwoot supplies one entry, 38 resolved handlers and 49
+blockers. These counts describe the supported literal routing subset, not either
+application's complete runtime route table. Puma supplies three command entries;
+Rails supplies one entry and two route blockers. Sinatra supplies three outgoing
+HTTP facts; Rails supplies one. The other snapshots supply no outgoing facts.
+
+A separate copy of Lobsters' selected inputs passed the published Groma 0.7.8
+CLI flow: `init --directory groma`, `plugin add` with the built local package,
+`scanner check`, `scan`, repeated `scan`, and source-owner lookup. The first scan
+created 393 architecture records; the repeat created zero and refreshed 390.
+The 54 duplicate-logic findings are review candidates. Original checkouts were
+not used as Groma output directories.
+
+The Ruby HTTP pass now skips binding analysis when no supported client is
+imported. All request producers already require one of those imports. The Rails
+qualification (two scans and all outlines) fell from 354.46 seconds to 6.73 seconds
+on the same machine; the evidence counts were unchanged. This is a local timing
+observation, not a benchmark across platforms.
+
+## Additional parser limits
+
+Four additional public snapshots did not qualify. Their selected source reaches
+syntax rejected by the bundled tree-sitter-ruby 0.23.1 parser. They are recorded
+as failures; no source patch, extra exclusion, fallback or partial observation was
+used to turn them into a success.
+
+| Repository and commit | First reported parser location |
 | --- | --- |
-| 22 Java/JVM and COBOL packaging tests | The test environment could not find required build tools: `java`, `javac`, `jar` or `keytool`. |
-| 6 Swift tests | The test environment could not find `swiftc`, which builds the packaged Swift scanner. |
-| 3 npm certificate-configuration tests | A child process could not read npm's effective CA configuration. The underlying cause has not been established. |
+| [rubocop](https://github.com/rubocop/rubocop) `04be5a255f9ab32afd3c2f9bcf891bd71b5e8489` | `lib/rubocop/cop/style/perl_backrefs.rb:83:16` |
+| [sidekiq](https://github.com/sidekiq/sidekiq) `0aaab7f396c02e3d0d5262535e5d8b8533959195` | `lib/sidekiq/cli.rb:259:18` |
+| [forem](https://github.com/forem/forem) `c8f8ed49963b13b026b03e40341b37df7f63e3ab` | `app/services/ai/content_moderation_labeler.rb:1:1` |
+| [discourse](https://github.com/discourse/discourse) `882af7fc25634228aed91f625021838bc6d28fcf` | `lib/json_api_kit/version_change/declaration.rb:1:1` |
 
-The failing test names exactly match the earlier qualification run, with no new
-failing names. None is a failing Ruby assertion. This comparison supports the
-absence of newly failing tests in that run; it does not prove those tests would
-pass with the required tools available or establish the npm failures' root cause.
+The RuboCop location uses the `:$'` symbol spelling, and Sidekiq uses an unquoted
+Unicode symbol. Forem and Discourse are file-level parser failures; their precise
+grammar cause was not established. All selected input hashes and clean Git states
+were preserved for these failed checks as well. The scanner contract permits a
+concrete failure for unsupported syntax; these limits remain explicit and are not
+claims of complete Ruby support.
 
-TASK-632 therefore keeps Definition of Done item 2, “Relevant checks pass and
-changes remain task-scoped,” unchecked and remains In Progress. Clearing this
-gate requires a successful full-suite run in an environment with the required
-build tools and working npm configuration, such as the project's configured CI
-environment. The focused Ruby results alone do not clear the full-suite gate.
+## Maintainer regression and repository checks
+
+The private-action redefinition and block-parameter URL regressions failed before
+the fixes and pass afterward. The first reuses the existing controller-route
+assertion; the second adds one assertion to the existing HTTP test. The built
+package also includes this validation record beside its README.
+
+The focused Ruby suite passes 7 tests with 72 assertions. The isolated package
+check passes 1 test with 7 assertions. Required development tools are Bun 1.4.4
+and Node 26.12.1; the complete check uses Node's bundled npm 11.20.0.
+`bun run check` passes: lint, TypeScript, 26 Node tests, and 937 Bun tests
+with 64 opt-in skips and zero failures. The earlier
+31 tool/configuration failures from the initial qualification are cleared in this
+provisioned environment. A separate trial with npm 12.2.1 exposed its changed
+`npm pack --json` output shape; no Ruby change or weakened assertion was used to
+address that unrelated environment difference.
 
 ## NomadNest qualification
 

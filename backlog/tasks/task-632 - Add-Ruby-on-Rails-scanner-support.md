@@ -1,11 +1,11 @@
 ---
 id: TASK-632
 title: Add Ruby on Rails scanner support
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-25T15:52:00Z'
-updated_date: '2026-10-25T22:40:00Z'
+updated_date: '2026-10-26T11:56:00Z'
 labels: []
 dependencies: []
 references:
@@ -73,6 +73,8 @@ modified_files:
   - test/fixtures/ruby-coverage/constructed.rb
   - docs/scanners/evidence.md
   - docs/architecture-findings.md
+  - backlog/tasks/task-632 - Add-Ruby-on-Rails-scanner-support.md
+  - groma/systems/groma-md/containers/cli/components/ruby-src-index.md
 type: feature
 ordinal: 699000
 ---
@@ -95,12 +97,13 @@ Ruby on Rails projects currently have no language scanner, so developers cannot 
 - [x] #8 Ruby command guards, declared gem executables and Rack/Rails launch declarations supply execution entries and selected local source membership through the existing placement contract.
 - [x] #9 Supported standard-library and common Ruby HTTP clients report outgoing request facts with correct method, path, configured bases and uncertainty; HTTP evidence yields only contract-supported relationships.
 - [x] #10 Named Ruby method bodies provide source ranges and binding-normalized tokens for the existing identical/near-duplicate comparison, excluding anonymous callbacks as standalone compared operations.
+- [x] #11 The built Ruby scanner is qualified on at least six distinct open source repositories at recorded commits, with meaningful source and outline checks, identical repeat scans, unchanged inputs and no project dependency installation or execution.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [x] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -108,13 +111,15 @@ Ruby on Rails projects currently have no language scanner, so developers cannot 
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Select and parse Ruby source, Rack configuration, Ruby command scripts and literal Gemfile/gemspec declarations through the portable scanner package; report declarations, visibility, outlines and unresolved calls without running Ruby.
-2. Keep nearest declared project membership separate from architecture placement. Derive positive execution entries from main guards, gem executables and Rack/Rails launches, following selected literal local requires and the documented Rails source membership.
-3. Extract supported literal Rails routes with exact public-instance handler binding and uncertainty blockers. Extract supported Net::HTTP, Faraday and HTTParty request facts with conservative configured/dynamic/unknown values. Core owns relationship inference.
-4. Supply source ranges and binding-normalized named method tokens to existing core duplicate findings. Anonymous callbacks do not become standalone compared operations.
-5. Integrate official discovery, release packaging, CI, contribution scenarios and scanner documentation. Verify generic independent fixtures, portable package isolation and core outcomes; use NomadNest only for external qualification.
-Test authority: user-requested language support and Python-level evidence categories plus existing scanner/HTTP/outline contracts. Generic regressions detect wrong project ownership, launch membership, handler visibility/paths, false HTTP relationships, missing named bodies and renamed-binding comparison failures. Existing suites had no Ruby coverage for these rules. Tests observe core placement/relationships/findings where applicable, not merely emitted fields.
-OKF/C4: all new facts are transient scanner evidence. Ordinary Markdown and existing core links remain the readable output; core owns source ownership, C4 containers/relationships and supporting findings. No new persisted metadata or architecture level.
+1. Parse selected Ruby source, Rack configurations, Ruby command scripts and literal Gemfile/gemspec declarations through the self-contained package. Reuse declaration analysis for Code outlines; leave dynamic Ruby calls unresolved.
+2. Keep nearest declared project membership separate from architecture. Report positive command/Rack/Rails execution entries and their selected local source units through the existing core contract.
+3. Extract literal Rails routes and supported Net::HTTP/Faraday/HTTParty requests conservatively. Require one public, unredefined local instance action; hide outer URL values behind block parameters. Skip HTTP binding work when no supported client is imported. Core owns provider matching and uncertainty.
+4. Supply source ranges and binding-normalized tokens only for supported named methods to existing duplicate findings. Keep anonymous callbacks out of standalone comparisons.
+5. Integrate discovery, package/release staging, CI, generic fixtures and documentation. Ship parser assets, licenses and the linked validation record. The ten runtime modules belong to one Ruby source scanner component in the existing CLI container.
+6. Qualify the built package on pinned Puma, Rails, Rack, Sinatra, Lobsters and Chatwoot snapshots with defaults. Verify readiness, source listing, reversed-input repeat scans, all source outlines, method positions/ranges, source witnesses and unchanged hashes/Git state. Record RuboCop/Sidekiq/Forem/Discourse parser rejections as unsupported, without fallback or extra exclusions. Exercise the published CLI on a separate Lobsters source copy.
+7. Run focused and isolated package checks and bun run check with Bun1.4.4, Node26.12.1 and its bundled npm11.20.0. Apply one targeted cold simplicity review, own specification/quality reviews and final full-context complexity review. Preserve the original author's commits in an upstream delivery branch because the fork disables maintainer edits.
+Test authority: the task and existing scanner/HTTP/outline contracts require exact handler ownership and unresolved values for shadowed bindings. Existing fixtures lacked public-to-private method redefinition and URL block-parameter shadowing. Extend the existing fixtures/assertions to detect those two concrete false-provider results; both fail before fixes and pass afterward. No new test for document delivery or the behavior-preserving empty-client shortcut.
+OKF/C4: scanner facts remain transient evidence. Existing core owns IDs, Code ownership, C4 placement and relationships. Ordinary Markdown readers see the component responsibility and exact source links. Existing Groma metadata owns its CLI containment; no new persisted fact or C4 level is added.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -143,12 +148,44 @@ Cold simplicity review of Python-level coverage passes with no material changes.
 Final full-context complexity review passes with no material recommendation or authority-backed blocker. Final check completed: 906 Bun pass/64 skip/31 fail; Node 26 pass. Exact failing-test name comparison against the initial check confirms identical 31 failures, no additions or removals. Documentation, generic fixtures and external qualification match the final implementation. All ten acceptance criteria are objectively verified; the full repository check remains the sole unchecked Definition of Done gate. No further Ruby changes are required by the reviews.
 
 Clarified the published validation evidence: 22 Java/JVM and COBOL packaging tests could not find java/javac/jar/keytool; 6 Swift tests could not find swiftc; 3 npm CA-configuration tests failed in a child process, with underlying cause still unverified. The same 31 failing test names appear in both qualification runs; no Ruby assertions failed. This is evidence of no newly failing names, not proof of a green full suite or an established npm root cause. DoD2 remains unchecked pending successful full-suite validation. Ruby validation documentation now explains these limits.
+
+Maintainer review started from PR187 head 9f3c2bed12a8f6a4545febbb3eed09498f8d6fbb. TASK-632 is present only for this Ruby task across fetched refs, current main and open PR titles. Backlog doctor reports unrelated historical duplicate IDs 164/408/500; those records are outside this task and were not changed. All seven existing focused Ruby tests pass under verified Bun1.4.4 (71 assertions). The fork has maintainer_can_modify=false, so fixes will be prepared on an upstream branch preserving its commits. Test gaps identified for investigation: route redefinition visibility and HTTP block-variable shadowing must retain uncertainty under AC3/9 and the documented scanner contracts. Existing fixtures cover private instance vs singleton methods and nested receiver scope, but do not exercise these two wrong-binding results. Extend the smallest existing fixtures only after reproducing each failure.
+
+Extended the existing clients.rb fixture with a block parameter that shadows a literal outer URL binding. This changed file is already in the recorded modified-file list; the next assertion will require unknown request evidence so this cannot invent a local provider.
+
+Extended the existing ruby-http.test.ts assertion to require an unknown path for the shadowed block URL. This file is already recorded in modified_files. No new test case or fixture file was added.
+
+Extended the existing PeopleController fixture with an earlier public instance definition of hidden before its private redefinition. The recorded fixture path is unchanged. The existing hidden-route assertion now detects whether a superseded public method is falsely accepted; no duplicate new test is required.
+
+Fixed routes.ts by checking all same-named instance definitions before public visibility. A single public candidate is required; any redefinition remains a blocker as the documented contract requires. The path was already in modified_files.
+
+Added requestBindings in the existing HTTP value module to hide outer URL values behind block parameters at each request location. The file was already recorded. This preserves unknown evidence instead of assigning a false literal provider.
+
+Connected clients.ts request extraction to requestBindings at each call. The existing modified-file entry is preserved; no new API or architecture concept was introduced.
+
+Corrected Ruby build delivery: the built README links validation.md, but that file was absent. build.ts now copies and includes the existing validation record in the package. The build file was already tracked in modified_files. This is a document-delivery fix, with no new behavior or test needed.
+
+Added the missing task-owned architecture record through Groma0.7.8 scan/edit commands in an isolated architecture copy, then transported only the final CLI-authored record. All ten Ruby runtime modules share one Ruby source scanner responsibility inside the existing CLI container and Language scanners group. No unrelated derived relationship changes or temporary configuration were copied. OKF remains ordinary Markdown with exact Code links; existing Groma metadata owns identity and containment. This adds a component for the language adapter, not a new C4 boundary or stored scanner fact.
+
+Both supported binding regressions failed before their fixes and now pass: focused Ruby suite 7/7 with72 assertions; isolated fresh-checkout package smoke1/1 with7 assertions. First provisioned full check passed lint/types and26 Node tests; Bun936 passed/64 skipped/1 failed. The remaining npm-packaging failure was reproduced separately: npm12.2.1 pack --json returns an object keyed by package name, while Node26.12.1 bundled npm11.20.0 returns the array required by the existing test. This is unrelated to Ruby. The suite is being checked with bundled npm11.20.0; no test was removed, weakened or retried with changed assertions.
+
+Rails qualification remains CPU-bound for several minutes while the other five clean repositories pass. Inspection identifies unnecessary work in rubyRequests: it builds every method binding even when imports contains none of net/http, faraday or httparty. Every request producer already requires one of those exact imports. Skip that pass when none is present; this is a behavior-preserving removal of work inside existing ownership, with no new support rule or test. Existing HTTP and fixture checks verify the imported-client flow. Cold targeted simplicity review has passed the two binding corrections and package/architecture integration with no findings.
+
+Removed the unnecessary no-client HTTP pass with one guard in clients.ts. The file is already recorded in modified_files. All existing HTTP producers remain gated by the same explicit imports; no fact shape, uncertainty rule or supported API changed.
+
+Updated docs/scanners/ruby/validation.md, already in modified_files, with six pinned default successes, four explicit grammar failures, exact counts and witnesses, source immutability/repetition checks, separate Lobsters CLI smoke, and the verified no-client work reduction. No parser fallback or repository-specific rule/exclusion was added. The final complete check is still running after the one-line shortcut.
+
+The final complete repository check passes after all source corrections: Biome/scrollbar checks, TypeScript,26 Node tests,937 Bun passes/64 skips/0 failures. Log /private/tmp/groma-ruby-qualification-187/check-complete.log. Added the exact green result to the already-tracked validation record immediately. No source changes followed this check.
+
+Maintainer specification review: AC1-4 pass the built-package/fresh-checkout tests and current discovery, contribution scenario and documentation checks. AC5-6 pass the generic routing/scope fixtures; the superseded public action now remains blocked when later redefined private. AC7-8 pass nearest-project and launch-closure tests and the separate Lobsters CLI flow. AC9 passes supported request/core relationship fixtures, earlier-mount uncertainty and the newly reproduced block-URL shadowing regression. AC10 passes normalized-body and actual core finding checks. AC11 passes six pinned public default scans: Puma63 sources/658 methods, Rails1598/15711, Rack51/567, Sinatra57/569, Lobsters390/1017, Chatwoot1845/10889. Repeated complete observations match; all outlines load; every named-method position/range and sampled source witnesses are checked; selected hashes and clean Git states are unchanged. No project dependencies or application code were installed/executed. Four further snapshots hit documented grammar limits, permitted by the concrete unsupported-syntax diagnostic contract; they are explicit non-blocking limits, not qualified successes.
+Maintainer quality review: traced catalog/manifest -> selected inputs -> parser lifetime -> projects, declarations/compared methods, launches, route/HTTP facts -> existing core ownership, placement, relationships and findings. Each module has a clear responsibility and the single CLI-owned architecture component names all ten source modules. Block binding correction reuses the existing unresolved-value path; route binding checks redefinition before public visibility. The no-import HTTP guard is equivalent to the existing producer gates and preserves counts while removing unnecessary work (Rails qualification354.46s ->6.73s on this host). Tests prove the reported false-provider failures and tolerate unrelated wording/refactoring; fixtures remain generic, concurrent and independent of live architecture. No new behavior, dependency, retry, fallback or compatibility path was introduced by the maintainer changes. The linked validation record is now in the package. Full repository check after all source changes passes:26 Node,937 Bun,64 skips,0 failures. The cold targeted simplicity review passes with no required changes. Final full-context complexity review remains before finalization.
+
+Final full-context complexity review passes with no blocker or material simplification. It confirms conservative block bindings and handler redefinition, behavioral equivalence of the no-client guard, package validation delivery, clear domain ownership, and the six successes/four explicit parser failures. Final rebuilt package smoke passes1/7; Groma0.7.8 reads ruby-src-index under cli in Language scanners with the authored responsibility and source links. Only this task-owned architecture record is changed in groma/. No source changes followed the green complete check.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Ruby/Rails now supplies Python-level evidence categories: nearest project roots, explicit execution entries, supported outgoing HTTP requests, and normalized named method bodies, alongside declarations/outlines and Rails handlers. Generic fixtures and conservative uncertainty handling avoid project-specific rules. Focused Ruby suite: 7 passed/71 assertions; tool-free fresh-checkout smoke: 1 passed/7 assertions; typecheck and changed-code lint pass. Cold simplicity, implementer specification/quality and final full-context complexity reviews pass.
-External NomadNest qualification preserved original hashes and clean Git status: 168 Ruby sources, all 588 independently inventoried named methods compared, 137 resolved handlers plus 19 blockers, 10 unknown/external requests, one Rack/Rails entry with 110 members. Fresh CLI scan creates one application container, places 110 components and reports 65 candidate duplicate findings. Unknown requests do not invent client arrows.
-Final bun run check: Node 26 passed; Bun 906 passed/64 skipped/31 failed. The failure-name set is identical to the initial baseline, with no new failing tests; 22 Java/JVM and COBOL packaging failures report missing java/javac/jar/keytool; 6 Swift failures report missing swiftc; 3 npm CA-configuration failures have an unverified underlying cause. No Ruby assertion failed. Matching failure names do not prove the full suite would pass in a provisioned environment. Clearing DoD2 requires a successful full-suite run with the required tools and working npm configuration. Log /tmp/groma-rails-python-coverage-check.log. DoD2 remains unchecked and task stays In Progress because the full repository gate is not green. Branch feat/ruby-on-rails-support; implementation commits are published to the Raithlin/groma.md fork; the validation clarification accompanies the upstream PR.
+Adds the experimental self-contained Ruby/Rails scanner and qualifies it on six pinned public repositories with default inputs: Puma, Rails, Rack, Sinatra, Lobsters and Chatwoot. It supplies source membership, declarations/outlines, explicit launches, literal Rails handlers, supported HTTP facts and normalized named method bodies through existing core contracts. Maintainer corrections prevent a private action redefinition and a block-shadowed URL from creating false providers, include the linked validation record in the package, and remove unused HTTP binding work when no supported client is imported. One CLI-authored component owns all ten runtime modules. TASK-632 is unique; original author commits are preserved on an upstream branch because the fork disables maintainer edits.
+Verification: both regressions fail before their fixes and pass afterward; focused7 tests/72 assertions, isolated package1/7, full bun run check26 Node +937 Bun pass/64 skip/0 fail. Six public scans repeat identically, load all outlines, validate method positions/ranges and witnesses, and preserve selected hashes and clean checkouts without running project code or installing dependencies. A separate Lobsters CLI copy passes install/readiness/scan/rescan/source-owner lookup. Both required review gates pass with no material findings. Four additional snapshots hit explicitly recorded parser limits; no fallback or repository-specific exclusions were added. Scanner publication and merge are outside this delivery.
 <!-- SECTION:FINAL_SUMMARY:END -->
