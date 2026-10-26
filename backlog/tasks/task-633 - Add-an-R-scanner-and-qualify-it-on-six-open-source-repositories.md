@@ -1,11 +1,11 @@
 ---
-id: TASK-629
+id: TASK-633
 title: Add an R scanner and qualify it on six open source repositories
 status: Done
 assignee:
   - '@codex-r-scanner'
 created_date: '2026-10-25T10:05:00Z'
-updated_date: '2026-10-25T19:25:00Z'
+updated_date: '2026-10-26T11:43:00Z'
 labels: []
 dependencies: []
 references:
@@ -40,6 +40,9 @@ modified_files:
   - groma/config.json
   - groma/systems/groma-md/components/r-src-index.md
   - groma/systems/groma-md/containers/cli/components/r-src-index.md
+  - >-
+    backlog/tasks/task-633 -
+    Add-an-R-scanner-and-qualify-it-on-six-open-source-repositories.md
 type: feature
 ordinal: 677000
 ---
@@ -71,7 +74,7 @@ GitHub issue #176 asks for R language support. Alex requested a delegated implem
 <!-- SECTION:PLAN:BEGIN -->
 1. Provide an experimental R scanner package using the pinned tree-sitter R grammar and web-tree-sitter runtime, bundled with their WebAssembly assets and licenses. Inventory selected UTF-8 .R/.r source, DESCRIPTION-based source membership, direct top-level named functions and matching source outlines. Visibility is source-binding visibility; NAMESPACE exports remain unverified. Operations, calls, frameworks and runtime entry inference are outside this syntax-only scope. 2. Register package discovery/catalogue and build staging through existing scanner concepts, and document supported behavior and limits. OKF/C4: parsed names are Code supporting knowledge; DESCRIPTION supplies source grouping, not systems, containers or collaborations. Ordinary Markdown readers see source links/names; core owns component placement and Groma ownership metadata. Add no OKF fields or C4 levels. This evidence rule holds across projects and languages. 3. Test authority: the scanner contract requires selected-file inventory and named function outlines. Concrete failures are wrong source membership, declarations copied from comments/strings or nested functions, invalid selected syntax accepted, missing bundled assets/tools, code execution/network dependence and source mutation. Existing other-language tests cannot detect these R-specific gaps. Use one minimal R fixture and two concurrent scanner/package tests. 4. Qualify the built package on pinned dplyr, ggplot2, plumber, targets, data.table and rlang checkouts with defaults, plus Shiny with its explicitly configured template exclusion. Record exact URLs, revisions, source/function anchors, identical repeated observations and unchanged input hashes/checkouts; install no project dependencies and run no project code. 5. Complete focused checks, one cold simplicity review, own specification/quality reviews, required repository check, and one full-context complexity review. Apply only the accepted documentation/package-documentation corrections, rerun affected checks and the complete repository check, then record evidence and finish.
 
-6. Alex requested a separate R pull request. Carry only TASK-629 files and R-only integration hunks into an isolated worktree on freshly fetched current main; regenerate the dependency lock against current main without reverting other scanners or dependency upgrades. Preserve the completed reviews and seven-repository evidence, rerun focused R/package and full repository checks on the PR tree with declared temporary runtimes, include task-caused architecture changes, then commit, push and open a ready PR. Do not merge or publish the R scanner.
+6. Alex requested a separate R pull request. Carry only TASK-633 files and R-only integration hunks into an isolated worktree on freshly fetched current main; regenerate the dependency lock against current main without reverting other scanners or dependency upgrades. Preserve the completed reviews and seven-repository evidence, rerun focused R/package and full repository checks on the PR tree with declared temporary runtimes, include task-caused architecture changes, then commit, push and open a ready PR. Do not merge or publish the R scanner.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -104,6 +107,8 @@ Architecture preparation follows the commit ownership rule: temporarily select o
 Added one task-owned architecture component r-src-index under the existing CLI container and Language scanners group, through Groma scan and edit commands. It owns plugins/scanners/r/src/index.ts and explains source grouping, parser/tree lifecycle and the syntax-only limits. The temporary one-file scan also removed derived rows outside this task; those 12 newly generated side effects were restored to their exact HEAD records before curation. No unrelated architecture change is included. groma/config.json is restored byte-for-byte to current main; its temporary use remains in traceability. The R component is the only resulting architecture diff.
 
 PR-tree verification on current main b28edd92: Bun 1.4.4 / Node 26.12.1; complete bun run check passes with 26 Node tests, 935 Bun passes, 63 skips and 0 failures across 168 Bun files (998 tests). Log: /private/tmp/groma-r-scanner-pr/check.log. Both focused R/package tests pass again. Current CLI smoke: init -> plugin add built package -> scanner check -> scan -> view R/functions.R --plain resolves Functions, with no R execution. The reviewed scanner source, build, manifest, tests and fixture match the original reviewed implementation byte-for-byte; only current-main registration, dependency-lock regeneration, install-command wording, the generated-asset ignore rule and the required R ownership record were added for delivery. Original cold simplicity and full-context complexity reviews and pinned seven-repository evidence remain valid; no broad review/qualification rerun. Targeted integration review confirms no dependency downgrade, no removed scanner registrations, no unrelated architecture changes, and config.json restored exactly. The CLI reads the new R source scanner component with parent cli and its precise source file; git diff --check is clean. PR scope is TASK-629 / issue #176 only.
+
+Task identity corrected from TASK-629 to TASK-633 on 26 October 2026 because independent fetch-wrapper PR #183 already uses TASK-629. All local refs, refreshed origin refs/tags, and all ten open pull request heads were checked; TASK-632 belongs to Ruby PR #187 and TASK-633 was unused. Backlog doctor performed the single ID/filename repair in an isolated metadata workspace, leaving unrelated historical duplicates untouched. The CLI repair preserved the task dates, status, checked criteria, full implementation evidence and both review records byte-for-byte apart from the frontmatter ID. Earlier TASK-629 mentions describe the original work history; the active R task and PR now use TASK-633. This correction changes task/document/PR metadata only, so scanner behavior and existing checks/repository qualification are unchanged; no code checks or reviews were repeated.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

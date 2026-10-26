@@ -1,6 +1,6 @@
 # R scanner validation
 
-Executed on macOS arm64 on 25 October 2026 for TASK-629. These are local
+Executed on macOS arm64 on 25 October 2026 for TASK-633. These are local
 package checks, not a published release or qualification of other platforms.
 The package used tree-sitter-r 1.3.0 and web-tree-sitter 0.25.10.
 
