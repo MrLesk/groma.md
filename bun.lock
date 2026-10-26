@@ -46,7 +46,7 @@
     },
     "plugins/scanners/angular": {
       "name": "@groma/scanner-angular",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "dependencies": {
         "@angular/compiler": "22.2.3",
         "@groma/scanner": "workspace:*",
@@ -170,7 +170,7 @@
     },
     "plugins/scanners/react": {
       "name": "@groma/scanner-react",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "typescript": "6.0.3",
@@ -223,7 +223,7 @@
     },
     "plugins/scanners/vue": {
       "name": "@groma/scanner-vue",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "@volar/typescript": "2.4.28",

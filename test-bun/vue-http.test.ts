@@ -58,6 +58,7 @@ test.concurrent('the built Vue package reports Nuxt and axios requests, includin
   const { temporary, root, scanner } = await setup()
   try {
     const observation = (await scanner.scan(root, {}, await vueFiles(root)))!
+    expect(await scanner.scan(root, {}, [...await vueFiles(root)].reverse())).toEqual(observation)
 
     // A `get` on another object, a reassigned axios instance, a helper's caller, a project's own
     // `useFetch` composable, and the named axios exports `isAxiosError` and `post` report nothing,

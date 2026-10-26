@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-25T15:52:00Z'
-updated_date: '2026-10-26T12:17:00Z'
+updated_date: '2026-10-26T22:12:00Z'
 labels: []
 dependencies: []
 references:
@@ -13,6 +13,13 @@ references:
   - src/scanner/modules/official-catalog.ts
   - scripts/scanner-release.ts
   - docs/scanners/creating-a-plugin.md
+  - plugins/scanners/vue/src/index.ts
+  - plugins/scanners/vue/src/project.ts
+  - plugins/scanners/typescript-project.ts
+  - plugins/scanners/vue/src/http.ts
+  - test-bun/ruby-vue.test.ts
+  - test/fixtures/ruby-coverage/Items.vue
+  - test/fixtures/ruby-coverage/package.json
 modified_files:
   - features/ruby-rails.feature
   - plugins/scanners/ruby/package.json
@@ -77,6 +84,18 @@ modified_files:
   - groma/systems/groma-md/containers/cli/components/ruby-src-index.md
   - test/fixtures/ruby-coverage/a/Gemfile
   - test/fixtures/ruby-coverage/a/shared.rb
+  - test/fixtures/ruby-coverage/package.json
+  - test/fixtures/ruby-coverage/Items.vue
+  - test-bun/ruby-vue.test.ts
+  - plugins/scanners/typescript-project.ts
+  - plugins/scanners/vue/src/index.ts
+  - plugins/scanners/vue/src/project.ts
+  - plugins/scanners/vue/package.json
+  - plugins/scanners/react/package.json
+  - plugins/scanners/angular/package.json
+  - test-bun/vue-http.test.ts
+  - test/fixtures/ruby-coverage/app/controllers/api/items_controller.rb
+  - docs/scanners/vue/index.md
 type: feature
 ordinal: 699000
 ---
@@ -100,6 +119,8 @@ Ruby on Rails projects currently have no language scanner, so developers cannot 
 - [x] #9 Supported standard-library and common Ruby HTTP clients report outgoing request facts with correct method, path, configured bases and uncertainty; HTTP evidence yields only contract-supported relationships.
 - [x] #10 Named Ruby method bodies provide source ranges and binding-normalized tokens for the existing identical/near-duplicate comparison, excluding anonymous callbacks as standalone compared operations.
 - [x] #11 The built Ruby scanner is qualified on at least six distinct open source repositories at recorded commits, with meaningful source and outline checks, identical repeat scans, unchanged inputs and no project dependency installation or execution.
+- [x] #12 The pinned Chatwoot checkout is scanned with Ruby and Vue enabled together; source witnesses verify frontend-to-Rails relationships or explicit uncertainty, repeated output and source ownership remain stable, original files remain unchanged, and relevant supported-flow defects are fixed in the maintainer PR.
+- [x] #13 The same packaged Ruby/Vue fixes are checked across at least six pinned open source Vue or mixed-stack repositories, with both declared and absent TypeScript configs; general source-analysis failures are fixed, proven frontend-to-Rails rows are verified in source, and unsupported results remain explicit without application-specific rules or exclusions.
 <!-- AC:END -->
 
 ## Definition of Done
@@ -124,6 +145,12 @@ Test authority: the task and existing scanner/HTTP/outline contracts require exa
 OKF/C4: scanner facts remain transient evidence. Existing core owns IDs, Code ownership, C4 placement and relationships. Ordinary Markdown readers see the component responsibility and exact source links. Existing Groma metadata owns its CLI containment; no new persisted fact or C4 level is added.
 
 8. Address the relevant automated review findings: the repository root must rank below a one-character declared project (AC7), and a local first introduced in a Ruby block must not enter its enclosing method bindings (AC10). Reuse the existing nested-project fixture and compared-body test; observe failures before fixes. Validate source membership, entry isolation, distinct trailing method names and equal tokens after only block-local renaming. No change to the shared whole-computed-segment HTTP rule: producer decision3 explicitly ignores possible runtime slashes.
+
+9. Alex explicitly requests combined Ruby/Vue qualification on pinned Chatwoot bfa47377144440959bb1074e65d53a153818e31b and direct fixes in PR188. First run both unmodified packages with the real default-selected source. Trace frontend HTTP callers and Rails routes/handlers against any derived rows. Repair only reproduced blockers in this approved flow, keep generic regression fixtures, and retain uncertainty where source does not prove a provider. Do not install or execute the application or patch its source/configuration to manufacture a successful scan. Verify complete combined observation/reconciliation repeatability and source hashes, then update validation evidence and the PR.
+
+10. Alex clarifies that the fix must address general causes across repositories and languages, not manufacture Chatwoot-specific inference. Qualify the shared Vue project-selection rule on several real mixed Ruby/Vue repositories with both declared and absent TypeScript configs. Preserve the existing generic fixture and source evidence/uncertainty contracts. Do not add application names, paths, hostnames, ad hoc alias maps or specific URL formats to extraction. Trace common failures to their owning shared or language module, fix only reproduced general rules, and record successful and unsupported outcomes separately.
+
+11. Broader mixed scans reproduce lost route prefixes in Loomio and Docuseal: known Rails constraints and Devise authentication wrappers become a repository-wide blocker, and namespace format defaults discard the namespace. Preserve child paths as uncertain inside known path-preserving wrappers; accept only the literal format default that does not change the route path. Keep unsupported namespace options blocked under a provable prefix, and keep unknown path overrides global. Authority: Alex requests root-cause fixes across real repositories and correct frontend-to-Rails matching. Coverage gap: the generic mixed fixture lacks an unrelated guarded engine and an API namespace with a format default. Extend its single combined test to require the API controller relationship while an earlier guarded engine still blocks a same-path later handler. No inferred execution, runtime authentication or optional format suffix behavior is added.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -206,11 +233,52 @@ Updated the already-tracked validation record with the one-character project and
 
 Targeted specification/quality re-review of the automated findings passes. AC7 now ranks the root marker below a/, and the strengthened fixture proves both nearest project membership and launch-closure isolation. AC10 now binds declarations during token traversal within the current lexical map; new block names stay local, existing outer locals stay captured, and later method calls keep their names. Both regressions fail before fixes and pass afterward. The assignment-name helper keeps token visitation under the required complexity limit; changed-file lint reports no warning. These are small contract-restoring fixes; the completed cold/full-context reviews remain the substantial feature review record, and this implementer re-review is limited to the reported findings and regressions. The URL suggestion is inapplicable under producer decision3 and Python's same whole-computed-segment semantics; it does not authorize a different Ruby rule.
 Final revised verification: focused7 tests/74 assertions, isolated package1/7, six public default snapshots requalified with unchanged inventory/evidence counts and identical repeated observations plus unchanged input hashes. Final complete check exits0:26 Node tests;937 Bun pass,64 skip,0 fail,4216 assertions. Log /private/tmp/groma-ruby-qualification-187/check-reviewed-final.log. Groma status remains clean; the existing Ruby scanner component already owns projects.ts and tokens.ts, so no architecture restructuring is required. No source changes follow this check.
+
+Combined qualification begins from clean local head8df85677544129a0e783e13d3fa6843a47d76c5d. Chatwoot declares Vue3 and Rails but has no selected tsconfig.json or jsconfig.json; its frontend is configured by Vite. Current Vue candidate selection requires tsconfig.json and may therefore omit the complete frontend. Run the existing package first to establish observed behavior before changing it. The current Ruby subset reports38 resolved handlers and49 blockers. Chatwoot also uses a shared ApiClient and global axios; inspect source identity and supported URL shapes before deriving or claiming frontend relationships.
+
+Reproduced combined baseline: Ruby1845 sources/87 endpoint facts; Vue selected2511 inputs including1245 SFCs but listed0 source and returned no observation, so core derived0 HTTP rows. Test authority: the user explicitly requires Ruby+Vue together on this config-free Chatwoot example. Existing Vue tests all use tsconfig fixtures and do not cover a config-free Vue client reaching a Ruby handler. Smallest regression: add a Vue manifest and one SFC to the existing generic Ruby coverage fixture, plus one concurrent combined-package test. It must observe Vue source, a proven frontend-to-Ruby row, and an unresolved full URL remaining unknown. Project execution and manufactured consumer config are excluded. The Vue compiler provides createParsedCommandLineByJson for this inference; read its installed primary implementation/API before use.
+
+Added optionalConfig to the existing framework selection options for the current Vue use case. Manifest dependency plus actual SFC source still establishes the candidate. Other framework callers keep the existing required-config default. Shared compiler selection remains source grouping, not architecture placement.
+
+VueProject now uses the bundled Vue compiler JSON configuration API for a package with no declared tsconfig. It receives only selected source paths and JavaScript/module parsing options, creates no consumer config, and reports diagnostics against the real package manifest. Existing declared config/reference behavior remains unchanged.
+
+The combined generic regression now passes: the frontend SFC is listed, core derives the GET/items row to the Ruby controller, and an unresolved whole URL remains unknown. Added an explicit existing ts.ParsedCommandLine type at the Vue compiler boundary after typecheck exposed implicit-any propagation from the upstream JSON helper. No new type model or runtime behavior was added; Vue project.ts is already tracked.
+
+The upstream JSON helper return type does not expose inherited compiler fields correctly under the hoisted declaration setup. Followed the existing readConfig bridge: use Vue to resolve Vue options and the pinned TypeScript parseJsonConfigFileContent to produce its typed compiler result, with the same extra SFC extensions. No type assertion or duplicate compiler model is used. The corrected real scan already reads2483 frontend sources and18 HTTP facts, with0 derived cross-language HTTP rows pending source witness analysis.
+
+Corrected Vue observation engineVersion from the stale3.3.11 literal to its actual pinned language-core3.3.13, as required by the scanner metadata contract. Vue index.ts is already recorded. The shared project-selection helper is bundled into Vue, React and Angular artifacts, so each affected package will receive its own patch bump under the release instructions; their supported non-Vue behavior stays unchanged.
+
+Refreshed bun.lock with Bun1.4.4 using lockfile-only and scripts disabled after the three scanner package patch bumps. bun.lock was already in modified_files; inspect its diff for unrelated changes before commit.
+
+User explicitly broadens validation beyond Chatwoot and restates the AGENTS cross-project design requirement. Current code is generic: manifest Vue dependency plus selected SFC source can form a Vue analysis project without tsconfig; declared configs remain authoritative, and other frameworks retain their prior selection default. No Chatwoot-named path, rule, alias or route change has been added. Real Chatwoot now has2483 frontend files/18 HTTP facts alongside1845 Ruby sources, with0 cross-language rows. That result still needs source-based evaluation and broader mixed-project evidence; do not invent arrows to satisfy a count.
+
+Broader runs reproduce two Vue-wide defects on independent repositories: reversing selected inputs changes invocation/HTTP/diagnostic order on Loomio, Vue REPL, Chatwoot and Zammad; Docuseal and Dashy fail because rendering/code-generation diagnostics are merged with actual SFC parsing errors. Primary language-core code separates vueSfc.errors from ir.template.errors and supplies an AST even for render diagnostics. Scanner source analysis already tolerates TypeScript semantic errors; use the same boundary for Vue: syntax/parser failures and a missing required template AST remain fatal, while generation diagnostics with a valid parsed AST are reported. Regression gaps: add a reversed-input equality assertion to existing Vue HTTP coverage; strengthen the generic combined fixture with a parseable keyed-branch diagnostic and assert a warning plus preserved HTTP evidence, then confirm malformed template syntax still rejects. No repository names, special error codes or project exclusions are used.
+
+Strengthened already-tracked Items.vue with a parseable keyed conditional that produces a template-generation diagnostic. Script declarations and the proven/items request are unchanged. This reproduces the same compiler-phase mistake observed independently in Docuseal and Dashy.
+
+Extended the already-tracked combined test to require the generation diagnostic as a warning while preserving the frontend/Ruby row, and to require rejection after replacing its own temporary SFC with malformed template syntax. The test still owns its temporary source tree; no live architecture is loaded.
+
+Fixed input-order dependence at the Vue project-selection boundary by sorting the selected paths before candidate discovery and compiler root assignment. This stabilizes all downstream facts and diagnostics without sorting away route order or adding project rules. Vue index.ts was already recorded.
+
+Separated Vue source parsing from render generation diagnostics in the existing project owner. SFC parsing errors remain fatal; template analysis without an AST remains fatal. Generation diagnostics with a valid parsed AST become located warnings while the scanner still reports proven source facts. No error code, application name or source path is special-cased. Vue project.ts was already tracked.
+
+The combined guarded-engine/namespace regression failed before the route fix (no expected API relationship). Known Rails constraints and Devise request guards now retain child route paths as blockers. Namespace response-format defaults no longer discard readable API routes; unsupported options keep only a provable path prefix. Existing unknown-handler and registration-order rules remain in core. routes.ts was already tracked.
+
+Final focused checks for this increment pass: 29 Ruby/Vue tests, 194 assertions, and TypeScript typecheck. Rebuilt Ruby requalification passes on the original six snapshots with all outlines, positions, reversed-input repeat observations and unchanged source hashes. The wider Vue matrix passes all six Vue scans; Loomio has one proven frontend/Rails row and Docuseal has four. Chatwoot has 2483 frontend sources and 1845 Ruby sources with explicit uncertainty and no proven cross-language row. Zammad Vue passes but Ruby fails on anonymous block forwarding; comparison showed the alternative Microsoft prebuilt grammar has the exact same SHA256 as the pinned asset, so it is not an asset replacement fix. No grammar adapter, per-file exclusion or partial successful Ruby result was introduced. Full repository check and required reviews are in progress.
+
+Cold simplicity review passed with no required simplifications. Own quality review found the scopedRoutes dispatcher exceeded the documented complexity limit (18). Moved guarded-child conversion to a named domain operation and calculated the unreadable prefix outside the conditional, preserving behavior. routes.ts remains recorded; rerun focused checks, required full check and one targeted cold re-review for this correction.
+
+Actual released CLI0.7.8 qualification passes on separate selected-source copies of Loomio and Chatwoot after installing both final packages. Loomio has2438 unique source owners and1 HTTP relationship. Chatwoot has4328 unique owners and90 Vue event relationships; no proven cross-language HTTP row. Init, local plugin add, readiness, scan and repeat scan pass; owner IDs and complete relationship records are identical on repeat, source bytes match originals. First full check passes26 Node +938 Bun tests/64 skips/0 failures; lint found the now-corrected routes complexity warning. Focused post-cleanup tests pass; full check is rerunning after that correction. validation.md already tracked.
+
+Implementer specification review for the mixed-scanner increment: AC12 is demonstrated by full Chatwoot CLI scan/rescan, 4328 stable physical owners, unchanged inputs and explicit HTTP uncertainty. AC13 is demonstrated by six pinned independent Vue scans (configured and config-free), three successful mixed Ruby/Vue scans, one explicit Ruby grammar failure, five source-witnessed HTTP rows across Loomio and Docuseal, and no app-specific extraction rules. Original AC1-11 remain supported by package regressions and six final Ruby requalifications. Quality review traced manifest selection -> nearest Vue package -> declared/in-memory compiler settings -> original-source facts -> Ruby controller resolution -> existing core matching/reconciliation. Existing source owners retain responsibility; no persisted OKF or new C4 concept was introduced. The new test fails for the missing API provider and for false guarded alternatives, preserves unknown full URLs, rejects malformed SFC syntax, and owns its temp directory. Changed functions pass the complexity limit, source/test files stay below500 lines, lockfile changes are only the three scanner package versions, and groma/ is clean. No authority-backed blocking defect remains; final full check is still running after the behavior-preserving complexity cleanup. Cold review found no required changes, so no additional cold review is needed for new scope.
+
+Final full-context complexity review passed with no blocking findings or material architecture recommendations. It confirms generic root causes, clear existing domain ownership and justified guarded-route helper. Applied its one prose correction: the mixed matrix says each successful result passed repeated checks, rather than incorrectly implying the explicitly failed Zammad Ruby scan passed. validation.md remains tracked. Final built-package isolation check passes1 test/7 assertions with language tools absent and network disabled.
+
+Final post-cleanup bun run check passes: lint with no warnings in the changed scanner/test files, TypeScript,26 Node tests,938 Bun tests,64 opt-in skips and0 failures. Full log: /private/tmp/groma-ruby-vue-188/check-reviewed-final.log. Cold simplicity and final full-context complexity reviews pass; own specification/quality reviews find no unmet acceptance criterion or Definition of Done item. The supported broad flow is complete; upstream parser limits remain explicit rather than hidden by app-specific workarounds.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Adds experimental self-contained Ruby/Rails scanning through existing source, outline, execution-entry, HTTP and compared-method contracts. The maintained delivery preserves the original author commits from PR187 and uses unique TASK-632. Fixes four reproduced supported-flow defects: private action redefinition, block-URL shadowing, nearest project ranking for a one-character directory, and block-local token leakage. The shared whole-computed-segment HTTP policy remains unchanged. Package delivery includes validation evidence; one existing CLI component owns the ten runtime files; no new C4 level or persisted scanner fact is added.
-Six pinned public repositories pass with defaults, repeated full observations, source outlines/positions/witnesses and unchanged hashes/clean checkouts: Puma, Rails, Rack, Sinatra, Lobsters and Chatwoot. Four additional snapshots have explicit grammar limits, with no fallback or custom exclusion. Lobsters CLI install/readiness/scan/rescan/source-owner flow passes. Final checks: focused7/74, isolated package1/7, complete check26 Node +937 Bun pass/64 skip/0 fail. Required cold/full-context reviews completed; targeted implementer re-review verifies automated fixes. Publication and merge remain outside this delivery.
+Adds the self-contained Ruby/Rails scanner and fixes shared Ruby/Vue source-analysis causes: config-free Vue packages are analyzed, input order is stable, parsed template-generation diagnostics preserve source facts, and known guarded routes/namespace format defaults retain their paths. Rechecked six Ruby repositories and six Vue/mixed repositories; Loomio and Docuseal provide five source-verified frontend-to-Rails relationships. Chatwoot and Loomio CLI rescans preserve source ownership and complete relationships with unchanged source. Zammad Ruby and four other grammar failures remain documented; no application-specific rules or exclusions were added. All focused, isolated-package and complete repository checks pass, including26 Node+938 Bun tests; required reviews pass. Delivered in maintainer PR188 with original author commits retained.
 <!-- SECTION:FINAL_SUMMARY:END -->

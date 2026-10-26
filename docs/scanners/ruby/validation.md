@@ -79,8 +79,8 @@ Representative declaration witnesses are `Puma::DSL#http_content_length_limit`
 (`app/actions/contact_identify_action.rb:36`). These are source checks, not
 application-specific extractor rules or automated fixtures.
 
-Lobsters supplies two execution entries, 118 resolved handler facts and 97
-uncertainty blockers. Chatwoot supplies one entry, 38 resolved handlers and 49
+Lobsters supplies two execution entries, 118 resolved handler facts and 111
+uncertainty blockers. Chatwoot supplies one entry, 108 resolved handlers and 154
 blockers. These counts describe the supported literal routing subset, not either
 application's complete runtime route table. Puma supplies three command entries;
 Rails supplies one entry and two route blockers. Sinatra supplies three outgoing
@@ -98,6 +98,82 @@ imported. All request producers already require one of those imports. The Rails
 qualification (two scans and all outlines) fell from 354.46 seconds to 6.73 seconds
 on the same machine; the evidence counts were unchanged. This is a local timing
 observation, not a benchmark across platforms.
+
+## Combined Ruby and Vue qualification
+
+On 26 October 2026, both built packages were checked together against these
+additional snapshots. Vue uses its pinned compiler and no application dependencies.
+Each successful scanner result passed readiness and two complete scans with the
+selected input order reversed. Observations and core HTTP rows were identical, including
+when the scanner order was reversed. All selected-input SHA-256 hashes matched
+before and after scanning; original Git checkouts remained clean.
+
+| Repository | Exact commit | Ruby sources | Vue-owned sources / SFCs | Proven frontend-to-Rails rows |
+| --- | --- | ---: | ---: | ---: |
+| [Chatwoot](https://github.com/chatwoot/chatwoot) | `bfa47377144440959bb1074e65d53a153818e31b` | 1845 | 2483 / 1245 | 0 |
+| [Loomio](https://github.com/loomio/loomio) | `24380e2131c1e43594a241814f3f460a9b0065f6` | 1898 | 540 / 242 | 1 |
+| [Docuseal](https://github.com/docusealco/docuseal) | `13a1835c006e218e2e48ede3eb153812bd025a05` | 422 | 161 / 71 | 4 |
+| [Zammad](https://github.com/zammad/zammad) | `e735c02c6bf53b939c690839158d06c1b097c7c8` | Parser failure | 3533 / 672 | Not qualified together |
+| [Dashy](https://github.com/Lissy93/dashy) | `93a33d945c8b84e5dd37c8bef103770d4701d175` | Not applicable | 306 / 174 | Not applicable |
+| [Vue REPL](https://github.com/vuejs/repl) | `9b5bc873415bbc6fcba6080b9402d140175d5b03` | Not applicable | 41 / 16 | Not applicable |
+
+All six Vue scans completed. Zammad's Ruby scan is a failure, not a partial
+success: its anonymous block forwarding in `app/controllers/graphql_controller.rb:70`
+is rejected by tree-sitter-ruby 0.23.1. The Microsoft tree-sitter WASM package's
+Ruby asset has the same SHA-256 as the pinned asset and rejects the same syntax;
+changing that download would not repair the grammar. No source exclusion,
+project patch, per-file recovery or application execution was used.
+
+These independent projects exposed shared causes:
+
+- Chatwoot, Loomio and Docuseal have Vue source without an applicable TypeScript
+  config. The scanner previously returned no project. It now forms an in-memory
+  compiler configuration from selected source. An unrelated test config, such
+  as Chatwoot's Playwright config, does not configure the application.
+- Reversing selected input paths changed Vue evidence order on Chatwoot, Loomio,
+  Zammad and Vue REPL. Source paths are now ordered before project compilation.
+- Docuseal and Dashy have parseable templates with render-generation diagnostics.
+  The scanner now reports those diagnostics as warnings while preserving readable
+  source facts. Actual source syntax errors still fail the scan.
+- Loomio and Docuseal place API routes in a namespace with a response-format
+  default. Rails request guards around engines also became root catch-all
+  blockers. Namespace paths and guarded child paths are now retained; guarded
+  endpoints remain uncertain. No repository names, URL mappings or error-code
+  exceptions enter extraction.
+
+Loomio's `vue/src/components/report/page.vue:388` calls `GET /api/v1/reports`.
+The namespace and resource declaration in `config/routes.rb:137-151` resolve to
+`Api::V1::ReportsController#index` in
+`app/controllers/api/v1/reports_controller.rb:2`.
+Docuseal's `app/javascript/submission_form/form.vue:1612` calls
+`POST /api/submitter_form_views` after a configured base; its literal namespace
+and resource declaration resolve to `Api::SubmitterFormViewsController#create`
+in `app/controllers/api/submitter_form_views_controller.rb:5`. The other three
+Docuseal rows connect autocomplete and user-configuration browser callers to
+their selected local controllers. Each row was checked against the source.
+
+Chatwoot yields 18 frontend HTTP request facts and 262 Rails endpoint/blocker
+facts. Its directly readable sign-in request targets an external Devise route;
+other calls depend on wrappers, unresolved bases, conditional enterprise routing,
+or an optional format suffix not represented by the supported path facts.
+Zero proven rows therefore remains an explicit coverage result, not proof of no
+frontend/backend interaction. The scanner does not manufacture targets.
+
+Separate selected-source copies of Loomio and Chatwoot also passed the released
+Groma 0.7.8 CLI flow: init, install both local packages, readiness, scan and rescan.
+Loomio retained 2438 unique physical source owners and its one HTTP relationship.
+Chatwoot retained 4328 unique source owners and 90 Vue event relationships; it
+still has no proven frontend-to-Rails HTTP row. Owner IDs and relationship records
+were unchanged on the second scan. The copied source bytes matched the originals.
+
+The generic `test-bun/ruby-vue.test.ts` uses the existing coverage fixture with
+one Vue client and an API controller. It verifies a config-free scan, preserved
+HTTP evidence despite a template-generation warning, the API relationship through
+a namespace format default, and no relationship past an earlier guarded engine.
+An unknown full URL stays unknown and malformed template syntax still fails.
+The config-free, input-order, template-generation and namespace/guard regressions
+were observed failing before their fixes. These tests contain no external
+application code or architecture.
 
 ## Additional parser limits
 
@@ -136,10 +212,10 @@ value filling one complete source segment as dynamic, without asking whether its
 runtime value might contain slashes. Leading unknown bases and partial computed
 segments retain their existing uncertainty.
 
-The focused Ruby suite passes 7 tests with 74 assertions. The isolated package
+The focused Ruby and Vue suites pass 29 tests with 194 assertions. The isolated package
 check passes 1 test with 7 assertions. Required development tools are Bun 1.4.4
 and Node 26.12.1; the complete check uses Node's bundled npm 11.20.0.
-`bun run check` passes: lint, TypeScript, 26 Node tests, and 937 Bun tests
+`bun run check` passes: lint, TypeScript, 26 Node tests, and 938 Bun tests
 with 64 opt-in skips and zero failures. The earlier
 31 tool/configuration failures from the initial qualification are cleared in this
 provisioned environment. A separate trial with npm 12.2.1 exposed its changed
