@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-27T23:16:00Z'
-updated_date: '2026-10-27T23:29:00Z'
+updated_date: '2026-10-27T23:31:00Z'
 labels: []
 dependencies: []
 references:
@@ -49,6 +49,8 @@ The actual build script still emits bytecode builds and requires a scratch wrapp
 Use the existing build entry point with explicit opt-in environment flags, bytecode disabled for AOT, scanner disk imports enabled, and current compiler/runtime identity enforced. Check compiler capability before accepting experimental flags. Add native qualification outside the publishing workflow, using pinned Buildkite artifacts and checksums for the existing five release targets. Reuse compiled scanner and package runtime smoke coverage. Test defaults and unsupported-mode errors locally, then execute native CI and record platform gates.
 
 Extend native delivery qualification beyond the existing CLI/export regression: the user explicitly requires real web, native watching and shutdown on supported targets. Existing compiled-scanner and packaging checks do not start the compiled HTTP server or cause a watched source change. Add a small consumer qualification script using the same flows fixture and a disk-loaded scanner/dependency; verify embedded HTML/JS, world JSON, all cover images, a new source component after watching, and graceful shutdown in each native CI mode.
+
+Run a real Chromium rendering gate on the Linux x64 hosted runner, where the browser can be downloaded independently of this scratch environment. Use pinned Playwright CLI 1.62.1 without adding a product dependency; wait for the JavaScript-rendered map SVG and retain the screenshot as qualification evidence. Other native runners retain the HTTP/watch/shutdown gate.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -63,4 +65,6 @@ Second native run 40601764572: Linux arm64 and macOS arm64 complete successfully
 All five native targets pass the first complete CLI/export/packaged-runtime matrix in run 40601764572 on source 4dec346c9f1952d5237122b5830336054c3d1cfc, with AOT and AOT+trim on each: Linux x64 baseline, Linux arm64, macOS arm64, Windows x64 baseline and Windows arm64. This proves those smoke flows only. Added a consumer qualification script for the remaining native web/watch/shutdown gate; it passes locally against AOT+trim baseline target and is being added to both native CI modes. Playwright browser CDN responds HTTP 200 text/html Site Unavailable instead of the Chromium ZIP in this environment, so a full browser pass is still not claimed.
 
 The new compiled web/watch qualification passes on Linux x64 against both AOT modes, including embedded font CSS, all three PNG covers, installed dependency loading, a new source component after native watching, and SIGTERM exit 0. The two pre-existing watcher test failures are now specifically qualified as a scratch PID-namespace limitation: process.pid=5, /proc/self/status NSpid=126544/5, ps -p 5 returns no process while process.kill(5,0) succeeds. Those tests use ps to assert a second watcher is alive; this environment reports the outer process namespace through procfs. Actual compiled two-process Backlog/Groma watch shutdown succeeds, so no product workaround was added. Required check for the added qualification script is running under Node 26.12.1 and Bun 1.4.4.
+
+The required check after adding web qualification completed lint/types and Node tests under patched Node 26.12.1; Bun suite has 904 passes, 63 skips and 29 failures, with the known scanner-update timing failure recurring alongside the earlier 28 environment/baseline failures. Added a pinned Chromium rendering gate on the Linux x64 hosted runner to avoid treating the scratch browser-download restriction as a product failure. It waits for the JS-created map SVG and retains screenshots; other native targets keep the web/watch/shutdown checks. Final required check is running after this qualification-only change.
 <!-- SECTION:NOTES:END -->

@@ -125,10 +125,15 @@ jobs:
       - name: Prepare verified experimental native compiler
         run: node scripts/prepare-bun-runtime.cjs --aot
         shell: bash
+      - name: Prepare Chromium for rendered map qualification
+        if: matrix.target == 'bun-linux-x64-baseline'
+        run: bun x playwright@1.62.1 install --with-deps chromium
+        shell: bash
       - name: Build and smoke AOT with and without trim
         env:
           GROMA_BUILD_TARGET: ${{ matrix.target }}
           GROMA_BUILD_AOT: '1'
+          GROMA_QUALIFY_BROWSER: ${{ matrix.target == 'bun-linux-x64-baseline' && '1' || '0' }}
         shell: bash
         run: |
           for trim in 0 1; do
@@ -144,5 +149,7 @@ jobs:
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: experimental-aot-${{ matrix.target }}
-          path: dist/aot-*/${{ matrix.binary }}
+          path: |
+            dist/aot-*/${{ matrix.binary }}
+            dist/aot-*/${{ matrix.binary }}.png
           if-no-files-found: error

@@ -62,6 +62,15 @@ async function qualify(): Promise<void> {
       'embedded renderer')
     const html = await (await fetch(url)).text()
     if (!html.includes('id="map"') || !html.includes('DejaVu')) throw new Error('Embedded map or fonts missing')
+    if (process.env.GROMA_QUALIFY_BROWSER === '1') {
+      const browser = Bun.spawn(['bun', 'x', 'playwright@1.62.1', 'screenshot', '--timeout', '20000',
+        '--wait-for-selector', '#map svg', '--viewport-size', '1440,900', url, `${binary}.png`],
+      { stdout: 'pipe', stderr: 'pipe' })
+      const [exit, output, error] = await Promise.all([
+        browser.exited, new Response(browser.stdout).text(), new Response(browser.stderr).text(),
+      ])
+      if (exit !== 0) throw new Error(`Browser rendering failed: ${output}\n${error}`)
+    }
     for (const theme of ['light', 'dark', 'blueprint']) {
       const response = await fetch(`${url}/cover-${theme}.png`)
       const bytes = Buffer.from(await response.arrayBuffer())
