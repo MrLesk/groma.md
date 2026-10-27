@@ -27,6 +27,14 @@ that same compiler, so omit `GROMA_BUILD_EXECUTABLE_PATH` locally. AOT enables
 loading installed scanner code and dependencies from disk. No scanner package
 or product feature is removed to make trimming succeed.
 
+Trimmed builds explicitly retain Bun's command line because scanner lookup and
+installation invoke the executable with `BUN_BE_BUN=1`. On the pinned compiler,
+untrimmed AOT drops that capability and cannot install npm scanners. This is an
+open shipping blocker for that mode. The native workflow checks it explicitly;
+an artifact from a failed qualification is diagnostic, not a release candidate.
+Keeping the whole command line also makes Groma larger than the same-compiler
+JIT build. Narrow package-manager retention requires upstream compiler work.
+
 The compiler pin in `scripts/aot-compiler.json` records Buildkite build 133944,
 full commit d260d7d51ba4280c836a600df2123f42986c8669, archive and executable
 SHA-256 digests, and revision 1.4.4-canary.1+d260d7d51. The archives were checked

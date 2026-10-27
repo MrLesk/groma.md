@@ -82,7 +82,8 @@ const compile: Bun.CompileBuildOptions = {
   // Runtime scanner imports still need their installed dependencies' exports and main entries.
   autoloadPackageJson: true,
   ...(aot ? { aot: true, allowCodeFromDisk: true } : {}),
-  ...(trim ? { trim: true } : {}),
+  // Scanner lookup and installation invoke this executable with BUN_BE_BUN=1.
+  ...(trim ? { trim: { allow: ['cli'] } } : {}),
   ...(target === undefined ? {} : { target }),
   ...(target?.startsWith('bun-windows-') === true
     ? {

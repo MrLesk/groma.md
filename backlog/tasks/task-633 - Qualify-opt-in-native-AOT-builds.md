@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-27T23:16:00Z'
-updated_date: '2026-10-27T23:33:00Z'
+updated_date: '2026-10-27T23:42:00Z'
 labels: []
 dependencies: []
 references:
@@ -19,6 +19,8 @@ modified_files:
   - .github/workflows/aot.yml
   - docs/native-aot.md
   - scripts/qualify-compiled-web.ts
+  - test-bun/compiled-scanner.test.ts
+  - backlog/attachments/task-633/aot-package-manager.mjs
 ordinal: 701000
 ---
 
@@ -51,6 +53,8 @@ Use the existing build entry point with explicit opt-in environment flags, bytec
 Extend native delivery qualification beyond the existing CLI/export regression: the user explicitly requires real web, native watching and shutdown on supported targets. Existing compiled-scanner and packaging checks do not start the compiled HTTP server or cause a watched source change. Add a small consumer qualification script using the same flows fixture and a disk-loaded scanner/dependency; verify embedded HTML/JS, world JSON, all cover images, a new source component after watching, and graceful shutdown in each native CI mode.
 
 Run a real Chromium rendering gate on the Linux x64 hosted runner, where the browser can be downloaded independently of this scratch environment. Use pinned Playwright CLI 1.62.1 without adding a product dependency; wait for the JavaScript-rendered map SVG and retain the screenshot as qualification evidence. Other native runners retain the HTTP/watch/shutdown gate.
+
+Reuse the already-built native artifact in the existing compiled-scanner regression via the same GROMA_TEST_CLI input used by packaging checks. Windows x64 run 40602974891 timed out at 60 seconds after its fifth assertion, while rebuilding inside the test; remove duplicate compilation instead of increasing the timeout or weakening export assertions. Keep the default test path building its own artifact.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -69,4 +73,10 @@ The new compiled web/watch qualification passes on Linux x64 against both AOT mo
 The required check after adding web qualification completed lint/types and Node tests under patched Node 26.12.1; Bun suite has 904 passes, 63 skips and 29 failures, with the known scanner-update timing failure recurring alongside the earlier 28 environment/baseline failures. Added a pinned Chromium rendering gate on the Linux x64 hosted runner to avoid treating the scratch browser-download restriction as a product failure. It waits for the JS-created map SVG and retains screenshots; other native targets keep the web/watch/shutdown checks. Final required check is running after this qualification-only change.
 
 Native web qualification run 40602467789 reaches Windows HTTP assets, covers, scanner imports and watch refresh, then fails only the POSIX shutdown expectation: both Windows targets exit 143 after child.kill(SIGTERM). Node process documentation explicitly states SIGTERM is unsupported on Windows and programmatic SIGINT/SIGTERM/SIGKILL unconditionally terminate a Windows child. Replace this incorrect platform assumption with a same-compiler uncompiled process control that installs a SIGTERM handler; require the AOT process to match the control. POSIX still requires graceful exit 0. This preserves an explicit shutdown comparison and does not claim Windows console Ctrl+C is verified.
+
+Additional actual product blocker reproduced in both AOT and AOT+trim: plugin add @groma/scanner-javascript@0.2.3 fails because package-manager.ts spawns process.execPath with BUN_BE_BUN=1; AOT removes the Bun command line, so the native executable cannot act as pm view/install. This is independent of scanner disk imports and was absent from the local already-installed scanner regression. Investigate explicit retention of CLI/package-manager code before changing the product runtime contract or registry/auth handling; do not replace it with raw registry fetches that ignore npmrc/proxy/certificate behavior.
+
+Retaining compile.trim.allow=[cli] fixes actual npm scanner installation under AOT+trim: plugin add @groma/scanner-javascript@0.2.3 succeeds. Keeping only install does not retain the CLI entry point; retaining cli while removing other CLI commands also loses that entry point. Updated trimmed builds to keep cli, preserving the existing npmrc/proxy/certificate contract and the no-external-Bun runtime contract. This compiler therefore provides no current retention setting for the untrimmed AOT path; npm installation still fails there, and it remains an explicit open blocker. Binary size changes materially: full Groma AOT+trim retaining CLI is 185959304 bytes versus 175135432-byte same-compiler JIT; the earlier 128065992-byte trimmed artifact cannot install npm scanners and is not a shipping size result. Keep the faster/smaller old measurements qualified as incomplete product flows. Need narrow upstream retention support to avoid carrying the entire Bun command line and to retain package-manager capability without full trimming.
+
+Direct build-script AOT+trim with CLI retention produces 185959304 bytes, passes existing compiled regression against the built artifact (7 assertions, ~2.1s), and passes live web/assets/covers/watch/termination qualification. The installed npm JavaScript scanner then scans and exports successfully. Minimal standalone reproducer is saved at backlog/attachments/task-633/aot-package-manager.mjs: AOT alone exits 70 for BUN_BE_BUN pm --help; AOT+trim allowing install also exits 70; AOT+trim allowing cli exits 0. Native CI now checks this capability explicitly, exercises the retained-CLI trimmed mode first, and still reports the untrimmed-mode failure instead of hiding it. Diagnostic artifacts are retained even on failure. Prior native run 40602974891 verifies all live web/watch gates on Linux arm64/macOS arm64/Windows arm64 and a real Chromium-rendered map in both modes on Linux x64; screenshots inspected and render correctly. Windows x64 instead hit the duplicate-build regression timeout (not a demonstrated product hang); the test now reuses the built artifact without raising its 60s limit. Stable CI run 40601764380 passed the full repository check on Linux/macOS/Windows for the build-option code; local failures remain missing tools/PID namespace and intermittent scanner-update timing. COBOL baseline failure also reproduces on unchanged main and is specifically missing jar.
 <!-- SECTION:NOTES:END -->

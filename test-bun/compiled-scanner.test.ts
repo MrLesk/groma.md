@@ -19,7 +19,9 @@ test.concurrent('the standalone CLI resolves an installed dependency of a local 
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-compiled-scanner-'))
   try {
     const root = path.join(temporary, 'project')
-    const binary = path.join(temporary, process.platform === 'win32' ? 'groma.exe' : 'groma')
+    const standalone = process.env.GROMA_TEST_CLI
+    const binary = standalone === undefined
+      ? path.join(temporary, process.platform === 'win32' ? 'groma.exe' : 'groma') : path.resolve(standalone)
     await cp(path.join(repository, 'test/fixtures/flows'), root, { recursive: true })
     await run(['git', 'init', '--quiet'], root)
     const dependency = path.join(root, 'plugin/node_modules/scan-evidence')
@@ -42,9 +44,11 @@ test.concurrent('the standalone CLI resolves an installed dependency of a local 
     await writeFile(path.join(root, 'package.json'), '{ "name": "sample" }')
     await writeFile(path.join(root, 'probe.local'), 'source for the local scanner')
     await writeGromaConfig(root, { scanners: [{ id: 'local', source: './plugin', include: ['*.local'] }], workSources: [] })
-    await run([process.execPath, 'scripts/build.ts'], repository, {
-      ...process.env, GROMA_BUILD_OUTFILE: binary,
-    })
+    if (standalone === undefined) {
+      await run([process.execPath, 'scripts/build.ts'], repository, {
+        ...process.env, GROMA_BUILD_OUTFILE: binary,
+      })
+    }
     await run([binary, 'scan'], root)
     const world = await loadAnnotatedArchitecture(root)
     expect(world.elements.some(element => element.code?.some(code => code.file === 'probe.local'))).toBe(true)

@@ -136,17 +136,20 @@ jobs:
           GROMA_QUALIFY_BROWSER: ${{ matrix.target == 'bun-linux-x64-baseline' && '1' || '0' }}
         shell: bash
         run: |
-          for trim in 0 1; do
+          for trim in 1 0; do
             export GROMA_BUILD_TRIM="$trim"
             export GROMA_BUILD_OUTFILE="dist/aot-$trim/${{ matrix.binary }}"
             "$GROMA_BUILD_EXECUTABLE_PATH" scripts/build.ts
-            "$GROMA_BUILD_EXECUTABLE_PATH" test test-bun/compiled-scanner.test.ts
+            BUN_BE_BUN=1 "$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE" pm --help
+            GROMA_TEST_CLI="$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE" \
+              "$GROMA_BUILD_EXECUTABLE_PATH" test test-bun/compiled-scanner.test.ts
             "$GROMA_BUILD_EXECUTABLE_PATH" scripts/qualify-compiled-web.ts "$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE"
             GROMA_TEST_CLI="$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE" \
               "$GROMA_BUILD_EXECUTABLE_PATH" test --timeout 60000 test-bun/npm-packaging.test.ts \
               --test-name-pattern '^packaged Groma'
           done
       - uses: actions/upload-artifact@v7.0.2
+        if: always()
         with:
           name: experimental-aot-${{ matrix.target }}
           path: |
