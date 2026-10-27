@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { initWasm, Resvg } from '@resvg/resvg-wasm'
-import wasm from '@resvg/resvg-wasm/index_bg.wasm' with { type: 'file' }
+// Keep the WASM loader so AOT compiles the renderer instead of interpreting it.
+import wasm from '@resvg/resvg-wasm/index_bg.wasm'
 import { fontBuffers } from '../atoms/fonts/index.ts'
 import { themeModes, type WebTheme } from '../atoms/theme.ts'
 import { renderCover, type CoverPayload } from './cover.ts'
