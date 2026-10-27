@@ -22,7 +22,7 @@ const assets = {
 
 function download(url, redirects = 0) {
 	return new Promise((resolve, reject) => {
-		const request = https.get(url, (response) => {
+		const request = https.get(url, { headers: { "User-Agent": "groma-runtime-verifier" } }, (response) => {
 			if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
 				response.resume();
 				const destination = new URL(response.headers.location, url);
