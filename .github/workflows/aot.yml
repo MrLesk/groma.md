@@ -1,0 +1,147 @@
+name: Experimental native AOT qualification
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/aot.yml'
+      - 'scripts/build.ts'
+      - 'scripts/aot-compiler.json'
+      - 'scripts/prepare-bun-runtime.cjs'
+      - 'test-bun/compiled-scanner.test.ts'
+
+permissions:
+  contents: read
+
+env:
+  NODE_OPTIONS: --use-openssl-ca
+  BUN_VERSION: 1.4.4
+
+jobs:
+  native:
+    name: native-${{ matrix.target }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: bun-linux-x64-baseline
+            binary: groma
+          - runner: ubuntu-24.04-arm
+            target: bun-linux-arm64
+            binary: groma
+          - runner: macos-15
+            target: bun-darwin-arm64
+            binary: groma
+          - runner: windows-latest
+            target: bun-windows-x64-baseline
+            binary: groma.exe
+          - runner: windows-11-arm
+            target: bun-windows-arm64
+            binary: groma.exe
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Block compromised certificate authorities before network steps
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs'), path = require('node:path'), tls = require('node:tls');
+          const { X509Certificate, createHash } = require('node:crypto');
+          if (Object.keys(process.env).some(key => key.toUpperCase() === 'GIT_SSL_NO_VERIFY' && process.env[key] !== undefined)) {
+            throw new Error('Remove GIT_SSL_NO_VERIFY from the runner or workflow environment before continuing.');
+          }
+          // CVE-2026-111943: protect action network calls; runner archive downloads happen earlier.
+          const blocked = new Set([
+            '0a6c2b2ca5b364207954171987ac9d2178561569d8205457e77ca90c32ede282',
+            '43bffa19d6ef651451f6841e019931e96f6f2eaeff28ab4b6f1ce4576de2717b',
+            '49dd353dc2b919a3770645117d0e60c16115e7d1bc259eefe734b00ea434fe5f',
+            '5c0660a2b164910d8ff589c18e14552e9e0ec237dcefe2cb736d41a4811f81a0',
+            '63ecefee431d49523bc1136c4e72d0206a477086caf606cd5cf025686c109cf8',
+            '8d417db2dd8bf5e3084d1e3f196d583849d81bdd4c00c70b9d39369e96b8c782',
+            '92c063d67e8f14db71d288e11266ffdaf69cbf115f7bab14f3bc2f68d25e0e30',
+            'bd153ed7b0434f6886b17bce8bbe84ed340c7132d702a8f4fa318f756ecbd6f3',
+            'c619e4780ed8e0abeda24ad732567de4383a7ea941338f6d1a7d1b49ac792fe9',
+            'e0254c7fcdc265e2f0f8a428dabb75ab4ae039b4872d62f5ee57f0877d5a8a41',
+            'ebed6475c2c2d80fcb199f3fe8dd6e6b3ce60b77eb15d4e42c3dec0c6f5b5105',
+            'ec4ffa1ad0ac88081314b7aaffef6a91f97cd57291bb5ba686c5415f5eb4f6b6',
+          ]);
+          const certificates = new Map();
+          for (const pem of [...tls.rootCertificates, ...tls.getCACertificates('default'), ...tls.getCACertificates('system'), ...tls.getCACertificates('extra')]) {
+            const certificate = new X509Certificate(pem);
+            const key = createHash('sha256').update(certificate.publicKey.export({ type: 'spki', format: 'der' })).digest('hex');
+            if (!blocked.has(key)) certificates.set(certificate.fingerprint256, pem);
+          }
+          if (!certificates.size) throw new Error('No trusted certificate authorities remain.');
+          const directory = path.join(process.env.RUNNER_TEMP, 'groma-tls');
+          const bundle = path.join(directory, 'ca.pem'), empty = path.join(directory, 'empty');
+          const proxy = path.join(directory, 'https-proxy-disabled');
+          fs.mkdirSync(empty, { recursive: true });
+          fs.writeFileSync(bundle, [...certificates.values()].join('\n') + '\n');
+          const repository = new URL(`${process.env.GITHUB_SERVER_URL.replace(/\/+$/, '')}/${process.env.GITHUB_REPOSITORY}`);
+          if (repository.protocol !== 'https:' || repository.username || repository.password) throw new Error('Expected a credential-free HTTPS GitHub server.');
+          const git = [['http.schannelUseSSLCAInfo', 'true'], ['http.sslVerify', 'true']];
+          for (const url of [repository.href, `${repository.href}.git`]) {
+            git.push([`http.${url}.sslVerify`, 'true'], [`http.${url}.schannelUseSSLCAInfo`, 'true']);
+          }
+          // Git cannot isolate proxy CApath. An impossible child of a regular file fails before authentication.
+          fs.writeFileSync(proxy, '', { mode: 0o600 });
+          const rawGitSettings = process.env.GIT_CONFIG_COUNT ?? '0';
+          const gitSettings = Number(rawGitSettings);
+          if (!/^(0|[1-9][0-9]*)$/.test(rawGitSettings) || !Number.isSafeInteger(gitSettings + git.length)) throw new Error('Invalid GIT_CONFIG_COUNT.');
+          const settings = {
+            SSL_CERT_FILE: bundle, SSL_CERT_DIR: empty,
+            NODE_EXTRA_CA_CERTS: bundle, NODE_USE_SYSTEM_CA: '0', NODE_TLS_REJECT_UNAUTHORIZED: '1',
+            GIT_SSL_CAINFO: bundle, GIT_SSL_CAPATH: empty, CURL_CA_BUNDLE: bundle,
+            GIT_PROXY_SSL_CAINFO: path.join(proxy, 'unavailable.pem'),
+            CARGO_HTTP_CAINFO: bundle, NPM_CONFIG_CAFILE: bundle,
+          };
+          for (const [offset, [key, value]] of git.entries()) {
+            settings[`GIT_CONFIG_KEY_${gitSettings + offset}`] = key;
+            settings[`GIT_CONFIG_VALUE_${gitSettings + offset}`] = value;
+          }
+          settings.GIT_CONFIG_COUNT = String(gitSettings + git.length);
+          for (const key of Object.keys(process.env)) {
+            if (key.toUpperCase() === 'GIT_PROXY_SSL_CAINFO') settings[key] = settings.GIT_PROXY_SSL_CAINFO;
+          }
+          const quote = value => "'" + value.replaceAll("'", "'\\''") + "'";
+          settings.GIT_CONFIG_PARAMETERS = [process.env.GIT_CONFIG_PARAMETERS,
+            ...git.map(([key, value]) => quote(key) + '=' + quote(value))].filter(Boolean).join(' ');
+          for (const value of Object.values(settings)) {
+            if (/[\r\n]/.test(value)) throw new Error('TLS environment values must not contain newlines.');
+          }
+          fs.appendFileSync(process.env.GITHUB_ENV, Object.entries(settings).map(([key, value]) => `${key}=${value}\n`).join(''));
+          NODE
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 26.12.1
+      - uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --cafile="$SSL_CERT_FILE"
+        shell: bash
+      - name: Prepare verified experimental native compiler
+        run: node scripts/prepare-bun-runtime.cjs --aot
+        shell: bash
+      - name: Build and smoke AOT with and without trim
+        env:
+          GROMA_BUILD_TARGET: ${{ matrix.target }}
+          GROMA_BUILD_AOT: '1'
+        shell: bash
+        run: |
+          for trim in 0 1; do
+            export GROMA_BUILD_TRIM="$trim"
+            export GROMA_BUILD_OUTFILE="dist/aot-$trim/${{ matrix.binary }}"
+            "$GROMA_BUILD_EXECUTABLE_PATH" scripts/build.ts
+            "$GROMA_BUILD_EXECUTABLE_PATH" test test-bun/compiled-scanner.test.ts
+            GROMA_TEST_CLI="$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE" \
+              "$GROMA_BUILD_EXECUTABLE_PATH" test --timeout 60000 test-bun/npm-packaging.test.ts \
+              --test-name-pattern '^packaged Groma'
+          done
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: experimental-aot-${{ matrix.target }}
+          path: dist/aot-*/${{ matrix.binary }}
+          if-no-files-found: error
