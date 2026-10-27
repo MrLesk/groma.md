@@ -37,7 +37,10 @@ The separate **Experimental native AOT qualification** workflow builds on native
 Linux x64/arm64, macOS arm64 and Windows x64/arm64 runners, preserving the release
 matrix's x64 baseline targets. Both AOT modes run the compiled local-scanner,
 guide, export/PNG and packaged-runtime checks, plus live web assets, covers,
-source watching and graceful shutdown. Its artifacts are experimental.
+source watching and process termination. POSIX shutdown must exit gracefully;
+Windows forced termination must match a same-compiler JIT control. Windows
+console Ctrl+C and full terminal interaction remain separate qualification gates.
+Its artifacts are experimental.
 The Linux x64 runner also renders the live map in Chromium using pinned
 Playwright CLI 1.62.1 and retains screenshots beside the binaries.
 The workflow does not publish packages or releases. It runs when its build or

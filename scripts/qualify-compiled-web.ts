@@ -48,7 +48,25 @@ export default async root => ({
   }))
 }
 
+/** Windows has forced process termination rather than POSIX SIGTERM delivery. Compare the host runtime. */
+async function windowsTerminationExit(): Promise<number> {
+  const control = Bun.spawn([process.execPath, '-e',
+    'process.on("SIGTERM", () => process.exit(0)); console.log("ready"); setInterval(() => {}, 1000)'],
+  { stdout: 'pipe', stderr: 'pipe' })
+  const reader = control.stdout.getReader()
+  try {
+    await reader.read()
+    control.kill('SIGTERM')
+    return await control.exited
+  } finally {
+    reader.releaseLock()
+    control.kill('SIGKILL')
+    await control.exited
+  }
+}
+
 async function qualify(): Promise<void> {
+  const expectedExit = process.platform === 'win32' ? await windowsTerminationExit() : 0
   const child = Bun.spawn([binary, 'web', '--port', '0'], { cwd: root, stdout: 'pipe', stderr: 'pipe' })
   let output = ''
   const stdout = (async () => {
@@ -84,8 +102,8 @@ async function qualify(): Promise<void> {
     await waitFor(async () => (await world()).includes('watched.local'), 'source watch refresh')
     child.kill('SIGTERM')
     const exit = await Promise.race([child.exited, Bun.sleep(10000).then(() => { throw new Error('Shutdown timed out') })])
-    if (exit !== 0) throw new Error(`Shutdown exited ${exit}`)
-    console.log('Compiled web: embedded assets, covers, scanner dependency, source watch and shutdown pass')
+    if (exit !== expectedExit) throw new Error(`Shutdown exited ${exit}; host runtime expects ${expectedExit}`)
+    console.log(`Compiled web: assets, covers, scanner dependency, source watch and termination pass (exit ${exit})`)
   } catch (error) {
     child.kill('SIGKILL')
     await child.exited

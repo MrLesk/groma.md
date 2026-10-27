@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-27T23:16:00Z'
-updated_date: '2026-10-27T23:31:00Z'
+updated_date: '2026-10-27T23:33:00Z'
 labels: []
 dependencies: []
 references:
@@ -67,4 +67,6 @@ All five native targets pass the first complete CLI/export/packaged-runtime matr
 The new compiled web/watch qualification passes on Linux x64 against both AOT modes, including embedded font CSS, all three PNG covers, installed dependency loading, a new source component after native watching, and SIGTERM exit 0. The two pre-existing watcher test failures are now specifically qualified as a scratch PID-namespace limitation: process.pid=5, /proc/self/status NSpid=126544/5, ps -p 5 returns no process while process.kill(5,0) succeeds. Those tests use ps to assert a second watcher is alive; this environment reports the outer process namespace through procfs. Actual compiled two-process Backlog/Groma watch shutdown succeeds, so no product workaround was added. Required check for the added qualification script is running under Node 26.12.1 and Bun 1.4.4.
 
 The required check after adding web qualification completed lint/types and Node tests under patched Node 26.12.1; Bun suite has 904 passes, 63 skips and 29 failures, with the known scanner-update timing failure recurring alongside the earlier 28 environment/baseline failures. Added a pinned Chromium rendering gate on the Linux x64 hosted runner to avoid treating the scratch browser-download restriction as a product failure. It waits for the JS-created map SVG and retains screenshots; other native targets keep the web/watch/shutdown checks. Final required check is running after this qualification-only change.
+
+Native web qualification run 40602467789 reaches Windows HTTP assets, covers, scanner imports and watch refresh, then fails only the POSIX shutdown expectation: both Windows targets exit 143 after child.kill(SIGTERM). Node process documentation explicitly states SIGTERM is unsupported on Windows and programmatic SIGINT/SIGTERM/SIGKILL unconditionally terminate a Windows child. Replace this incorrect platform assumption with a same-compiler uncompiled process control that installs a SIGTERM handler; require the AOT process to match the control. POSIX still requires graceful exit 0. This preserves an explicit shutdown comparison and does not claim Windows console Ctrl+C is verified.
 <!-- SECTION:NOTES:END -->
