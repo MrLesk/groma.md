@@ -36,7 +36,8 @@ Updating the compiler requires updating and verifying the entire pin.
 The separate **Experimental native AOT qualification** workflow builds on native
 Linux x64/arm64, macOS arm64 and Windows x64/arm64 runners, preserving the release
 matrix's x64 baseline targets. Both AOT modes run the compiled local-scanner,
-guide, export/PNG and packaged-runtime checks. Its artifacts are experimental;
+guide, export/PNG and packaged-runtime checks, plus live web assets, covers,
+source watching and graceful shutdown. Its artifacts are experimental;
 the workflow does not publish packages or releases. It runs when its build or
 qualification files change in a pull request, or through manual dispatch.
 
