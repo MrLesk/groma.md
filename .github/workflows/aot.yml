@@ -10,6 +10,7 @@ on:
       - 'scripts/aot-compiler.json'
       - 'scripts/prepare-bun-runtime.cjs'
       - 'test-bun/compiled-scanner.test.ts'
+      - 'scripts/qualify-compiled-web.ts'
       - 'scripts/qualify-compiled-scanners.ts'
       - 'scripts/qualify-compiled-tui.ts'
       - 'scripts/prepare-tui-test.cjs'

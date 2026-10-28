@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-27T23:16:00Z'
-updated_date: '2026-10-28T01:14:00Z'
+updated_date: '2026-10-28T01:16:00Z'
 labels: []
 dependencies: []
 references:
@@ -118,4 +118,6 @@ Native run40609596964 on e2e666d passes actual console root/details/container/ba
 Stable native gate run40612892327 exposes a workflow-only error before compilation: GITHUB_ENV from runtime preparation is available to the next step, not the current shell. Split preparation from building as the release workflow already does; no compiler or product failure. The default artifact still must pass all capability/assets/package checks on every host. Added a reviewable upstream retention report with the exact standalone result on both tested compiler commits; no public announcement or unvalidated source patch.
 
 Extended existing web gate with a real Backlog task snapshot and CLI edit watch refresh. Local Linux AOT+trim Groma plus patched Backlog AOT+trim pass assets/covers/source watch/Backlog snapshot+edit and SIGTERM0. Native workflow installs published backlog.md@1.55.3 into a temp npm prefix and exposes its native platform binary; no repository dependency or release is changed. Native integration results pending. Final required check running after this added consumer assertion.
+
+Quality review found cognitive complexity16 in the touched web qualification function (repository maximum15). Extract its existing Chromium operation into qualifyBrowser; no new feature or assertion. Keep assets/covers/bridge/watch/shutdown in the consumer flow and rerun focused lint/types.
 <!-- SECTION:NOTES:END -->
