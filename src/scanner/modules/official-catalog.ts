@@ -24,6 +24,7 @@ import ada from '../../../plugins/scanners/ada/package.json'
 import dart from '../../../plugins/scanners/dart/package.json'
 import mql5 from '../../../plugins/scanners/mql5/package.json'
 import mojo from '../../../plugins/scanners/mojo/package.json'
+import ruby from '../../../plugins/scanners/ruby/package.json'
 
 export interface OfficialScanner {
   id: string
@@ -48,5 +49,5 @@ export function scannerCatalogEntry(manifest: {
 // This is the official selection. Imported JSON is embedded by Groma's existing build.
 // Detection and compatibility information live exclusively in the selected packages.
 export const officialScannerCatalog: readonly OfficialScanner[] = [
-  typescript, java, scala, kotlin, c, cpp, ada, dart, mql5, mojo, cobol, nasm, angular, vue, react, csharp, go, rust, python, php, swift, javascript,
+  typescript, java, scala, kotlin, c, cpp, ada, dart, mql5, mojo, cobol, nasm, angular, vue, react, csharp, go, rust, python, php, swift, javascript, ruby,
 ].map(scannerCatalogEntry)

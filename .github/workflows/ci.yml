@@ -222,12 +222,13 @@ jobs:
           bun plugins/scanners/dart/build.ts scanner-packages/dart
           bun plugins/scanners/mql5/build.ts scanner-packages/mql5
           bun plugins/scanners/mojo/build.ts scanner-packages/mojo
+          bun plugins/scanners/ruby/build.ts scanner-packages/ruby
           bun plugins/scanners/typescript/build.ts scanner-packages/typescript
         shell: bash
       - name: Check scanner packages without language tools
         env:
           GROMA_TEST_PACKAGES: scanner-packages
-        run: bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts --test-name-pattern '^(c|cpp|ada|dart|mql5|mojo|typescript) package'
+        run: bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts --test-name-pattern '^(c|cpp|ada|dart|mql5|mojo|ruby|typescript) package'
         shell: bash
       - parallel:
           - name: Run repository checks

@@ -196,7 +196,11 @@ name the symbol in the spelling that scanner's Code links use: a member
 qualified by its type, or its bare name. Members are `Type.member` in Java, C#,
 and Python, `Type::method` in MQL5, and `Namespace\Type::method` in PHP, beside a top-level
 `Namespace\name`. Dart constructors match `Type.name` or `Type.new` for an unnamed
-constructor; see [Dart outlines](dart/index.md#inputs-and-source-structure). Other
+constructor; see [Dart outlines](dart/index.md#inputs-and-source-structure).
+Ruby members match qualified `Module::Type#method` instance methods and
+`Module::Type.method` singleton methods. A concern's `class_methods` block matches
+`Concern::ClassMethods#method`, the instance method of the module Rails defines
+for including classes, and appears under its declaring concern in the outline. Other
 members and scanners match bare names. A link naming a type
 never marks its members.
 
@@ -232,6 +236,7 @@ follows; a dash means the language has no such case.
 | Go | Names starting with an upper-case letter | - | Other names | - |
 | Rust | `pub`. Methods in a trait definition take the trait's visibility, and methods in a trait `impl` are `public` | - | `pub(crate)`, `pub(super)`, `pub(in path)` | No `pub`, `pub(self)` |
 | Python | Other names, including `__init__` and other `__dunder__` names | Members named `_name` | - | Members named `__name`; top-level names starting with `_` |
+| Ruby | Class/module methods by default; `public`; singleton methods | `protected` | - | `private`; instance `initialize`; top-level methods |
 | PHP | `public`; members without a modifier; top-level functions and types | `protected` | - | `private` |
 | Swift | `open`, `public` | - | `package`, `internal`; no modifier elsewhere | `fileprivate`, `private` |
 
