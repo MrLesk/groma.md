@@ -326,6 +326,10 @@ jobs:
     if: github.event_name == 'release'
     name: build-${{ matrix.target }}
     needs: publish-scanners
+    env:
+      # Reviewed source opt-in; release defaults remain stable bytecode.
+      GROMA_BUILD_AOT: '0'
+      GROMA_BUILD_TRIM: '0'
     strategy:
       fail-fast: false
       matrix:
@@ -396,13 +400,25 @@ jobs:
         run: bun scripts/scanner-release.ts catalog published-scanner-packages
         shell: bash
       - name: Prepare verified standalone runtime
-        run: node scripts/prepare-bun-runtime.cjs "${{ matrix.target }}"
+        run: |
+          if [[ "$GROMA_BUILD_AOT" == 1 || "$GROMA_BUILD_TRIM" == 1 ]]; then
+            node scripts/prepare-bun-runtime.cjs --aot
+          else
+            node scripts/prepare-bun-runtime.cjs "${{ matrix.target }}"
+          fi
         shell: bash
       - name: Build standalone binary
         env:
           GROMA_BUILD_TARGET: ${{ matrix.target }}
           GROMA_BUILD_OUTFILE: dist/${{ matrix.binary }}
         run: bun scripts/build.ts
+        shell: bash
+      - name: Check installed scanner capability and compiled assets
+        env:
+          GROMA_TEST_CLI: dist/${{ matrix.binary }}
+        run: |
+          BUN_BE_BUN=1 "./dist/${{ matrix.binary }}" pm --help
+          bun test --timeout 60000 test-bun/compiled-scanner.test.ts
         shell: bash
       - name: Check standalone and npm runtime requirements
         env:

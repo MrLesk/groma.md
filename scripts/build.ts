@@ -10,6 +10,19 @@ const outfile = process.env.GROMA_BUILD_OUTFILE
   ?? path.join('dist', process.platform === 'win32' ? 'groma.exe' : 'groma')
 const target = process.env.GROMA_BUILD_TARGET as Bun.Build.CompileTarget | undefined
 const executablePath = process.env.GROMA_BUILD_EXECUTABLE_PATH
+const aot = process.env.GROMA_BUILD_AOT === '1'
+const trim = process.env.GROMA_BUILD_TRIM === '1'
+if (aot || trim) {
+  const help = Bun.spawnSync([process.execPath, 'build', '--help'])
+  for (const flag of [...(aot ? ['--aot'] : []), ...(trim ? ['--trim'] : [])]) {
+    if (help.exitCode !== 0 || !help.stdout.toString().includes(`${flag} `)) {
+      throw new Error(`The running Bun compiler does not support ${flag}`)
+    }
+  }
+  if (executablePath !== undefined && executablePath !== process.execPath) {
+    throw new Error('Experimental builds must embed the running compiler; omit GROMA_BUILD_EXECUTABLE_PATH')
+  }
+}
 if (target !== undefined && executablePath === undefined) {
   throw new Error('Prepare the target runtime with Node.js: node scripts/prepare-bun-runtime.cjs <target>')
 }
@@ -68,6 +81,9 @@ const compile: Bun.CompileBuildOptions = {
   autoloadTsconfig: false,
   // Runtime scanner imports still need their installed dependencies' exports and main entries.
   autoloadPackageJson: true,
+  ...(aot ? { aot: true, allowCodeFromDisk: true } : {}),
+  // Scanner installation invokes self as Bun; Python's disk-loaded runtime uses node:vm.
+  ...(trim ? { trim: { allow: ['cli', 'node-vm'] } } : {}),
   ...(target === undefined ? {} : { target }),
   ...(target?.startsWith('bun-windows-') === true
     ? {
@@ -89,7 +105,7 @@ try {
     target: 'bun',
     format: 'esm',
     compile,
-    bytecode: true,
+    bytecode: !aot,
     minify: true,
     sourcemap: 'linked',
   })
