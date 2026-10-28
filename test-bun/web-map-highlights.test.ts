@@ -1,11 +1,12 @@
 import { expect, test } from 'bun:test'
 import path from 'node:path'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
+import { withFixture } from './helpers.ts'
 import { createMapHighlights } from '../src/viewers/web/iso/highlights.ts'
 import { noSelection, primarySelection, selectArchitecture, selectTask } from '../src/viewers/web/selection.ts'
 
 async function session(fixture = 'relationship-pairs') {
-  const world = await loadAnnotatedArchitecture(path.resolve(import.meta.dir, `../test/fixtures/${fixture}`))
+  const world = await withFixture(path.resolve(import.meta.dir, `../test/fixtures/${fixture}`), loadAnnotatedArchitecture)
   let selected: readonly string[] = []
   let focused: string | undefined
   let neighbors: ReadonlySet<string> = new Set()
