@@ -97,12 +97,13 @@ test.concurrent('details list children, promoted peers, and files', () => {
 
 })
 
-test.concurrent('selecting a narrative group edits its parent-owned icon by canonical group address', () => {
+test.concurrent('selecting a narrative group edits its own appearance by canonical group address', () => {
   const fixture = world()
   const parent = fixture.elements.find(element => element.id === 'core')!
   parent.representationId = 'core-copy'
   parent.icon = 'groma:application'
-  parent.groupAppearance = { Processing: { icon: 'groma:group' } }
+  parent.color = '#4D82C8'
+  parent.groupAppearance = { Processing: { icon: 'groma:group', color: '#5B9A7C' } }
   const group = {
     key: 'group:core-copy:Processing', name: 'Processing', parent: parent.representationId,
     members: ['layout'], rect: { gx: 0, gy: 0, w: 4, d: 4 },
@@ -111,7 +112,12 @@ test.concurrent('selecting a narrative group edits its parent-owned icon by cano
   expect(inspected.group).toBe(true)
   expect(inspected.id).toBe('core/processing')
   expect(inspected.icon).toBe('groma:group')
+  expect(inspected.color).toBe('#5B9A7C')
   expect(inspected.children.map(child => child.id)).toEqual(['layout'])
+  delete parent.groupAppearance.Processing!.color
+  const cleared = inspectSelection(group.key, fixture, [group])!
+  expect(cleared.color).toBeUndefined()
+  expect(cleared.icon).toBe('groma:group')
   delete parent.groupAppearance.Processing
   expect(inspectSelection(group.key, fixture, [group])!.icon).toBeUndefined()
 })

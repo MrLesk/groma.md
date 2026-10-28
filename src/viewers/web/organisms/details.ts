@@ -47,6 +47,7 @@ export interface Inspected {
   title: string
   description: string
   icon?: string
+  color?: string
   /** Narrative groups edit their parent's appearance metadata, not a C4 element. */
   group?: true
   kindLabel: string
@@ -154,6 +155,7 @@ export function inspectDetails(
     title: element.title,
     description: element.description ?? '',
     icon: element.icon,
+    color: element.color,
     kindLabel: kindLabel(element.kind, element.external),
     origin: element.origin,
     overview: element.overview,
@@ -187,7 +189,8 @@ function inspectNarrativeGroup(zone: Zone, world: ArchitectureGraph): Inspected 
   const members = new Set(zone.members)
   return {
     id: groupAddress(parent.id, zone.name), title: zone.name, description: '', kindLabel: 'Group', group: true,
-    icon: parent.groupAppearance?.[zone.name]?.icon, origin: 'observed', overview: '',
+    icon: parent.groupAppearance?.[zone.name]?.icon, color: parent.groupAppearance?.[zone.name]?.color,
+    origin: 'observed', overview: '',
     children: world.elements.filter(element => members.has(element.representationId)).map(element => ({
       id: element.representationId, title: element.title, kind: element.kind, external: element.external,
     })),
@@ -400,6 +403,7 @@ function elementFields(inspected: Inspected, options: PaneWrites): EditField[] {
   const fields: EditField[] = [
     { name: 'title', label: 'Title', value: inspected.title, required: true },
     { name: 'icon', label: 'Icon', value: inspected.icon ?? '', kind: 'icon' },
+    { name: 'color', label: 'Color', value: inspected.color ?? '', kind: 'color' },
   ]
   if (inspected.group) return fields
   fields.push(

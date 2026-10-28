@@ -1,5 +1,6 @@
 import { changedEdit, type EditValues } from '../../../authoring-conflict.ts'
 import { iconPicker, iconPickerCss } from './icon-picker.ts'
+import { colorPicker, colorPickerCss } from './color-picker.ts'
 
 export const editableCss = `
   #details .edit-entry, #details .edit-form button { border: 1px solid var(--hairline); border-radius: 6px;
@@ -20,6 +21,7 @@ export const editableCss = `
   #details .edit-form .error { margin: 0; color: var(--highlight-text); }
   #details .edit-form .error:empty { display: none; }
   ${iconPickerCss}
+  ${colorPickerCss}
 `
 
 export function message(cause: unknown): string {
@@ -30,7 +32,7 @@ export interface EditField {
   name: string
   label: string
   value: string
-  kind?: 'icon'
+  kind?: 'icon' | 'color'
   multiline?: boolean
   required?: boolean
   options?: readonly { id: string; title: string }[]
@@ -102,6 +104,7 @@ export function editButton(
 
 function editField(field: EditField): HTMLElement {
   if (field.kind === 'icon') return iconPicker(field.name, field.label, field.value)
+  if (field.kind === 'color') return colorPicker(field.name, field.label, field.value)
   const label = document.createElement('label')
   label.textContent = field.label
   const input = field.options !== undefined ? document.createElement('select')

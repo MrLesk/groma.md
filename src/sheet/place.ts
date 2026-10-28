@@ -48,7 +48,7 @@ interface Node {
   paint:
     | { kind: 'building'; element: AnnotatedElement; heightUnits: number; shape: Shape; floors: BuildingFloor[]; lines: string[] }
     | { kind: 'slab'; element: AnnotatedElement }
-    | { kind: 'zone'; name: string; icon?: string; members: string[]; unidentifiedContainer?: true }
+    | { kind: 'zone'; name: string; icon?: string; color?: string; members: string[]; unidentifiedContainer?: true }
     | { kind: 'island'; islandKind: IslandKind; name: string; element: AnnotatedElement | null }
 }
 
@@ -66,6 +66,7 @@ function item(element: AnnotatedElement): SheetItem {
     id: element.id,
     title: element.title,
     icon: element.icon,
+    color: element.color,
     origin: element.origin,
   }
 }
@@ -242,7 +243,7 @@ function withZones(
   }
   return [...buckets].map(([key, { group, nodes }]) => group === undefined
     ? nodes[0]!
-    : packed(key, nodes, { kind: 'zone', name: group, icon: parent.groupAppearance?.[group]?.icon, members: nodes.map(member => member.key) }, relationships))
+    : packed(key, nodes, { kind: 'zone', name: group, ...parent.groupAppearance?.[group], members: nodes.map(member => member.key) }, relationships))
 }
 
 export function placeWorld(world: ArchitectureGraph): Placement {
@@ -369,7 +370,7 @@ function collect(islands: readonly Node[], origins: readonly CellRect[]): Placem
     } else if (paint.kind === 'slab') {
       placement.slabs.push({ ...item(paint.element), island: islandKey, rect })
     } else if (paint.kind === 'zone') {
-      placement.zones.push({ key: node.key, name: paint.name, icon: paint.icon, parent: surface, members: paint.members, rect,
+      placement.zones.push({ key: node.key, name: paint.name, icon: paint.icon, color: paint.color, parent: surface, members: paint.members, rect,
         unidentifiedContainer: paint.unidentifiedContainer,
       })
     } else {

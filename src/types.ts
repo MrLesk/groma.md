@@ -89,6 +89,7 @@ export type {
 /** Presentation for an authored group, stored by its C4 parent. */
 export interface GroupAppearance {
   icon?: string
+  color?: string
 }
 
 export interface ArchitectureElement {
@@ -101,6 +102,7 @@ export interface ArchitectureElement {
   external: boolean
   group?: string
   icon?: string
+  color?: string
   groupAppearance?: Record<string, GroupAppearance>
   technology?: string
   code: CodeReference[]
@@ -149,6 +151,7 @@ export interface AnnotatedElement {
   external: boolean
   group?: string
   icon?: string
+  color?: string
   groupAppearance?: Record<string, GroupAppearance>
   technology?: string
   code: CodeReference[]

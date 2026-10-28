@@ -30,6 +30,8 @@ groma:
     - scanner: typescript
       file: src/viewers/web/iso/painting/icons.ts
       symbol: architectureIconSvg
+    - scanner: typescript
+      file: src/viewers/web/iso/painting/appearance.ts
   group: Map drawing
 description: Paints the browser map as SVG buildings, routes and labels
 ---

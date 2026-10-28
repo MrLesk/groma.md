@@ -1,3 +1,4 @@
+import { isArchitectureColor } from './architecture-color.ts'
 import { architectureIcon } from './architecture-icons.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
@@ -64,25 +65,35 @@ export async function addGroup(repositoryRoot: string, input: { name: string; me
   return writeGroup(repositoryRoot, elements, members, name, groupAddress(members[0]!.parentId!, name))
 }
 
-/** Edits the shared name and the appearance held by the group's C4 parent. */
-export async function editGroup(
-  repositoryRoot: string, input: { address: string; title?: string; icon?: string; original?: EditValues },
-): Promise<StructuralResult> {
-  if (input.title === undefined && input.icon === undefined) throw new Error('--title or --icon is required')
+function editedAppearance(current: GroupAppearance | undefined, input: GroupAppearance): GroupAppearance {
   if (input.icon !== undefined && input.icon !== '' && architectureIcon(input.icon) === undefined) {
     throw new Error('icon must name an embedded architecture icon')
   }
+  if (input.color !== undefined && input.color !== '' && !isArchitectureColor(input.color)) {
+    throw new Error('color must be an opaque hex color (#RRGGBB)')
+  }
+  const entry = { ...current }
+  for (const field of ['icon', 'color'] as const) {
+    if (input[field] === '') delete entry[field]
+    else if (input[field] !== undefined) entry[field] = input[field]
+  }
+  return entry
+}
+
+/** Edits the shared name and the appearance held by the group's C4 parent. */
+export async function editGroup(
+  repositoryRoot: string, input: { address: string; title?: string; original?: EditValues } & GroupAppearance,
+): Promise<StructuralResult> {
+  if (input.title === undefined && input.icon === undefined && input.color === undefined) throw new Error('--title, --icon or --color is required')
   const elements = await loadElements(repositoryRoot)
   const members = membersOf(elements, input.address)
   const name = members[0]!.group!
   const title = input.title === undefined ? name : requireText(input.title, '--title').trim()
   const parent = elements.find(element => element.id === members[0]!.parentId)!
   const appearance = { ...parent.groupAppearance }
-  checkEdit(input.original, { title: name, icon: appearance[name]?.icon }, { title, icon: input.icon })
-  const entry = { ...(appearance[title] ?? appearance[name]) }
+  checkEdit(input.original, { title: name, ...appearance[name] }, { title, icon: input.icon, color: input.color })
+  const entry = editedAppearance(appearance[title] ?? appearance[name], input)
   if (title !== name) delete appearance[name]
-  if (input.icon === '') delete entry.icon
-  else if (input.icon !== undefined) entry.icon = input.icon
   if (Object.keys(entry).length === 0) delete appearance[title]
   else appearance[title] = entry
   return writeGroup(repositoryRoot, elements, members, title, groupAddress(parent.id, title), appearance)

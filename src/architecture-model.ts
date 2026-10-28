@@ -1,3 +1,4 @@
+import { isArchitectureColor } from './architecture-color.ts'
 import { architectureIcon } from './architecture-icons.ts'
 import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
@@ -57,7 +58,7 @@ function invalidElement(sourceFilename: string, message: string): never {
 
 function validateGromaFields(groma: Record<string, unknown>, sourceFilename: string): void {
   const unknownFields = Object.keys(groma).filter(field => {
-    return !['id', 'parent', 'group', 'technology', 'code', 'draft', 'icon', 'groupAppearance'].includes(field)
+    return !['id', 'parent', 'group', 'technology', 'code', 'draft', 'icon', 'color', 'groupAppearance'].includes(field)
   })
   if (unknownFields.length > 0) {
     invalidElement(sourceFilename, `unsupported groma field(s): ${unknownFields.join(', ')}`)
@@ -90,6 +91,12 @@ function iconOf(value: unknown, sourceFilename: string): string | undefined {
   return value as string
 }
 
+function colorOf(value: unknown, sourceFilename: string): string | undefined {
+  if (value === undefined) return undefined
+  if (!isArchitectureColor(value)) invalidElement(sourceFilename, 'color must be an opaque hex color (#RRGGBB)')
+  return value
+}
+
 function groupAppearanceOf(value: unknown, sourceFilename: string): Record<string, GroupAppearance> | undefined {
   if (value === undefined) return undefined
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -100,11 +107,12 @@ function groupAppearanceOf(value: unknown, sourceFilename: string): Record<strin
       invalidElement(sourceFilename, 'groupAppearance requires named group mappings')
     }
     const fields = appearance as Record<string, unknown>
-    if (Object.keys(fields).some(field => field !== 'icon')) {
-      invalidElement(sourceFilename, 'groupAppearance supports only icon')
+    if (Object.keys(fields).some(field => field !== 'icon' && field !== 'color')) {
+      invalidElement(sourceFilename, 'groupAppearance supports only icon and color')
     }
     const icon = iconOf(fields.icon, sourceFilename)
-    return [name, icon === undefined ? {} : { icon }]
+    const color = colorOf(fields.color, sourceFilename)
+    return [name, { ...(icon === undefined ? {} : { icon }), ...(color === undefined ? {} : { color }) }]
   })
   return Object.fromEntries(entries)
 }
@@ -168,6 +176,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
   const technology = optionalText(groma.technology, 'technology', sourceFilename)
   const draft = draftOf(groma, sourceFilename)
   const icon = iconOf(groma.icon, sourceFilename)
+  const color = colorOf(groma.color, sourceFilename)
   const groupAppearance = groupAppearanceOf(groma.groupAppearance, sourceFilename)
 
   return {
@@ -182,6 +191,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     external,
     ...(group === undefined ? {} : { group }),
     ...(icon === undefined ? {} : { icon }),
+    ...(color === undefined ? {} : { color }),
     ...(groupAppearance === undefined ? {} : { groupAppearance }),
     ...(technology === undefined ? {} : { technology }),
     code: codeReferencesOf(groma.code, kind, message => {

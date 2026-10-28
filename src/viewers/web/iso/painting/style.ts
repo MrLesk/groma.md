@@ -80,9 +80,13 @@ function stroke(level: Level, palette: Palette | undefined, zoom: number): strin
 }
 
 function surfaceColours(kind: string, depth: number, palette?: Palette): string {
-  return `#map .${kind} .ground, #map .${kind} .top { fill: ${paintTint(tintAt(depth), palette)}; }
-    #map .${kind} .right { fill: ${paintTint(tintAt(depth + SIDE.right), palette)}; }
-    #map .${kind} .left { fill: ${paintTint(tintAt(depth + SIDE.left), palette)}; }`
+  const fill = (side: 'top' | 'right' | 'left', offset: number): string => {
+    const base = paintTint(tintAt(depth + offset), palette)
+    return palette === undefined ? `var(--item-${side}, ${base})` : base
+  }
+  return `#map .${kind} .ground, #map .${kind} .top { fill: ${fill('top', 0)}; }
+    #map .${kind} .right { fill: ${fill('right', SIDE.right)}; }
+    #map .${kind} .left { fill: ${fill('left', SIDE.left)}; }`
 }
 
 /** The camera attributes that stop facade and surface patterns below readable size at zoom `k`; the map and its covers set the same ones. */
@@ -96,10 +100,13 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   const ink = palette?.ink ?? 'var(--ink)'
   const muted = palette?.muted ?? 'var(--muted)'
   const line = palette?.line ?? 'var(--map-line)'
+  const outline = palette === undefined ? `var(--item-accent, ${line})` : line
+  const icon = palette === undefined ? `var(--item-accent, ${ink})` : ink
   const grid = palette === undefined ? 'var(--map-grid)' : mixColour(palette.paper, palette.line, 0.12)
   const gridMajor = palette === undefined ? 'var(--map-grid-major)' : mixColour(palette.paper, palette.line, 0.2)
   const width = palette === undefined ? 'stroke-width: calc(var(--stroke) * var(--emphasis, 1) * var(--weight, 1));' : ''
   return `
+  #map .island, #map .slab, #map .building, #map .zone { --item-top: initial; --item-right: initial; --item-left: initial; --item-accent: initial; }
   #map .sheet { pointer-events: none; ${stroke('island', palette, zoom)} }
   #map .calibration-tick, #map .compass, #map .project-plate { ${stroke('building', palette, zoom)} }
   /* zones lie inside slab groups and keep their own weight while the slab is hovered or selected */
@@ -113,7 +120,7 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .project-plate .plate, #map .project-plate .edit-frame,
   #map .project-plate .pencil path, #map .project-plate .pencil polygon,
   #map .ground, #map .face, #map .route-base, #map .route .line {
-    stroke: ${line}; stroke-linejoin: round;
+    stroke: ${outline}; stroke-linejoin: round;
     ${width}
   }
   #map .frame, #map .calibration-tick,
@@ -149,12 +156,15 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   ${surfaceColours('system', depthOf('island') - 0.5, palette)}
   ${surfaceColours('slab', depthOf('slab'), palette)}
   ${surfaceColours('building', depthOf('building'), palette)}
-  #map .actor .face { fill: ${paper}; }
-  #map .zone .ground { fill: url(#hatch-ground); }
+  #map .actor .top { fill: ${palette === undefined ? `var(--item-top, ${paper})` : paper}; }
+  #map .actor .right { fill: ${palette === undefined ? `var(--item-right, ${paper})` : paper}; }
+  #map .actor .left { fill: ${palette === undefined ? `var(--item-left, ${paper})` : paper}; }
+  #map .zone .ground { fill: ${palette === undefined ? 'var(--item-top, transparent)' : 'transparent'}; }
   #map .pattern { stroke: none; pointer-events: none; }
   #map .island.actors .pattern { fill: url(#dots); }
   #map .island.external .pattern { fill: url(#cross); }
   #map .slab .pattern { fill: url(#grain); }
+  #map .zone > .pattern { fill: url(#hatch-ground); }
   #map .building.component .pattern.left { fill: url(#lines-left); }
   #map .building.component .pattern.right { fill: url(#lines-right); }
   #map .building.actor .pattern.left { fill: url(#dots-left); }
@@ -163,8 +173,8 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .building.external .pattern.right { fill: url(#cross-right); }
   #map .camera[data-facades-hidden] .building .pattern { display: none; }
   #map .camera[data-surface-patterns-hidden] .island > .pattern,
-  #map .camera[data-surface-patterns-hidden] .slab > .pattern { display: none; }
-  #map .camera[data-surface-patterns-hidden] .zone > .ground { fill: transparent; }
+  #map .camera[data-surface-patterns-hidden] .slab > .pattern,
+  #map .camera[data-surface-patterns-hidden] .zone > .pattern { display: none; }
   #map .label-hit { fill: transparent; stroke: none; pointer-events: all; }
   #map .label-leader {
     stroke: ${line}; ${width}
@@ -176,7 +186,7 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .ghost.draft .face, #map .ghost.draft .ground,
   #map .route-base.ghost.draft, #map .route.ghost.draft:not(.touched):not(.lit) .line { stroke-dasharray: ${4 / zoom} ${3 / zoom}; }
   #map .text { fill: ${ink}; pointer-events: none; }
-  #map .architecture-icon { color: ${ink}; pointer-events: none; }
+  #map .architecture-icon { color: ${icon}; pointer-events: none; }
   #map .architecture-icon .icon-line { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
   #map .architecture-icon .icon-wash { fill: currentColor; fill-opacity: 0.14; stroke: none; }
   #map .architecture-icon .icon-shade { fill: currentColor; fill-opacity: 0.18; stroke: none; }
