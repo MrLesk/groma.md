@@ -216,6 +216,7 @@ authored relationships remain intact.
 - [Select scanners and check project readiness](setup.md)
 - [TypeScript](typescript/index.md)
 - [Python](python/index.md)
+- [R (experimental)](r/index.md)
 - [Ruby / Rails](ruby/index.md)
 - [PHP](php/index.md)
 - [Scala 3](scala/index.md)

@@ -270,6 +270,7 @@ follows; a dash means the language has no such case.
 | Go | Names starting with an upper-case letter | - | Other names | - |
 | Rust | `pub`. Methods in a trait definition take the trait's visibility, and methods in a trait `impl` are `public` | - | `pub(crate)`, `pub(super)`, `pub(in path)` | No `pub`, `pub(self)` |
 | Python | Other names, including `__init__` and other `__dunder__` names | Members named `_name` | - | Members named `__name`; top-level names starting with `_` |
+| R | Top-level source bindings; package export visibility is unverified | - | - | - |
 | Ruby | Class/module methods by default; `public`; singleton methods | `protected` | - | `private`; instance `initialize`; top-level methods |
 | PHP | `public`; members without a modifier; top-level functions and types | `protected` | - | `private` |
 | Swift | `open`, `public` | - | `package`, `internal`; no modifier elsewhere | `fileprivate`, `private` |
@@ -282,6 +283,10 @@ declaration's access when it states none of its own. A Kotlin override without a
 access modifier inherits access from its base declaration. When selected source
 cannot establish that access, the Kotlin scanner omits only that override member
 from the outline; its file, symbols and operation evidence remain available.
+
+The first R scanner reports syntax-level bindings and does not inspect
+`NAMESPACE`. Its `public` value does not establish that a package exports the
+function through `::`; package export visibility remains unverified.
 
 ## Source file listing
 
