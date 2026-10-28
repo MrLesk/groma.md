@@ -61,6 +61,10 @@ lint findings identical to a same-compiler JIT control and an exported PNG; a ze
 because failed scanners can preserve old data. Its artifacts are experimental.
 The Linux x64 runner also renders the live map in Chromium using pinned
 Playwright CLI 1.62.1 and retains screenshots beside the binaries.
+The native web gate also uses published backlog.md@1.55.3 from a temporary npm
+prefix: a real task must appear in Groma, then a CLI edit must reach its live
+work-source snapshot. The native platform binary is exposed on PATH; no Backlog
+release is required for this integration check. Cross-platform results are pending.
 The workflow does not publish packages or releases. It runs when its build or
 qualification files change in a pull request, or through manual dispatch.
 

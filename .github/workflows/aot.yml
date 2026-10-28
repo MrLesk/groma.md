@@ -126,6 +126,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile --cafile="$SSL_CERT_FILE"
         shell: bash
+      - name: Install published Backlog for native work-source qualification
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/groma-backlog" --ignore-scripts --no-audit --no-fund backlog.md@1.55.3
+          node - "$RUNNER_TEMP/groma-backlog" <<'NODE'
+          const fs = require('node:fs'), path = require('node:path');
+          const platform = process.platform === 'win32' ? 'windows' : process.platform;
+          const name = `backlog.md-${platform}-${process.arch}`;
+          const manifest = require.resolve(`${name}/package.json`, { paths: [process.argv[2]] });
+          fs.appendFileSync(process.env.GITHUB_PATH, `${path.dirname(manifest)}\n`);
+          NODE
       - name: Prepare verified stable target runtime
         run: node scripts/prepare-bun-runtime.cjs "${{ matrix.target }}"
         shell: bash
@@ -164,6 +175,7 @@ jobs:
         env:
           GROMA_BUILD_TARGET: ${{ matrix.target }}
           GROMA_BUILD_AOT: '1'
+          GROMA_QUALIFY_BACKLOG: '1'
           GROMA_QUALIFY_BROWSER: ${{ matrix.target == 'bun-linux-x64-baseline' && '1' || '0' }}
         shell: bash
         run: |

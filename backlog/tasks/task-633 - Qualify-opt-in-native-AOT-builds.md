@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-27T23:16:00Z'
-updated_date: '2026-10-28T01:07:00Z'
+updated_date: '2026-10-28T01:14:00Z'
 labels: []
 dependencies: []
 references:
@@ -70,6 +70,8 @@ Use the repository-prescribed tui-test procedure for real native console qualifi
 Prepare release wiring with explicit AOT=0 and TRIM=0 defaults, preserving the existing native matrix, TLS, scanner publication and version flow. Select the verified experimental compiler only for reviewed opt-in flags. Before artifact upload require self pm capability and reuse the compiled scanner regression alongside existing package checks, so the known untrimmed failure cannot become a release candidate. Do not dispatch or publish a release.
 
 Run the exact default stable release artifact checks on all native runners before experimental preparation, so added pre-upload scanner and package gates are validated with stable bytecode too. Visual console review found resize screenshots captured intermediate frames; settle the terminal after navigation/resize and compare against the same-compiler JIT control before treating visual differences as an AOT defect.
+
+Close the remaining native cross-product gap: the user requires Backlog work-source read/watch flows, currently verified only on Linux. Extend the existing compiled web consumer fixture to initialize a real Backlog task, require its initial work snapshot, edit it through the public CLI and require watch refresh. Native CI installs published backlog.md@1.55.3 in a temporary prefix and exposes its native platform binary; this tests Groma AOT with the approved published Backlog contract without requiring a new release. Preserve current platform termination checks and do not infer Windows graceful SIGTERM from forced termination.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -114,4 +116,6 @@ Native run40608004826 on ec302 passes all22 actual installed official scanners, 
 Native run40609596964 on e2e666d passes actual console root/details/container/back/resize keys and Ctrl+C exit0, all22 published scanner installation/code evidence/JIT-control lint/export checks, compiled assets/web/native watch/package gates on all5 hosts, then fails only known untrimmed pm exit70. Regular CI40609597126 is green Linux/macOS/Windows. Downloaded Windows x64 artifact12782676361 verified SHA256ecacde0f3d0394597d1566cf6103b2bb197058051cb5c280aaf65babc6f8965d. Visual root/details review works, but root and resize screenshots capture intermediate map painting; improve harness with wait idle and actual map anchor after resize, and run the identical procedure on a same-compiler bytecode control. This does not yet prove a product regression. Release wiring keeps flags0, pin selection opt-in and adds pm capability/compiled assets gates before upload; native stable default gates added before experimental preparation. Required check after release edits: lint/types/Node pass;Bun905pass63skip28fail/996/144.44s, same environment/baseline. Stable self pm and reused compiled7assertions pass. Functional all-scanner benchmark is185975624bytes/29.83ms/60942KiB vs JIT175139528/52.62/73408;10 after2warmups. Python single clean pair1855.36msJIT vs44578.91msAOT remains significant, identical output; keeping jit did not fix interpretation cost. No publication/default switch.
 
 Stable native gate run40612892327 exposes a workflow-only error before compilation: GITHUB_ENV from runtime preparation is available to the next step, not the current shell. Split preparation from building as the release workflow already does; no compiler or product failure. The default artifact still must pass all capability/assets/package checks on every host. Added a reviewable upstream retention report with the exact standalone result on both tested compiler commits; no public announcement or unvalidated source patch.
+
+Extended existing web gate with a real Backlog task snapshot and CLI edit watch refresh. Local Linux AOT+trim Groma plus patched Backlog AOT+trim pass assets/covers/source watch/Backlog snapshot+edit and SIGTERM0. Native workflow installs published backlog.md@1.55.3 into a temp npm prefix and exposes its native platform binary; no repository dependency or release is changed. Native integration results pending. Final required check running after this added consumer assertion.
 <!-- SECTION:NOTES:END -->

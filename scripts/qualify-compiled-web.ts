@@ -6,6 +6,20 @@ const binary = path.resolve(process.argv[2] ?? 'dist/groma')
 const temporary = await mkdtemp(path.join(os.tmpdir(), 'groma-native-web-'))
 const root = path.join(temporary, 'project')
 
+const backlog = process.env.GROMA_QUALIFY_BACKLOG === '1'
+
+function backlogCommand(args: string[]): void {
+  const result = Bun.spawnSync(['backlog', ...args], { cwd: root, stdout: 'pipe', stderr: 'pipe' })
+  if (result.exitCode !== 0) throw new Error(result.stderr.toString())
+}
+
+async function qualifyBacklog(world: () => Promise<string>): Promise<void> {
+  if (!backlog) return
+  await waitFor(async () => (await world()).includes('Native task before'), 'initial Backlog work snapshot')
+  backlogCommand(['task', 'edit', '1', '--title', 'Native task after'])
+  await waitFor(async () => (await world()).includes('Native task after'), 'Backlog task watch refresh')
+}
+
 /** A consumer gate, outside the domain tests: wait for a real compiled server or watch result. */
 async function waitFor(read: () => Promise<boolean>, label: string): Promise<void> {
   const deadline = performance.now() + 20000
@@ -42,9 +56,13 @@ export default async root => ({
     "import evidence from 'scan-evidence'; export default { id: 'local', scan: evidence }")
   await writeFile(path.join(root, 'package.json'), '{ "name": "sample" }')
   await writeFile(path.join(root, 'probe.local'), 'initial source')
+  if (backlog) {
+    backlogCommand(['init', 'Native integration', '--defaults', '--no-git', '--integration-mode', 'none'])
+    backlogCommand(['task', 'create', 'Native task before', '--modified-file', 'probe.local'])
+  }
   await writeFile(path.join(root, 'groma/config.json'), JSON.stringify({
     scanners: [{ id: 'local', source: './plugin', include: ['*.local'] }],
-    workSources: [], automaticUpdates: false,
+    workSources: backlog ? [{ id: 'backlog', version: '1.55.3' }] : [], automaticUpdates: false,
   }))
 }
 
@@ -100,10 +118,11 @@ async function qualify(): Promise<void> {
     if (!(await world()).includes('probe.local')) throw new Error('Initial scanner result missing')
     await writeFile(path.join(root, 'watched.local'), 'new watched source')
     await waitFor(async () => (await world()).includes('watched.local'), 'source watch refresh')
+    await qualifyBacklog(world)
     child.kill('SIGTERM')
     const exit = await Promise.race([child.exited, Bun.sleep(10000).then(() => { throw new Error('Shutdown timed out') })])
     if (exit !== expectedExit) throw new Error(`Shutdown exited ${exit}; host runtime expects ${expectedExit}`)
-    console.log(`Compiled web: assets, covers, scanner dependency, source watch and termination pass (exit ${exit})`)
+    console.log(`Compiled web: assets, covers, scanner dependency, source watch, Backlog=${backlog} and termination pass (exit ${exit})`)
   } catch (error) {
     child.kill('SIGKILL')
     await child.exited
