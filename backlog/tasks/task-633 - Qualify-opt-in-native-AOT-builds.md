@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-27T23:16:00Z'
-updated_date: '2026-10-28T01:04:00Z'
+updated_date: '2026-10-28T01:07:00Z'
 labels: []
 dependencies: []
 references:
@@ -25,6 +25,7 @@ modified_files:
   - scripts/prepare-tui-test.cjs
   - scripts/qualify-compiled-tui.ts
   - .github/workflows/release.yml
+  - backlog/attachments/task-633/upstream-retention-report.md
 ordinal: 701000
 ---
 
@@ -111,4 +112,6 @@ Console-driver preparation verified locally with the already verified Linux arch
 Native run40608004826 on ec302 passes all22 actual installed official scanners, code evidence, same-compiler JIT lint findings and export on ALL FIVE native targets; each then fails only known untrimmed pm exit70. New console run40608854750 reaches root/details/container/back/resize/screenshots and Ctrl+C wait-exit on Linux ARM and macOS, then fails a harness assertion: tui-test expect exit-code reads shell-command markers, which direct run does not track. Official tui-test0.1.1 source confirms daemon status JSON data.exited is the PTY process exit code. Correct the gate to assert that field equals0; retain actual shutdown check. This is a test-driver assumption correction, not a product exit fix.
 
 Native run40609596964 on e2e666d passes actual console root/details/container/back/resize keys and Ctrl+C exit0, all22 published scanner installation/code evidence/JIT-control lint/export checks, compiled assets/web/native watch/package gates on all5 hosts, then fails only known untrimmed pm exit70. Regular CI40609597126 is green Linux/macOS/Windows. Downloaded Windows x64 artifact12782676361 verified SHA256ecacde0f3d0394597d1566cf6103b2bb197058051cb5c280aaf65babc6f8965d. Visual root/details review works, but root and resize screenshots capture intermediate map painting; improve harness with wait idle and actual map anchor after resize, and run the identical procedure on a same-compiler bytecode control. This does not yet prove a product regression. Release wiring keeps flags0, pin selection opt-in and adds pm capability/compiled assets gates before upload; native stable default gates added before experimental preparation. Required check after release edits: lint/types/Node pass;Bun905pass63skip28fail/996/144.44s, same environment/baseline. Stable self pm and reused compiled7assertions pass. Functional all-scanner benchmark is185975624bytes/29.83ms/60942KiB vs JIT175139528/52.62/73408;10 after2warmups. Python single clean pair1855.36msJIT vs44578.91msAOT remains significant, identical output; keeping jit did not fix interpretation cost. No publication/default switch.
+
+Stable native gate run40612892327 exposes a workflow-only error before compilation: GITHUB_ENV from runtime preparation is available to the next step, not the current shell. Split preparation from building as the release workflow already does; no compiler or product failure. The default artifact still must pass all capability/assets/package checks on every host. Added a reviewable upstream retention report with the exact standalone result on both tested compiler commits; no public announcement or unvalidated source patch.
 <!-- SECTION:NOTES:END -->
