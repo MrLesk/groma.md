@@ -28,7 +28,8 @@ loading installed scanner code and dependencies from disk. No scanner package
 or product feature is removed to make trimming succeed.
 
 Trimmed builds explicitly retain Bun's command line because scanner lookup and
-installation invoke the executable with `BUN_BE_BUN=1`. On the pinned compiler,
+installation invoke the executable with `BUN_BE_BUN=1`. They also retain
+`node:vm`, which the installed Python scanner's Pyodide runtime loads from disk. On the pinned compiler,
 untrimmed AOT drops that capability and cannot install npm scanners. This is an
 open shipping blocker for that mode. The native workflow checks it explicitly;
 an artifact from a failed qualification is diagnostic, not a release candidate.
@@ -48,7 +49,10 @@ guide, export/PNG and packaged-runtime checks, plus live web assets, covers,
 source watching and process termination. POSIX shutdown must exit gracefully;
 Windows forced termination must match a same-compiler JIT control. Windows
 console Ctrl+C and full terminal interaction remain separate qualification gates.
-Its artifacts are experimental.
+The official-scanner gate installs the package versions declared in the checkout
+into temporary consumer projects. It requires actual fixture code evidence,
+lint findings identical to a same-compiler JIT control and an exported PNG; a zero scan exit alone is insufficient
+because failed scanners can preserve old data. Its artifacts are experimental.
 The Linux x64 runner also renders the live map in Chromium using pinned
 Playwright CLI 1.62.1 and retains screenshots beside the binaries.
 The workflow does not publish packages or releases. It runs when its build or

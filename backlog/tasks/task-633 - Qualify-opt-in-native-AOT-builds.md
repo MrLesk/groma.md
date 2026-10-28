@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-27T23:16:00Z'
-updated_date: '2026-10-27T23:47:00Z'
+updated_date: '2026-10-28T00:18:00Z'
 labels: []
 dependencies: []
 references:
@@ -21,6 +21,7 @@ modified_files:
   - scripts/qualify-compiled-web.ts
   - test-bun/compiled-scanner.test.ts
   - backlog/attachments/task-633/aot-package-manager.mjs
+  - scripts/qualify-compiled-scanners.ts
 ordinal: 701000
 ---
 
@@ -55,6 +56,10 @@ Extend native delivery qualification beyond the existing CLI/export regression: 
 Run a real Chromium rendering gate on the Linux x64 hosted runner, where the browser can be downloaded independently of this scratch environment. Use pinned Playwright CLI 1.62.1 without adding a product dependency; wait for the JavaScript-rendered map SVG and retain the screenshot as qualification evidence. Other native runners retain the HTTP/watch/shutdown gate.
 
 Reuse the already-built native artifact in the existing compiled-scanner regression via the same GROMA_TEST_CLI input used by packaging checks. Windows x64 run 40602974891 timed out at 60 seconds after its fifth assertion, while rebuilding inside the test; remove duplicate compilation instead of increasing the timeout or weakening export assertions. Keep the default test path building its own artifact.
+
+Qualify real installed official scanner packages, starting with the Python parser worker. Reproduced AOT+trim scan returning zero with PYTHON_SCAN_FAILED because node:vm was removed; lint rejects it. Retain node-vm explicitly for disk-loaded Python/Pyodide code. Add a consumer qualification script that installs pinned official scanner packages into temp fixtures, requires actual code evidence and lint success, and runs in the native workflow before the known untrimmed package-manager gate. Existing local-scanner regression cannot detect removed APIs only used by real installed runtimes.
+
+The Swift fresh-checkout fixture intentionally contains duplicate functions, so lint exit1 is a valid finding, not scanner failure. Compare native lint exit/stdout/stderr with the same compiler running the source CLI under its JIT, after requiring new source evidence. This retains exact findings and catches removed APIs without treating intentional fixture violations as compiler defects.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -83,4 +88,10 @@ Direct build-script AOT+trim with CLI retention produces 185959304 bytes, passes
 Final required local check for the retained-CLI/reused-artifact implementation: lint/types/Node tests pass; Bun905pass63skip28fail of996, same environment/baseline set. Current native run40604023011 Linux arm64 completes retained-CLI AOT+trim pm capability, compiled7assertions, web/watch/covers/exit0 and packaged7assertions, then intentionally exposes the real untrimmed AOT BUN_BE_BUN failure(exit70). Fair final-source Linux benchmark rebuilt JIT after the docs/build changes: JIT175139528bytes / median52.45ms / peakRSSmedian73390KiB; functional AOT+trim with CLI185959304bytes /33.01ms /61216KiB. Ten measured plain-view runs after two warmups, identical output, no other local test/build load. This replaces the earlier size comparison for functional builds.
 
 Native run40604023011 completed on all five targets. On every target, AOT+trim with CLI retained passes self pm capability, the reused compiled scanner/export regression, live web/assets/covers/source watching, platform termination comparison and packaged-runtime checks. Linux x64 also passes Chromium rendering. Each job then fails exactly at the untrimmed AOT pm capability check with exit70, so the workflow remains correctly red. Windows x64 no longer times out after reusing the built artifact. Overall shipping readiness remains open: independent untrimmed package-manager retention, narrower CLI retention/size, full Windows console/TUI qualification, remaining official scanners, and Backlog native platform/integration work. No release defaults changed; final evidence-only commit does not alter tested product/build code.
+
+Latest regular CI40604023281 passes full checks on Linux/macOS/Windows. Upstream PR45631 has merged (2026-10-27T23:50:42Z). Official bun-pr now downloads000968de8e5a99f0d171868c7d3e714c9700e4af, Buildkite134059, revision1.4.4-canary.1+000968de8, binary SHA256c2c17501f6fe3d93333e55275a755de178d2ac83948ca49bcd965d65dc975115. The exact minimal package-manager reproducer still fails AOT/keep-install with exit70 and passes keep-cli. New actual npm Python0.2.3 installation succeeds on existing retained-CLI artifact, but scan reports removed node:vm, produces no Python evidence and returns zero; lint fails. Earlier 185959304-byte size therefore qualifies JavaScript/npm flows, not all official scanners. Investigate required retention and correct evidence before claiming functional shipping size.
+
+Reproduced Python missing-node:vm defect before retention: new consumer qualification fails because no architecture code evidence points to source fixture files, even though scan exits0. With compile.trim.allow including node-vm, actual npm Python0.2.3 installation, source evidence, lint and PNG export pass (185611ms total under concurrent local checks; not a clean performance benchmark). Native workflow now exercises all22 official scanner package versions declared by the checkout before the known untrimmed pm failure, records independent failures without skipping later scanners, and still fails overall if any scanner fails. Local published JavaScript/PHP/C/Cpp/Ada/MQL5/Mojo/Dart/Java/Go/Rust/Csharp/Angular/React/Vue/Scala consumers already pass installation, actual code evidence, lint and PNG export; remaining runs ongoing. Prior retained-CLI size and five-platform green flows did not qualify Python; no all-scanner shipping claim.
+
+All22 published official scanner consumers now pass locally on Linux AOT+trim after node-vm retention: installation, actual source evidence, lint and PNG export. Swift fixture deliberately contains duplicate functions, so initial lint-zero assertion was incorrect; updated gate compares exact exit/stdout/stderr with a same-compiler source/JIT control and Swift/Cobol/Nasm/TypeScript pass that gate. The other17 plus Python passed original clean-lint gate. Full required local check before the final lint-control correction completed lint/types/Node; Bun905pass63skip28fail/996/149.07s, same missing Java/Swift toolchains and procfs baseline. Final required check is running after the correction. Native official-scanner results pending; no all-platform scanner claim.
 <!-- SECTION:NOTES:END -->
