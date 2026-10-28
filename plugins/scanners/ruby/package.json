@@ -1,0 +1,71 @@
+{
+  "name": "@groma/scanner-ruby",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "description": "Experimental Ruby declarations, code outlines and literal Rails route evidence.",
+  "groma": {
+    "scanner": {
+      "id": "ruby",
+      "entry": "./src/index.ts",
+      "include": [
+        "**/*.rb",
+        "**/*.ru",
+        "**/bin/*",
+        "**/exe/*",
+        "**/Gemfile",
+        "**/*.gemspec"
+      ],
+      "exclude": [
+        "vendor/",
+        "tmp/",
+        "log/",
+        "coverage/",
+        "test/",
+        "spec/",
+        "db/schema.rb",
+        "db/structure.sql"
+      ],
+      "discovery": {
+        "technologies": [
+          "ruby",
+          "rails"
+        ],
+        "rules": [
+          {
+            "type": "file",
+            "files": [
+              "**/*.rb",
+              "**/*.gemspec",
+              "**/Gemfile"
+            ],
+            "technology": "ruby",
+            "kind": "language",
+            "declaration": "Ruby source files"
+          },
+          {
+            "type": "file",
+            "files": [
+              "**/config/routes.rb"
+            ],
+            "technology": "rails",
+            "kind": "framework",
+            "declaration": "Rails routing configuration"
+          }
+        ],
+        "compatibility": {
+          "groma": ">=0.6.6"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@groma/scanner": "workspace:*",
+    "inflection": "3.0.2",
+    "web-tree-sitter": "0.27.1"
+  },
+  "devDependencies": {
+    "tree-sitter-ruby": "0.23.1"
+  }
+}

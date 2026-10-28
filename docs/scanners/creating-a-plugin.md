@@ -53,6 +53,40 @@ depend on installation scripts. Bundle executable package imports into the entry
 before distribution, as the authoring example does. groma.md loads the bundled
 entry and packaged assets; consumers do not build the plugin.
 
+## Validate across frameworks
+
+For every new scanner, try real open source repositories that combine multiple
+frameworks, including a frontend and backend. For example, scan Vue with Rails,
+or React with a Python backend. Use several repositories and framework
+combinations where available so one application's layout does not define the
+scanner's rules.
+
+Qualify the built package alongside the existing scanners for those frameworks,
+enabled together in the same `config.json`:
+
+1. Run readiness, `groma scan` and a repeat scan. Check that every applicable
+   scanner reports meaningful source inventory; a successful command with one
+   side silently skipped does not qualify the combination.
+2. Trace supported interactions from frontend source to backend source. For HTTP
+   evidence, check the caller, method, path, route and local handler against the
+   actual code. Verify both proven relationships and uncertainty where a target
+   cannot be established. Do not require an invented relationship to make a run
+   appear successful.
+3. Check that combined scans retain one owner per physical source file and that
+   source ownership, element IDs and relationships remain stable on rescan.
+   Confirm that application source stays unchanged. Use the same fresh-checkout
+   rules: no application dependencies, builds or execution.
+4. Record repository URLs, exact commits, scanner versions, selection settings,
+   source counts, interaction witnesses, repeat results and unsupported outcomes
+   in the scanner's validation document. When no suitable mixed repository or
+   companion scanner is available, record what was tried and the remaining gap.
+
+Fix reproduced failures in the language, framework or shared contract that owns
+them. Keep regression fixtures generic. Do not add application names, custom URL
+maps, source patches or extra exclusions to manufacture a passing qualification.
+Use only evidence the scanners support; missing cross-framework evidence remains
+an explicit limitation.
+
 ## What a scanner reads
 
 A scanner declares what it scans in its manifest, never in code:
@@ -196,7 +230,11 @@ name the symbol in the spelling that scanner's Code links use: a member
 qualified by its type, or its bare name. Members are `Type.member` in Java, C#,
 and Python, `Type::method` in MQL5, and `Namespace\Type::method` in PHP, beside a top-level
 `Namespace\name`. Dart constructors match `Type.name` or `Type.new` for an unnamed
-constructor; see [Dart outlines](dart/index.md#inputs-and-source-structure). Other
+constructor; see [Dart outlines](dart/index.md#inputs-and-source-structure).
+Ruby members match qualified `Module::Type#method` instance methods and
+`Module::Type.method` singleton methods. A concern's `class_methods` block matches
+`Concern::ClassMethods#method`, the instance method of the module Rails defines
+for including classes, and appears under its declaring concern in the outline. Other
 members and scanners match bare names. A link naming a type
 never marks its members.
 
@@ -232,6 +270,7 @@ follows; a dash means the language has no such case.
 | Go | Names starting with an upper-case letter | - | Other names | - |
 | Rust | `pub`. Methods in a trait definition take the trait's visibility, and methods in a trait `impl` are `public` | - | `pub(crate)`, `pub(super)`, `pub(in path)` | No `pub`, `pub(self)` |
 | Python | Other names, including `__init__` and other `__dunder__` names | Members named `_name` | - | Members named `__name`; top-level names starting with `_` |
+| Ruby | Class/module methods by default; `public`; singleton methods | `protected` | - | `private`; instance `initialize`; top-level methods |
 | PHP | `public`; members without a modifier; top-level functions and types | `protected` | - | `private` |
 | Swift | `open`, `public` | - | `package`, `internal`; no modifier elsewhere | `fileprivate`, `private` |
 

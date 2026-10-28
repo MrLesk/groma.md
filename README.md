@@ -129,6 +129,7 @@ The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](ht
 | [Scala 3](docs/scanners/scala/index.md) | 🧪 Experimental |
 | [Kotlin](docs/scanners/kotlin/index.md) | 🧪 Experimental |
 | [Python](docs/scanners/python/index.md) | ✅ Available |
+| [Ruby / Rails](docs/scanners/ruby/index.md) | 🧪 Experimental (local build) |
 | [Rust](docs/scanners/rust/index.md) | ✅ Available |
 | [PHP](docs/scanners/php/index.md) | ✅ Available |
 | [Swift](docs/scanners/swift/index.md) | ✅ Available |
@@ -164,7 +165,7 @@ Nothing breaks. The architecture stays in your repository as ordinary Markdown i
 
 > ### Which languages does it support?
 
-TypeScript, JavaScript, Angular, React, Vue, C, C++, Ada, Dart, MQL5, Mojo, C#/.NET, Go, Java, Scala 3, Kotlin, Python, Rust, PHP, Swift, COBOL, and NASM assembly, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
+TypeScript, JavaScript, Angular, React, Vue, C, C++, Ada, Dart, MQL5, Mojo, C#/.NET, Go, Java, Scala 3, Kotlin, Python, Ruby / Rails, Rust, PHP, Swift, COBOL, and NASM assembly, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
 
 ## Experimental
 

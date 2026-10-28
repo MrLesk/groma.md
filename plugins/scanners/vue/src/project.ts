@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { proxyCreateProgram } from '@volar/typescript'
-import { createParsedCommandLine, createVueLanguagePlugin, SourceMap, VueVirtualCode, type Language } from '@vue/language-core'
+import { createParsedCommandLine, createParsedCommandLineByJson, createVueLanguagePlugin, SourceMap, VueVirtualCode, type Language } from '@vue/language-core'
 import ts from 'typescript'
 import type { ScanDiagnostic, ScanSourceUnit } from '@groma/scanner'
 import { hasDependency } from '../../typescript-project.ts'
@@ -28,11 +28,11 @@ export function failDiagnostics(diagnostics: readonly ts.Diagnostic[]): void {
 }
 
 /** The `tsconfig.json` among `files` that compiles a package: its own, else the nearest one in its repository ancestors. */
-function projectConfig(root: string, repositoryRoot: string, files: ReadonlySet<string>): string {
+function projectConfig(root: string, repositoryRoot: string, files: ReadonlySet<string>): string | undefined {
   for (let directory = root; ; directory = path.dirname(directory)) {
     const file = path.join(directory, 'tsconfig.json')
     if (files.has(relative(repositoryRoot, file))) return file
-    if (directory === repositoryRoot) throw new Error(`${root}: no TypeScript config in the package or its repository ancestors`)
+    if (directory === repositoryRoot) return undefined
   }
 }
 
@@ -43,6 +43,19 @@ function readConfig(configFile: string) {
   const parsed = ts.parseJsonSourceFileConfigFileContent(ts.readJsonConfigFile(configFile, ts.sys.readFile), ts.sys,
     path.dirname(configFile), {}, configFile, undefined, plugin.typescript!.extraFileExtensions)
   return { configFile, vueOptions: vue.vueOptions, plugin, parsed }
+}
+
+/** An unconfigured Vue package uses only the selected inputs; no project file is written. */
+function inferredConfig(root: string, sources: readonly string[]) {
+  const input = {
+    compilerOptions: { allowJs: true, target: 'ESNext', module: 'ESNext', moduleResolution: 'Bundler', jsx: 'preserve' },
+    files: sources,
+  }
+  const vue = createParsedCommandLineByJson(vueTypeScript, ts.sys, root, input)
+  const plugin = createVueLanguagePlugin<string>(vueTypeScript, vue.options, vue.vueOptions, id => id)
+  const parsed = ts.parseJsonConfigFileContent(input, ts.sys, root, {}, undefined, undefined,
+    plugin.typescript!.extraFileExtensions)
+  return { configFile: path.join(root, 'package.json'), vueOptions: vue.vueOptions, plugin, parsed }
 }
 
 /**
@@ -97,8 +110,10 @@ export class VueProject {
       const local = relative(repositoryRoot, file)
       return (owners.get(local) ?? root) === root && (local.startsWith('../') || files.has(local))
     }
-    const { configFile, vueOptions, plugin, parsed } = sourceConfig(projectConfig(root, repositoryRoot, files),
-      file => file.endsWith('.vue') && selected(file))
+    const declaredConfig = projectConfig(root, repositoryRoot, files)
+    const { configFile, vueOptions, plugin, parsed } = declaredConfig
+      ? sourceConfig(declaredConfig, file => file.endsWith('.vue') && selected(file))
+      : inferredConfig(root, [...assigned])
     this.options = vueOptions
     this.plugin = plugin
     failDiagnostics(parsed.errors.filter(item => item.code !== 5083))
@@ -178,8 +193,16 @@ export class VueProject {
     if (sfc.ir.scriptSetup && (sfc.ir.scriptSetup.attrs.src !== undefined || sfc.ir.script?.attrs.src !== undefined)) {
       throw new Error(`${file}: script setup cannot use src or be combined with an external script block`)
     }
-    const errors = [...sfc.vueSfc?.errors ?? [], ...sfc.ir.template?.errors ?? []]
+    const template = sfc.ir.template
+    const errors = template?.ast ? sfc.vueSfc?.errors ?? []
+      : [...sfc.vueSfc?.errors ?? [], ...template?.errors ?? []]
     if (errors.length) throw new Error(`${file}: ${errors.map(error => typeof error === 'string' ? error : error.message).join('\n')}`)
+    for (const error of template?.errors ?? []) {
+      this.diagnostics.push({ severity: 'warning', code: 'vue-template-codegen', file: relative(this.root, file),
+        message: error.message,
+        ...(error.loc ? { line: this.line(file, template!.startTagEnd + error.loc.start.offset) } : {}),
+      })
+    }
   }
 
   private mapping(file: string) {
@@ -224,6 +247,6 @@ export function vueProject(root: string, repositoryRoot: string, files: readonly
   try {
     return { manifest, project: new VueProject(root, repositoryRoot, sources, owners, readable) }
   } catch (error) {
-    throw new Error(`VUE_SOURCE_INVALID: Check the project tsconfig.json and Vue syntax. ${error}`)
+    throw new Error(`VUE_SOURCE_INVALID: Check the project configuration and Vue syntax. ${error}`)
   }
 }

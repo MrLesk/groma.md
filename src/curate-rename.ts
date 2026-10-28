@@ -15,7 +15,7 @@ import type { ArchitectureElement } from './types.ts'
  * forms the reader accepts, such as a definition in a block quote or list item or an angle-bracketed
  * target with spaces, are not rewritten; requireLoadableResult in curate.ts then refuses the rename.
  */
-const inlineLink = /\]\(\s*<?([^()\s<>]+)>?((?:\s+(?:"[^"]*"|'[^']*'|\([^()]*\)))?)\s*\)/g
+const inlineLink = /\]\(\s*<?((?:[^()\s<>]|\([^()\s<>]*\))+)>?((?:\s+(?:"[^"]*"|'[^']*'|\([^()]*\)))?)\s*\)/g
 const linkDefinition = /^( {0,3}\[(?:\\.|[^\\\]])+\]:[ \t]*(?:\r?\n[ \t]*)?)<?([^\s<>]+)>?/gm
 const codeLiteral = /^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?^ {0,3}\1[ \t]*(?:\n|$)|(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\2(?!`)/gm
 
