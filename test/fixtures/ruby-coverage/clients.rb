@@ -31,6 +31,13 @@ class Client
     Net::HTTP::Delete.new(URI(ENV.fetch("API_URL") + "/items/#{id}"))
   end
 
+  def shadowed_path
+    path = "/items"
+    values.each do |path|
+      Faraday.get(path)
+    end
+  end
+
   def shadowed(connection)
     connection.get("/unproven")
   end

@@ -71,6 +71,19 @@ export function methodBindings(root: Node, method: Node): Bindings {
   return result
 }
 
+/** Block parameters hide outer URL values at the request's actual source location. */
+export function requestBindings(call: Node, bindings: Bindings): Bindings {
+  const scoped = new Map(bindings)
+  let parent = call.parent
+  while (parent && !['method', 'singleton_method'].includes(parent.type)) {
+    if (['block', 'do_block'].includes(parent.type)) {
+      for (const name of parameterNames(parent.childForFieldName('parameters'))) scoped.set(name, [parent])
+    }
+    parent = parent.parent
+  }
+  return scoped
+}
+
 function singletonContext(node: Node): boolean {
   let current: Node | null = node
   let method = false

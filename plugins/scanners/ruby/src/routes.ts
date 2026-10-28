@@ -17,7 +17,9 @@ interface Resource { controller: string; collection: string; member: string }
 interface RoutingScope { prefix: string; namespace: string; resource?: Resource; controller?: string }
 
 const verbs = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options'])
-const unreadableScopes = new Set(['scope', 'constraints', 'controller', 'defaults', 'authenticate', 'authenticated', 'devise_scope'])
+const unreadableScopes = new Set(['scope', 'controller', 'defaults'])
+// These standard wrappers restrict requests but do not prepend a path. Their children remain uncertain.
+const guardedScopes = new Set(['constraints', 'authenticate', 'authenticated', 'devise_scope'])
 const resourceActions = [
   ['GET', '', 'index'], ['GET', '/new', 'new'], ['POST', '', 'create'],
   ['GET', '/:id', 'show'], ['GET', '/:id/edit', 'edit'],
@@ -142,10 +144,18 @@ function scopedRoutes(node: Node, scope: RoutingScope): Route[] {
   if (name === 'namespace') return namespaceRoutes(args, block, scope, node.startIndex)
   if (name === 'mount') return [mountedRoute(node, scope)]
   if (name === 'member' || name === 'collection') return resourceScope(node, scope, name)
-  if (unreadableScopes.has(name)) return [unreadableRoute(name === 'scope' ? literal(args[0]) : undefined, scope, node.startIndex)]
+  if (guardedScopes.has(name)) return guardedRoutes(node, scope)
+  const unreadablePrefix = name === 'scope' ? literal(args[0]) : undefined
+  if (unreadableScopes.has(name)) return [unreadableRoute(unreadablePrefix, scope, node.startIndex)]
   if (name === 'draw' || name === 'concerns' || name === 'match') return [unreadableRoute(undefined, scope, node.startIndex)]
   if (block) return []
   return verbs.has(name) || name === 'root' ? directRoute(name, args, scope, node.startIndex) : []
+}
+
+function guardedRoutes(node: Node, scope: RoutingScope): Route[] {
+  const block = node.childForFieldName('block')
+  if (!block) return [unreadableRoute(undefined, scope, node.startIndex)]
+  return routeCalls(statements(block), scope).map(route => ({ method: '*', path: route.path, position: route.position }))
 }
 
 function resourceScope(node: Node, scope: RoutingScope, name: 'member' | 'collection'): Route[] {
@@ -181,8 +191,21 @@ export function railsRoutes(root: Node): Route[] {
 
 function namespaceRoutes(args: Node[], block: Node | null, scope: RoutingScope, position: number): Route[] {
   const value = literal(args[0])
-  if (args.length !== 1 || !block || !value || !/^[a-z_]\w*$/.test(value)) return [unreadableRoute(undefined, scope, position)]
+  const config = options(args.slice(1))
+  if (!block || !value || !/^[a-z_]\w*$/.test(value) || !config) return [unreadableRoute(undefined, scope, position)]
+  if ([...config.keys()].some(key => key !== 'defaults') || !formatDefault(config.get('defaults'))) {
+    const prefix = config.has('path') ? literal(config.get('path')) : value
+    return [unreadableRoute(prefix, scope, position)]
+  }
   return routeCalls(statements(block), { ...scope, prefix: `${scope.prefix}/${value}`, namespace: `${scope.namespace}${value}/` })
+}
+
+/** A format default changes the response format, not the path without its optional suffix. */
+function formatDefault(node: Node | undefined): boolean {
+  if (!node) return true
+  if (node.type !== 'hash') return false
+  const defaults = options(node.namedChildren)
+  return defaults?.size === 1 && literal(defaults.get('format')) !== undefined
 }
 
 function controllerName(controller: string): string {
@@ -208,6 +231,8 @@ export function resolveRailsRoutes(file: string, routes: Route[], sources: RubyS
 function publicTargets(route: Route, project: string, sources: RubySource[]) {
   const file = path.posix.join(project, 'app/controllers', `${route.controller}_controller.rb`)
   const name = `${controllerName(route.controller!)}#${route.action}`
-  return sources.filter(source => source.file === file).flatMap(source => source.operations.filter(operation =>
-    operation.name === name && source.publicInstanceMethods.includes(operation.id)))
+  return sources.filter(source => source.file === file).flatMap(source => {
+    const targets = source.operations.filter(operation => operation.name === name)
+    return targets.length === 1 && source.publicInstanceMethods.includes(targets[0]!.id) ? targets : []
+  })
 }

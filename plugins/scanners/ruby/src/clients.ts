@@ -1,6 +1,6 @@
 import type { ScanHttpRequest, ScanOperation } from '@groma/scanner'
 import type { Node } from 'web-tree-sitter'
-import { hostBase, methodBindings, requestPath, resolveValue, urlValue, walk, type Bindings, type UrlPart } from './http-values.ts'
+import { hostBase, methodBindings, requestBindings, requestPath, resolveValue, urlValue, walk, type Bindings, type UrlPart } from './http-values.ts'
 import { requiredLiteral } from './projects.ts'
 import { argumentsOf, literal, parameterNames } from './syntax.ts'
 
@@ -86,6 +86,7 @@ export function rubyRequests(root: Node, operations: ScanOperation[]): ScanHttpR
     const required = requiredLiteral(node)
     if (required && !required.relative) imports.add(required.target)
   }, true)
+  if (!['net/http', 'faraday', 'httparty'].some(library => imports.has(library))) return []
   const byPosition = new Map(operations.map(operation => [operation.position, operation.id]))
   const requests: ScanHttpRequest[] = []
   walk(root, node => {
@@ -96,7 +97,7 @@ export function rubyRequests(root: Node, operations: ScanOperation[]): ScanHttpR
     const bindings = methodBindings(root, node)
     walk(body, call => {
       if (call.type !== 'call') return
-      const fact = requestCall(call, operation, imports, bindings)
+      const fact = requestCall(call, operation, imports, requestBindings(call, bindings))
       if (fact) requests.push(fact)
     })
   }, true)

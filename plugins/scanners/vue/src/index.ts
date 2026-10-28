@@ -25,13 +25,14 @@ export async function scanVue(root: string, _settings: ScannerSettings, files: r
 
 /** Each Vue project with its sources among the scanner's files. */
 async function vueProjects(root: string, files: readonly string[]): Promise<{ selected: Map<string, string[]>; owners: Map<string, string> }> {
-  const projects = await frameworkProjects(root, files, 'vue', ['.vue'], { inheritConfig: true })
+  const selectedFiles = [...files].sort()
+  const projects = await frameworkProjects(root, selectedFiles, 'vue', ['.vue'], { inheritConfig: true, optionalConfig: true })
   const selected = new Map(projects.map(project => [project, [] as string[]]))
   const owners = new Map<string, string>()
   // Each source belongs to its nearest selected Vue package, even under an export-only package.json.
   const ordered = projects.map(project => ({ project, directory: relative(root, project) }))
     .sort((left, right) => right.directory.length - left.directory.length)
-  for (const file of files.filter(file => /\.(?:vue|[cm]?[jt]sx?)$/.test(file))) {
+  for (const file of selectedFiles.filter(file => /\.(?:vue|[cm]?[jt]sx?)$/.test(file))) {
     const owner = ordered.find(item => isUnder(file, item.directory))
     if (owner) {
       selected.get(owner.project)!.push(file)
@@ -69,7 +70,7 @@ async function scanVueProject(projectRoot: string, root: string, sources: string
     if (!reported.some(source => source.file === file)) reported.push({ file, symbols: [] })
   }
   return withJavaScriptEntries(root, createScanObservation({
-    scanner: { id: 'vue', technology: 'typescript/vue', engine: '@vue/language-core', engineVersion: '3.3.11' },
+    scanner: { id: 'vue', technology: 'typescript/vue', engine: '@vue/language-core', engineVersion: '3.3.13' },
     roots: [{ id: 'vue-project', kind: 'package', name: manifest.name, file: relative(root, path.join(projectRoot, 'package.json')) }],
     files: reported.map(file => ({ ...file, roots: ['vue-project'] })),
     sourceUnits,
@@ -84,7 +85,7 @@ export default {
   readCodeStructure: readVueOutline,
   /** Each Vue project's sources among the candidates, including its `.vue` files and a Nuxt project's server routes. */
   listSourceFiles: (root, _settings, candidates) => frameworkSourceFiles({ root, files: candidates, dependency: 'vue', projects: ['.vue'],
-    inheritConfig: true, sources: ['.vue', '.ts', '.tsx', '.js', '.jsx', '.html', '.css', '.scss', '.sass', '.less', '.styl'] }),
+    inheritConfig: true, optionalConfig: true, sources: ['.vue', '.ts', '.tsx', '.js', '.jsx', '.html', '.css', '.scss', '.sass', '.less', '.styl'] }),
   checkReadiness: async (root, _settings, files) => {
     const { selected, owners } = await vueProjects(root, files)
     for (const [project, sources] of selected) vueProject(project, root, files, sources, owners)

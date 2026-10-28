@@ -23,10 +23,10 @@ async function packaged(run: (scanner: ScannerPlugin, selected: string[]) => Pro
 test.concurrent('Ruby project roots and explicit entries retain their own local source units', async () => {
   await packaged(async (scanner, selected) => {
     const observation = (await scanner.scan(fixture, {}, selected))!
-    const library = observation.roots.find(root => root.file === 'packages/library/Gemfile')!
+    const library = observation.roots.find(root => root.file === 'a/Gemfile')!
     const project = observation.roots.find(root => root.name === 'example-tool')!
     expect(library.parent).toBe(project.id)
-    expect(observation.files.find(file => file.file === 'packages/library/shared.rb')!.roots).toEqual([library.id])
+    expect(observation.files.find(file => file.file === 'a/shared.rb')!.roots).toEqual([library.id])
     const entries = observation.entryPoints!
     const command = entries.find(entry => entry.file === 'exe/inspect')!
     expect(command.declaration).toBe('tool.gemspec')
@@ -36,7 +36,7 @@ test.concurrent('Ruby project roots and explicit entries retain their own local 
     expect(rack.files).toContain('config/application.rb')
     expect(rack.files).toContain('app/controllers/items_controller.rb')
     expect(rack.files).toContain('config/routes.rb')
-    expect(rack.files).not.toContain('packages/library/shared.rb')
+    expect(rack.files).not.toContain('a/shared.rb')
     expect(rack.files).not.toContain('compared.rb')
   })
 }, 60000)
@@ -49,6 +49,8 @@ test.concurrent('Ruby compared method bodies normalize bindings while retaining 
     expect(first.tokens!.length).toBeGreaterThanOrEqual(8)
     expect(first.tokens).toEqual(operation('Calculations#second').tokens)
     expect(first.tokens).not.toEqual(operation('Calculations#different').tokens)
+    expect(operation('Calculations#block_first').tokens).not.toEqual(operation('Calculations#block_second').tokens)
+    expect(operation('Calculations#block_first').tokens).toEqual(operation('Calculations#block_same').tokens)
     expect([first.startLine, first.endLine]).toEqual([2, 5])
     expect(operation('(factory)#convert').tokens!.length).toBeGreaterThanOrEqual(8)
     const constructed = await scanner.readCodeStructure!(fixture, [{ file: 'constructed.rb', symbols: ['transform'] }])

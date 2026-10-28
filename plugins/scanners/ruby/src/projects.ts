@@ -50,7 +50,7 @@ export function rubyProjects(repositoryRoot: string, declarations: ProjectDeclar
   }
   const nearest = (file: string, excluded?: string) => [...roots.keys()]
     .filter(directory => directory !== excluded && (directory === '.' || file.startsWith(`${directory}/`)))
-    .sort((a, b) => b.length - a.length)[0]
+    .sort((a, b) => (b === '.' ? 0 : b.length) - (a === '.' ? 0 : a.length))[0]
   const memberships = new Map<string, string>()
   for (const file of files) {
     const owner = nearest(file) ?? '.'

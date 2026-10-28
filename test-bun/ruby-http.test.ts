@@ -29,6 +29,7 @@ test.concurrent('Ruby HTTP clients preserve request methods, configured paths, s
       path: [{ kind: 'literal', value: 'items' }, { kind: 'dynamic' }] }])
     expect(from('Client#remove')[0]!.method).toBe('DELETE')
     expect(from('Client#shadowed')).toEqual([])
+    expect(from('Client#shadowed_path')[0]!.path).toEqual([{ kind: 'unknown' }])
     expect(from('Outer#unproven')).toEqual([])
     const owners = new Map(observation.files.map(file => [file.file, file.file]))
     const rows = httpRelationships([observation], owners)

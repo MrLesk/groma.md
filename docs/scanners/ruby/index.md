@@ -133,7 +133,8 @@ tokens. Core owns minimum body sizes, similarity and finding presentation.
 Direct declarations in `Rails.application.routes.draw` support literal HTTP
 verbs with `to: 'controller#action'`, the hash-mapping route spelling, `root`,
 plural and singular resources, nested resource blocks, `member`, `collection`
-and literal namespaces. Resource options include `only`, `except`, `controller`
+and literal namespaces, including a literal `defaults: { format: ... }`. The
+format default does not add an optional suffix to the observed path. Resource options include `only`, `except`, `controller`
 and `path`; action filters accept symbols, arrays and `%i[...]`.
 
 Nested plural resources use a singular parent parameter such as `:person_id`.
@@ -163,7 +164,12 @@ The shared HTTP producer decisions are:
 8. **Order:** routes retain registration order. Rails evaluates a resource block
    before its standard routes; those standard routes share a position. Conditional
    routes, mounts, unresolved includes/concerns, unsupported scopes and unknown
-   handlers retain blocker facts. Each blocker names the route file's non-compared
+   handlers retain blocker facts. Rails `constraints` and Devise `authenticate`,
+   `authenticated` and `devise_scope` preserve their child paths as uncertain
+   routes. These request guards do not turn an unrelated engine mount into a
+   blocker at the application root. Unsupported namespace options retain the
+   known namespace path, or a literal path override; an unreadable override
+   remains unknown. Each blocker names the route file's non-compared
    `(module)` operation. Core cannot derive a relationship through an earlier
    blocker or to the blocker itself.
 
