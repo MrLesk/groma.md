@@ -57,7 +57,7 @@ function isStructural(input: EditArchitectureInput): boolean {
 
 /** The project record: its title, description and overview, merged into the current profile. */
 async function editProject(repositoryRoot: string, input: EditArchitectureInput): Promise<string> {
-  if (isStructural(input) || input.draft !== undefined || input.technology !== undefined) {
+  if (isStructural(input) || input.draft !== undefined || input.technology !== undefined || input.icon !== undefined) {
     throw new Error('only --title, --description and --overview are valid on the project')
   }
   const overview = input.overview
@@ -81,7 +81,7 @@ async function editDraftRecord(
   record: DraftRecord,
   input: EditArchitectureInput,
 ): Promise<string> {
-  if (input.description !== undefined || input.technology !== undefined || input.draft !== undefined || isStructural(input)) {
+  if (input.description !== undefined || input.technology !== undefined || input.draft !== undefined || input.icon !== undefined || isStructural(input)) {
     throw new Error('only --title and --overview are valid on a draft record')
   }
   const overview = input.overview
@@ -111,12 +111,12 @@ function editAddressed(repositoryRoot: string, input: EditArchitectureInput): Pr
   if (input.relation === undefined && isGroupAddress(input.id)) {
     if (input.relation !== undefined || input.overview !== undefined || input.description !== undefined
       || input.technology !== undefined || input.draft !== undefined || isStructural(input)) {
-      throw new Error('only --title is valid on a group')
+      throw new Error('only --title and --icon are valid on a group')
     }
-    return editGroup(repositoryRoot, { address: input.id, title: input.title, original: input.original })
+    return editGroup(repositoryRoot, { address: input.id, title: input.title, icon: input.icon, original: input.original })
   }
   if (input.relation !== undefined) {
-    if (input.title !== undefined || input.overview !== undefined || input.draft !== undefined || isStructural(input)) {
+    if (input.title !== undefined || input.overview !== undefined || input.draft !== undefined || input.icon !== undefined || isStructural(input)) {
       throw new Error('only --description and --technology are valid on a relation')
     }
     return editRelation(repositoryRoot, {
@@ -138,6 +138,7 @@ export async function editArchitecture(
   const flow = records.flows.find(document => requireGromaMapping(document.frontmatter, document.sourceFilename).id === input.id)
   if (flow !== undefined) {
     if (input.newId !== undefined) throw new Error('--id renames systems, containers, and components')
+    if (input.icon !== undefined) throw new Error('--icon is only valid on architecture elements and groups')
     checkEdit(input.original, resolveFlows([flow], model)[0]!, input)
     return editFlow(repositoryRoot, records, flow, input)
   }
@@ -150,8 +151,8 @@ export async function editArchitecture(
   }
 
   checkEdit(input.original, { ...element, parent: element.parentId ?? '' }, input)
-  const hasMeaning = [input.title, input.overview, input.description, input.technology, input.draft].some(value => value !== undefined)
-  if (!hasMeaning && !isStructural(input)) throw new Error('--title, --overview, --description, --technology or --draft is required')
+  const hasMeaning = [input.title, input.overview, input.description, input.technology, input.draft, input.icon].some(value => value !== undefined)
+  if (!hasMeaning && !isStructural(input)) throw new Error('--title, --overview, --description, --technology, --draft or --icon is required')
   const source = hasMeaning ? await elementMeaning(repositoryRoot, records, element, input) : undefined
 
   if (isStructural(input)) {
@@ -159,6 +160,7 @@ export async function editArchitecture(
       id: input.id,
       title: input.title,
       technology: input.technology,
+      icon: input.icon,
       draft: input.draft,
       overview: input.overview,
       description: input.description,

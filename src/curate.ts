@@ -17,6 +17,7 @@ import {
   removeDocument,
   withGromaCode,
   withGromaField,
+  withGroupAppearance,
   withMeaning,
   writeDocument,
 } from './markdown-emitter.ts'
@@ -303,7 +304,7 @@ function requireCombinableSources(
     if (source.external !== target.external) {
       throw new Error('an external system and an internal system cannot combine')
     }
-    if (source.group !== undefined || source.technology !== undefined) {
+    if (source.group !== undefined || source.technology !== undefined || source.icon !== undefined || source.groupAppearance !== undefined) {
       throw new Error(`cannot combine "${source.id}" because it has authored metadata`)
     }
   }
@@ -350,6 +351,24 @@ async function combineElements(
   }
 }
 
+/** A group stops owning presentation when its last member leaves this parent. */
+async function departingGroup(context: CurationContext, target: ArchitectureElement, input: CurateInput): Promise<Rewrite[]> {
+  if (target.group === undefined || target.parentId === null) return []
+  const nextGroup = input.ungroup ? undefined : input.group?.trim() ?? target.group
+  if (nextGroup === target.group && (input.parent ?? target.parentId) === target.parentId) return []
+  const parent = requireElement(context.byId, target.parentId)
+  if (parent.groupAppearance?.[target.group] === undefined) return []
+  const remains = context.model.elements.some(element => element.id !== target.id
+    && element.parentId === target.parentId && element.group === target.group)
+  if (remains) return []
+  const appearance = { ...parent.groupAppearance }
+  delete appearance[target.group]
+  return [{
+    id: parent.id, sourceFilename: parent.sourceFilename, destinationFilename: parent.sourceFilename,
+    source: withGroupAppearance(await readDocument(context.repositoryRoot, parent.sourceFilename), appearance),
+  }]
+}
+
 /** Structural curation of one element: group, detach files, move, rename, or fold empty scan records into it; each element keeps its own status. */
 export async function curateElement(
   repositoryRoot: string,
@@ -376,6 +395,7 @@ export async function curateElement(
       source: withMeaning(renamed.source, input),
     },
     ...combined.rewrites,
+    ...await departingGroup(context, target, input),
     ...await movedDescendants(context, target, renamed.destination, renamed.id),
   ]
   // Only a rename repoints links; requireLoadableResult refuses a move or combine that would break one.

@@ -165,6 +165,8 @@ groma.md-only fields live together under `groma`:
 | `parent` | for containers and components | ID of the containing system or container. |
 | `draft` | no | ID of the draft record this concept belongs to or that touches it. |
 | `group` | no | Readable name of a hand-authored sibling cluster. |
+| `icon` | no | Embedded architecture icon ID, such as `groma:database`. |
+| `groupAppearance` | no | Group-name mapping of appearance, held by the common C4 parent. |
 | `technology` | no | Free text naming implementation technology, comma-separated. |
 | `code` | no | Scanner-produced source evidence. |
 
@@ -192,6 +194,32 @@ identity. Scanning can also complete a component's unidentified placement: posit
 execution evidence can move it from its system into an application container.
 This preserves its ID, source ownership and authored meaning, and rebases incoming
 and outgoing Markdown links. An existing container assignment is never replaced.
+
+Icons describe presentation, not C4 kind or containment. Any actor, system
+(including an external system), container, or component can carry `groma.icon`.
+IDs name the embedded set; Groma rejects unknown icons when reading or editing.
+Omitting the field uses the normal map presentation. Set it with
+`groma edit <id> --icon groma:database`; clear it with `--icon ''`.
+
+A group has no separate document or C4 identity. Its members keep their
+`groma.group` names, and the common parent stores its appearance once:
+
+```yaml
+groma:
+  id: api
+  parent: shop
+  groupAppearance:
+    Payments:
+      icon: groma:group
+```
+
+`groma edit group api/payments --icon groma:group` edits that entry;
+`--icon ''` clears it. Renaming a group carries its appearance to the new
+name. Removing its final member removes the unused entry. The map resolves
+this metadata for the group label, without changing membership or boundaries.
+Scans preserve authored icons. Ordinary Markdown and OKF readers still see
+all titles, descriptions, and architecture links without interpreting icons.
+See [Architecture icons](icons.md) for the embedded family and visual use.
 
 The architecture model owns IDs. groma.md assigns an ID when it drafts a concept
 or when a scan finds a previously unknown source. A drafted concept keeps its

@@ -23,6 +23,8 @@ groma:
       symbol: sectionHeading
     - scanner: typescript
       file: src/viewers/web/comparison/details.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/icon-picker.ts
   group: Architecture panels
 description: Shows the selected element, its source and its relationships
 ---

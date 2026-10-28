@@ -85,8 +85,7 @@ export function sheetSvg(scene: ProjectedScene): SvgNode[] {
 }
 
 function zoneGroup(zone: ProjectedZone, view: ProjectionView, zoom: number): SvgNode {
-  const attributes: Record<string, string> = zone.zone.unidentifiedContainer
-    ? { 'data-id': zone.zone.key, 'aria-label': zone.zone.name } : {}
+  const attributes = { 'data-id': zone.zone.key, 'aria-label': zone.zone.name }
   return node('g', attributes, 'zone', [
     node('polygon', { points: pointsAttribute(zone.polygon) }, 'ground'),
     surfaceLabel(zone.text, GROUP_FONT, view, 0, zoom),

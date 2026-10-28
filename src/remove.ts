@@ -9,7 +9,7 @@ import {
 } from './markdown-emitter.ts'
 import { removeGroup } from './group.ts'
 import type { StructuralResult } from './curate.ts'
-import { isGroupAddress } from './naming.ts'
+import { groupAddress, isGroupAddress } from './naming.ts'
 import { storedRelationships } from './relationship-markdown.ts'
 import { removeRelation } from './relation.ts'
 import { draftRemovalBlocker, removalBlocker } from './removable.ts'
@@ -44,6 +44,9 @@ export async function removeThing(repositoryRoot: string, { id, relation, member
     })
     if (rows.some(row => row.source !== element.id && !element.code.some(reference => reference.file === row.source))) {
       throw new Error(`cannot remove ${id}: detached source relationships are waiting here; run groma scan first`)
+    }
+    if (element.group !== undefined && element.parentId !== null) {
+      await removeGroup(repositoryRoot, { address: groupAddress(element.parentId, element.group), members: [element.id] })
     }
     await removeDocument(repositoryRoot, element.sourceFilename)
     return id
