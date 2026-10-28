@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-27T23:16:00Z'
-updated_date: '2026-10-28T00:18:00Z'
+updated_date: '2026-10-28T00:27:00Z'
 labels: []
 dependencies: []
 references:
@@ -22,6 +22,8 @@ modified_files:
   - test-bun/compiled-scanner.test.ts
   - backlog/attachments/task-633/aot-package-manager.mjs
   - scripts/qualify-compiled-scanners.ts
+  - scripts/prepare-tui-test.cjs
+  - scripts/qualify-compiled-tui.ts
 ordinal: 701000
 ---
 
@@ -60,6 +62,8 @@ Reuse the already-built native artifact in the existing compiled-scanner regress
 Qualify real installed official scanner packages, starting with the Python parser worker. Reproduced AOT+trim scan returning zero with PYTHON_SCAN_FAILED because node:vm was removed; lint rejects it. Retain node-vm explicitly for disk-loaded Python/Pyodide code. Add a consumer qualification script that installs pinned official scanner packages into temp fixtures, requires actual code evidence and lint success, and runs in the native workflow before the known untrimmed package-manager gate. Existing local-scanner regression cannot detect removed APIs only used by real installed runtimes.
 
 The Swift fresh-checkout fixture intentionally contains duplicate functions, so lint exit1 is a valid finding, not scanner failure. Compare native lint exit/stdout/stderr with the same compiler running the source CLI under its JIT, after requiring new source evidence. This retains exact findings and catches removed APIs without treating intentional fixture violations as compiler defects.
+
+Use the repository-prescribed tui-test procedure for real native console qualification, including Windows Ctrl+C. Pin official tui-test0.1.1 archives by published SHA256 and reuse the existing patched-Node HTTPS downloader. Drive a fresh flows fixture through root/details/container/back navigation, capture screenshots at normal/large sizes, send actual Ctrl+C and assert exit0 separately. Local tui-test cannot start its daemon in this scratch environment, so qualify the harness on native CI; do not label that infrastructure failure a Groma failure.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -94,4 +98,8 @@ Latest regular CI40604023281 passes full checks on Linux/macOS/Windows. Upstream
 Reproduced Python missing-node:vm defect before retention: new consumer qualification fails because no architecture code evidence points to source fixture files, even though scan exits0. With compile.trim.allow including node-vm, actual npm Python0.2.3 installation, source evidence, lint and PNG export pass (185611ms total under concurrent local checks; not a clean performance benchmark). Native workflow now exercises all22 official scanner package versions declared by the checkout before the known untrimmed pm failure, records independent failures without skipping later scanners, and still fails overall if any scanner fails. Local published JavaScript/PHP/C/Cpp/Ada/MQL5/Mojo/Dart/Java/Go/Rust/Csharp/Angular/React/Vue/Scala consumers already pass installation, actual code evidence, lint and PNG export; remaining runs ongoing. Prior retained-CLI size and five-platform green flows did not qualify Python; no all-scanner shipping claim.
 
 All22 published official scanner consumers now pass locally on Linux AOT+trim after node-vm retention: installation, actual source evidence, lint and PNG export. Swift fixture deliberately contains duplicate functions, so initial lint-zero assertion was incorrect; updated gate compares exact exit/stdout/stderr with a same-compiler source/JIT control and Swift/Cobol/Nasm/TypeScript pass that gate. The other17 plus Python passed original clean-lint gate. Full required local check before the final lint-control correction completed lint/types/Node; Bun905pass63skip28fail/996/149.07s, same missing Java/Swift toolchains and procfs baseline. Final required check is running after the correction. Native official-scanner results pending; no all-platform scanner claim.
+
+Final required check after lint-control correction:lint/types/Node pass;Bun905pass63skip28fail/996/135.00s, same environment/baseline. Fair current-source same-compiler plain-view benchmark10 measured after2warmups: JIT175139528bytes/52.62ms/73408KiB vs AOT+trim retaining cli+node-vm185975624bytes/29.83ms/60942KiB; identical output. Clean single paired Python lint run: JIT1855.36ms/270672KiB vs AOT44578.91ms/163852KiB, identical output. This is a significant runtime performance concern, not a median benchmark. Scratch retention probe adding jit increases binary to196002504bytes but still takes43.21s; no production jit-retention change. Native official-scanner run40608004826 Linux ARM passes all22 installed scanner/evidence/lint-control/export checks plus prior web/packaging gates, then fails known untrimmed pm exit70. Other native results pending. New console gate uses verified tui-test0.1.1 and exact key API from agent-context; local daemon cannot accept connections, so native CI is required for real console validation.
+
+Console-driver preparation verified locally with the already verified Linux archive supplied as the HTTPS response: executable extraction and exact0.1.1 revision succeed; tampered archive rejected before extraction. Official Windows ZIP downloaded and SHA256 verified; exact member tui-test.exe confirmed. CJS syntax checks pass. Console driver install reuses existing patched-Node downloader and guards direct execution so requiring its helpers has no download side effect. Native console screenshots/assertions remain pending.
 <!-- SECTION:NOTES:END -->

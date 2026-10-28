@@ -10,6 +10,8 @@ on:
       - 'scripts/prepare-bun-runtime.cjs'
       - 'test-bun/compiled-scanner.test.ts'
       - 'scripts/qualify-compiled-scanners.ts'
+      - 'scripts/qualify-compiled-tui.ts'
+      - 'scripts/prepare-tui-test.cjs'
 
 permissions:
   contents: read
@@ -126,6 +128,9 @@ jobs:
       - name: Prepare verified experimental native compiler
         run: node scripts/prepare-bun-runtime.cjs --aot
         shell: bash
+      - name: Prepare verified native console driver
+        run: node scripts/prepare-tui-test.cjs
+        shell: bash
       - name: Prepare Chromium for rendered map qualification
         if: matrix.target == 'bun-linux-x64-baseline'
         run: bun x playwright@1.62.1 install --with-deps chromium
@@ -146,6 +151,7 @@ jobs:
             GROMA_TEST_CLI="$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE" \
               "$GROMA_BUILD_EXECUTABLE_PATH" test test-bun/compiled-scanner.test.ts
             "$GROMA_BUILD_EXECUTABLE_PATH" scripts/qualify-compiled-web.ts "$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE"
+            "$GROMA_BUILD_EXECUTABLE_PATH" scripts/qualify-compiled-tui.ts "$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE"
             GROMA_TEST_CLI="$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE" \
               "$GROMA_BUILD_EXECUTABLE_PATH" test --timeout 60000 test-bun/npm-packaging.test.ts \
               --test-name-pattern '^packaged Groma'
@@ -157,4 +163,5 @@ jobs:
           path: |
             dist/aot-*/${{ matrix.binary }}
             dist/aot-*/${{ matrix.binary }}.png
+            dist/aot-*/${{ matrix.binary }}.tui-*.svg
           if-no-files-found: error

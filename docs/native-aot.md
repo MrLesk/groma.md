@@ -47,8 +47,12 @@ Linux x64/arm64, macOS arm64 and Windows x64/arm64 runners, preserving the relea
 matrix's x64 baseline targets. Both AOT modes run the compiled local-scanner,
 guide, export/PNG and packaged-runtime checks, plus live web assets, covers,
 source watching and process termination. POSIX shutdown must exit gracefully;
-Windows forced termination must match a same-compiler JIT control. Windows
-console Ctrl+C and full terminal interaction remain separate qualification gates.
+Windows forced termination must match a same-compiler JIT control. The console gate uses the project-prescribed `tui-test` procedure for root,
+details, container/back navigation and resize, retains SVG screenshots and
+requires an actual Ctrl+C exit of zero on each native host. Its driver is
+`tui-test` 0.1.1, verified against official archive SHA-256 digests; Windows ARM
+runs the x64 test driver under emulation while the product remains native ARM64.
+Console results are pending; do not infer them from forced termination.
 The official-scanner gate installs the package versions declared in the checkout
 into temporary consumer projects. It requires actual fixture code evidence,
 lint findings identical to a same-compiler JIT control and an exported PNG; a zero scan exit alone is insufficient
