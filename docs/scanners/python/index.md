@@ -28,8 +28,11 @@ groma scanner check
 groma scan
 ```
 
-Each scan uses its own worker and an in-memory copy of the selected files.
-The worker runs only the scanner's parser code, then releases its interpreter.
+Each scan uses its own subprocess and an in-memory copy of the selected files.
+It runs the scanner's parser code through the current Groma/Bun executable, then
+exits and releases its interpreter. It requires no separate Bun, Node.js or Python
+installation. AOT builds retain JIT support for this subprocess so disk-loaded
+Pyodide WebAssembly compiles normally while the main CLI remains native AOT.
 Runtime assets are loaded from the installed scanner package; scanning does
 not download Python packages or use project environments.
 

@@ -162,7 +162,7 @@
     },
     "plugins/scanners/python": {
       "name": "@groma/scanner-python",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "pyodide": "314.0.7",

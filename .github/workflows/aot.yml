@@ -11,6 +11,7 @@ on:
       - 'scripts/prepare-bun-runtime.cjs'
       - 'test-bun/compiled-scanner.test.ts'
       - 'scripts/qualify-compiled-web.ts'
+      - 'plugins/scanners/python/**'
       - 'scripts/qualify-compiled-scanners.ts'
       - 'scripts/qualify-compiled-tui.ts'
       - 'scripts/prepare-tui-test.cjs'
@@ -152,6 +153,9 @@ jobs:
           bun test --timeout 60000 test-bun/compiled-scanner.test.ts
           bun test --timeout 60000 test-bun/npm-packaging.test.ts --test-name-pattern '^packaged Groma'
         shell: bash
+      - name: Stage the changed Python scanner without publication
+        run: bun plugins/scanners/python/build.ts "$RUNNER_TEMP/groma-python-scanner"
+        shell: bash
       - name: Prepare verified experimental native compiler
         run: node scripts/prepare-bun-runtime.cjs --aot
         shell: bash
@@ -177,6 +181,7 @@ jobs:
           GROMA_BUILD_TARGET: ${{ matrix.target }}
           GROMA_BUILD_AOT: '1'
           GROMA_QUALIFY_BACKLOG: '1'
+          GROMA_QUALIFY_PYTHON_PACKAGE: ${{ runner.temp }}/groma-python-scanner
           GROMA_QUALIFY_BROWSER: ${{ matrix.target == 'bun-linux-x64-baseline' && '1' || '0' }}
         shell: bash
         run: |

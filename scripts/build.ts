@@ -82,8 +82,8 @@ const compile: Bun.CompileBuildOptions = {
   // Runtime scanner imports still need their installed dependencies' exports and main entries.
   autoloadPackageJson: true,
   ...(aot ? { aot: true, allowCodeFromDisk: true } : {}),
-  // Scanner installation invokes self as Bun; Python's disk-loaded runtime uses node:vm.
-  ...(trim ? { trim: { allow: ['cli', 'node-vm'] } } : {}),
+  // Scanner installation and Python's JIT subprocess invoke self as Bun. Pyodide also uses node:vm.
+  ...(trim ? { trim: { allow: ['cli', 'node-vm', 'jit'] } } : {}),
   ...(target === undefined ? {} : { target }),
   ...(target?.startsWith('bun-windows-') === true
     ? {

@@ -63,11 +63,20 @@ retained. Upstream support or a verified compiler build is required before the
 untrimmed product gate can be green. The native workflow intentionally fails
 this capability check rather than publishing a partially functional artifact.
 
-## Separate Python performance concern
+## Python runtime requirement
 
-AOT interprets the installed Python scanner's disk-loaded Pyodide WebAssembly.
-One clean paired lint run produced identical output: JIT 1855.36ms versus AOT
-44578.91ms. Keeping jit explicitly still took43.21s and increased the binary.
-This is separate from package-manager retention and is not presented as the
-same compiler defect. See [native qualification](../../../docs/native-aot.md)
-for the functional binary sizes and limits of these fixture measurements.
+The previous worker-thread path interpreted installed Pyodide WebAssembly:
+one paired lint run took1855.36ms under JIT versus44578.91ms under AOT.
+Keeping jit alone still took43.21s because the thread stayed in AOT runtime mode.
+TASK-634 instead runs the Python parser in a subprocess through the current
+executable's BUN_BE_BUN CLI mode, retaining jit alongside cli and node-vm.
+Ten measured runs after two warmups now give medians1848.28ms JIT and1795.95ms
+AOT on Linux x64, with identical output and only Git on PATH. The main CLI
+remains native AOT; no external runtime is required.
+
+This removes the Python performance reason to defer the trimmed mode, while
+increasing its binary size. It does not resolve the explicit retention problem
+for untrimmed AOT above. Both package management and the Python subprocess need
+the CLI entry path; Python additionally needs the retained JIT implementation.
+See [native qualification](../../../docs/native-aot.md) and TASK-634 for platform
+results and the limits of these fixture measurements.
