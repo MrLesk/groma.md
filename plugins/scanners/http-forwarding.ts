@@ -32,6 +32,14 @@ async function parameterAt(context: UrlContext, fn: FunctionBody, name: Node): P
   return plain && !await context.bindings.reassigned(declaration!) ? position : -1
 }
 
+/** The caller's method reaches fetch only while the wrapper leaves that option unchanged. */
+async function optionsParameterAt(context: UrlContext, fn: FunctionBody, name: Node): Promise<number> {
+  const position = await parameterAt(context, fn, name)
+  if (position < 0) return -1
+  const unchanged = await context.bindings.unchanged(fn.parameters[position]!, ['method'], unwrapped(context.ts, name))
+  return unchanged ? position : -1
+}
+
 /**
  * The one parameter an options object spreads, or undefined when it spreads none. -1 when the options are not
  * forwarded: a second spread, a spread of anything but a parameter, a `method`, or a key the scan cannot read.
@@ -41,7 +49,7 @@ async function spreadPosition(context: UrlContext, fn: FunctionBody, properties:
   let found: number | undefined
   for (const property of properties) {
     if (ts.isSpreadAssignment(property)) {
-      const position = await parameterAt(context, fn, property.expression)
+      const position = await optionsParameterAt(context, fn, property.expression)
       if (position < 0 || found !== undefined) return -1
       found = position
     } else {
@@ -61,14 +69,15 @@ async function forwardedOptions(context: UrlContext, fn: FunctionBody, options: 
   if (options === undefined) return { position: undefined }
   const value = unwrapped(context.ts, options)
   const position = context.ts.isObjectLiteralExpression(value)
-    ? await spreadPosition(context, fn, value.properties) : await parameterAt(context, fn, value)
+    ? await spreadPosition(context, fn, value.properties) : await optionsParameterAt(context, fn, value)
   return position === -1 ? undefined : { position }
 }
 
-/** The calls in a node, itself included, in source order. */
+/** The calls in this body, excluding functions that run only when separately invoked. */
 function callsIn(context: UrlContext, node: Node): Call[] {
   const calls: Call[] = []
   const visit = (child: Node): void => {
+    if (context.ts.isFunctionLike(child)) return
     if (context.ts.isCallExpression(child)) calls.push(child)
     context.ts.forEachChild(child, visit)
   }
@@ -80,7 +89,8 @@ function callsIn(context: UrlContext, node: Node): Call[] {
 async function forwardingOf(
   context: UrlContext, fn: FunctionBody, client: (callee: Node) => Promise<unknown>,
 ): Promise<Forwarding | undefined> {
-  const calls = fn.body === undefined ? [] : callsIn(context, fn.body)
+  if (fn.body === undefined || fn.asteriskToken !== undefined) return undefined
+  const calls = callsIn(context, fn.body)
   const fetches = (await Promise.all(calls.map(async call => await client(call.expression) !== undefined ? call : undefined)))
     .filter(call => call !== undefined)
   const [request, ...others] = fetches

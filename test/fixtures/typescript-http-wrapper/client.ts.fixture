@@ -1,4 +1,4 @@
-import { apiUrl, decorated, defaulted, delayed, forwarding, joined, plain as send, plain, posting, retrying } from './api'
+import { apiUrl, changedOptions, decorated, defaulted, deferred, delayed, forwarding, generator, joined, plain as send, plain, posting, retrying } from './api'
 import * as api from './api'
 
 export const changePlan = () => forwarding(apiUrl('/billing/plan'), { method: 'PUT' })
@@ -17,3 +17,7 @@ export const viaPosting = () => posting('/billing/posting')
 export const viaRetrying = () => retrying('/billing/retrying')
 export const viaDefaulted = () => defaulted('/billing/defaulted')
 export const viaDelayed = () => fetch(delayed('/billing/delayed'))
+
+export const viaChangedOptions = () => changedOptions('/billing/changed', { method: 'PUT' })
+export const unusedCallback = () => { deferred('/billing/deferred') }
+export const unusedIterator = () => { generator('/billing/generator') }

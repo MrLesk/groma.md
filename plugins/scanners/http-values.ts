@@ -51,6 +51,7 @@ export interface UrlCompiler extends IndexCompiler, SyntaxCompiler {
   isVariableDeclaration(node: Node): node is Variable
   isMetaProperty(node: Node): boolean
   isFunctionDeclaration(node: Node): node is FunctionBody
+  isFunctionLike(node: Node | undefined): node is FunctionBody
   isSpreadAssignment(node: Node): node is Wrapped
   isArrowFunction(node: Node): node is FunctionBody
   isFunctionExpression(node: Node): node is FunctionBody
@@ -305,7 +306,7 @@ export async function functionOf(context: UrlContext, name: Node): Promise<Funct
   const { ts } = context
   const declaration = await declarationOf(context, name)
   if (declaration === undefined || declarationFile(declaration)) return undefined
-  if (ts.isFunctionDeclaration(declaration)) return declaration
+  if (ts.isFunctionDeclaration(declaration)) return await context.bindings.reassigned(declaration) ? undefined : declaration
   if (!ts.isVariableDeclaration(declaration) || declaration.initializer === undefined || !await unassigned(context, declaration)) return undefined
   const value = unwrapped(ts, declaration.initializer)
   return ts.isArrowFunction(value) || ts.isFunctionExpression(value) ? value : undefined

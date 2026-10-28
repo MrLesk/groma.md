@@ -28,3 +28,14 @@ export const retrying = async (input: string): Promise<Response> => {
 export const defaulted = (input: string, init: RequestInit = { method: 'POST' }): Promise<Response> => fetch(input, init)
 
 export const delayed = async (path: string): Promise<string> => '/v4' + path
+
+export function changedOptions(input: string, init: RequestInit): Promise<Response> {
+  init.method = 'POST'
+  return fetch(input, { credentials: 'include', ...init })
+}
+
+export const deferred = (input: string) => () => fetch(input)
+
+export function* generator(input: string) {
+  yield fetch(input)
+}
