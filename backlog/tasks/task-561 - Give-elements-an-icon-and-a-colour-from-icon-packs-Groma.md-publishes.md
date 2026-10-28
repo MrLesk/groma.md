@@ -1,28 +1,25 @@
 ---
 id: TASK-561
-title: 'Give elements an icon and a colour, from icon packs Groma.md publishes'
+title: 'Assign icons to components, containers, systems, and groups'
 status: To Do
 assignee: []
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-08 15:22'
+updated_date: '2026-10-28T20:33:00Z'
 labels:
-  - senior
+  - personalization
+milestone: m-6
 dependencies: []
 references:
-  - src-architecture-model
-  - src-authoring
-  - src-cli
-  - organisms-details
-  - map
-  - shell
-  - settings-control
-  - package
-  - modules-settings
-  - scanners-settings
-  - map-sharing
-  - screen
+  - src/architecture-model.ts
+  - src/authoring.ts
+  - src/edit.ts
+  - src/group.ts
+  - src/markdown-emitter.ts
+  - src/viewers/web/iso/painting/buildings.ts
+documentation:
+  - ROADMAP.md
   - docs/component-markdown.md
-  - docs/scanners/publishing.md
+  - docs/product-model.md
 type: feature
 ordinal: 1
 ---
@@ -30,21 +27,19 @@ ordinal: 1
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-People want the map to speak their project's language: a database with a database icon, the payment components in one colour, a legend that explains the colours. Icons come from icon packs: packages that Groma.md publishes for everyone's projects, the way it publishes scanners, and that anyone else can publish too. A project installs a pack and the map draws from it. Theme palettes are a separate thing and stay untouched: an icon and an accent colour draw the same way in every theme.
+An architecture author can give a component, container, system, or group an icon so readers can recognize it across map views. This task supplies authored visual identity; UI theme selection and authored colors are separate tasks.
 
-Build on what exists. Elements carry groma.technology through src/architecture-model.ts, src/markdown-emitter.ts, groma edit and the web details form. Scanner packages declare themselves in their package.json under groma.scanner, are resolved from npm, a local folder or git by src/scanner/modules/package.ts, are recorded in groma/scanners.json and listed in the web settings dialog. Vendor marks are inline SVG in src/viewers/web/atoms/marks.ts. Buildings are painted in src/viewers/web/iso/painting/. Covers are rendered with resvg, which draws inline SVG but has no emoji font.
+The architecture model and existing authoring flow own saved assignments. Groma-specific presentation metadata belongs under groma, while ordinary Markdown readers keep the concept's title, description, body, and links. C4 element boundaries remain unchanged. A group keeps its existing narrative-overlay meaning and gains no parent role or relationships.
 
-TASK-568 replaces scanners.json with one plugin file, `<groma-root>/plugins.json`, with a section per plugin kind, and adds the generic `groma plugin add|list|remove|install|update` commands. Icon packs are one of those kinds: record them in its `icons` section. If that work has not landed yet, add the `icons` section and icon support in those commands yourself, in the shape TASK-568 describes.
+Define the smallest documented group metadata ownership needed for one icon assignment. Use current main as the implementation baseline; the partially failed PoC is research material. Package publishing, an icon marketplace, automatic technology inference, and a color legend are outside this task.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 An element can carry an icon name and an accent colour in its groma fields, set with groma edit <id> --icon <name> --colour <name> and in the web details form, validated like the other fields, documented in docs/component-markdown.md, and preserved by scans.
-- [ ] #2 An icon pack is a package whose package.json declares under groma.icons the SVG icons it ships. groma plugin add <package> installs a pack: it resolves npm, a local folder or git the way scanners are resolved and records the pack in the icons section of <groma-root>/plugins.json. groma plugin list and groma plugin remove manage it, and the web settings dialog shows the installed packs.
-- [ ] #3 An icon name resolves through the installed packs or is an emoji. An unknown name leaves the building without an icon and appears in groma lint as a finding, never as a failed map.
-- [ ] #4 The web map draws the icon and the accent colour on the building and its label the same way in light, dark and blueprint. The web details pane and the terminal details pane show them. The cover export includes the icon and the colour.
-- [ ] #5 A legend on the map lists the accent colours in use with a count each, and hides when no element has one.
-- [ ] #6 One pack lives under plugins/icons/ with at least twelve generic architecture icons (database, queue, cache, browser, mobile app, service, scheduler, file store, mail, identity, gateway, search), built and published the same way as the scanner packages, and docs/ describes how to make and publish a pack.
+- [ ] #1 An author can assign, change, and clear an icon on a component, container, system, and group through a documented Groma authoring action.
+- [ ] #2 The web map shows each assigned icon on its element or group, including when the containing architecture is opened at the relevant level.
+- [ ] #3 Assignments survive reloads and scans and remain the same when the UI theme changes.
+- [ ] #4 The documented storage uses Groma presentation metadata without changing C4 containment. A group's icon belongs to the group and does not overwrite icons on its members.
 <!-- AC:END -->
 
 ## Definition of Done
