@@ -46,7 +46,7 @@
     },
     "plugins/scanners/angular": {
       "name": "@groma/scanner-angular",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "dependencies": {
         "@angular/compiler": "22.2.3",
         "@groma/scanner": "workspace:*",
@@ -181,7 +181,7 @@
     },
     "plugins/scanners/react": {
       "name": "@groma/scanner-react",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "typescript": "6.0.3",
@@ -189,6 +189,18 @@
       "devDependencies": {
         "@types/react": "19.3.0",
         "react": "19.3.1",
+      },
+    },
+    "plugins/scanners/ruby": {
+      "name": "@groma/scanner-ruby",
+      "version": "0.1.0",
+      "dependencies": {
+        "@groma/scanner": "workspace:*",
+        "inflection": "3.0.2",
+        "web-tree-sitter": "0.27.1",
+      },
+      "devDependencies": {
+        "tree-sitter-ruby": "0.23.1",
       },
     },
     "plugins/scanners/rust": {
@@ -222,7 +234,7 @@
     },
     "plugins/scanners/vue": {
       "name": "@groma/scanner-vue",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "@volar/typescript": "2.4.28",
@@ -378,6 +390,8 @@
     "@groma/scanner-r": ["@groma/scanner-r@workspace:plugins/scanners/r"],
 
     "@groma/scanner-react": ["@groma/scanner-react@workspace:plugins/scanners/react"],
+
+    "@groma/scanner-ruby": ["@groma/scanner-ruby@workspace:plugins/scanners/ruby"],
 
     "@groma/scanner-rust": ["@groma/scanner-rust@workspace:plugins/scanners/rust"],
 
@@ -585,6 +599,8 @@
 
     "ignore": ["ignore@7.0.13", "", {}, "sha512-2E8Q6rh+1RRSq/YdaGsNfXsEZy9FVqv6BSSrkmZJP7BnaoPnRfKL+YaofPvP+5rzdk144qSm6i4+hvPgUcbV4Q=="],
 
+    "inflection": ["inflection@3.0.2", "", {}, "sha512-+Bg3+kg+J6JUWn8J6bzFmOWkTQ6L/NHfDRSYU+EVvuKHDxUDHAXgqixHfVlzuBQaPOTac8hn43aPhMNk6rMe3g=="],
+
     "is-extglob": ["is-extglob@2.1.1", "", {}, "sha512-SbKbANkN603Vi4jEZv49LeVJMn4yGwsbzZworEoyEiutsN3nJYdbO36zfhGJ6QEDpOZIFkDtnq5JRxmvl3jsoQ=="],
 
     "is-glob": ["is-glob@4.0.3", "", { "dependencies": { "is-extglob": "^2.1.1" } }, "sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg=="],
@@ -643,6 +659,8 @@
 
     "tree-sitter-cpp": ["tree-sitter-cpp@0.23.4", "", { "dependencies": { "node-addon-api": "^8.2.1", "node-gyp-build": "^4.8.2", "tree-sitter-c": "^0.23.1" }, "peerDependencies": { "tree-sitter": "^0.21.1" }, "optionalPeers": ["tree-sitter"] }, "sha512-qR5qUDyhZ5jJ6V8/umiBxokRbe89bCGmcq/dk94wI4kN86qfdV8k0GHIUEKaqWgcu42wKal5E97LKpLeVW8sKw=="],
 
+    "tree-sitter-ruby": ["tree-sitter-ruby@0.23.1", "", { "dependencies": { "node-addon-api": "^8.2.2", "node-gyp-build": "^4.8.2" }, "peerDependencies": { "tree-sitter": "^0.21.1" }, "optionalPeers": ["tree-sitter"], "hasInstallScript": true }, "sha512-d9/RXgWjR6HanN7wTYhS5bpBQLz1VkH048Vm3CodPGyJVnamXMGb8oEhDypVCBq4QnHui9sTXuJBBP3WtCw5RA=="],
+
     "tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
     "tsx": ["tsx@4.23.15", "", { "dependencies": { "esbuild": "~0.28.0" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "bin": { "tsx": "dist/cli.mjs" } }, "sha512-Yiex1Ovn8z2xPpOWckIiysV1SSyRMY9BkLF++q0yKiDxCqRhosKfMg3janKkiLBwZ5c/YryloKwGZcrEmtwxKw=="],
@@ -684,5 +702,7 @@
     "tree-sitter-cpp/node-addon-api": ["node-addon-api@8.9.2", "", {}, "sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg=="],
 
     "tree-sitter-cpp/tree-sitter-c": ["tree-sitter-c@0.23.6", "", { "dependencies": { "node-addon-api": "^8.3.0", "node-gyp-build": "^4.8.4" }, "peerDependencies": { "tree-sitter": "^0.22.1" }, "optionalPeers": ["tree-sitter"] }, "sha512-0dxXKznVyUA0s6PjNolJNs2yF87O5aL538A/eR6njA5oqX3C3vH4vnx3QdOKwuUdpKEcFdHuiDpRKLLCA/tjvQ=="],
+
+    "tree-sitter-ruby/node-addon-api": ["node-addon-api@8.9.2", "", {}, "sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg=="],
   }
 }

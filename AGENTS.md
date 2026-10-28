@@ -27,11 +27,18 @@ metadata, relationships, and history stay consistent.
 </CRITICAL_INSTRUCTION>
 <!-- BACKLOG.MD GUIDELINES END -->
 
+## Repository facts
+
+Repository files are authoritative for current commands, scripts, configuration, dependencies, and paths. Read the
+relevant files before making claims and report documentation that misstates these facts. Current code does not override
+approved product requirements, contracts, or architecture examples.
+
 ## IMPORTANT: Point of view
 
-Write for a junior developer who knows the language but is new to the project and has no access to this conversation.
-They should be able to find where a change belongs, follow the flow from entry point to result, and identify who owns
-each responsibility. Describe the final system and its reasons, not the approaches tried.
+Design and write for a junior developer who knows the language but is new to the project and has no access to this
+conversation. From the code and project documentation alone, they should be able to find where a change belongs, follow
+the flow from entry point to result, and identify who owns each responsibility. Describe the final system and its
+reasons, not the approaches tried.
 
 ## OKF and C4 are design foundations
 
@@ -141,9 +148,9 @@ publishable packages and still need their own version bumps when their contents 
 
 ## Commit messages
 
-When the user confirms that a task is done, commit that task's files
-immediately. Stage only the files this agent changed for that task.
-Do not stage files other agents changed, even if they sit nearby.
+When a task is complete, commit and push its changes on the branch for that task's own pull request without asking for
+approval. Ask Alex before placing commits on `main`, whether by committing, pushing, or merging. Stage only this task's
+files or hunks; never include another agent's changes.
 
 A task's commit includes the architecture changes its source changes cause.
 Scans (`groma scan`, `groma view`, `groma web` and their watchers) rewrite
@@ -166,19 +173,17 @@ For example: `TASK-28.3 - Supply annotated architecture through Groma core`.
 
 ## Minimum sufficient product
 
-Build the simplest real result that matches the requested outcome and any approved example. Prefer the fewest concepts,
-fields, files, dependencies, and lines of code or documentation that make the requested observable result work.
+Build the smallest complete result that matches the requested outcome and any approved example. Keep the concrete
+information the supported flow needs, such as an exact source file for a useful code reference. Omit concepts, fields,
+files, dependencies, and explanations that the result does not require; do not replace working behavior with placeholders.
 
-Simplicity means minimum sufficient information, not vague placeholders or toy behavior. Keep concrete data the supported
-flow actually needs, such as an exact source file when a code reference must be useful, and omit everything the current
-result does not require. Add another field, layer, abstraction, rule, or explanation only when the requested outcome
-cannot work without it.
+Fit changes into the existing visual and architectural design. Find the owning domain and reuse suitable concepts before
+adding files, layers, or dependencies. Keep related behavior together and make correct use clear through names and
+contracts, without hidden conventions or coordination across unrelated files.
 
-When multiple approaches produce the same result, choose the one that is shortest and easiest to explain. Do not import
-complexity from an earlier Groma implementation, a generic architecture, or a hypothetical future requirement.
-
-Do not reduce line count at the expense of readability. Before adding a file, layer, or dependency, find the domain that
-owns the behavior and reuse suitable existing concepts.
+Choose the approach that is easiest to explain. Remove obsolete code, state, and indirection made unnecessary by the
+task, keeping cleanup within its scope. Do not reduce line count at the expense of readability or import complexity from
+an earlier Groma implementation, a generic architecture, or a hypothetical future requirement.
 
 ## File length
 
@@ -221,7 +226,7 @@ as an approved requirement.
 
 A request to investigate, explain, review, propose, or design does not authorize implementation or file changes. If
 reasonable interpretations would materially change behavior, scope, cost, or complexity, report the difference to the
-user/orchestrator with the evidence, tradeoff, and recommendation. Pause only the affected work while waiting for
+user with the evidence, tradeoff, and recommendation. Pause only the affected work while waiting for
 direction. If you misread the user's direction, explain what you assumed and changed, and resolve the interpretation
 before continuing the affected work.
 
@@ -239,48 +244,42 @@ Every new behavior, output, artifact, concept, abstraction, module, dependency, 
 
 > Which current user action or visible result requires this to exist?
 
-Availability, implementation convenience, completeness, convention, best practice, future flexibility, large scale,
-generic support, production safety, compatibility, and possible edge cases are not sufficient answers.
+Availability, convenience, completeness, convention, production safety, scale, and possible future value do not authorize
+additions.
 
 Implement one approved revision and one supported example at a time. Do not generalize to another repository, language,
 framework, scale, or delivery model until the current result has been used and approved by a human.
-
-A task is not complete merely because its tests pass. Someone unfamiliar with the implementation must be able to explain
-the path from entry point through responsibilities and state to the result, and understand why each visible concept
-exists.
 
 ## Groma delivery boundaries
 
 Groma is moving toward a model that is detached from the filesystem. Treat the current filesystem integration as
 temporary delivery plumbing, not as a foundation to generalize or harden for hypothetical futures.
 
-Do not add the following behaviors outside the approved scope. If the request or acceptance criteria already require
-them, proceed without asking again; compatibility and migrations still require an explicit user request. Otherwise,
-report the proposal to the current user/orchestrator for approval before implementing:
+Apply the product-first scope rules to edge-case handling, fallback, retry, recovery, degraded modes, filesystem and
+security hardening, and future extension points. If approved scope requires them, proceed without asking again;
+compatibility and migrations still require an explicit user request. Tests for unapproved behavior require the same
+approval as the behavior itself. When proposing an extension, state the evidence, smallest change, and cost of leaving
+it unsupported.
 
-- backward compatibility, migrations, or legacy behavior;
-- handling for an edge case not required by an acceptance criterion or a reproduced failure in the supported product
-  flow;
-- fallback, retry, recovery, or degraded-mode behavior;
-- filesystem or security hardening beyond the declared supported assumptions;
-- an abstraction or extension point justified only by possible future needs.
-
-The report must identify the triggering evidence, the authority that makes the work in scope, the smallest proposed
-behavior, and the cost of leaving it unsupported. Tests for unapproved behavior count as implementation and require the
-same approval.
+## Specification and quality review
 
 Review findings may block completion only when they cite an unmet acceptance criterion, an unmet Definition of Done
 item, or a reproducible failure in the declared supported product flow. Otherwise record them as non-blocking
 follow-ups.
 
-The implementing agent performs the specification and quality reviews itself. The specification review compares the
+The agent performs its own specification and quality reviews. The specification review compares the
 result with the task acceptance criteria and Definition of Done. The quality review checks the changed code for
 reproducible defects, unnecessary complexity, unclear ownership, and missing tests in the supported flow. Do not spawn
 separate agents for these reviews.
 
 During the quality review, trace the changed flow from entry point to result as a junior developer new to the project.
-Check whether they can find where the behavior lives and where a similar change belongs, follow data and control flow,
-and understand ownership and correct use from names and contracts without knowing hidden conventions.
+Check whether they can find where a similar change belongs, follow data and control flow, identify each responsibility,
+and understand correct use from names and contracts. Ask what they might misunderstand or accidentally break, and what
+code, state, or indirection can be removed without changing required behavior. Prefer clearer structure over comments
+that explain hidden conventions.
+
+Apply reasonable findings from any review within the approved scope without asking for approval, and rerun affected
+checks. Ask the user only when applying a finding would change the approved scope.
 
 The first specification and quality reviews may inspect the complete change. Any re-review is limited to the previously
 reported findings and regressions caused by their fixes. Newly noticed non-critical improvements are follow-ups.
@@ -292,7 +291,7 @@ evidence, and no authority-backed blocking finding remains.
 
 For substantial domain or architecture changes, or when explicitly requested, run one cold simplicity review after
 implementation and focused checks pass, before specification, quality, and finalization reviews. Small fixes,
-behavior-preserving refactors, and documentation changes use the implementer's own review unless external review is
+behavior-preserving refactors, and documentation changes use the agent's own review unless external review is
 explicitly requested.
 
 Give the reviewer the task, the diff, and the repository without conversation history. The reviewer must briefly explain
@@ -306,16 +305,14 @@ Findings may recommend deletion, consolidation, naming improvements, or clarific
 may not introduce behavior, requirements, edge cases, compatibility, fallback, recovery, hardening, or future
 abstractions.
 
-The implementer applies accepted simplifications and reruns focused checks. There may be at most one targeted re-review,
-limited to the original simplicity findings and regressions caused by their fixes. The implementer's specification and
-quality reviews follow only after this gate passes.
+After applying simplifications, there may be at most one targeted re-review, limited to the original findings and
+regressions caused by their fixes. The agent's specification and quality reviews follow only after this gate passes.
 
 ## Full-context complexity review
 
 For the same substantial changes, or when explicitly requested, run one final review in a separate agent with the full
-conversation context after the implementer's specification and quality reviews. Check whether the result could use a
+conversation context after the agent's own specification and quality reviews. Check whether the result could use a
 simpler approach, whether components are grouped clearly by domain, and whether ownership and supported usage are clear.
-Present material recommendations to the user before changing the architecture beyond the approved scope.
 
 The cold simplicity review and the full-context complexity review are the only reviews assigned to separate agents.
 Do not spawn agents for other reviews unless the user explicitly asks.
@@ -345,7 +342,7 @@ values may be checked when required by a contract; do not freeze the surrounding
 fixture or copy the implementation into the expected result. For example, an owner-selection test must identify the
 correct owner, not just find the heading "Owner".
 
-During the implementer's quality review, check that each new or changed test proves its claimed behavior: would the
+During the quality review, check that each new or changed test proves its claimed behavior: would the
 concrete wrong result fail, and would a harmless wording change or behavior-preserving refactor still pass? Remove or
 improve assertions that fail this review. For bug fixes, verify that the regression test fails before the fix and passes
 after it when practical.

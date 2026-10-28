@@ -3,8 +3,9 @@
 The Vue scanner adds single-file component (SFC) event bindings to groma.md's
 TypeScript scanner evidence. Its bundled compiler tools read local source
 without project dependencies. The scanner uses each selected project's
-`tsconfig.json`, or the nearest one above that package; it does not execute
-application code.
+`tsconfig.json`, or the nearest one above that package. A package without an
+applicable config uses the selected source with the bundled compiler's JavaScript
+and module settings. No config is written and no application code is executed.
 
 ```sh
 bun install --frozen-lockfile --ignore-scripts
@@ -98,7 +99,10 @@ diagnostics and no certain relationship. This revision does not support
 Options API events, dynamic components, dynamic event names, handler
 expressions or modifiers, state stores, or arbitrary event mutation. Nuxt
 server routes and shared HTTP client calls are observed separately. Compiler
-syntax/template errors fail the scan and preserve the previous complete map.
+source parsing errors, or a template without the AST needed for analysis, fail the
+scan and preserve the previous complete map. Template-generation diagnostics with
+a valid parsed AST become `vue-template-codegen` warnings; readable source facts
+are still reported.
 Missing generated TypeScript config bases and missing declared source roots
 produce warnings while available source is scanned. Other invalid configuration
 fails readiness. Missing Vue types do not erase local `defineEmits` evidence.
@@ -246,11 +250,14 @@ TypeScript scanner compares.
 Run groma.md from the repository root. The scanner finds package declarations
 among its files, including nested apps and libraries. Dependencies, dev
 dependencies, peer dependencies and optional dependencies identify candidates.
-A candidate also needs a `tsconfig.json` among its files in the package or an
-ancestor, and Vue source files belonging to that package, outside nested
-Vue projects. Declaration files and inactive fixtures with a `.fixture` suffix
+A candidate also needs Vue source files belonging to that package, outside
+nested Vue projects. A TypeScript config is optional. When present in the package
+or an ancestor, it supplies the compiler settings; a config in an unrelated
+child directory does not configure the package. Declaration files and inactive fixtures with a `.fixture` suffix
 do not qualify. Packages with only framework tooling dependencies are skipped.
-No matching project produces no evidence. Each compiler uses the nearest configuration and local source;
+No matching project produces no evidence. Selected paths are ordered before
+project discovery and compilation so input order does not change evidence.
+Each compiler uses the applicable configuration, or selected-source settings;
 imported source in sibling repository libraries keeps its original source path.
 Readiness checks all selected projects. An invalid selected project fails this scanner's observation; other scanners
 can still update the architecture.

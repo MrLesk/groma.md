@@ -81,6 +81,7 @@ The official producers currently recognize these source forms:
 | Java | `public static void main(String[])`, including varargs | That project's compiler source set |
 | Kotlin | Top-level `fun main` | The selected `.kt` files under the nearest directory with a Maven or Gradle build declaration |
 | Python | Module execution guard, `__main__.py`, or `project.scripts` | Resolved local imports within the declared project |
+| Ruby | File execution guard, literal gemspec executables, or a `config.ru` run declaration | Selected local requires within the declared project; an explicit Rails launch also supplies its standard Ruby application/configuration inputs and declared library autoload inputs |
 | JavaScript, TypeScript, React, Vue, Angular | Source-backed package commands/bins, HTML script entries, Angular CLI and Nx build targets, and readable Bun browser/compiled build entries | Resolved local modules within the declared package; the polyfills and environment replacements a build target names; framework companion files join their source unit |
 | PHP | Source-backed Composer bins and literal PHP script commands | Explicitly included local sources within that Composer package |
 | Dart | A top-level `main` function with a body | Its physical file and explicit selected library parts; no import or framework closure |
@@ -90,7 +91,7 @@ The official producers currently recognize these source forms:
 
 These are declared extraction limits, not separate C4 policies. Dynamic build
 configuration, unresolved launch commands and unobserved members remain unknown.
-All thirteen official scanners emit the same evidence contract, with no C4 kinds,
+These official scanners emit the same evidence contract, with no C4 kinds,
 container IDs, architecture parents or ownership choices.
 
 In OKF, the result remains ordinary typed Markdown concepts and links; the facts

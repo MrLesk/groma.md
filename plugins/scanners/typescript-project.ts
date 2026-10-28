@@ -19,6 +19,7 @@ export function hasDependency(manifest: Record<string, unknown>, dependency: str
 }
 
 function hasProjectConfig(directory: string, configs: Set<string>, options: FrameworkConfigs): boolean {
+  if (options.optionalConfig) return true
   if (options.nestedConfig && [...configs].some(config => directory === '.' || config.startsWith(`${directory}/`))) return true
   for (let current = directory; ; current = path.posix.dirname(current)) {
     if (configs.has(current)) return true
@@ -28,6 +29,8 @@ function hasProjectConfig(directory: string, configs: Set<string>, options: Fram
 
 /** Where a framework package may keep the TypeScript config that compiles it, besides its own directory. */
 export interface FrameworkConfigs {
+  /** The framework can analyze selected sources without a declared TypeScript config. */
+  optionalConfig?: boolean
   /** In a repository ancestor. */
   inheritConfig?: boolean
   /** In project directories below it, as Nx workspaces that declare dependencies once at their root do. */
