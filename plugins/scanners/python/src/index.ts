@@ -1,4 +1,4 @@
-import { Worker } from 'node:worker_threads'
+import { fork } from 'node:child_process'
 import { access } from 'node:fs/promises'
 import { parseScanObservation, type CodeFile, type ScannerPlugin, type SourceReference } from '@groma/scanner'
 
@@ -10,11 +10,23 @@ const isSource = (file: string) => file.endsWith('.py')
 /** Scans the files, or outlines them when references are given. */
 function run(workerData: { root: string; files?: readonly string[]; references?: readonly SourceReference[] }): Promise<string> {
   return new Promise((resolve, reject) => {
-    const thread = new Worker(worker, { workerData })
-    const timeout = setTimeout(() => { void thread.terminate(); reject(new Error('PYTHON_SCAN_FAILED: Source analysis exceeded 120 seconds.')) }, 120000)
-    thread.once('message', (result: string) => { clearTimeout(timeout); void thread.terminate(); resolve(result) })
-    thread.once('error', error => { clearTimeout(timeout); void thread.terminate(); reject(new Error(`PYTHON_SCAN_FAILED: ${error instanceof Error ? error.message : String(error)}`)) })
-    thread.once('exit', code => { clearTimeout(timeout); if (code !== 0) reject(new Error(`PYTHON_SCAN_FAILED: Worker exited with code ${code}.`)) })
+    const child = fork(worker, [], { execArgv: [], env: { ...process.env, BUN_BE_BUN: '1' },
+      stdio: ['ignore', 'inherit', 'pipe', 'ipc'] })
+    let output: string | undefined
+    let stderr = ''
+    const timeout = setTimeout(() => {
+      child.kill('SIGKILL')
+      reject(new Error('PYTHON_SCAN_FAILED: Source analysis exceeded 120 seconds.'))
+    }, 120000)
+    child.stderr!.on('data', (chunk: Buffer) => { stderr += chunk.toString(); process.stderr.write(chunk) })
+    child.once('message', (result: string) => { output = result })
+    child.once('error', error => { clearTimeout(timeout); reject(new Error(`PYTHON_SCAN_FAILED: ${error.message}`)) })
+    child.once('close', code => {
+      clearTimeout(timeout)
+      if (code === 0 && output !== undefined) resolve(output)
+      else reject(new Error(`PYTHON_SCAN_FAILED: ${stderr.trim() || `Worker exited with code ${code}.`}`))
+    })
+    child.send(workerData)
   })
 }
 

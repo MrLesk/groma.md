@@ -66,21 +66,32 @@ for (const id of process.argv.slice(3).length ? process.argv.slice(3) : Object.k
     await run(['git', 'init', '--quiet'], root)
     const manifest = JSON.parse(await readFile(path.join(repository, 'plugins/scanners', id, 'package.json'), 'utf8'))
     const specifier = `${manifest.name}@${manifest.version}`
-    await run([binary, 'plugin', 'add', specifier], root)
+    const stagedPython = id === 'python' ? process.env.GROMA_QUALIFY_PYTHON_PACKAGE : undefined
+    await run([binary, 'plugin', 'add', stagedPython ?? specifier], root)
     await run([binary, 'scan'], root)
     const world = await loadAnnotatedArchitecture(root)
     assert.ok(world.elements.some(element => element.code?.some(code => files.has(code.file))),
       `${id}: no architecture evidence points to any source fixture file`)
     // Some package fixtures intentionally contain duplicate functions. Compare
     // findings with the same compiler running the source CLI under its JIT.
+    const startedControl = performance.now()
     const control = await capture([process.execPath, path.join(repository, 'src/cli.ts'), 'lint'], root)
+    const controlMs = performance.now() - startedControl
     assert.ok(control.code === 0 || control.code === 1, control.stderr)
-    assert.deepEqual(await capture([binary, 'lint'], root), control, `${id}: native lint differs from JIT control`)
+    const startedNative = performance.now()
+    const native = await capture([binary, 'lint'], root)
+    const nativeMs = performance.now() - startedNative
+    assert.deepEqual(native, control, `${id}: native lint differs from JIT control`)
+    // Catch the reproduced ~24x interpreter slowdown, allowing native CI scheduling variance.
+    if (stagedPython) {
+      assert.ok(nativeMs < controlMs * 3 + 1000, `Python lint ${nativeMs}ms versus JIT ${controlMs}ms`)
+      console.log(JSON.stringify({ pythonLintMs: Math.round(nativeMs), jitLintMs: Math.round(controlMs) }))
+    }
     const output = path.join(temporary, 'export')
     await run([binary, 'export', output], root)
     assert.deepEqual((await readFile(path.join(output, 'cover-light.png'))).subarray(0, 8),
       Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
-    console.log(JSON.stringify({ scanner: specifier, sourceEvidence: true, export: true,
+    console.log(JSON.stringify({ scanner: specifier, staged: Boolean(stagedPython), sourceEvidence: true, export: true,
       milliseconds: Math.round(performance.now() - started) }))
   } catch (error) {
     failures.push(new Error(`${id}: ${String(error)}`, { cause: error }))

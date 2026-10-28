@@ -30,7 +30,8 @@ or product feature is removed to make trimming succeed.
 
 Trimmed builds explicitly retain Bun's command line because scanner lookup and
 installation invoke the executable with `BUN_BE_BUN=1`. They also retain
-`node:vm`, which the installed Python scanner's Pyodide runtime loads from disk. On the pinned compiler,
+`node:vm`, which Python/Pyodide loads from disk, and `jit` for Python's
+same-executable subprocess. The main CLI still uses native AOT. On the pinned compiler,
 untrimmed AOT drops that capability and cannot install npm scanners. This is an
 open shipping blocker for that mode. The native workflow checks it explicitly;
 an artifact from a failed qualification is diagnostic, not a release candidate.
@@ -81,12 +82,13 @@ the release job checks self package-manager capability, the compiled scanner
 and asset regression, and the existing npm runtime requirements. It cannot
 publish the known failing untrimmed AOT artifact through these gates.
 
-Performance needs a release decision too. On the same pinned Linux x64 compiler,
-10 plain-view runs after two warmups measured JIT at 175139528 bytes, median
-52.62ms and median peak RSS 73408KiB; functional AOT+trim retaining CLI and
-node:vm measured 185975624 bytes, 29.83ms and 60942KiB, with identical output.
-One clean paired Python lint run measured 1855.36ms under JIT versus 44578.91ms
-under AOT, with identical output. Disk-loaded Pyodide WebAssembly remains
-interpreted under AOT. Explicitly retaining jit did not improve that probe.
-These fixture measurements are not universal performance claims; the Python
-regression needs resolution or an explicit release tradeoff before enabling AOT.
+The Python worker-thread path interprets disk-loaded Pyodide WebAssembly under
+AOT. A clean paired fixture took1855.36ms under JIT versus44578.91ms under AOT,
+with identical output. Scanner0.2.4 instead uses the current executable in
+Bun CLI mode through IPC, allowing its subprocess to compile that WebAssembly.
+The native gate stages this changed scanner without publishing it, compares
+lint findings and times with the same-compiler JIT control, and rejects the
+reproduced gross interpreter slowdown. Native results and current binary
+measurements are recorded in TASK-634; do not use the old smaller artifacts as
+shipping size results. Retaining CLI and JIT code can make the trimmed native
+binary larger than the ordinary bytecode build.

@@ -1,4 +1,3 @@
-import { parentPort, workerData } from 'node:worker_threads'
 import { readFile } from 'node:fs/promises'
 import { writeSync } from 'node:fs'
 import path from 'node:path'
@@ -7,16 +6,20 @@ import type { loadPyodide } from 'pyodide'
 import type { SourceReference } from '@groma/scanner'
 import { workerModules } from './modules.ts'
 
+const request = new Promise<{ root: string; files?: string[]; references?: SourceReference[] }>(resolve => {
+  process.once('message', resolve)
+})
+
 const runtime = fileURLToPath(new URL('../runtime/pyodide.mjs', import.meta.url))
 const { loadPyodide: load }: { loadPyodide: typeof loadPyodide } = await import(runtime)
-// Worker stdio streams have no fd. Write synchronously before the parent terminates the worker.
+// Keep parser diagnostics separate from the result sent through IPC.
 const python = await load({
   indexURL: path.dirname(runtime),
   stdout: line => writeSync(2, `${line}\n`),
   stderr: line => writeSync(2, `${line}\n`),
 })
 /** With references, the worker outlines those files instead of scanning. */
-const { root, files: scanned, references }: { root: string; files?: string[]; references?: SourceReference[] } = workerData
+const { root, files: scanned, references }: { root: string; files?: string[]; references?: SourceReference[] } = await request
 const files = references?.map(reference => reference.file) ?? scanned!
 const directory = `/checkout/${path.basename(root)}`
 python.FS.mkdirTree(directory)
@@ -31,5 +34,5 @@ try {
     python.runPython(await readFile(new URL(`./${module}`, import.meta.url), 'utf8'), { globals })
   }
   const call = references === undefined ? 'scan(files)' : 'outline(references)'
-  parentPort!.postMessage(python.runPython(`json.dumps(${call})`, { globals }))
+  process.send!(python.runPython(`json.dumps(${call})`, { globals }), () => process.disconnect!())
 } finally { globals.destroy() }
