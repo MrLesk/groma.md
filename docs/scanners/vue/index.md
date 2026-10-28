@@ -192,9 +192,10 @@ The [producer decisions](../evidence.md#producer-checklist) for this ecosystem:
    unresolvable value are unknown. The query and fragment are dropped, computed or
    not. A method the scanner cannot read leaves the fact without one, rather than
    claiming `GET`.
-4. **Local helpers.** Not supported: the URL is read at the client call, so a
-   helper that forwards a path parameter reports unknown text, and its callers
-   report nothing. Author those rows.
+4. **Local helpers.** Read as the [TypeScript
+   scanner's](../typescript/index.md#http-endpoints-and-requests) decision 4
+   states. A wrapper around `$fetch` is not read: it reports unknown text, and
+   its callers report nothing. Author those rows.
 5. **Bases.** The [React
    scanner's](../react/index.md#http-endpoints-and-requests) decision 5 holds
    unchanged.

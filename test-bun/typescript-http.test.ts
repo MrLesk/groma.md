@@ -229,6 +229,27 @@ test.concurrent('an assignment to the axios defaults in another file sets the ba
   } finally { await clean() }
 })
 
+test.concurrent('a request through a fetch wrapper and a URL helper is reported at the call', async () => {
+  const { scan, clean } = await scanFixture('typescript-http-wrapper')
+  try {
+    expect(requestsIn(scan, 'client.ts')).toEqual([
+      // The method comes from the caller's options, none being GET, and a method it computes is unknown.
+      'changePlan PUT configured:/billing/plan',
+      'listPlans GET configured:/billing/plans',
+      'loadPlan GET configured:/billing/plans/<dynamic>',
+      'unknownMethod no-method configured:/billing/method',
+      // A helper with more than one statement, or that is async, is a value a call returns. A wrapper that
+      // may state its method, even by a default, or makes two requests, reports nothing at its calls.
+      'viaAlias GET /v2/billing/alias',
+      'viaDecorated GET /<unknown>',
+      'viaDelayed no-method /<unknown>',
+      'viaDirect DELETE configured:/billing/direct',
+      'viaNamespace GET /v2/billing/namespace',
+      'viaPlain GET /v2/billing/plain',
+    ])
+  } finally { await clean() }
+})
+
 /** Each request as `operation method path`, with a configured base and a computed segment marked. */
 function requestsIn(scan: ScanObservation, file: string): string[] {
   const operations = new Map(scan.operations?.map(operation => [operation.id, operation]))

@@ -1,0 +1,23 @@
+import { apiUrl, changedOptions, decorated, defaulted, deferred, delayed, forwarding, generator, joined, plain as send, plain, posting, retrying } from './api'
+import * as api from './api'
+
+export const changePlan = () => forwarding(apiUrl('/billing/plan'), { method: 'PUT' })
+export const listPlans = () => forwarding(apiUrl('/billing/plans'))
+export const loadPlan = (id: string) => forwarding(apiUrl(`/billing/plans/${id}`), { method: 'GET' })
+export const unknownMethod = (method: string) => forwarding(apiUrl('/billing/method'), { method })
+export const viaPlain = () => plain(joined('/billing/plain'))
+export const viaAlias = () => send(joined('/billing/alias'))
+export const viaNamespace = () => api.plain(joined('/billing/namespace'))
+export const viaDirect = () => fetch(apiUrl('/billing/direct'), { method: 'DELETE' })
+
+// A helper that does more than return an expression or returns a Promise, a wrapper that may state its
+// own method, even by a default, and a wrapper with two requests are values the scan does not follow.
+export const viaDecorated = () => forwarding(decorated('/billing/decorated'))
+export const viaPosting = () => posting('/billing/posting')
+export const viaRetrying = () => retrying('/billing/retrying')
+export const viaDefaulted = () => defaulted('/billing/defaulted')
+export const viaDelayed = () => fetch(delayed('/billing/delayed'))
+
+export const viaChangedOptions = () => changedOptions('/billing/changed', { method: 'PUT' })
+export const unusedCallback = () => { deferred('/billing/deferred') }
+export const unusedIterator = () => { generator('/billing/generator') }

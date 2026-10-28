@@ -135,8 +135,22 @@ The [producer decisions](../evidence.md#producer-checklist) for this ecosystem:
 3. **Dynamic or unknown.** `` `/talks/${id}` `` is dynamic;
    `` `/talks/${id}-latest` ``, a path built from a parameter, and an
    unresolvable value are unknown. A query string is dropped, computed or not.
-4. **Local helpers.** Not supported: the URL is read at the client call only, so
-   a helper that forwards a parameter reports unknown text. Author those rows.
+4. **Local helpers.** Two forms are read at the client call while their function
+   binding is never reassigned. A URL helper whose body is one expression, or
+   one `return`, is that expression with the call's arguments for its
+   parameters, so `apiUrl('/talks')` reads the template `apiUrl` returns. An
+   async or generator URL helper, or one with default, rest or destructured
+   parameters or more statements, reports unknown text.
+
+   A wrapper makes exactly one `fetch` request in its own body. Its URL is a
+   parameter with no default that the program never reassigns. Its options are
+   absent, such a parameter, or an object spreading one without a `method`
+   property. The wrapper must leave that parameter's method unchanged. Each
+   call, by name or as a member of an imported module, reports the URL and
+   method supplied by its caller. A generator or a function that only creates
+   a nested callback sends no request when called. A wrapper that changes the
+   method, makes two requests or forwards to another wrapper reports nothing
+   at its callers. Wrappers are read for `fetch` only. Author those rows.
 5. **Bases.** A variable with a literal initializer that the program never
    assigns again, a property of an object literal it holds while nothing in the
    program can change that property, a string enum member such as
@@ -146,10 +160,12 @@ The [producer decisions](../evidence.md#producer-checklist) for this ecosystem:
    `declare` statement states, and an imported package constant. A field read
    through `this` holds its one plain assignment, as the [React
    scanner](../react/index.md#http-endpoints-and-requests) states in its
-   decision 5. Text that continues a configured value's last segment instead of
-   starting with `/`, a literal scheme and host, also when literal pieces only
-   state it together, a parameter, a value a call returns, and any other
-   computed value report a leading unknown segment.
+   decision 5. A configured value with a fallback, such as
+   `import.meta.env.X ?? '/api'`, is still configuration. Text that continues a
+   configured value's last segment instead of starting with `/`, a literal
+   scheme and host, also when literal pieces only state it together, a
+   parameter, a value a call returns other than a supported helper, and any
+   other computed value report a leading unknown segment.
 6. **File-location routes.** None: TypeScript projects declare routes in code,
    so every endpoint names its resolved handler, or the registering operation
    when the handler is not certain.

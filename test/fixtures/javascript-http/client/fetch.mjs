@@ -19,3 +19,14 @@ export async function loadFromBases(bases) {
 function buildUrl(id) {
   return `/talks/${id}/votes`
 }
+
+function mutableUrl(path) { return '/old' + path }
+mutableUrl = path => '/new' + path
+
+function mutableFetch(input) { return fetch(input) }
+mutableFetch = () => Promise.resolve('cached')
+
+export async function loadReplacedHelpers() {
+  await fetch(mutableUrl('/plan'))
+  await mutableFetch('/never-requested')
+}

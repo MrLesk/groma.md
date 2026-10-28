@@ -91,8 +91,8 @@ test.concurrent('the built React package reports fetch and axios requests', asyn
       'external GET /<unknown>/talks',
       // A base the caller supplies is computed.
       'fromBase GET /<unknown>/talks',
-      // A helper reads its path from a string parameter, which is a URL rather than a Request, and its
-      // caller reports nothing.
+      // A helper reads its path from a string parameter, which is a URL rather than a Request, so the
+      // helper itself reports a request with an unknown path.
       'helper GET /<unknown>',
       // An instance joins its base and a path with one slash, and uses the method its configuration states.
       'joined POST /api/talks',
@@ -134,6 +134,7 @@ test.concurrent('the built React package reports fetch and axios requests', asyn
       'viaArgument GET /<unknown>',
       'viaDynamicImport GET /<unknown>',
       'viaHandedImport GET /<unknown>',
+      'viaHelper GET /api/drafts',
       'viaMethod GET /<unknown>',
       'viaNamespace GET /<unknown>',
       'viaOtherFile GET /<unknown>',
@@ -189,6 +190,7 @@ test.concurrent('core derives rows from the React requests to the route files th
     // The fixture's requests and its Next.js route files are both React facts.
     const rows = inferRelationships([react], owners)
     expect(rows.map(row => `${row.source} -> ${row.target}`).sort()).toEqual([
+      'drafts.tsx -> pages/api/drafts/index.ts',
       'methods.tsx -> app/api/talks/route.ts',
       'options.tsx -> app/api/talks/route.ts',
       'talks.tsx -> app/api/talks/[id]/route.ts',

@@ -1,6 +1,6 @@
 import {
   unwrapped, wrapper,
-  type ImportOrigin, type Node, type SourceFile, type TextNode as Identifier, type Wrapped, type WrapperCompiler,
+  type Call, type ImportOrigin, type Node, type SourceFile, type TextNode as Identifier, type Wrapped, type WrapperCompiler,
 } from './http-syntax.ts'
 
 /*
@@ -17,7 +17,6 @@ interface Loop extends Node { initializer: Node }
 interface Named extends Node { name: Node }
 interface Initialized extends Node { initializer: Node }
 interface FunctionLike extends Node { parameters: readonly Named[] }
-interface Call extends Node { expression: Node; arguments: readonly Node[] }
 interface ImportDeclaration extends Node { moduleSpecifier: Node }
 interface ImportSpecifier extends Named { name: Identifier; propertyName?: Identifier }
 interface Modified extends Node { modifiers?: readonly { kind: number }[] }

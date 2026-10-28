@@ -218,6 +218,8 @@ test.concurrent('JavaScript client calls report the method and the path parts th
     // a request's own host are not. A `fetch` input the checker does not type as a primitive may be a
     // Request with its own method, and settings the scan cannot read state no method.
     expect(requests).toEqual([
+      // The replaced wrapper body still has an unresolved input; its caller sends nothing.
+      ['-', '/?', 'client/fetch.mjs'],
       ['-', '/?', 'client/jquery.js'],
       // An option name the scan cannot read could be the method.
       ['-', '/api/computed', 'client/options.mjs'],
@@ -227,8 +229,9 @@ test.concurrent('JavaScript client calls report the method and the path parts th
       ['DELETE', '/api/twice', 'client/options.mjs'],
       ['DELETE', '/status', 'client/axios.mjs'],
       ['DELETE', '/status', 'client/jquery.js'],
-      // A string the scan cannot read is still a URL, which carries no method.
+      // A replaced URL helper cannot supply its original return value.
       ['GET', '/?', 'client/fetch.mjs'],
+      // A string the scan cannot read is still a URL, which carries no method.
       ['GET', '/?', 'client/globals.js'],
       ['GET', '/?', 'client/jquery.js'],
       ['GET', '/?', 'client/options.mjs'],
@@ -253,6 +256,8 @@ test.concurrent('JavaScript client calls report the method and the path parts th
       ['GET', '/scripts/app.js', 'client/jquery.js'],
       ['GET', '/talks/{}', 'client/fetch.mjs'],
       ['GET', '/talks/{}', 'client/jquery.js'],
+      // A local function that returns the URL is read at its call.
+      ['GET', '/talks/{}/votes', 'client/fetch.mjs'],
       ['GET', 'configured /files', 'client/axios.mjs'],
       // The one assignment to a required client's defaults sets its base.
       ['GET', 'configured /required', 'client/commonjs.js'],

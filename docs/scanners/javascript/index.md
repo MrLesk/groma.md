@@ -181,8 +181,10 @@ The [producer decisions](../evidence.md#producer-checklist) for this ecosystem:
    is unknown, as in `` fetch(`/api/talks/${id}-${slug}`) ``, and so is a URL
    the scanner cannot resolve, such as `fetch(buildUrl(id))`. Query strings and
    fragments are ignored.
-4. **Local helpers.** Not supported. A request belongs to the operation that
-   calls a recognized client, so a wrapper function reports the request and its
+4. **Local helpers.** Read as the [TypeScript
+   scanner's](../typescript/index.md#http-endpoints-and-requests) decision 4
+   states for `fetch`. A request belongs to the operation that calls a
+   recognized client, so any other wrapper function reports the request and its
    callers report nothing.
 5. **The base.** `fetch('/api/talks')` has no base. A value this file cannot see
    is configuration, so an imported or required constant, `process.env.API_URL`,

@@ -3,9 +3,9 @@ import { below, type Placed, type Placement } from './http-order.ts'
 import { blockedPath, endpointPath, readablePrefix } from './http-paths.ts'
 import {
   atTopLevel, mounting, orderedFrameworks, routeMembers, routeMethod, routerRegistrations, unreadHonoMembers,
-  type Call, type Registrar, type Registration, type Registrations, type RouterCompiler, type RouterContext,
+  type Registrar, type Registration, type Registrations, type RouterCompiler, type RouterContext,
 } from './http-routers.ts'
-import type { Node } from './http-syntax.ts'
+import type { Call, Node } from './http-syntax.ts'
 import { methodText } from './http-url.ts'
 import { declarationOf, heldAt, importOrigin, literalText, objectEntries, runtimeGlobal, urlParts } from './http-values.ts'
 

@@ -1,5 +1,5 @@
 import { inBatches } from './http-checker.ts'
-import type { Node, TextNode } from './http-syntax.ts'
+import type { Call, Node, TextNode } from './http-syntax.ts'
 import { declarationOf, heldAt, importOrigin, literalText, unassigned, type UrlCompiler, type UrlContext } from './http-values.ts'
 
 /*
@@ -10,8 +10,7 @@ import { declarationOf, heldAt, importOrigin, literalText, unassigned, type UrlC
  * turns them into endpoints, in the order they run.
  */
 
-export interface Call extends Node { expression: Node; arguments: readonly Node[] }
-interface Construction extends Node { expression: Node; arguments?: readonly Node[] }
+export interface Construction extends Node { expression: Node; arguments?: readonly Node[] }
 interface Access extends Node { expression: Node; name: TextNode }
 interface Variable extends Node { name: Node; initializer?: Node; parent: Node & { flags: number; parent: Node & { modifiers?: readonly { kind: number }[] } } }
 interface Binary extends Node { left: Node; right: Node; operatorToken: { kind: number } }
