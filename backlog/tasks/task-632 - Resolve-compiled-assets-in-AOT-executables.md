@@ -1,11 +1,11 @@
 ---
 id: TASK-632
 title: Resolve compiled assets in AOT executables
-status: In Progress
+status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-27T21:04:00Z'
-updated_date: '2026-10-27T23:15:00Z'
+updated_date: '2026-10-28T01:36:00Z'
 labels: []
 dependencies: []
 references:
@@ -33,7 +33,7 @@ AOT preserves module directories, so compiledAsset resolves shipped guides and w
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [x] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
 - [x] #3 Public contracts or documentation are updated when behavior changes.
 - [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
@@ -58,4 +58,12 @@ Export root cause isolated: the explicit type:file attribute bypasses WASM preco
 The extra scanner-update timing test passes in an isolated rerun (1 pass, 7 assertions); its full-suite failure is not attributed to the WASM import change. Self specification review: both asset/export ACs have direct Linux native evidence. Self quality review: the two delivery fixes preserve source/regular bundled execution, keep embedded fonts/assets and avoid adding a compatibility layer; no task source changes under groma/.
 
 Correction: the isolated scanner-update rerun contains 10 assertions (the 7-assertion result belongs to packaged-native/npm runtime validation).
+
+Asset/export scope is now verified beyond Linux: stacked native qualification40614894377 passes embedded guides/assets/credits/renderer/covers and exports on all5 release targets in trimmed mode; earlier direct AOT and AOT+trim export checks and stable8assertions remain valid for this fix. Regular CI40614386626 on the qualification chain is green on Linux/macOS/Windows. Local full-check failures are qualified missing-toolchain/procfs baseline; no product workaround. Older128MB size figures in historical notes omitted npm/runtime capabilities and are not shipping measurements; TASK634/PR191 has the current complete comparison. Remaining package-manager retention, compiler opt-in and publication gates are tracked separately in TASK633 and BACK794, not asset-root failures.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Resolved embedded asset roots for AOT while preserving regular bundles and Node source execution. Restored Resvg WASM precompilation, reducing the export fixture from38.875s to about2.2s with byte-identical PNGs. Stable compiled regression and native asset/export gates pass; hosted regular CI is green. Shipping defaults remain bytecode and broader compiler/publication blockers remain separate.
+<!-- SECTION:FINAL_SUMMARY:END -->
