@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/aot.yml'
+      - '.github/workflows/release.yml'
       - 'scripts/build.ts'
       - 'scripts/aot-compiler.json'
       - 'scripts/prepare-bun-runtime.cjs'
@@ -125,6 +126,18 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile --cafile="$SSL_CERT_FILE"
         shell: bash
+      - name: Check default release artifact on the native host
+        env:
+          GROMA_BUILD_TARGET: ${{ matrix.target }}
+          GROMA_BUILD_OUTFILE: dist/stable/${{ matrix.binary }}
+          GROMA_TEST_CLI: dist/stable/${{ matrix.binary }}
+        run: |
+          node scripts/prepare-bun-runtime.cjs "${{ matrix.target }}"
+          bun scripts/build.ts
+          BUN_BE_BUN=1 "./$GROMA_BUILD_OUTFILE" pm --help
+          bun test --timeout 60000 test-bun/compiled-scanner.test.ts
+          bun test --timeout 60000 test-bun/npm-packaging.test.ts --test-name-pattern '^packaged Groma'
+        shell: bash
       - name: Prepare verified experimental native compiler
         run: node scripts/prepare-bun-runtime.cjs --aot
         shell: bash
@@ -134,6 +147,16 @@ jobs:
       - name: Prepare Chromium for rendered map qualification
         if: matrix.target == 'bun-linux-x64-baseline'
         run: bun x playwright@1.62.1 install --with-deps chromium
+        shell: bash
+      - name: Compare console behavior with same-compiler bytecode control
+        env:
+          GROMA_BUILD_TARGET: ${{ matrix.target }}
+          GROMA_BUILD_AOT: '0'
+          GROMA_BUILD_TRIM: '0'
+          GROMA_BUILD_OUTFILE: dist/jit/${{ matrix.binary }}
+        run: |
+          bun scripts/build.ts
+          bun scripts/qualify-compiled-tui.ts "$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE"
         shell: bash
       - name: Build and smoke AOT with and without trim
         env:
@@ -164,4 +187,5 @@ jobs:
             dist/aot-*/${{ matrix.binary }}
             dist/aot-*/${{ matrix.binary }}.png
             dist/aot-*/${{ matrix.binary }}.tui-*.svg
+            dist/jit/${{ matrix.binary }}.tui-*.svg
           if-no-files-found: error

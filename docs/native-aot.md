@@ -1,7 +1,8 @@
 # Experimental native AOT builds
 
 Shipping releases still use the verified Bun 1.4.4 bytecode build. Bun's native
-compiler is experimental in [PR 45631](https://github.com/oven-sh/bun/pull/45631).
+compiler was introduced in [PR 45631](https://github.com/oven-sh/bun/pull/45631),
+merged on 2026-10-27. This qualification still uses the verified experimental pin.
 Do not publish an experimental artifact as a release before native qualification.
 
 From the repository root, install dependencies with stable Bun, then prepare the
@@ -52,7 +53,8 @@ details, container/back navigation and resize, retains SVG screenshots and
 requires an actual Ctrl+C exit of zero on each native host. Its driver is
 `tui-test` 0.1.1, verified against official archive SHA-256 digests; Windows ARM
 runs the x64 test driver under emulation while the product remains native ARM64.
-Console results are pending; do not infer them from forced termination.
+Native run 40609596964 passes console navigation, resize and actual Ctrl+C exit0
+on all five hosts in trimmed mode, separately from forced termination.
 The official-scanner gate installs the package versions declared in the checkout
 into temporary consumer projects. It requires actual fixture code evidence,
 lint findings identical to a same-compiler JIT control and an exported PNG; a zero scan exit alone is insufficient
@@ -64,6 +66,23 @@ qualification files change in a pull request, or through manual dispatch.
 
 Linux x64 product checks also exercise the packaged official TypeScript scanner,
 its SDK worker, live HTML/JS/world/cover routes, filesystem watch refresh,
-terminal details and shutdown. Other native targets need their own results;
-Linux success does not qualify them. The required full repository check still
+terminal details and shutdown. Run 40609596964 passes all 22 published official scanner consumers, compiled
+assets, web/watch, console and packaging gates on all five native targets in
+trimmed mode. Each job then fails the known untrimmed package-manager check. The required full repository check still
 has environment and baseline failures, recorded in TASK-632 and PR #189.
+
+The release build keeps explicit `GROMA_BUILD_AOT=0` and `GROMA_BUILD_TRIM=0`
+defaults. A reviewed opt-in selects the pinned native compiler. Before upload,
+the release job checks self package-manager capability, the compiled scanner
+and asset regression, and the existing npm runtime requirements. It cannot
+publish the known failing untrimmed AOT artifact through these gates.
+
+Performance needs a release decision too. On the same pinned Linux x64 compiler,
+10 plain-view runs after two warmups measured JIT at 175139528 bytes, median
+52.62ms and median peak RSS 73408KiB; functional AOT+trim retaining CLI and
+node:vm measured 185975624 bytes, 29.83ms and 60942KiB, with identical output.
+One clean paired Python lint run measured 1855.36ms under JIT versus 44578.91ms
+under AOT, with identical output. Disk-loaded Pyodide WebAssembly remains
+interpreted under AOT. Explicitly retaining jit did not improve that probe.
+These fixture measurements are not universal performance claims; the Python
+regression needs resolution or an explicit release tradeoff before enabling AOT.

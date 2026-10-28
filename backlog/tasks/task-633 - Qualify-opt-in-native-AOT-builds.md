@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-27T23:16:00Z'
-updated_date: '2026-10-28T00:33:00Z'
+updated_date: '2026-10-28T01:04:00Z'
 labels: []
 dependencies: []
 references:
@@ -24,6 +24,7 @@ modified_files:
   - scripts/qualify-compiled-scanners.ts
   - scripts/prepare-tui-test.cjs
   - scripts/qualify-compiled-tui.ts
+  - .github/workflows/release.yml
 ordinal: 701000
 ---
 
@@ -35,9 +36,9 @@ The actual build script still emits bytecode builds and requires a scratch wrapp
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Default build and release behavior remain unchanged; opt-in AOT and trim modes reject an unsupported compiler or a mismatched runtime
+- [x] #1 Default build and release behavior remain unchanged; opt-in AOT and trim modes reject an unsupported compiler or a mismatched runtime
 - [ ] #2 Opt-in AOT and AOT+trim pass compiled smoke with disk-loaded scanners and embedded assets
-- [ ] #3 Native qualification covers every release OS and architecture with verified compiler provenance and records real results or concrete blockers
+- [x] #3 Native qualification covers every release OS and architecture with verified compiler provenance and records real results or concrete blockers
 <!-- AC:END -->
 
 ## Definition of Done
@@ -64,6 +65,10 @@ Qualify real installed official scanner packages, starting with the Python parse
 The Swift fresh-checkout fixture intentionally contains duplicate functions, so lint exit1 is a valid finding, not scanner failure. Compare native lint exit/stdout/stderr with the same compiler running the source CLI under its JIT, after requiring new source evidence. This retains exact findings and catches removed APIs without treating intentional fixture violations as compiler defects.
 
 Use the repository-prescribed tui-test procedure for real native console qualification, including Windows Ctrl+C. Pin official tui-test0.1.1 archives by published SHA256 and reuse the existing patched-Node HTTPS downloader. Drive a fresh flows fixture through root/details/container/back navigation, capture screenshots at normal/large sizes, send actual Ctrl+C and assert exit0 separately. Local tui-test cannot start its daemon in this scratch environment, so qualify the harness on native CI; do not label that infrastructure failure a Groma failure.
+
+Prepare release wiring with explicit AOT=0 and TRIM=0 defaults, preserving the existing native matrix, TLS, scanner publication and version flow. Select the verified experimental compiler only for reviewed opt-in flags. Before artifact upload require self pm capability and reuse the compiled scanner regression alongside existing package checks, so the known untrimmed failure cannot become a release candidate. Do not dispatch or publish a release.
+
+Run the exact default stable release artifact checks on all native runners before experimental preparation, so added pre-upload scanner and package gates are validated with stable bytecode too. Visual console review found resize screenshots captured intermediate frames; settle the terminal after navigation/resize and compare against the same-compiler JIT control before treating visual differences as an AOT defect.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -104,4 +109,6 @@ Final required check after lint-control correction:lint/types/Node pass;Bun905pa
 Console-driver preparation verified locally with the already verified Linux archive supplied as the HTTPS response: executable extraction and exact0.1.1 revision succeed; tampered archive rejected before extraction. Official Windows ZIP downloaded and SHA256 verified; exact member tui-test.exe confirmed. CJS syntax checks pass. Console driver install reuses existing patched-Node downloader and guards direct execution so requiring its helpers has no download side effect. Native console screenshots/assertions remain pending.
 
 Native run40608004826 on ec302 passes all22 actual installed official scanners, code evidence, same-compiler JIT lint findings and export on ALL FIVE native targets; each then fails only known untrimmed pm exit70. New console run40608854750 reaches root/details/container/back/resize/screenshots and Ctrl+C wait-exit on Linux ARM and macOS, then fails a harness assertion: tui-test expect exit-code reads shell-command markers, which direct run does not track. Official tui-test0.1.1 source confirms daemon status JSON data.exited is the PTY process exit code. Correct the gate to assert that field equals0; retain actual shutdown check. This is a test-driver assumption correction, not a product exit fix.
+
+Native run40609596964 on e2e666d passes actual console root/details/container/back/resize keys and Ctrl+C exit0, all22 published scanner installation/code evidence/JIT-control lint/export checks, compiled assets/web/native watch/package gates on all5 hosts, then fails only known untrimmed pm exit70. Regular CI40609597126 is green Linux/macOS/Windows. Downloaded Windows x64 artifact12782676361 verified SHA256ecacde0f3d0394597d1566cf6103b2bb197058051cb5c280aaf65babc6f8965d. Visual root/details review works, but root and resize screenshots capture intermediate map painting; improve harness with wait idle and actual map anchor after resize, and run the identical procedure on a same-compiler bytecode control. This does not yet prove a product regression. Release wiring keeps flags0, pin selection opt-in and adds pm capability/compiled assets gates before upload; native stable default gates added before experimental preparation. Required check after release edits: lint/types/Node pass;Bun905pass63skip28fail/996/144.44s, same environment/baseline. Stable self pm and reused compiled7assertions pass. Functional all-scanner benchmark is185975624bytes/29.83ms/60942KiB vs JIT175139528/52.62/73408;10 after2warmups. Python single clean pair1855.36msJIT vs44578.91msAOT remains significant, identical output; keeping jit did not fix interpretation cost. No publication/default switch.
 <!-- SECTION:NOTES:END -->
