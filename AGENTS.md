@@ -171,6 +171,15 @@ For work associated with a Backlog task, use the exact task ID and title as the 
 
 For example: `TASK-28.3 - Supply annotated architecture through Groma core`.
 
+## PR descriptions
+
+Keep PR descriptions brief and include only what is not obvious from the code. Explain unclear reasons, tradeoffs,
+limitations, or dependencies in a few short sentences. Link to detailed validation or documentation instead of copying it.
+
+Do not repeat the diff, list changed files, or report routine passing checks and review steps. Omit template sections
+that add no useful context. Keep required issue or task links; if no explanation is needed, those links can be the
+whole description.
+
 ## Minimum sufficient product
 
 Build the smallest complete result that matches the requested outcome and any approved example. Keep the concrete
