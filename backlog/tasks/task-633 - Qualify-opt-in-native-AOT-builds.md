@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-27T23:16:00Z'
-updated_date: '2026-10-28T00:27:00Z'
+updated_date: '2026-10-28T00:33:00Z'
 labels: []
 dependencies: []
 references:
@@ -102,4 +102,6 @@ All22 published official scanner consumers now pass locally on Linux AOT+trim af
 Final required check after lint-control correction:lint/types/Node pass;Bun905pass63skip28fail/996/135.00s, same environment/baseline. Fair current-source same-compiler plain-view benchmark10 measured after2warmups: JIT175139528bytes/52.62ms/73408KiB vs AOT+trim retaining cli+node-vm185975624bytes/29.83ms/60942KiB; identical output. Clean single paired Python lint run: JIT1855.36ms/270672KiB vs AOT44578.91ms/163852KiB, identical output. This is a significant runtime performance concern, not a median benchmark. Scratch retention probe adding jit increases binary to196002504bytes but still takes43.21s; no production jit-retention change. Native official-scanner run40608004826 Linux ARM passes all22 installed scanner/evidence/lint-control/export checks plus prior web/packaging gates, then fails known untrimmed pm exit70. Other native results pending. New console gate uses verified tui-test0.1.1 and exact key API from agent-context; local daemon cannot accept connections, so native CI is required for real console validation.
 
 Console-driver preparation verified locally with the already verified Linux archive supplied as the HTTPS response: executable extraction and exact0.1.1 revision succeed; tampered archive rejected before extraction. Official Windows ZIP downloaded and SHA256 verified; exact member tui-test.exe confirmed. CJS syntax checks pass. Console driver install reuses existing patched-Node downloader and guards direct execution so requiring its helpers has no download side effect. Native console screenshots/assertions remain pending.
+
+Native run40608004826 on ec302 passes all22 actual installed official scanners, code evidence, same-compiler JIT lint findings and export on ALL FIVE native targets; each then fails only known untrimmed pm exit70. New console run40608854750 reaches root/details/container/back/resize/screenshots and Ctrl+C wait-exit on Linux ARM and macOS, then fails a harness assertion: tui-test expect exit-code reads shell-command markers, which direct run does not track. Official tui-test0.1.1 source confirms daemon status JSON data.exited is the PTY process exit code. Correct the gate to assert that field equals0; retain actual shutdown check. This is a test-driver assumption correction, not a product exit fix.
 <!-- SECTION:NOTES:END -->

@@ -39,7 +39,9 @@ try {
   await terminal(['screenshot', `${binary}.tui-large.svg`])
   await terminal(['key', 'press', 'Ctrl+C'])
   await terminal(['wait', 'exit', '--timeout', '10000'])
-  await terminal(['expect', 'exit-code', '0', '--timeout', '10000'])
+  // A direct run has no shell command markers. Read its actual PTY process status.
+  const status = JSON.parse(await terminal(['--json', 'daemon', 'status']))
+  assert.equal(status.data.exited, 0, 'The native console process did not exit zero')
   console.log(`Native console navigation and Ctrl+C passed: ${process.platform}-${process.arch}`)
 } finally {
   // Capture the final screen even if an interaction fails, then close the session.

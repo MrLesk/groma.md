@@ -147,11 +147,11 @@ jobs:
             export GROMA_BUILD_OUTFILE="dist/aot-$trim/${{ matrix.binary }}"
             "$GROMA_BUILD_EXECUTABLE_PATH" scripts/build.ts
             BUN_BE_BUN=1 "$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE" pm --help
+            "$GROMA_BUILD_EXECUTABLE_PATH" scripts/qualify-compiled-tui.ts "$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE"
             "$GROMA_BUILD_EXECUTABLE_PATH" scripts/qualify-compiled-scanners.ts "$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE"
             GROMA_TEST_CLI="$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE" \
               "$GROMA_BUILD_EXECUTABLE_PATH" test test-bun/compiled-scanner.test.ts
             "$GROMA_BUILD_EXECUTABLE_PATH" scripts/qualify-compiled-web.ts "$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE"
-            "$GROMA_BUILD_EXECUTABLE_PATH" scripts/qualify-compiled-tui.ts "$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE"
             GROMA_TEST_CLI="$GITHUB_WORKSPACE/$GROMA_BUILD_OUTFILE" \
               "$GROMA_BUILD_EXECUTABLE_PATH" test --timeout 60000 test-bun/npm-packaging.test.ts \
               --test-name-pattern '^packaged Groma'
