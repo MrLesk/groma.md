@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-10-27T23:16:00Z'
-updated_date: '2026-10-28T01:16:00Z'
+updated_date: '2026-10-28T01:35:00Z'
 labels: []
 dependencies: []
 references:
@@ -120,4 +120,6 @@ Stable native gate run40612892327 exposes a workflow-only error before compilati
 Extended existing web gate with a real Backlog task snapshot and CLI edit watch refresh. Local Linux AOT+trim Groma plus patched Backlog AOT+trim pass assets/covers/source watch/Backlog snapshot+edit and SIGTERM0. Native workflow installs published backlog.md@1.55.3 into a temp npm prefix and exposes its native platform binary; no repository dependency or release is changed. Native integration results pending. Final required check running after this added consumer assertion.
 
 Quality review found cognitive complexity16 in the touched web qualification function (repository maximum15). Extract its existing Chromium operation into qualifyBrowser; no new feature or assertion. Keep assets/covers/bridge/watch/shutdown in the consumer flow and rerun focused lint/types.
+
+Final source1d6fd7c4b49159e0bb8a781f9e6bbe9a9b11c180 has regular CI40614386626 green on Linux/macOS/Windows. Native source560cbadf98b3ef32d746db1d17889b0a9b8db488 run40613895792 passes the stable default pre-upload gates, same-compiler bytecode console control, all22 published scanner consumers, real console/Ctrl+C, rendered Chromium map, assets/covers/source watch, actual published Backlog initial work snapshot and edit refresh, platform termination and npm runtime on ALL FIVE hosts in trimmed mode; each then fails only untrimmed pm70. Settled Windows console SVGs visually match JIT and AOT; the earlier blank labels were intermediate frames. Follow-up TASK634/draftPR191 fixes the Python interpreter slowdown using a same-executable subprocess and retained jit, stages scanner0.2.4 without publication and supersedes earlier185MB/44s results. Its native run40614894377 passes all trimmed gates and Python timing on every host; untrimmed remains blocked. Current source retains stable release defaults0; no publication. TASK633 AC2 remains open for the concrete Bun retention limitation; no unsupported workaround or hidden red gate.
 <!-- SECTION:NOTES:END -->
