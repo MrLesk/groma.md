@@ -27,6 +27,9 @@ groma:
       file: src/viewers/web/iso/painting/glow.ts
     - scanner: typescript
       file: src/viewers/web/iso/painting/layer-planes.ts
+    - scanner: typescript
+      file: src/viewers/web/iso/painting/icons.ts
+      symbol: architectureIconSvg
   group: Map drawing
 description: Paints the browser map as SVG buildings, routes and labels
 ---

@@ -5,7 +5,7 @@ import { GromaFileSystem } from './groma-filesystem.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { requireText } from './naming.ts'
 import { DRAFT_TYPE, c4Type, requireGromaMapping } from './okf-profile.ts'
-import type { ArchitectureDocument, C4Kind, CodeReference, ElementStatus } from './types.ts'
+import type { ArchitectureDocument, C4Kind, CodeReference, ElementStatus, GroupAppearance } from './types.ts'
 
 /** Save must pass the same semantic validation as the next read before changing the file. */
 export async function validateElementSource(documents: ArchitectureDocument[], sourceFilename: string, source: string): Promise<void> {
@@ -20,6 +20,7 @@ export interface MeaningChanges {
   description?: string
   technology?: string
   draft?: string
+  icon?: string
 }
 
 /** Normal edits and structural edits apply authored meaning in the same way. */
@@ -29,6 +30,7 @@ export function withMeaning(source: string, input: MeaningChanges): string {
   source = withDescription(source, input.description)
   if (input.technology !== undefined) source = withGromaField(source, 'technology', input.technology || undefined)
   if (input.draft !== undefined) source = withGromaField(source, 'draft', input.draft || undefined)
+  if (input.icon !== undefined) source = withGromaField(source, 'icon', input.icon || undefined)
   return source
 }
 
@@ -75,12 +77,19 @@ export function withGromaCode(source: string, code: CodeReference[]): string {
 
 export function withGromaField(
   source: string,
-  field: 'id' | 'group' | 'parent' | 'draft' | 'technology',
+  field: 'id' | 'group' | 'parent' | 'draft' | 'technology' | 'icon',
   value: string | undefined,
 ): string {
   return withGromaChange(source, groma => {
     if (value === undefined) delete groma[field]
     else groma[field] = value
+  })
+}
+
+export function withGroupAppearance(source: string, appearance: Record<string, GroupAppearance>): string {
+  return withGromaChange(source, groma => {
+    if (Object.keys(appearance).length === 0) delete groma.groupAppearance
+    else groma.groupAppearance = appearance
   })
 }
 

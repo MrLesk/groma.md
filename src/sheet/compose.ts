@@ -300,7 +300,7 @@ function composeSystem(
   const dx = island.rect.gx + inset - occupied.gx
   const dy = island.rect.gy + inset - occupied.gy
   for (const [id, rect] of positions) positions.set(id, translate(rect, dx, dy))
-  island.rect.w = Math.max(occupied.w + 2 * inset, nameCells(island.name.toUpperCase(), ISLAND_FONT, ISLAND_SPACING), portSide)
+  island.rect.w = Math.max(occupied.w + 2 * inset, nameCells(island.name.toUpperCase(), ISLAND_FONT, ISLAND_SPACING, island.element?.icon), portSide)
   island.rect.d = Math.max(occupied.d + 2 * inset + labelBand(ISLAND_FONT), portSide)
   applyPositions(placement, units, positions)
   return island.rect.w - originalWidth

@@ -13,6 +13,7 @@ import { createWebMapSession } from '../src/viewers/web/map-session.ts'
 import { GromaFileSystem } from '../src/groma-filesystem.ts'
 import { inspectDetails } from '../src/viewers/web/organisms/details.ts'
 import { changedEdit } from '../src/authoring-conflict.ts'
+import { sheetScene } from '../src/sheet/scene.ts'
 
 async function fixture(): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), 'groma-editing-'))
@@ -126,5 +127,64 @@ test.concurrent('drop intent chooses ancestry and grouping keeps world ownership
     const bounds = gestureBounds({ x: 100, y: 100 }, { x: 0, y: 0 })
     assert.equal(enclosed(bounds, { x: 10, y: 10, width: 40, height: 40 }), true)
     assert.equal(enclosed(bounds, { x: 80, y: 10, width: 40, height: 40 }), false)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+
+test.concurrent('authored icons survive scan and reach every C4 sheet surface', async () => {
+  const root = await fixture()
+  try {
+    const actor = await writes.add(root, { thing: 'actor', name: 'Operator', overview: 'Uses the application.' })
+    const external = await writes.add(root, { thing: 'external', name: 'Code host', overview: 'Hosts source.' })
+    const assignments = [
+      ['shop', 'groma:system'], ['api', 'groma:application'], ['stock', 'groma:database'],
+      [actor, 'groma:person'], [external, 'groma:repository'],
+    ] as const
+    for (const [id, icon] of assignments) await writes.edit(root, { id, icon })
+    await writes.add(root, { thing: 'group', name: 'Checks', members: ['stock', 'orders'] })
+    const command = Bun.spawn(['bun', path.join(repositoryRoot, 'src/cli.ts'), 'edit', 'group', 'api/checks', '--icon', 'groma:group'], { cwd: root, stderr: 'pipe' })
+    assert.equal(await command.exited, 0, await new Response(command.stderr).text())
+    await scanRepository(root)
+    const world = await loadAnnotatedArchitecture(root)
+    const scene = sheetScene(world)
+    const items = [...scene.buildings, ...scene.slabs, ...scene.islands.flatMap(island => island.element ? [island.element] : [])]
+    for (const [id, icon] of assignments) assert.equal(items.find(item => item.id === id)?.icon, icon)
+    assert.equal(scene.zones.find(zone => zone.name === 'Checks')?.icon, 'groma:group')
+    assert.equal(world.elements.find(element => element.id === 'api')?.groupAppearance?.Checks?.icon, 'groma:group')
+    assert.ok(world.elements.filter(element => ['stock', 'orders'].includes(element.id)).every(element => element.parent === 'api'))
+    await assert.rejects(writes.edit(root, { id: 'stock', icon: 'unknown:database' }), /embedded architecture icon/)
+    await assert.rejects(writes.edit(root, { id: 'stock', icon: 'groma:cache', original: { icon: '' } }), /icon changed/)
+    assert.equal((await loadAnnotatedArchitecture(root)).elements.find(element => element.id === 'stock')?.icon, 'groma:database')
+    const clear = Bun.spawn(['bun', path.join(repositoryRoot, 'src/cli.ts'), 'edit', 'stock', '--icon', ''], { cwd: root, stderr: 'pipe' })
+    assert.equal(await clear.exited, 0, await new Response(clear.stderr).text())
+    assert.equal((await loadAnnotatedArchitecture(root)).elements.find(element => element.id === 'stock')?.icon, undefined)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('group icons follow renames and remain only while the group exists', async () => {
+  const root = await fixture()
+  try {
+    const appearance = async () => (await loadAnnotatedArchitecture(root)).elements.find(element => element.id === 'api')!.groupAppearance
+    await writes.add(root, { thing: 'group', name: 'Checks', members: ['stock', 'orders'] })
+    await writes.edit(root, { id: 'api/checks', icon: 'groma:group' })
+    await writes.edit(root, { id: 'api/checks', title: 'Validation' })
+    assert.deepEqual(await appearance(), { Validation: { icon: 'groma:group' } })
+    await assert.rejects(writes.edit(root, { id: 'api/validation', icon: 'groma:service', original: { icon: '' } }), /icon changed/)
+    await writes.remove(root, { id: 'api/validation', members: ['stock'] })
+    assert.deepEqual(await appearance(), { Validation: { icon: 'groma:group' } })
+    await writes.edit(root, { id: 'orders', ungroup: true })
+    assert.equal(await appearance(), undefined)
+    await writes.add(root, { thing: 'group', name: 'Checks', members: ['stock', 'orders'] })
+    await writes.edit(root, { id: 'api/checks', icon: 'groma:service' })
+    await writes.edit(root, { id: 'api/checks', icon: '' })
+    assert.equal(await appearance(), undefined)
+    await writes.edit(root, { id: 'api/checks', icon: 'groma:group' })
+    await writes.remove(root, { id: 'api/checks' })
+    assert.equal(await appearance(), undefined)
+    const planned = await writes.draft(root, { kind: 'component', name: 'Planned check', parent: 'api', overview: '' })
+    await writes.add(root, { thing: 'group', name: 'Future', members: [planned] })
+    await writes.edit(root, { id: 'api/future', icon: 'groma:group' })
+    await writes.remove(root, { id: planned })
+    assert.equal(await appearance(), undefined)
   } finally { await rm(root, { recursive: true, force: true }) }
 })

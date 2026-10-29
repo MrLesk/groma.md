@@ -138,6 +138,7 @@ export function registerWriteCommands(program: Command): void {
     .option('--description <text>', 'optional short summary (empty removes it), or how a relation works')
     .option('--technology <text>', 'technology of an element (empty removes it) or of a relation')
     .option('--draft <draft-id>', 'tag this element with the draft that touches it')
+    .option('--icon <id>', 'embedded architecture icon (empty removes it)')
     .option('--group <name>', 'assign this component to a sibling group')
     .option('--ungroup', 'remove this component from its group')
     .option('--parent <id>', 'move an empty scanned component to this container, or a container to this system')
@@ -157,6 +158,7 @@ export function registerWriteCommands(program: Command): void {
           description: options.description,
           technology: options.technology,
           draft: options.draft,
+          icon: options.icon,
           group: options.group,
           ungroup: options.ungroup,
           parent: options.parent,

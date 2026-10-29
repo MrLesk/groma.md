@@ -1,3 +1,4 @@
+import { architectureIcon } from '../architecture-icons.ts'
 import type { AnnotatedElement, CodeReference, Origin } from '../types.ts'
 import type { BuildingFloor, Shape } from './types.ts'
 import { ROUTE_UNIT, portSideCells } from './route/space.ts'
@@ -71,8 +72,16 @@ export function labelBand(size: number): number {
 }
 
 /** Cells a surface needs along +gx so its own name fits in its front band. */
-export function nameCells(name: string, size: number, spacing = 0): number {
-  return Math.ceil((textWidth(name, size, spacing) + 2 * SURFACE_PAD) / PLANE)
+export function nameCells(name: string, size: number, spacing = 0, icon?: string): number {
+  return Math.ceil((textWidth(name, size, spacing) + iconWidth(icon, size) + 2 * SURFACE_PAD) / PLANE)
+}
+
+/** Icons share the title plane and reserve a small gap before its first line. */
+export const iconSize = (size: number): number => size * 1.25
+
+/** Plane width reserved for the symbol and its gap before the title. */
+export function iconWidth(icon: string | undefined, size: number): number {
+  return architectureIcon(icon) === undefined ? 0 : size * 1.6
 }
 
 /** The name as roof lines: one line, or two split at the space nearest the middle when one line would exceed four cells. */
@@ -222,11 +231,12 @@ export function areaUnitsOf(
 /** An actor's round building or an external system's pill: one curved tier. */
 export const curved = (shape: Shape): boolean => shape.kind === 'round' || shape.kind === 'pill'
 
-/** The name's block on a roof in plane pixels: the longest line with ROOF_PAD around it, one ROOF_LINE_HEIGHT per line. */
-export function roofBlock(lines: readonly string[], size = ROOF_FONT): { w: number; d: number } {
+/** Roof title envelope in plane pixels, with the icon before its first line and padding around the complete block. */
+export function roofBlock(lines: readonly string[], size = ROOF_FONT, icon?: string): { w: number; d: number } {
+  const prefix = iconWidth(icon, size)
   return {
-    w: Math.max(...lines.map(line => textWidth(line, size))) + 2 * textPadding(size),
-    d: 2 * textPadding(size) + lines.length * textLineHeight(size),
+    w: Math.max(...lines.map((line, index) => textWidth(line, size) + (index === 0 ? prefix : 0))) + 2 * textPadding(size),
+    d: 2 * textPadding(size) + Math.max(lines.length * textLineHeight(size), prefix === 0 ? 0 : iconSize(size)),
   }
 }
 
@@ -236,8 +246,9 @@ export function footprintOf(
   shape: Shape,
   degree: number,
   size = ROOF_FONT,
+  icon?: string,
 ): { w: number; d: number } {
-  const block = roofBlock(lines, size)
+  const block = roofBlock(lines, size, icon)
   const portSide = Math.ceil(portSideCells(degree))
   if (shape.kind === 'round') {
     const side = Math.max(MIN_SIDE, portSide, Math.ceil(Math.hypot(block.w, block.d) / PLANE))

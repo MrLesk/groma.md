@@ -176,6 +176,10 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .ghost.draft .face, #map .ghost.draft .ground,
   #map .route-base.ghost.draft, #map .route.ghost.draft:not(.touched):not(.lit) .line { stroke-dasharray: ${4 / zoom} ${3 / zoom}; }
   #map .text { fill: ${ink}; pointer-events: none; }
+  #map .architecture-icon { color: ${ink}; pointer-events: none; }
+  #map .architecture-icon .icon-line { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  #map .architecture-icon .icon-wash { fill: currentColor; fill-opacity: 0.14; stroke: none; }
+  #map .architecture-icon .icon-shade { fill: currentColor; fill-opacity: 0.18; stroke: none; }
   #map .island > .label .text, #map .slab > .label .text, #map .zone > .label .text { font-weight: 600; }
   #map .route-base, #map .route .line { fill: none; stroke-linecap: round; opacity: 0.9; }
   #map .route-base { pointer-events: none; }
@@ -189,7 +193,7 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
  * What shows a hover look. Map hover looks key off the .hovered class that map.ts puts on the closest of these
  * under a resting mouse, never :hover: a :hover rule would make Safari redraw the whole map when a pan starts.
  */
-export const HOVERABLE = '.building, .slab, .island.system, .route, .project-edit'
+export const HOVERABLE = '.building, .slab, .island.system, .zone, .route, .project-edit'
 
 /** Browser layout, interaction states and motion surround the shared drawing rules. */
 export const mapCss = `
@@ -232,7 +236,7 @@ export const mapCss = `
   #map .project-edit.hovered .pencil path, #map .project-edit:focus .pencil path,
   #map .project-edit.hovered .pencil .body, #map .project-edit:focus .pencil .body { stroke: var(--ink); }
   #map .building.hovered:not(.selected), #map .slab.hovered:not(.selected):not(.context),
-  #map .island.system.hovered:not(.selected):not(.context), #map .context { --emphasis: ${emphasis(0.5)}; }
+  #map .island.system.hovered:not(.selected):not(.context), #map .zone.hovered:not(.selected), #map .context { --emphasis: ${emphasis(0.5)}; }
   #map .building.hovered:not(.selected) .face, #map .slab.hovered:not(.selected):not(.context) .face,
   #map .island.system.hovered:not(.selected):not(.context) > .ground { stroke: var(--map-line); }
   #map .selected, #map .touched,
@@ -246,6 +250,7 @@ export const mapCss = `
   }
   #map :is(.island, .slab, .zone):is(.selected, .touched, .lit, .context) > .surface-label .text { fill: var(--highlight); }
   #map :is(.island, .slab, .zone):is(.selected, .touched, .lit, .context) > .surface-label .label-leader { stroke: var(--highlight); }
+  #map :is(.island, .slab, .zone):is(.selected, .touched, .lit, .context) > .surface-label .architecture-icon { color: var(--highlight); }
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) { --emphasis: ${emphasis(0.5)}; }
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) .face { stroke: color-mix(in srgb, var(--highlight) 45%, var(--map-line)); }
   body:not([data-comparison]) #map .camera:has(.component-focus) .building.component:not(.component-focus):not(.neighbor) { opacity: 0.3; }
@@ -262,7 +267,9 @@ export const mapCss = `
   #map .building.component[data-change] .face.right { fill: color-mix(in srgb, var(--change) 11%, var(--paper)); }
   #map .building.component[data-change]:not(.selected):not(.lit):not(.component-focus) .face { stroke: var(--change); }
   #map .building.component[data-change] > .label .text { fill: var(--change); }
+  #map .building.component[data-change] > .label .architecture-icon { color: var(--change); }
   #map .building.component:is(.selected, .lit) > .label .text { fill: var(--highlight-text); }
+  #map .building.component:is(.selected, .lit) > .label .architecture-icon { color: var(--highlight-text); }
   #map .route[data-change]:not(.lit):not(.selected):not(.endpoint) .line { stroke: var(--change); opacity: 1; }
   #map .route[data-change]:not(.lit):not(.selected):not(.endpoint) .arrow { fill: var(--change); opacity: 1; }
   ${layerCss}

@@ -48,7 +48,7 @@ interface Node {
   paint:
     | { kind: 'building'; element: AnnotatedElement; heightUnits: number; shape: Shape; floors: BuildingFloor[]; lines: string[] }
     | { kind: 'slab'; element: AnnotatedElement }
-    | { kind: 'zone'; name: string; members: string[]; unidentifiedContainer?: true }
+    | { kind: 'zone'; name: string; icon?: string; members: string[]; unidentifiedContainer?: true }
     | { kind: 'island'; islandKind: IslandKind; name: string; element: AnnotatedElement | null }
 }
 
@@ -65,6 +65,7 @@ function item(element: AnnotatedElement): SheetItem {
     representationId: element.representationId,
     id: element.id,
     title: element.title,
+    icon: element.icon,
     origin: element.origin,
   }
 }
@@ -75,7 +76,7 @@ function buildingNode(element: AnnotatedElement, ranges: FileMeasureRanges, degr
     : element.external ? { kind: 'pill' } : { kind: 'block' }
   const size = buildingFont(element)
   const lines = shape.kind === 'pill' ? [element.title] : roofLines(element.title, size)
-  const base = footprintOf(lines, shape, degree, size)
+  const base = footprintOf(lines, shape, degree, size, element.icon)
   const floors = element.kind === 'component'
     ? floorsOf(element.origin, element.code, ranges, base)
     : []
@@ -104,9 +105,9 @@ function subtreeConnections(key: string, children: readonly Node[], relationship
 
 /** The cells a surface's own name needs in its front band. */
 function nameWidth(paint: Node['paint']): number {
-  if (paint.kind === 'island') return nameCells(paint.name.toUpperCase(), ISLAND_FONT, ISLAND_SPACING)
-  if (paint.kind === 'zone') return nameCells(paint.name, GROUP_FONT)
-  if (paint.kind === 'slab') return nameCells(paint.element.title, CONTAINER_FONT)
+  if (paint.kind === 'island') return nameCells(paint.name.toUpperCase(), ISLAND_FONT, ISLAND_SPACING, paint.element?.icon)
+  if (paint.kind === 'zone') return nameCells(paint.name, GROUP_FONT, 0, paint.icon)
+  if (paint.kind === 'slab') return nameCells(paint.element.title, CONTAINER_FONT, 0, paint.element.icon)
   return 0
 }
 
@@ -225,7 +226,7 @@ function centredIsland(node: Node): Node {
 
 /** Siblings in hierarchy order, with each group's members folded into one zone node where its first member sat. */
 function withZones(
-  parentKey: string,
+  parent: AnnotatedElement,
   siblings: readonly Node[],
   elements: readonly AnnotatedElement[],
   relationships: readonly Pick<AnnotatedRelationship, 'source' | 'target'>[],
@@ -234,14 +235,14 @@ function withZones(
   const buckets = new Map<string, { group: string | undefined; nodes: Node[] }>()
   for (const node of siblings) {
     const group = groupOf.get(node.key)
-    const key = group === undefined ? node.key : `group:${parentKey}:${group}`
+    const key = group === undefined ? node.key : `group:${parent.representationId}:${group}`
     const bucket = buckets.get(key) ?? { group, nodes: [] }
     bucket.nodes.push(node)
     buckets.set(key, bucket)
   }
   return [...buckets].map(([key, { group, nodes }]) => group === undefined
     ? nodes[0]!
-    : packed(key, nodes, { kind: 'zone', name: group, members: nodes.map(member => member.key) }, relationships))
+    : packed(key, nodes, { kind: 'zone', name: group, icon: parent.groupAppearance?.[group]?.icon, members: nodes.map(member => member.key) }, relationships))
 }
 
 export function placeWorld(world: ArchitectureGraph): Placement {
@@ -258,7 +259,7 @@ export function placeWorld(world: ArchitectureGraph): Placement {
     const components = childrenOf(container.representationId).filter(child => child.kind === 'component')
     return packed(
       container.representationId,
-      withZones(container.representationId, components.map(building), components, relationships),
+      withZones(container, components.map(building), components, relationships),
       { kind: 'slab', element: container },
       relationships,
     )
@@ -267,7 +268,7 @@ export function placeWorld(world: ArchitectureGraph): Placement {
     const children = childrenOf(system.representationId)
     const containers = children.filter(child => child.kind === 'container')
     const components = children.filter(child => child.kind === 'component')
-    const surfaces = withZones(system.representationId, containers.map(slab), containers, relationships)
+    const surfaces = withZones(system, containers.map(slab), containers, relationships)
     if (components.length > 0) {
       surfaces.push(packed(`unidentified:${system.representationId}`, components.map(building), {
         kind: 'zone', name: 'Unidentified container', unidentifiedContainer: true,
@@ -368,7 +369,7 @@ function collect(islands: readonly Node[], origins: readonly CellRect[]): Placem
     } else if (paint.kind === 'slab') {
       placement.slabs.push({ ...item(paint.element), island: islandKey, rect })
     } else if (paint.kind === 'zone') {
-      placement.zones.push({ key: node.key, name: paint.name, parent: surface, members: paint.members, rect,
+      placement.zones.push({ key: node.key, name: paint.name, icon: paint.icon, parent: surface, members: paint.members, rect,
         unidentifiedContainer: paint.unidentifiedContainer,
       })
     } else {

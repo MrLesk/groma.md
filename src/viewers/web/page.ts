@@ -17,6 +17,8 @@ import { anchoredPopoverCss } from './atoms/popover.ts'
 import { kindGlyph, kindLabel } from '../atoms/kind.ts'
 import { cssBlock, palettes, themeLabel, themeModes, webFontFamily, type WebThemeMode } from './atoms/theme.ts'
 import { addDialogCss } from './chrome/add.ts'
+import { iconLibraryCss } from './chrome/icon-library.ts'
+import { iconCatalogCss } from './organisms/icon-catalog.ts'
 import { creditsControl, creditsCss } from './chrome/credits.ts'
 import { editorCss } from './editing/gestures.ts'
 import { emptyState, emptyStateCss } from './chrome/empty.ts'
@@ -383,7 +385,7 @@ const style = `
   @media (prefers-reduced-motion: reduce) {
     #hierarchy, #hierarchy-toggle .hierarchy-chevron, #hierarchy-content, #hierarchy-title .pane-label, #details, body.details-hidden #details, body #work, body #map-view, #header > #web-search { transition: none; }
   }
-${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
+${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${iconCatalogCss}${iconLibraryCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
 ${emptyStateCss}
 ${addDialogCss}${editorCss}
 ${relationshipCardCss}${removeCss}${editableCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}`

@@ -28,7 +28,7 @@ import { bindMapPointer } from './iso/camera/pointer.ts'
 import { createCameraSession } from './iso/camera/session.ts'
 import { presentScene, createMapAnimator, createMapMotion } from './iso/view-motion/presentation.ts'
 import { paintRelationship } from './organisms/relationship-details.ts'
-import { detailsTabAfterSelection, detailsTabAfterWork, type DetailsTab, inspectSelection, paintDetails } from './organisms/details.ts'
+import { detailsTabAfterSelection, detailsTabAfterWork, type DetailsTab, type Inspected, inspectSelection, paintDetails } from './organisms/details.ts'
 import { createHierarchy } from './organisms/hierarchy.ts'
 import { createPins } from './work/pins.ts'
 import { createTip } from './organisms/tip.ts'
@@ -134,11 +134,11 @@ const camera = createCameraSession({
 let following = false
 function worldElement(id: string | undefined): AnnotatedElement | undefined { return id === undefined ? undefined : world.elements.find(element => element.representationId === id) }
 function worldRelationship(id: string | undefined): AnnotatedRelationship | undefined { return id === undefined ? undefined : world.relationships.find(item => item.id === id) }
-function unidentifiedGroup(id: string | undefined) { return sheet.zones.find(zone => zone.unidentifiedContainer && zone.key === id) }
+function mapGroup(id: string | undefined) { return sheet.zones.find(zone => zone.key === id) }
 function workItem(id: string | undefined): WorkItem | undefined { return id === undefined ? undefined : work.items.find(item => item.id === id) }
 
 function known(id: string | undefined): boolean {
-  return worldElement(id) !== undefined || worldRelationship(id) !== undefined || unidentifiedGroup(id) !== undefined || workItem(id) !== undefined
+  return worldElement(id) !== undefined || worldRelationship(id) !== undefined || mapGroup(id) !== undefined || workItem(id) !== undefined
     || world.flows.some(flow => flow.id === id)
 }
 
@@ -217,27 +217,31 @@ function paintDetailsState(task: WorkItem | undefined): void {
   if (relationship !== undefined) {
     paintRelationship(detailsHost, relationship, world, select, authoring.relationWrites)
   } else if (inspected !== undefined) {
-    paintDetails(detailsHost, inspected, {
-      world, comparison: revisionControl.comparison,
-      onSelect: select,
-      onToggleFlow: flow => toggleFlow(flow, selected?.representationId),
-      activeFlows,
-      tab: detailsTab,
-      onTab: tab => {
-        detailsTab = tab
-        paintViewState()
-      },
-      code: detailsTab === 'how' && revisionControl.comparison === undefined ? source.code() : [],
-      onSource: source.open,
-      workGroups: selected?.kind === 'component' ? elementWorkGroups(work, selected.representationId, world) : [],
-      onTask: toggleTask,
-      ...(selected === undefined ? {} : authoring.paneWrites(selected.id, selectedArchitecture(selection))),
-    })
+    paintInspected(inspected, selected)
   }
 }
 
+function paintInspected(inspected: Inspected, selected: AnnotatedElement | undefined): void {
+  paintDetails(detailsHost, inspected, {
+    world, comparison: revisionControl.comparison,
+    onSelect: select,
+    onToggleFlow: flow => toggleFlow(flow, selected?.representationId),
+    activeFlows,
+    tab: detailsTab,
+    onTab: tab => {
+      detailsTab = tab
+      paintViewState()
+    },
+    code: detailsTab === 'how' && revisionControl.comparison === undefined ? source.code() : [],
+    onSource: source.open,
+    workGroups: selected?.kind === 'component' ? elementWorkGroups(work, selected.representationId, world) : [],
+    onTask: toggleTask,
+    ...(selected === undefined && !inspected.group ? {} : authoring.paneWrites(inspected.id, inspected.group ? [] : selectedArchitecture(selection))),
+  })
+}
+
 function select(id: string, additive = false, origin: 'panel' | 'map' = 'panel'): void {
-  if (worldElement(id) === undefined && worldRelationship(id) === undefined && unidentifiedGroup(id) === undefined) return
+  if (worldElement(id) === undefined && worldRelationship(id) === undefined && mapGroup(id) === undefined) return
   source.clear()
   const next = origin === 'map' ? selectMapArchitecture(selection, id, additive, world)
     : selectArchitecture(selection, id, additive)
