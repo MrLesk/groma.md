@@ -24,6 +24,9 @@ groma:
       symbol: sourceIndex
     - scanner: typescript
       file: src/architecture-icons.ts
+    - scanner: typescript
+      file: src/architecture-color.ts
+      symbol: isArchitectureColor
   group: Architecture records
 description: Builds the in-memory C4 model from stored Markdown records
 ---

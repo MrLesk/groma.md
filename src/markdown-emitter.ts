@@ -21,6 +21,7 @@ export interface MeaningChanges {
   technology?: string
   draft?: string
   icon?: string
+  color?: string
 }
 
 /** Normal edits and structural edits apply authored meaning in the same way. */
@@ -31,6 +32,7 @@ export function withMeaning(source: string, input: MeaningChanges): string {
   if (input.technology !== undefined) source = withGromaField(source, 'technology', input.technology || undefined)
   if (input.draft !== undefined) source = withGromaField(source, 'draft', input.draft || undefined)
   if (input.icon !== undefined) source = withGromaField(source, 'icon', input.icon || undefined)
+  if (input.color !== undefined) source = withGromaField(source, 'color', input.color || undefined)
   return source
 }
 
@@ -77,7 +79,7 @@ export function withGromaCode(source: string, code: CodeReference[]): string {
 
 export function withGromaField(
   source: string,
-  field: 'id' | 'group' | 'parent' | 'draft' | 'technology' | 'icon',
+  field: 'id' | 'group' | 'parent' | 'draft' | 'technology' | 'icon' | 'color',
   value: string | undefined,
 ): string {
   return withGromaChange(source, groma => {

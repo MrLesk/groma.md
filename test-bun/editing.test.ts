@@ -131,24 +131,30 @@ test.concurrent('drop intent chooses ancestry and grouping keeps world ownership
 })
 
 
-test.concurrent('authored icons survive scan and reach every C4 sheet surface', async () => {
+test.concurrent('authored icons and colors survive scan and reach every C4 sheet surface', async () => {
   const root = await fixture()
   try {
     const actor = await writes.add(root, { thing: 'actor', name: 'Operator', overview: 'Uses the application.' })
     const external = await writes.add(root, { thing: 'external', name: 'Code host', overview: 'Hosts source.' })
     const assignments = [
-      ['shop', 'groma:system'], ['api', 'groma:application'], ['stock', 'groma:database'],
-      [actor, 'groma:person'], [external, 'groma:repository'],
+      ['shop', 'groma:system', '#658B78'], ['api', 'groma:application', '#6486B8'], ['stock', 'groma:database', '#A378A4'],
+      [actor, 'groma:person', '#B08854'], [external, 'groma:repository', '#C87968'],
     ] as const
-    for (const [id, icon] of assignments) await writes.edit(root, { id, icon })
+    for (const [id, icon, color] of assignments) await writes.edit(root, { id, icon, color })
     await writes.add(root, { thing: 'group', name: 'Checks', members: ['stock', 'orders'] })
-    const command = Bun.spawn(['bun', path.join(repositoryRoot, 'src/cli.ts'), 'edit', 'group', 'api/checks', '--icon', 'groma:group'], { cwd: root, stderr: 'pipe' })
+    const command = Bun.spawn(['bun', path.join(repositoryRoot, 'src/cli.ts'), 'edit', 'group', 'api/checks', '--icon', 'groma:group', '--color', '#7589A0'], { cwd: root, stderr: 'pipe' })
     assert.equal(await command.exited, 0, await new Response(command.stderr).text())
     await scanRepository(root)
     const world = await loadAnnotatedArchitecture(root)
     const scene = sheetScene(world)
     const items = [...scene.buildings, ...scene.slabs, ...scene.islands.flatMap(island => island.element ? [island.element] : [])]
-    for (const [id, icon] of assignments) assert.equal(items.find(item => item.id === id)?.icon, icon)
+    for (const [id, icon, color] of assignments) {
+      const item = items.find(item => item.id === id)!
+      assert.equal(item.icon, icon)
+      assert.equal(item.color, color)
+    }
+    assert.equal(items.find(item => item.id === 'orders')?.color, undefined)
+    assert.equal(scene.zones.find(zone => zone.name === 'Checks')?.color, '#7589A0')
     assert.equal(scene.zones.find(zone => zone.name === 'Checks')?.icon, 'groma:group')
     assert.equal(world.elements.find(element => element.id === 'api')?.groupAppearance?.Checks?.icon, 'groma:group')
     assert.ok(world.elements.filter(element => ['stock', 'orders'].includes(element.id)).every(element => element.parent === 'api'))
@@ -158,20 +164,37 @@ test.concurrent('authored icons survive scan and reach every C4 sheet surface', 
     const clear = Bun.spawn(['bun', path.join(repositoryRoot, 'src/cli.ts'), 'edit', 'stock', '--icon', ''], { cwd: root, stderr: 'pipe' })
     assert.equal(await clear.exited, 0, await new Response(clear.stderr).text())
     assert.equal((await loadAnnotatedArchitecture(root)).elements.find(element => element.id === 'stock')?.icon, undefined)
+    const readStock = async () => (await loadAnnotatedArchitecture(root)).elements.find(element => element.id === 'stock')!
+    assert.equal((await readStock()).color, '#A378A4')
+    await writes.edit(root, { id: 'stock', icon: 'groma:cache' })
+    await assert.rejects(writes.edit(root, { id: 'stock', color: 'red' }), /opaque hex color/)
+    await assert.rejects(writes.edit(root, { id: 'stock', color: '#658B78', original: { color: '' } }), /color changed/)
+    assert.equal((await readStock()).color, '#A378A4')
+    const clearColor = Bun.spawn(['bun', path.join(repositoryRoot, 'src/cli.ts'), 'edit', 'stock', '--color', ''], { cwd: root, stderr: 'pipe' })
+    assert.equal(await clearColor.exited, 0, await new Response(clearColor.stderr).text())
+    assert.equal((await readStock()).color, undefined)
+    assert.equal((await readStock()).icon, 'groma:cache')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-test.concurrent('group icons follow renames and remain only while the group exists', async () => {
+test.concurrent('group appearance follows renames, supports independent assignments, and ends with its final member', async () => {
   const root = await fixture()
   try {
     const appearance = async () => (await loadAnnotatedArchitecture(root)).elements.find(element => element.id === 'api')!.groupAppearance
     await writes.add(root, { thing: 'group', name: 'Checks', members: ['stock', 'orders'] })
-    await writes.edit(root, { id: 'api/checks', icon: 'groma:group' })
+    await writes.edit(root, { id: 'api/checks', icon: 'groma:group', color: '#658B78' })
     await writes.edit(root, { id: 'api/checks', title: 'Validation' })
-    assert.deepEqual(await appearance(), { Validation: { icon: 'groma:group' } })
+    assert.deepEqual(await appearance(), { Validation: { icon: 'groma:group', color: '#658B78' } })
     await assert.rejects(writes.edit(root, { id: 'api/validation', icon: 'groma:service', original: { icon: '' } }), /icon changed/)
-    await writes.remove(root, { id: 'api/validation', members: ['stock'] })
+    await assert.rejects(writes.edit(root, { id: 'api/validation', color: '#12345678' }), /opaque hex color/)
+    await assert.rejects(writes.edit(root, { id: 'api/validation', color: '#6486B8', original: { color: '' } }), /color changed/)
+    await writes.edit(root, { id: 'api/validation', icon: '' })
+    assert.deepEqual(await appearance(), { Validation: { color: '#658B78' } })
+    await writes.edit(root, { id: 'api/validation', icon: 'groma:group', color: '' })
     assert.deepEqual(await appearance(), { Validation: { icon: 'groma:group' } })
+    await writes.edit(root, { id: 'api/validation', color: '#658B78' })
+    await writes.remove(root, { id: 'api/validation', members: ['stock'] })
+    assert.deepEqual(await appearance(), { Validation: { icon: 'groma:group', color: '#658B78' } })
     await writes.edit(root, { id: 'orders', ungroup: true })
     assert.equal(await appearance(), undefined)
     await writes.add(root, { thing: 'group', name: 'Checks', members: ['stock', 'orders'] })

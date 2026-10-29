@@ -28,33 +28,40 @@ const iconByKind: Record<C4Kind, string> = {
   actor: 'groma:person', system: 'groma:system', container: 'groma:application', component: 'groma:database',
 }
 
-function assignIcons(world: AnnotatedArchitectureModel): void {
+function assignAppearance(world: AnnotatedArchitectureModel): void {
   for (const element of world.elements) {
     element.icon = element.external ? 'groma:repository' : iconByKind[element.kind]
+    if (element.kind !== 'component') element.color = '#7764B0'
     if (element.group === undefined) continue
     const parent = world.elements.find(item => item.representationId === element.parent)!
-    parent.groupAppearance = { ...parent.groupAppearance, [element.group]: { icon: 'groma:group' } }
+    parent.groupAppearance = { ...parent.groupAppearance, [element.group]: { icon: 'groma:group', color: '#278D86' } }
   }
 }
 
-test.concurrent('authored icons stay with each architecture owner in live map drawings and static covers', async () => {
+test.concurrent('authored appearance stays with each architecture owner in live map drawings and static covers', async () => {
   const world = await loadAnnotatedArchitecture(`${repositoryRoot}/test/fixtures/plain-view`)
-  assignIcons(world)
+  assignAppearance(world)
   const sheet = sheetScene(world)
   assert.ok(sheet.zones.length > 0)
   for (const pose of [NESTED_POSE, OVERHEAD_POSE]) {
     const scene = presentScene(sheet, undefined, pose)
     const nodes = descendants([...islandsSvg(scene), ...slabsSvg(scene), ...buildingsSvg(scene)])
     for (const element of world.elements) {
-      assert.equal(titleIcon(nodes.find(item => item.attributes['data-id'] === element.representationId)), element.icon)
+      const owner = nodes.find(item => item.attributes['data-id'] === element.representationId)
+      assert.equal(titleIcon(owner), element.icon)
+      assert.equal(owner!.attributes['data-color'], element.color)
     }
     for (const zone of sheet.zones) {
-      assert.equal(titleIcon(nodes.find(item => item.attributes['data-id'] === zone.key)), 'groma:group')
+      const owner = nodes.find(item => item.attributes['data-id'] === zone.key)
+      assert.equal(titleIcon(owner), 'groma:group')
+      assert.equal(owner!.attributes['data-color'], '#278D86')
     }
   }
   const expected = [...world.elements.map(element => element.icon!), ...sheet.zones.map(() => 'groma:group')].sort()
   for (const theme of ['light', 'dark', 'blueprint'] as const) {
     const svg = renderCover({ sheet, project: null }, theme)
     assert.deepEqual([...svg.matchAll(/data-icon="([^"]+)"/g)].map(match => match[1]!).sort(), expected)
+    const coloredOwners = [...svg.matchAll(/<g [^>]*data-color="([^"]+)"/g)].map(match => match[1]!).sort()
+    assert.deepEqual(coloredOwners, [...world.elements.flatMap(element => element.color ?? []), ...sheet.zones.map(() => '#278D86')].sort())
   }
 })

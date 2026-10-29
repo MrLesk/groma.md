@@ -27,6 +27,8 @@ groma:
       file: src/viewers/web/organisms/icon-picker.ts
     - scanner: typescript
       file: src/viewers/web/organisms/icon-catalog.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/color-picker.ts
   group: Architecture panels
 description: Shows the selected element, its source and its relationships
 ---

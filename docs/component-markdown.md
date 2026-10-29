@@ -166,6 +166,7 @@ groma.md-only fields live together under `groma`:
 | `draft` | no | ID of the draft record this concept belongs to or that touches it. |
 | `group` | no | Readable name of a hand-authored sibling cluster. |
 | `icon` | no | Embedded architecture icon ID, such as `groma:database`. |
+| `color` | no | Opaque map accent in `#RRGGBB` form, independent of the UI theme. |
 | `groupAppearance` | no | Group-name mapping of appearance, held by the common C4 parent. |
 | `technology` | no | Free text naming implementation technology, comma-separated. |
 | `code` | no | Scanner-produced source evidence. |
@@ -211,6 +212,7 @@ groma:
   groupAppearance:
     Payments:
       icon: groma:group
+      color: "#658B78"
 ```
 
 `groma edit group api/payments --icon groma:group` edits that entry;
@@ -220,6 +222,21 @@ this metadata for the group label, without changing membership or boundaries.
 Scans preserve authored icons. Ordinary Markdown and OKF readers still see
 all titles, descriptions, and architecture links without interpreting icons.
 See [Architecture icons](icons.md) for the embedded family and visual use.
+
+Colors are a separate assignment from icons. `groma edit <id> --color '#658B78'`
+sets an actor, internal or external system, container, or component accent;
+`groma edit group api/payments --color '#658B78'` sets the group accent.
+The web Edit form uses the same fields. Empty `--color ''` clears only the
+color, and empty `--icon ''` clears only the icon. A color requires exactly
+six hexadecimal digits after `#`; CSS names, transparency, and theme tokens
+are not stored. Quote the value in shell commands and hand-authored YAML.
+
+The color belongs only to the assigned item. Groups and parents do not pass
+colors to their members or children. Groma uses a restrained surface tint
+and a readable icon accent, while titles and state signals keep their own
+meaning. Switching the UI theme changes the rendering, not the stored color.
+This is Groma presentation metadata; ordinary Markdown, OKF links, and C4
+boundaries remain unchanged. Scans preserve both assignments.
 
 The architecture model owns IDs. groma.md assigns an ID when it drafts a concept
 or when a scan finds a previously unknown source. A drafted concept keeps its
