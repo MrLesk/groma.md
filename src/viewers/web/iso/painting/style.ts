@@ -177,8 +177,9 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .route-base.ghost.draft, #map .route.ghost.draft:not(.touched):not(.lit) .line { stroke-dasharray: ${4 / zoom} ${3 / zoom}; }
   #map .text { fill: ${ink}; pointer-events: none; }
   #map .architecture-icon { color: ${ink}; pointer-events: none; }
-  #map .architecture-icon .icon-line { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  #map .architecture-icon .icon-line { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
   #map .architecture-icon .icon-wash { fill: currentColor; fill-opacity: 0.14; stroke: none; }
+  #map .architecture-icon .icon-shade { fill: currentColor; fill-opacity: 0.18; stroke: none; }
   #map .island > .label .text, #map .slab > .label .text, #map .zone > .label .text { font-weight: 600; }
   #map .route-base, #map .route .line { fill: none; stroke-linecap: round; opacity: 0.9; }
   #map .route-base { pointer-events: none; }

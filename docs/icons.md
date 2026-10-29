@@ -21,7 +21,7 @@ project's language or technology.
 | People | `groma:person`, `groma:team` |
 | Architecture | `groma:system`, `groma:external`, `groma:component`, `groma:group` |
 | Applications | `groma:application`, `groma:browser`, `groma:mobile`, `groma:service`, `groma:worker` |
-| Infrastructure | `groma:database`, `groma:queue`, `groma:cache`, `groma:storage`, `groma:gateway`, `groma:repository`, `groma:cloud`, `groma:identity`, `groma:mail` |
+| Infrastructure | `groma:server`, `groma:database`, `groma:queue`, `groma:cache`, `groma:storage`, `groma:gateway`, `groma:repository`, `groma:cloud`, `groma:identity`, `groma:mail` |
 
 An icon describes a responsibility without changing the architecture level.
 For example, a database can be a container and a repository can be an external
@@ -38,13 +38,16 @@ and links; only Groma interprets the optional icon as map presentation.
 
 [`src/architecture-icons.ts`](../src/architecture-icons.ts) owns the drawings,
 labels and categories shared by the chooser and map. Each drawing uses a
-24-unit view box and two path roles: an outline and a quiet wash. Viewers
-supply the color, stroke width and wash opacity. The artwork contains no
+24-unit view box and three path roles: an outline, a filled body (`wash`),
+and a subtle shaded region (`shade`). Viewers supply one color, the stroke
+width, and the two fill opacities. The artwork contains no
 fixed colors, external images, fonts or downloaded icon-pack assets.
 
-Generic symbols follow the map's ink and sit beside the title, on the same
-plane in isometric and 2D views. Their shape carries the meaning even without
-color. Keep titles and C4 boundaries visible when adding or changing icons;
+Drawings face forward, with clear silhouettes and filled bodies. The map
+projects each icon once, together with its title, onto the isometric or 2D
+label plane. Do not build an isometric perspective into the artwork: it
+would receive a second tilt on the map. Generic symbols follow the map's ink.
+Their shape carries the meaning even without color. Keep titles and C4 boundaries visible when adding or changing icons;
 the symbol supplements them.
 
 Names identify the embedded family (`groma:database`). Adding a drawing means

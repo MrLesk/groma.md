@@ -24,8 +24,9 @@ export const iconPickerCss = `
   #details .icon-picker input { position: absolute; width: 1px; height: 1px; padding: 0; border: 0;
     opacity: 0; overflow: hidden; }
   #details .icon-picker svg { width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor;
-    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-  #details .icon-picker .icon-wash { fill: currentColor; stroke: none; opacity: 0.10; }
+    stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  #details .icon-picker .icon-wash { fill: currentColor; stroke: none; fill-opacity: 0.14; }
+  #details .icon-picker .icon-shade { fill: currentColor; stroke: none; fill-opacity: 0.18; }
   #details .icon-picker .icon-none { flex-direction: row; justify-content: flex-start; min-height: 36px; padding: 5px 8px;
     font-size: 12px; gap: 10px; }
 `

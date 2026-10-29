@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-28T22:00:00Z'
+updated_date: '2026-10-29T18:49:00Z'
 labels:
   - personalization
 dependencies: []
@@ -14,6 +14,9 @@ references:
   - src/group.ts
   - src/viewers/web/iso/painting/buildings.ts
   - src/viewers/web/organisms/details.ts
+  - src/architecture-icons.ts
+  - src/viewers/web/organisms/icon-picker.ts
+  - src/viewers/web/iso/painting/style.ts
 modified_files:
   - src/types.ts
   - src/architecture-model.ts
@@ -97,6 +100,8 @@ Icon authoring coverage: extend the existing editing fixture to verify supported
 Web inspection test: the user requires group icon editing through the same map. Existing details tests cover only C4 elements and placement groups. Add one minimal narrative-group selection case that detects writing to a representation key or member instead of the canonical parent/group address, and verifies the selected group icon remains separate from its parent icon.
 
 The group lifecycle check also deletes a drafted last member through the existing remove element flow. This is another supported way to remove the final group member; without cleanup its parent would retain an icon for a group that no longer exists. Extend the same lifecycle test rather than add a separate fixture.
+
+Approved artwork revision (29 October): replace the thin outline drawings with original front-facing SVG drawings matching the selected image study: filled bodies, clear outlines and quiet shading. Keep one shared family for the picker, 2D, isometric maps and exports. Add the Server symbol shown in the approved study. Retain CSS-driven accents and existing metadata, layout and authoring. Inspect the full set and small sizes in all three themes, then run the existing focused tests and bun run check. This is an artwork/style revision: existing behavior coverage is sufficient and no decorative assertions will be added. Update the icon PR and restack the color PR.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -111,10 +116,14 @@ Geometry coverage extends the existing roof/label tests to detect clipping or ti
 The cold simplicity review passed. Its accepted consolidation loads group elements once per public operation. Implementer specification and quality reviews passed, followed by the full-context complexity review with no blockers. Final bun run check passed with Bun 1.4.4 and Node 26.12.1: 26 Node tests and 945 Bun tests, 64 environment-dependent skips, no failures. Existing lint warnings are outside this task.
 
 Architecture curation: embedded catalog joins Architecture model, icon picker joins Architecture details, and SVG glyph drawing joins Map painting. A second scan created zero components. Four optional native scanners were unavailable and kept saved evidence; TypeScript scanning covered every changed source file. Unrelated scanner-generated records are excluded from this PR. Vendor use is documented as an original Repository glyph plus the authored vendor name, not an adapted vendor logo.
+
+Approved artwork revision: 21 original front-facing SVGs now use outline, filled body and subtle shade paths. Server matches the approved image study; the remaining family follows the same geometry and tonal treatment. The picker and map use matching CSS roles. No storage, authoring, C4 or OKF behavior changed. Implementer specification and quality review passed: the existing shared catalog remains the only drawing source, and selection/accents supply color. This styling revision needs no new decorative tests or additional architecture concepts. Focused checks: 13 pass. Full bun run check on Bun 1.4.4 / Node 26.12.1: 26 Node tests, 945 Bun tests, 64 optional environment-dependent skips, no failures. Inspected all 21 SVGs at large, 24px and projected sizes in Light/Dark/Blueprint; generated cover images render the same artwork. Browser checked the complete picker, dark isometric and light overhead maps, and selected icon shading. No task-owned groma files changed.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
 Added 20 original CSS-colored embedded SVG icons, web/CLI assignment and clearing for every supported map level and group, parent-owned group metadata, measured title spacing, and shared live/export rendering. Documented the storage and drawing contract. Focused checks, six theme/view visual passes, both external review gates and the full repository check pass.
+
+Revised the family to the user-approved front-facing, filled and subtly shaded style; added Server (21 icons total). Both viewer CSS paths use the same three roles and the map applies perspective once with the title. Existing tests and the full repository check pass.
 <!-- SECTION:FINAL_SUMMARY:END -->
