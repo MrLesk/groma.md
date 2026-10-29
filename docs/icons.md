@@ -14,6 +14,17 @@ address for a group named `Payments` is `shop/payments`. An empty icon value
 clears the assignment. Icons are optional; Groma does not infer them from a
 project's language or technology.
 
+## Browse and search
+
+Open **Info → Icon library** to browse the embedded family in the current theme.
+Search by icon name, ID or category. Select an icon for a larger preview and
+use **Copy ID** to copy its exact name for Markdown or the CLI. Browsing does
+not change the map.
+
+The Icon chooser in **Edit** uses the same search. Searching keeps the current
+choice, even when it is outside the results. Choose an icon or **None**, then
+save the edit to apply it.
+
 ## Embedded family
 
 | Category | Icon names |
@@ -37,7 +48,7 @@ and links; only Groma interprets the optional icon as map presentation.
 ## Artwork and rendering
 
 [`src/architecture-icons.ts`](../src/architecture-icons.ts) owns the drawings,
-labels and categories shared by the chooser and map. Each drawing uses a
+labels and categories shared by the library, chooser and map. Each drawing uses a
 24-unit view box and three path roles: an outline, a filled body (`wash`),
 and a subtle shaded region (`shade`). Viewers supply one color, the stroke
 width, and the two fill opacities. The artwork contains no

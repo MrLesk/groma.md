@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@codex'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-10-29T18:49:00Z'
+updated_date: '2026-10-29T19:35:00Z'
 labels:
   - personalization
 dependencies: []
@@ -17,6 +17,8 @@ references:
   - src/architecture-icons.ts
   - src/viewers/web/organisms/icon-picker.ts
   - src/viewers/web/iso/painting/style.ts
+  - src/viewers/web/chrome/credits.ts
+  - src/viewers/web/chrome/shell.ts
 modified_files:
   - src/types.ts
   - src/architecture-model.ts
@@ -60,6 +62,17 @@ modified_files:
   - groma/systems/groma-md/containers/export/components/organisms-details.md
   - groma/systems/groma-md/containers/export/components/icons.md
   - groma/systems/groma-md/containers/export/components/map.md
+  - src/viewers/web/organisms/icon-catalog.ts
+  - src/viewers/web/chrome/icon-library.ts
+  - src/viewers/web/chrome/credits.ts
+  - src/viewers/web/chrome/shell.ts
+  - src/viewers/web/page.ts
+  - test-bun/icon-catalog.test.ts
+  - groma/systems/groma-md/components/icon-catalog.md
+  - groma/systems/groma-md/components/icon-library.md
+  - groma/systems/groma-md/containers/export/components/icon-catalog.md
+  - groma/systems/groma-md/containers/export/components/icon-library.md
+  - groma/systems/groma-md/containers/export/components/shell.md
 type: feature
 ordinal: 1
 ---
@@ -77,6 +90,8 @@ Give Groma an original embedded SVG icon family that makes architecture easier t
 - [x] #3 Icons read clearly in isometric and 2D views across Light, Dark, and Blueprint, without obscuring titles, selection, relationships, or hollow draft styling.
 - [x] #4 Static map exports and cover images retain the same icon meaning as live maps.
 - [x] #5 Storage and authoring are documented; focused behavior checks and rendered visual examples verify assignment, persistence, and each supported map view.
+- [x] #6 Info opens a searchable Icon library with the embedded icons, an enlarged selected preview, and Copy ID; search matches name, ID and category in the current theme.
+- [x] #7 The existing Edit icon picker supports the same search without changing or clearing the selected icon until the author chooses another option and saves.
 <!-- AC:END -->
 
 ## Definition of Done
@@ -102,6 +117,8 @@ Web inspection test: the user requires group icon editing through the same map. 
 The group lifecycle check also deletes a drafted last member through the existing remove element flow. This is another supported way to remove the final group member; without cleanup its parent would retain an icon for a group that no longer exists. Extend the same lifecycle test rather than add a separate fixture.
 
 Approved artwork revision (29 October): replace the thin outline drawings with original front-facing SVG drawings matching the selected image study: filled bodies, clear outlines and quiet shading. Keep one shared family for the picker, 2D, isometric maps and exports. Add the Server symbol shown in the approved study. Retain CSS-driven accents and existing metadata, layout and authoring. Inspect the full set and small sizes in all three themes, then run the existing focused tests and bun run check. This is an artwork/style revision: existing behavior coverage is sufficient and no decorative assertions will be added. Update the icon PR and restack the color PR.
+
+Approved Icon library addition: add an Info action opening the existing shared dialog surface with a labeled icon grid, search, enlarged selected preview and Copy ID. Share drawing previews and name/ID/category matching with the Edit picker. Preserve native radio values while filtering, including selected options hidden by search. Reuse the catalog and current theme; no new icon set metadata, stored architecture data or C4 concepts. The existing groma.icon metadata keeps its meaning for OKF readers. Add one focused pure search test because existing tests cover rendering and assignment but cannot detect missing search fields or filtering; browser checks cover modal focus/Escape, exact copied ID, no results/reset, and picker Save/Cancel with filtered selection. Run full check, curate any new source ownership, update PR #194 and restack #195.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -118,6 +135,10 @@ The cold simplicity review passed. Its accepted consolidation loads group elemen
 Architecture curation: embedded catalog joins Architecture model, icon picker joins Architecture details, and SVG glyph drawing joins Map painting. A second scan created zero components. Four optional native scanners were unavailable and kept saved evidence; TypeScript scanning covered every changed source file. Unrelated scanner-generated records are excluded from this PR. Vendor use is documented as an original Repository glyph plus the authored vendor name, not an adapted vendor logo.
 
 Approved artwork revision: 21 original front-facing SVGs now use outline, filled body and subtle shade paths. Server matches the approved image study; the remaining family follows the same geometry and tonal treatment. The picker and map use matching CSS roles. No storage, authoring, C4 or OKF behavior changed. Implementer specification and quality review passed: the existing shared catalog remains the only drawing source, and selection/accents supply color. This styling revision needs no new decorative tests or additional architecture concepts. Focused checks: 13 pass. Full bun run check on Bun 1.4.4 / Node 26.12.1: 26 Node tests, 945 Bun tests, 64 optional environment-dependent skips, no failures. Inspected all 21 SVGs at large, 24px and projected sizes in Light/Dark/Blueprint; generated cover images render the same artwork. Browser checked the complete picker, dark isometric and light overhead maps, and selected icon shading. No task-owned groma files changed.
+
+Icon library: Info opens the existing shared dialog with categorized original SVG previews, name/ID/category search, a selected enlarged icon and Copy ID. The Edit picker shares the search and DOM preview; filtering retains native checked radios and Enter in search does not submit. Browser evidence: searched by ID and category, selected Team/Server, copied groma:database exactly, checked no-results/reset, verified Escape and Close return focus to Info, and verified filtered Save and Cancel retain System. Inspected Light/Dark/Blueprint and 390px compact layout with no console errors. Shared SVG preview and search live in icon-catalog; the library is owned by Map controls and shared picker presentation by Architecture details. A rescan created zero components. Removed only unrelated untracked scanner records produced during this task. Implementer specification and quality review found no blocking issue: Info -> dialog -> shared catalog -> selection/copy is separate from Edit -> filtered native radios -> existing Save, with no changes to C4 or OKF meaning. This bounded UI addition uses the implementer review; no new architecture/domain review gate is needed.
+
+Final Icon library checks: focused tests 9 passed; bun run check passed with Bun 1.4.4 / Node 26.12.1 (26 Node tests, 946 Bun tests, 64 optional environment-dependent skips, zero failures). Changed files pass lint and typecheck; existing lint warnings are outside this task. The worktree contains only this task, its documentation, and the two curated owner records.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
@@ -126,4 +147,6 @@ Approved artwork revision: 21 original front-facing SVGs now use outline, filled
 Added 20 original CSS-colored embedded SVG icons, web/CLI assignment and clearing for every supported map level and group, parent-owned group metadata, measured title spacing, and shared live/export rendering. Documented the storage and drawing contract. Focused checks, six theme/view visual passes, both external review gates and the full repository check pass.
 
 Revised the family to the user-approved front-facing, filled and subtly shaded style; added Server (21 icons total). Both viewer CSS paths use the same three roles and the map applies perspective once with the title. Existing tests and the full repository check pass.
+
+Added Info -> Icon library with name/ID/category search, enlarged previews and Copy ID, plus shared search in Edit that preserves its selected icon. Verified the browser flows in all three themes and a compact layout; full check passes.
 <!-- SECTION:FINAL_SUMMARY:END -->
