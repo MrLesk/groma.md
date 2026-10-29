@@ -98,7 +98,10 @@ function excludeEvidence(
   excluded: (file: string) => boolean,
 ): ScanObservation | undefined {
   const files = observation.files.filter(file => !excluded(file.file))
-  if (files.length === observation.files.length && !observation.entryPoints?.some(entry => excluded(entry.file) || excluded(entry.declaration))) return observation
+  const runtimeExcluded = observation.dataStores?.some(store => excluded(store.entry) || excluded(store.file))
+    || observation.hostedServices?.some(service => excluded(service.entry) || service.declarations.some(excluded))
+  if (files.length === observation.files.length && !runtimeExcluded
+    && !observation.entryPoints?.some(entry => excluded(entry.file) || excluded(entry.declaration))) return observation
   if (files.length === 0) return undefined
   const paths = new Set(files.map(file => file.file))
   const rootIds = new Set(files.flatMap(file => file.roots))
@@ -119,6 +122,12 @@ function excludeEvidence(
   })
   return {
     ...observation, files, roots,
+    ...(observation.dataStores === undefined ? {} : {
+      dataStores: observation.dataStores.filter(store => paths.has(store.entry) && paths.has(store.file)),
+    }),
+    ...(observation.hostedServices === undefined ? {} : {
+      hostedServices: observation.hostedServices.filter(service => paths.has(service.entry) && !service.declarations.some(excluded)),
+    }),
     ...(observation.sourceUnits === undefined ? {} : {
       sourceUnits: observation.sourceUnits.filter(unit => paths.has(unit.primary))
         .map(unit => ({ ...unit, files: unit.files.filter(file => paths.has(file)) })),

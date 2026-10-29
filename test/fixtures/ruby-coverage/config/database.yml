@@ -1,0 +1,28 @@
+default: &default
+  adapter: postgresql
+  host: <%= ENV.fetch("DATABASE_HOST") %>
+  password: <%= raise "must not execute ERB" %>
+
+development:
+  <<: *default
+  database: local_data
+
+test:
+  <% if ENV["TEST_DATABASE"] %>
+  database: <%= ENV["TEST_DATABASE"] %>
+  <% else %>
+  database: local_test
+  <% end %>
+
+production:
+  primary: &production
+    <<: *default
+    database: service_data
+  queue:
+    <<: *production
+    database: service_jobs
+
+staging:
+  primary:
+    adapter: sqlite3
+    database: ignored.sqlite3

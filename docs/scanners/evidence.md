@@ -101,6 +101,18 @@ the result uses the existing container level. groma.md interprets the temporary 
 and its application profile decides placement; neither OKF nor C4 mandates this
 automatic inference rule.
 
+## Configured storage and hosted services
+
+`dataStores` and `hostedServices` describe checked-in configuration for a declared application entry. They establish intended configuration only; neither proves what is deployed or running. The first supported example is Rails production PostgreSQL storage and Solid Queue hosted through Puma.
+
+A data-store fact contains `entry` (an inventoried application entry), `file` (the inventoried storage configuration), `environment`, `technology`, and `databases` (literal `role` and `name` pairs). It describes one application-owned storage boundary and its logical databases, not a physical database-server inventory. Core reuses established ownership of `file`; when that file is unowned and the application system is identifiable, core creates a storage container with that configuration as its Code reference. Database roles do not create additional containers.
+
+A hosted-service fact contains `entry`, `declarations` (the exact configuration sources), `environment`, `name`, and `host` (the runtime integration). It supplies supporting knowledge about the existing application container and does not declare another application. Excluding any declaring source removes that claim.
+
+Core records both kinds of configuration in an owned `## Derived runtime configuration` section with ordinary source links and an explicit deployment-verification limit. Other prose and metadata stay authored. Hosted-service configuration refreshes with the application entry, so removing its enabling setting removes that statement on the next successful scan. Data stores retain their established identity through their configuration Code reference. Core derives a source-file relationship from the application entry to the storage configuration; map projection lifts the endpoints to their current architecture owners.
+
+In OKF, configuration remains readable Markdown and links, with source ownership in the existing `groma.code` field. In C4, an application and an owned data store are containers; logical database roles and hosted execution details are supporting knowledge. These interpretation rules belong to Groma's application profile, rather than requirements of either standard. They do not attempt to discover deployment nodes or infer arbitrary runtime infrastructure.
+
 ## Vocabulary and introduction order
 
 ### Explicit multi-file source units
