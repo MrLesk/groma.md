@@ -230,8 +230,9 @@ the existing `groma.id` identity.
 | `file` | yes | Exact repository-relative source file. |
 | `symbol` | no | Relevant symbol or entry point; omitted when the complete file is useful. |
 
-Multiple scanners may contribute references to one element. Code references
-appear in details; they are not C4 concepts or another viewer level. Later scans
+Multiple scanners may contribute references to one element. Code references may belong to a component or a container. A configured storage container can own its exact configuration source directly, without introducing an artificial configuration component. This is source identity and navigation, not a claim that the configuration file executes within the database.
+
+Code references appear in details; they are not C4 concepts or another viewer level. Later scans
 may refresh supported symbols but preserve curated file membership, unowned
 metadata, and authored Markdown. The exact source path has one owner across
 scanners. Separate scanner contributions do not create duplicate owners. Core

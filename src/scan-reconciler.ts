@@ -8,163 +8,26 @@ import { storedConnections } from './relationship-markdown.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { architectureElementPath, isExternalPath } from './architecture-path.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
-import { renderArchitectureDocument, upsertCode, writeDocument } from './markdown-emitter.ts'
-import { isReservedId, kebabCase } from './naming.ts'
+import { upsertCode } from './markdown-emitter.ts'
 import { componentNames, sourceStem } from './scan-component-naming.ts'
+import { kebabCase } from './naming.ts'
+import { establishDataStores, refreshRuntimeConfiguration } from './scan-runtime.ts'
 import { entryPointPlacements } from './scan-entrypoints.ts'
 import { completeContainerPlacement } from './curate.ts'
 import { sourceUnitGroups } from './scan-source-units.ts'
 import { loadProjectProfile } from './project-profile.ts'
-import { c4Kind, requireGromaMapping } from './okf-profile.ts'
 import { refreshDerivedRelationships } from './relationship-inference.ts'
 import type { ScanFile, ScanObservation, ScanRoot } from '@groma/scanner'
 import type {
-  ArchitectureDocument,
-  ArchitectureRecords,
   C4Kind,
   CodeReference,
-  ElementStatus,
   ScanSummary,
 } from './types.ts'
 
-export function readCode(value: unknown): CodeReference[] {
-  if (!Array.isArray(value)) return []
-  return value.map(entry => {
-    const reference = entry as CodeReference
-    return {
-      scanner: reference.scanner,
-      file: reference.file,
-      ...(Object.hasOwn(reference, 'symbol') ? { symbol: reference.symbol } : {}),
-    }
-  })
-}
+import { candidateId, isFree, indexWorld, reserveRecord, writeRecord, createRecord, type World, type WorldRecord } from './scan-world.ts'
 
 function codeFileKey(scanner: string, file: string): string {
   return `${scanner}\0${file}`
-}
-
-export interface WorldRecord {
-  id: string
-  title: string
-  kind: C4Kind
-  parent?: string | null
-  status: ElementStatus
-  sourceFilename: string
-  code: CodeReference[]
-}
-
-export interface World {
-  byId: Map<string, WorldRecord>
-  byCodeFile: Map<string, WorldRecord>
-}
-
-function worldRecord(document: ArchitectureDocument): WorldRecord | undefined {
-  const kind = c4Kind(document.frontmatter.type)
-  if (kind === undefined) return undefined
-  const groma = requireGromaMapping(document.frontmatter, document.sourceFilename)
-  const { id, parent } = groma
-  if (typeof id !== 'string') return undefined
-  if (parent !== undefined && parent !== null && typeof parent !== 'string') return undefined
-  return {
-    id,
-    title: String(document.frontmatter.title),
-    kind,
-    parent,
-    status: document.frontmatter.status === 'draft' ? 'draft' : 'stable',
-    sourceFilename: document.sourceFilename,
-    code: readCode(groma.code),
-  }
-}
-
-function indexWorld(records: ArchitectureRecords): World {
-  const world: World = { byId: new Map(), byCodeFile: new Map() }
-  for (const document of records.documents) {
-    const record = worldRecord(document)
-    if (record === undefined) continue
-    world.byId.set(record.id, record)
-    for (const reference of record.code) {
-      world.byCodeFile.set(reference.file, record)
-    }
-  }
-  return world
-}
-
-/** The IDs a record of this name may take, in order: plain, qualified by its parent, then numbered. */
-function candidateId(name: string, parent: WorldRecord | undefined, index: number): string {
-  const base = kebabCase(name) || 'source'
-  if (index === 0) return base
-  const qualified = `${parent?.id ?? 'source'}-${base}`
-  return index === 1 ? qualified : `${qualified}-${index}`
-}
-
-function isFree(world: World, id: string): boolean {
-  return !world.byId.has(id) && !isReservedId(id)
-}
-
-/** The first candidate ID no record holds. */
-function availableId(world: World, name: string, parent?: WorldRecord): string {
-  let index = 0
-  while (!isFree(world, candidateId(name, parent, index))) index += 1
-  return candidateId(name, parent, index)
-}
-
-interface RecordInput {
-  kind: C4Kind
-  id?: string
-  name: string
-  parent?: WorldRecord
-  code?: CodeReference[]
-}
-
-/** Reserve identity in scan order; inferred entry placement can complete it before its first write. */
-function reserveRecord(
-  repositoryRoot: string,
-  world: World,
-  input: RecordInput,
-): WorldRecord {
-  const id = input.id ?? availableId(world, input.name, input.parent)
-  const name = input.name
-  const record: WorldRecord = {
-    id,
-    title: name,
-    kind: input.kind,
-    parent: input.parent?.id,
-    status: 'stable',
-    sourceFilename: architectureElementPath({
-      root: GromaFileSystem.open(repositoryRoot).sourceFilename(),
-      kind: input.kind,
-      id,
-      parentSourceFilename: input.parent?.sourceFilename,
-    }),
-    code: input.code ?? [],
-  }
-  world.byId.set(id, record)
-  for (const reference of record.code) {
-    world.byCodeFile.set(reference.file, record)
-  }
-  return record
-}
-
-async function writeRecord(repositoryRoot: string, record: WorldRecord): Promise<void> {
-  await writeDocument(
-    repositoryRoot,
-    record.sourceFilename,
-    renderArchitectureDocument({
-      id: record.id,
-      kind: record.kind,
-      parent: record.parent,
-      name: record.title,
-      overview: '',
-      status: 'stable',
-      code: record.code,
-    }),
-  )
-}
-
-async function createRecord(repositoryRoot: string, world: World, input: RecordInput): Promise<WorldRecord> {
-  const record = reserveRecord(repositoryRoot, world, input)
-  await writeRecord(repositoryRoot, record)
-  return record
 }
 
 function refreshedReference(
@@ -475,6 +338,7 @@ export async function reconcileScanObservations(
       if (diagnostics.length > 0) summary.scannerDiagnostics = diagnostics
       await refreshCuratedCode(repositoryRoot, world, observations, summary, protectedFiles)
       await createInitialSystem(repositoryRoot, world, observations, summary)
+      await establishDataStores(repositoryRoot, world, observations, summary)
       const candidates = new Map<string, FileCandidate>()
       for (const observation of observations) {
         const placements = observationPlacements(world, observation)
@@ -484,6 +348,7 @@ export async function reconcileScanObservations(
       const entryMemberFiles = new Set(observations.flatMap(observation => observation.entryPoints?.flatMap(entry => entry.files) ?? []))
       const pending = await reconcileFiles(repositoryRoot, world, candidates, entryMemberFiles, summary)
       await placeEntries(repositoryRoot, world, observations, summary, pending)
+      await refreshRuntimeConfiguration(repositoryRoot, indexWorld(await loadArchitecture(repositoryRoot)), observations)
       const owners = new Map([...world.byId.values()].flatMap(record => record.code.map(reference => [reference.file, record.id] as const)))
       const conflicts = [...unitConflicts, ...await refreshDerivedRelationships(repositoryRoot, observations)]
       if (conflicts.length > 0) summary.evidenceConflicts = conflicts

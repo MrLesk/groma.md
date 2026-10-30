@@ -1,0 +1,8 @@
+servers:
+  web:
+    - example.invalid
+  # job:
+  #   cmd: bin/jobs
+env:
+  clear:
+    SOLID_QUEUE_IN_PUMA: true
