@@ -1,0 +1,24 @@
+<h1>Items 🛒</h1>
+def literal_text; end
+<%# def comment; end %>
+<%% def escaped; end %>
+<%- def heading(items) -%>
+  <% if items.empty? %>
+    <strong><%= title(items) %><%= subtitle(items) %></strong>
+  <% else %>
+    <% items.each do |item| %>
+      <%= label(item) %>
+    <% end %>
+  <% end %>
+<% end %>
+<%= heading(@items) %>
+<%= form_with model: @item do |form| %>
+  <%= form.text_field :name %>
+<% end %>
+Literal opening: <%%
+<% case @status %>
+<% when 'open' %>
+  <%= heading(@items) %>
+<% else %>
+  Closed
+<% end %>

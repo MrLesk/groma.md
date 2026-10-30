@@ -14,7 +14,7 @@ export interface LaunchEvidence {
   autoloadLib?: string[]
 }
 
-export function launchEvidence(root: Node): LaunchEvidence {
+export function launchEvidence(root?: Node): LaunchEvidence {
   const result: LaunchEvidence = { requires: [], main: false, rack: false, railsRun: false, rails: false }
   function visit(node: Node): void {
     if (['method', 'singleton_method', 'lambda', 'block', 'do_block'].includes(node.type)) return
@@ -25,7 +25,7 @@ export function launchEvidence(root: Node): LaunchEvidence {
     if (node.type === 'call') inspectCall(node, result)
     for (const child of node.namedChildren) visit(child)
   }
-  visit(root)
+  if (root) visit(root)
   return result
 }
 

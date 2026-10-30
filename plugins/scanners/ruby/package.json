@@ -1,10 +1,10 @@
 {
   "name": "@groma/scanner-ruby",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
   "license": "MIT",
-  "description": "Experimental Ruby declarations, code outlines and literal Rails route evidence.",
+  "description": "Experimental Ruby and ERB declarations, code outlines and literal Rails route evidence.",
   "groma": {
     "scanner": {
       "id": "ruby",
@@ -12,6 +12,7 @@
       "include": [
         "**/*.rb",
         "**/*.ru",
+        "**/*.erb",
         "**/bin/*",
         "**/exe/*",
         "**/Gemfile",
@@ -37,6 +38,7 @@
             "type": "file",
             "files": [
               "**/*.rb",
+              "**/*.erb",
               "**/*.gemspec",
               "**/Gemfile"
             ],
