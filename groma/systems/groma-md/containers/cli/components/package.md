@@ -18,11 +18,19 @@ groma:
       file: src/config.ts
     - scanner: typescript
       file: src/plugins/management.ts
+    - scanner: typescript
+      file: src/scanner/modules/package-name.ts
+      symbol: isNpmPackageName
+    - scanner: typescript
+      file: src/scanner/modules/package-trust.ts
+      symbol: packageManagerCertificates
+    - scanner: typescript
+      file: src/certificate-trust.ts
   group: Plugins
 description: Reads config.json, owns the plugins it lists and restores them by kind
 ---
 
-Reads and writes config.json, the project's one groma.md configuration, and resolves, installs and restores scanner packages from exact npm, Git and local sources. plugin-management.ts is the one owner of the plugins config.json lists: it reports whether this computer has each of them and adds, updates, removes and restores them by kind, downloading a scanner package or installing the Backlog.md CLI. The plugin commands, groma init, the plugins screen and the groma web restore view all use it. Resolving a package never runs plugin code.
+Reads and writes config.json, the project's one groma.md configuration, and resolves, installs and restores scanner packages from exact npm, Git and local sources. plugin-management.ts is the one owner of the plugins config.json lists: it reports whether this computer has each of them and adds, updates, removes and restores them by kind, downloading a scanner package or installing the Backlog.md CLI. The plugin commands, groma init, the plugins screen and the groma web restore view all use it. Resolving a package never runs plugin code. Downloads of scanner packages, Git sources and the Backlog.md CLI keep the platform's certificate trust but drop certificate authority keys distrusted after a CA compromise.
 
 ## Relationships
 
