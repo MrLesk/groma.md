@@ -1,5 +1,8 @@
 import { httpEvidence, type ScanHttpEndpoint, type ScanHttpRequest } from './http.ts'
 import { array, object, string } from './values.ts'
+import { runtimeEvidence, type ScanDataStore, type ScanHostedService } from './runtime.ts'
+
+export type { ScanDataStore, ScanHostedService } from './runtime.ts'
 
 export { parseScannerDiscovery } from './discovery.ts'
 export type { ScannerDiscoveryMetadata, ScannerDiscoveryRule } from './discovery.ts'
@@ -95,6 +98,8 @@ export interface ScanObservation {
   files: ScanFile[]
   sourceUnits?: ScanSourceUnit[]
   entryPoints?: ScanEntryPoint[]
+  dataStores?: ScanDataStore[]
+  hostedServices?: ScanHostedService[]
   /** Omitted when a scanner does not extract operation evidence. Never persisted as a graph. */
   operations?: ScanOperation[]
   invocations?: ScanInvocation[]
@@ -218,6 +223,7 @@ export function createScanObservation(input: ObservationInput): ScanObservation 
     files,
     ...sourceUnits(input.sourceUnits, filePaths),
     ...entryPoints(input.entryPoints, filePaths),
+    ...runtimeEvidence(input.dataStores, input.hostedServices, filePaths),
     ...operationEvidence(input, filePaths),
     ...httpEvidence(input.httpEndpoints, input.httpRequests, input.operations && new Set(input.operations.map(operation => operation.id))),
     diagnostics: normalizeScanDiagnostics(input.diagnostics),
@@ -314,6 +320,8 @@ export function parseScanObservation(source: string): ScanObservation {
     httpEndpoints: value.httpEndpoints as ScanHttpEndpoint[] | undefined,
     httpRequests: value.httpRequests as ScanHttpRequest[] | undefined,
     entryPoints: value.entryPoints as ScanEntryPoint[] | undefined,
+    dataStores: value.dataStores as ScanDataStore[] | undefined,
+    hostedServices: value.hostedServices as ScanHostedService[] | undefined,
     ...sourceUnits(value.sourceUnits, new Set(array(value.files, 'files').map(entry => string(object(entry, 'file').file, 'file.file')))),
     roots: array(value.roots, 'roots').map(entry => {
       const root = object(entry, 'root')

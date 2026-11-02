@@ -48,6 +48,7 @@ export interface Inspected {
   kindLabel: string
   origin: Origin
   overview: string
+  runtimeConfiguration?: string
   relationships: RelationshipPairData[]
   flows: FlowRowData[]
   children: InspectedChild[]
@@ -152,6 +153,7 @@ export function inspectDetails(
     kindLabel: kindLabel(element.kind, element.external),
     origin: element.origin,
     overview: element.overview,
+    ...(element.runtimeConfiguration === undefined ? {} : { runtimeConfiguration: element.runtimeConfiguration }),
     relationships,
     flows: flowsThrough(element.representationId, world).map(flow => ({
       flow: { id: flow.id }, title: flow.title,
@@ -297,6 +299,8 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
       if (change !== undefined) { comparisonOverview(body, change, options.world); return }
       if (inspected.description !== '') body.append(paragraph('description', inspected.description))
       if (inspected.overview !== '') body.append(paragraph('overview', inspected.overview))
+      if (inspected.runtimeConfiguration) body.append(heading('Runtime configuration'),
+        paragraph('runtime-configuration', inspected.runtimeConfiguration))
     },
 
     relationships: () => {

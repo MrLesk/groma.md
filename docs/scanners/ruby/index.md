@@ -29,7 +29,7 @@ as Python. Both leave ordinary dynamic call targets unresolved.
 ## Inputs and project membership
 
 The manifest selects `**/*.rb`, `**/*.ru`, `**/bin/*`, `**/exe/*`,
-`**/Gemfile` and `**/*.gemspec`. Extensionless commands are Ruby source only
+`**/config/database.yml`, `**/config/deploy.yml`, `**/Gemfile` and `**/*.gemspec`. Extensionless commands are Ruby source only
 when their first line is a Ruby shebang. Listing reads that marker without
 parsing or running the command. Other selected bin scripts contribute no Code.
 Gemfiles and gemspecs supply metadata, not Code ownership.
@@ -49,6 +49,18 @@ Projects are transient source groups, not C4 systems or containers. Ordinary
 Markdown and OKF readers retain existing architecture records and Code links.
 Core owns identity, curated source ownership, placement and derived relationships;
 this scanner introduces no new stored metadata or architecture level.
+
+## Production runtime configuration
+
+The scanner reads the selected `config/database.yml` and `config/deploy.yml` beside a proven Rails `config.ru` entry. For database configuration, it retains the standard top-level `default` and `production` blocks before parsing, so ERB control flow in other environments does not affect the production result. It uses bundled js-yaml 5.5.0 with YAML merge keys enabled, so anchors and aliases retain their declared values. ERB expressions remain unresolved placeholders; scanning never evaluates Ruby expressions or reads environment values.
+
+Production PostgreSQL configuration supplies literal database names and roles, including inherited adapter settings. Core represents them as one application-owned PostgreSQL storage container with `database.yml` as its Code reference and a configured-storage relationship from the Rails entry. The logical roles describe this reviewed storage boundary; they do not assert a PostgreSQL server count. Other environments, adapters and computed database names do not contribute storage facts.
+
+Hosted Solid Queue evidence requires all three selected declarations: `config.active_job.queue_adapter = :solid_queue` in `config/environments/production.rb`, `plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]` in `config/puma.rb`, and a literal `env.clear.SOLID_QUEUE_IN_PUMA: true` in Kamal's `config/deploy.yml`. Core records Solid Queue through Puma on the existing application. Comments and the mere presence of `bin/jobs` establish no separate worker boundary. The scanner does not interpret arbitrary deployment commands, queue topology or Compose infrastructure.
+
+Core owns the [runtime evidence interpretation](../evidence.md#configured-storage-and-hosted-services), stable source ownership and the derived Markdown section. The section names the production environment, links its declaring files, and states that live deployment is unverified. A current core build is required to interpret these new facts and the storage container's configuration Code reference.
+
+Existing installations keep their configured include lists. Add `**/config/database.yml` and `**/config/deploy.yml` to the Ruby scanner's `include` list, preserving other settings, then scan again.
 
 ## Execution entries
 

@@ -46,7 +46,7 @@ export function codeReferencesOf(
   invalid: InvalidReference,
 ): CodeReference[] {
   if (code === undefined) return []
-  if (kind !== 'component') invalid('only a component can declare code')
+  if (kind !== 'component' && kind !== 'container') invalid('only a component or container can declare code')
   if (!Array.isArray(code)) invalid('code must be a list')
   return (code as unknown[]).map((reference, index) => referenceOf(reference, index, invalid))
 }

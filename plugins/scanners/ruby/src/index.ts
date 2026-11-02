@@ -7,9 +7,11 @@ import { parseRuby, rubyLanguage } from './parser.ts'
 import { projectDeclaration, rubyProjects, type ProjectDeclaration } from './projects.ts'
 import { railsRoutes, resolveRailsRoutes, routeModule } from './routes.ts'
 import { analyzeRuby } from './source.ts'
+import { railsRuntime } from './runtime.ts'
 
 const isRubyExtension = (file: string) => file.endsWith('.rb') || file.endsWith('.ru')
 const isCommandPath = (file: string) => /(^|\/)(bin|exe)\/[^/]+$/.test(file)
+const databaseFiles = (files: readonly string[]) => files.filter(file => /(^|\/)config\/database\.yml$/.test(file))
 
 async function sourceFiles(root: string, candidates: readonly string[]): Promise<string[]> {
   const files = []
@@ -30,7 +32,8 @@ async function readSource(root: string, file: string, entries: readonly string[]
 
 export default {
   id: 'ruby',
-  listSourceFiles: async (root, _settings, candidates) => sourceFiles(root, candidates),
+  listSourceFiles: async (root, _settings, candidates) =>
+    [...await sourceFiles(root, candidates), ...databaseFiles(candidates)].sort(),
   async checkReadiness(root, _settings, files) {
     if (!(await sourceFiles(root, files)).length) throw new Error('ruby: No selected Ruby source files were found.')
     await rubyLanguage()
@@ -45,15 +48,22 @@ export default {
     }
     const parsed: Awaited<ReturnType<typeof readSource>>[] = []
     for (const file of sources) parsed.push(await readSource(root, file))
-    const projects = rubyProjects(root, declarations, sources)
+    const configuration = databaseFiles(selected)
+    const projects = rubyProjects(root, declarations, [...sources, ...configuration])
+    const entryPoints = rubyEntries(parsed, declarations, projects.memberships)
+    const railsEntries = entryPoints.filter(entry => parsed.some(source => source.file === entry.file && source.launch.railsRun)
+      && parsed.some(source => entry.files.includes(source.file) && source.launch.rails))
+    const runtime = await railsRuntime(root, selected, railsEntries)
     const endpoints = parsed.flatMap(source => resolveRailsRoutes(source.file, source.routes, parsed))
     const modules = parsed.filter(source => endpoints.some(endpoint => endpoint.operation === routeModule(source.file).id))
       .map(source => routeModule(source.file))
     return createScanObservation({
       scanner: { id: 'ruby', technology: 'ruby/rails', engine: 'tree-sitter-ruby', engineVersion: '0.23.1' },
       roots: projects.roots,
-      files: parsed.map(({ file, symbols }) => ({ file, roots: [projects.memberships.get(file)!], symbols })),
-      entryPoints: rubyEntries(parsed, declarations, projects.memberships),
+      files: [...parsed.map(({ file, symbols }) => ({ file, roots: [projects.memberships.get(file)!], symbols })),
+        ...configuration.map(file => ({ file, roots: [projects.memberships.get(file)!], symbols: [] }))],
+      entryPoints,
+      ...runtime,
       operations: [...parsed.flatMap(source => source.operations), ...modules],
       invocations: parsed.flatMap(source => source.invocations),
       httpEndpoints: endpoints,

@@ -1,5 +1,5 @@
 import type { ScanObservation } from '@groma/scanner'
-import type { World, WorldRecord } from './scan-reconciler.ts'
+import type { World, WorldRecord } from './scan-world.ts'
 
 interface Entry {
   file: string

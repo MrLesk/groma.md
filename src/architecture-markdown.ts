@@ -50,6 +50,23 @@ export function elementOverview(
   return overview
 }
 
+/** Read the derived supporting section independently from editable leading prose. */
+export function elementRuntimeConfiguration(document: ArchitectureDocument): string | undefined {
+  const paragraphs: string[] = []
+  let active = false
+  for (const node of document.nodes) {
+    if (!Array.isArray(node)) continue
+    if (node[0] === 'h2') {
+      active = nodeText(node) === 'Derived runtime configuration'
+      continue
+    }
+    if (!active) continue
+    const entries = node[0] === 'ul' ? collectNodes(node, 'li') : [node]
+    paragraphs.push(...entries.map(nodeText).filter(text => text.trim().length > 0))
+  }
+  return paragraphs.length ? paragraphs.join('\n\n') : undefined
+}
+
 export function tableHeaderNames(table: MarkdownElement): string[] {
   const headerRow = collectNodes(table, 'tr')[0]
   const cells = headerRow?.slice(2).filter(child => {

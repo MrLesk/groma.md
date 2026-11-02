@@ -75,6 +75,7 @@ export function annotateArchitecture(
     title: element.title,
     ...(element.description === undefined ? {} : { description: element.description }),
     overview: element.overview,
+    ...(element.runtimeConfiguration === undefined ? {} : { runtimeConfiguration: element.runtimeConfiguration }),
     parent: element.parentId,
     children: [],
     external: element.external,
