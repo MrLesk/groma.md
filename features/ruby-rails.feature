@@ -1,5 +1,15 @@
 Feature: Inspect a Ruby on Rails application
 
+  Scenario: Inspect embedded Ruby in ERB templates
+    Given a Rails application with ERB views containing Ruby execution and output tags
+    And comments, escaped tags and literal template text
+    When a developer scans the repository with the Ruby scanner
+    Then selected ERB templates appear as Code references in their declared project
+    And embedded Ruby declarations point to their original template locations
+    And Ruby control flow can span template tags
+    And literal text, comments and escaped tags contribute no Ruby declarations
+    And templates belong to the existing Rails application without becoming launch entries
+
   Scenario: Scan Rails source without installing the application
     Given a Rails application with Ruby controllers, models and literal routes
     And the Ruby scanner is installed and enabled
