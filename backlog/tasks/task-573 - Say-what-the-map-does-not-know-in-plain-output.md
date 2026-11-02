@@ -4,7 +4,7 @@ title: Say what the map does not know in plain output
 status: To Do
 assignee: []
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-08 15:31'
+updated_date: '2026-11-02T16:19:00Z'
 labels: []
 dependencies: []
 references:
@@ -30,8 +30,7 @@ Other gaps:
 - The first-scan note (`firstScanAgentNote` in src/agent-instructions.ts, shown while `awaitsCuration` in src/empty-world.ts holds: there is at least one component and no element has a description or an overview) prints from `groma scan` and `groma agent-instructions`, not from `groma view`, which agents run far more often.
 - Nothing tells a reader how much of the repository the map covers.
 
-Make plain output honest, in short lines at the point of use:
-- `none recorded` instead of `none` for relationships, in every plain view.
+TASK-645 changes `none` to `none recorded` under relationship headings. Make the rest of plain output honest, in short lines at the point of use:
 - `(no description)` for an element whose description and overview are both empty or whitespace.
 - `| derived` at the end of a relationship line when every connection behind it is derived, `| partly derived` when only some are. Draft lines keep `| draft`.
 - A short coverage section at the end of `groma view --plain`, computed from stored data and the repository listing, without running a scanner: the distinct repository files selected by the configured scanners' include patterns, exclusions and Git-ignore rules, and how many of them have an owner; the stable elements without description; the stable components with no current relationship in either direction. Call the files "selected", not "read" or "analyzed": selection does not prove that a scanner analyzed a file.
@@ -41,12 +40,11 @@ Do not repeat warnings on every line, and do not print a completeness percentage
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Every plain view prints none recorded where it printed none for relationships.
-- [ ] #2 An element whose description and overview are both empty shows (no description) in plain views.
-- [ ] #3 A plain relationship line ends with | derived when every connection behind it is derived and with | partly derived when only some are; draft lines keep | draft.
-- [ ] #4 groma view --plain ends with a coverage section computed without running a scanner: the files selected by the configured scanners and how many of them have an owner, the stable elements without description, and the stable components with no current relationship in either direction.
-- [ ] #5 While awaitsCuration holds, groma view plain output starts with the first-scan note.
-- [ ] #6 The inspect guide documents the wording, the relationship tags and the coverage section.
+- [ ] #1 An element whose description and overview are both empty shows (no description) in plain views.
+- [ ] #2 A plain relationship line ends with | derived when every connection behind it is derived and with | partly derived when only some are; draft lines keep | draft.
+- [ ] #3 groma view --plain ends with a coverage section computed without running a scanner: the files selected by the configured scanners and how many of them have an owner, the stable elements without description, and the stable components with no current relationship in either direction.
+- [ ] #4 While awaitsCuration holds, groma view plain output starts with the first-scan note.
+- [ ] #5 The inspect guide documents the wording, the relationship tags and the coverage section.
 <!-- AC:END -->
 
 ## Definition of Done
