@@ -1,5 +1,5 @@
 ---
-id: TASK-408
+id: TASK-648
 title: Show the project name beside the Groma logo
 status: In Progress
 assignee:
