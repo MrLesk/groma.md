@@ -1,5 +1,5 @@
 import { centredRect } from '../../../../sheet/grid.ts'
-import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, ISLAND_SPACING, PLANE, buildingFont, curved, labelBand, roofBlock, textWidth } from '../../../../sheet/measure.ts'
+import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, ISLAND_SPACING, PLANE, buildingFont, curved, iconWidth, labelBand, roofBlock, textWidth } from '../../../../sheet/measure.ts'
 import type {
   Building,
   CellRect,
@@ -83,6 +83,7 @@ export interface Face {
 export interface SurfaceText {
   origin: Point
   lines: string[]
+  icon?: string
 }
 
 /** A surface name centered below its boundary, with room for a leader on the same plane. */
@@ -329,11 +330,11 @@ function buildingFloors(building: Building, view: ProjectionView): Face[][] {
 
 /** A box's name starts at the north corner of its top tier's roof; a curved roof centres the name's block. */
 function roofText(building: Building, view: ProjectionView): SurfaceText {
-  const { shape, heightUnits, lines } = building
+  const { shape, heightUnits, lines, icon } = building
   const top = building.floors.at(-1)
   const roof = top === undefined ? building.rect : centredRect(building.rect, top.footprint)
-  if (!curved(shape)) return { origin: project(roof.gx, roof.gy, heightUnits, view), lines }
-  const block = roofBlock(lines, buildingFont(building))
+  if (!curved(shape)) return { origin: project(roof.gx, roof.gy, heightUnits, view), lines, icon }
+  const block = roofBlock(lines, buildingFont(building), icon)
   return {
     origin: project(
       roof.gx + (roof.w - block.w / PLANE) / 2,
@@ -342,6 +343,7 @@ function roofText(building: Building, view: ProjectionView): SurfaceText {
       view,
     ),
     lines,
+    icon,
   }
 }
 
@@ -350,12 +352,13 @@ function surfaceBody(rect: CellRect, size: number): CellRect {
   return { ...rect, d: rect.d - labelBand(size) }
 }
 
-function bandText(rect: CellRect, lines: string[], size: number, view: ProjectionView, spacing = 0): SurfaceLabel {
-  const width = Math.max(...lines.map(line => textWidth(line, size, spacing)))
+function bandText(rect: CellRect, lines: string[], size: number, view: ProjectionView, spacing = 0, icon?: string): SurfaceLabel {
+  const width = Math.max(...lines.map(line => textWidth(line, size, spacing))) + iconWidth(icon, size)
   const body = surfaceBody(rect, size)
   return {
     origin: project(rect.gx + (rect.w - width / PLANE) / 2, body.gy + body.d, 0, view),
     lines,
+    icon,
     width,
     band: { width: rect.w * PLANE, height: labelBand(size) * PLANE },
   }
@@ -385,17 +388,17 @@ export function projectScene(
   const islands = scene.islands.map(island => ({
     island,
     polygon: corners(surfaceBody(island.rect, ISLAND_FONT), 0, view),
-    text: bandText(island.rect, [island.name.toUpperCase()], ISLAND_FONT, view, ISLAND_SPACING),
+    text: bandText(island.rect, [island.name.toUpperCase()], ISLAND_FONT, view, ISLAND_SPACING, island.element?.icon),
   }))
   const zones = scene.zones.map(zone => ({
     zone,
     polygon: corners(surfaceBody(zone.rect, GROUP_FONT), 0, view),
-    text: bandText(zone.rect, [zone.name], GROUP_FONT, view),
+    text: bandText(zone.rect, [zone.name], GROUP_FONT, view, 0, zone.icon),
   }))
   const slabs = paintOrder(scene.slabs, view).map(slab => ({
     slab,
     faces: boxFaces(surfaceBody(slab.rect, CONTAINER_FONT), -SLAB_HANG / HEIGHT_UNIT, 0, view),
-    text: bandText(slab.rect, [slab.title], CONTAINER_FONT, view),
+    text: bandText(slab.rect, [slab.title], CONTAINER_FONT, view, 0, slab.icon),
   }))
   const buildings = paintOrder(scene.buildings, view).map(building => ({
     building,

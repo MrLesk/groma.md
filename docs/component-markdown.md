@@ -165,6 +165,9 @@ groma.md-only fields live together under `groma`:
 | `parent` | for containers and components | ID of the containing system or container. |
 | `draft` | no | ID of the draft record this concept belongs to or that touches it. |
 | `group` | no | Readable name of a hand-authored sibling cluster. |
+| `icon` | no | Embedded architecture icon ID, such as `groma:database`. |
+| `color` | no | Opaque map accent in `#RRGGBB` form, independent of the UI theme. |
+| `groupAppearance` | no | Group-name mapping of appearance, held by the common C4 parent. |
 | `technology` | no | Free text naming implementation technology, comma-separated. |
 | `code` | no | Scanner-produced source evidence. |
 
@@ -192,6 +195,48 @@ identity. Scanning can also complete a component's unidentified placement: posit
 execution evidence can move it from its system into an application container.
 This preserves its ID, source ownership and authored meaning, and rebases incoming
 and outgoing Markdown links. An existing container assignment is never replaced.
+
+Icons describe presentation, not C4 kind or containment. Any actor, system
+(including an external system), container, or component can carry `groma.icon`.
+IDs name the embedded set; Groma rejects unknown icons when reading or editing.
+Omitting the field uses the normal map presentation. Set it with
+`groma edit <id> --icon groma:database`; clear it with `--icon ''`.
+
+A group has no separate document or C4 identity. Its members keep their
+`groma.group` names, and the common parent stores its appearance once:
+
+```yaml
+groma:
+  id: api
+  parent: shop
+  groupAppearance:
+    Payments:
+      icon: groma:group
+      color: "#658B78"
+```
+
+`groma edit group api/payments --icon groma:group` edits that entry;
+`--icon ''` clears it. Renaming a group carries its appearance to the new
+name. Removing its final member removes the unused entry. The map resolves
+this metadata for the group label, without changing membership or boundaries.
+Scans preserve authored icons. Ordinary Markdown and OKF readers still see
+all titles, descriptions, and architecture links without interpreting icons.
+See [Architecture icons](icons.md) for the embedded family and visual use.
+
+Colors are a separate assignment from icons. `groma edit <id> --color '#658B78'`
+sets an actor, internal or external system, container, or component accent;
+`groma edit group api/payments --color '#658B78'` sets the group accent.
+The web Edit form uses the same fields. Empty `--color ''` clears only the
+color, and empty `--icon ''` clears only the icon. A color requires exactly
+six hexadecimal digits after `#`; CSS names, transparency, and theme tokens
+are not stored. Quote the value in shell commands and hand-authored YAML.
+
+The color belongs only to the assigned item. Groups and parents do not pass
+colors to their members or children. Groma uses a restrained surface tint
+and a readable icon accent, while titles and state signals keep their own
+meaning. Switching the UI theme changes the rendering, not the stored color.
+This is Groma presentation metadata; ordinary Markdown, OKF links, and C4
+boundaries remain unchanged. Scans preserve both assignments.
 
 The architecture model owns IDs. groma.md assigns an ID when it drafts a concept
 or when a scan finds a previously unknown source. A drafted concept keeps its

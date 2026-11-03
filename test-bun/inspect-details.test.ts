@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { detailsTabs, detailsTabAfterSelection, detailsTabAfterWork, inspectDetails } from '../src/viewers/web/organisms/details.ts'
+import { detailsTabs, detailsTabAfterSelection, detailsTabAfterWork, inspectDetails, inspectSelection } from '../src/viewers/web/organisms/details.ts'
 
 import type {
   ArchitectureWorld,
@@ -95,6 +95,31 @@ test.concurrent('details list children, promoted peers, and files', () => {
   expect(incoming.target.representationId).toBe(web.id)
   expect(incoming.relationships[0]!.id).toBe(outgoing.relationships[0]!.id)
 
+})
+
+test.concurrent('selecting a narrative group edits its own appearance by canonical group address', () => {
+  const fixture = world()
+  const parent = fixture.elements.find(element => element.id === 'core')!
+  parent.representationId = 'core-copy'
+  parent.icon = 'groma:application'
+  parent.color = '#4D82C8'
+  parent.groupAppearance = { Processing: { icon: 'groma:group', color: '#5B9A7C' } }
+  const group = {
+    key: 'group:core-copy:Processing', name: 'Processing', parent: parent.representationId,
+    members: ['layout'], rect: { gx: 0, gy: 0, w: 4, d: 4 },
+  }
+  const inspected = inspectSelection(group.key, fixture, [group])!
+  expect(inspected.group).toBe(true)
+  expect(inspected.id).toBe('core/processing')
+  expect(inspected.icon).toBe('groma:group')
+  expect(inspected.color).toBe('#5B9A7C')
+  expect(inspected.children.map(child => child.id)).toEqual(['layout'])
+  delete parent.groupAppearance.Processing!.color
+  const cleared = inspectSelection(group.key, fixture, [group])!
+  expect(cleared.color).toBeUndefined()
+  expect(cleared.icon).toBe('groma:group')
+  delete parent.groupAppearance.Processing
+  expect(inspectSelection(group.key, fixture, [group])!.icon).toBeUndefined()
 })
 
 test.concurrent('details list a combined pair once with its exact relationships and distinct descriptions', async () => {

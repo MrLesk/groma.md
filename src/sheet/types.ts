@@ -13,6 +13,8 @@ export interface SheetItem {
   representationId: string
   id: string
   title: string
+  icon?: string
+  color?: string
   origin: Origin
 }
 
@@ -33,6 +35,8 @@ export interface Island {
 export interface Zone {
   key: string
   name: string
+  icon?: string
+  color?: string
   /** Derived display group for components whose system is known but container is not. */
   unidentifiedContainer?: true
   /** Island key or slab representation id the zone lies on. */

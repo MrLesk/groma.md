@@ -1,0 +1,80 @@
+# Architecture icons
+
+Groma includes one original SVG family. Choose an icon in an element's or
+group's edit form, or assign its name with the CLI:
+
+```sh
+groma edit order-store --icon groma:database
+groma edit group shop/payments --icon groma:group
+groma edit order-store --icon ''
+```
+
+Group addresses use the parent ID and the group's kebab-case name, so the
+address for a group named `Payments` is `shop/payments`. An empty icon value
+clears the assignment. Icons are optional; Groma does not infer them from a
+project's language or technology.
+
+## Browse and search
+
+Open **Info → Icon library** to browse the embedded family in the current theme.
+Search by icon name, ID or category. Select an icon for a larger preview and
+use **Copy ID** to copy its exact name for Markdown or the CLI. Browsing does
+not change the map.
+
+The Icon chooser in **Edit** uses the same search. Searching keeps the current
+choice, even when it is outside the results. Choose an icon or **None**, then
+save the edit to apply it.
+
+## Embedded family
+
+| Category | Icon names |
+| --- | --- |
+| People | `groma:person`, `groma:team` |
+| Architecture | `groma:system`, `groma:external`, `groma:component`, `groma:group` |
+| Applications | `groma:application`, `groma:browser`, `groma:mobile`, `groma:service`, `groma:worker` |
+| Infrastructure | `groma:server`, `groma:database`, `groma:queue`, `groma:cache`, `groma:storage`, `groma:gateway`, `groma:repository`, `groma:cloud`, `groma:identity`, `groma:mail` |
+
+An icon describes a responsibility without changing the architecture level.
+For example, a database can be a container and a repository can be an external
+system. Their C4 types, boundaries and relationships remain the same. Groups
+remain narrative clusters, not another C4 level.
+
+Groma stores an element's choice in `groma.icon`. A group's choice belongs to
+its parent in `groma.groupAppearance`, keyed by the authored group name. The
+[Markdown contract](component-markdown.md) defines these fields. Ordinary
+Markdown and OKF readers still have the element's title, description, body
+and links; only Groma interprets the optional icon as map presentation.
+
+## Artwork and rendering
+
+[`src/architecture-icons.ts`](../src/architecture-icons.ts) owns the drawings,
+labels and categories shared by the library, chooser and map. Each drawing uses a
+24-unit view box and three path roles: an outline, a filled body (`wash`),
+and a subtle shaded region (`shade`). Viewers supply one color, the stroke
+width, and the two fill opacities. The artwork contains no
+fixed colors, external images, fonts or downloaded icon-pack assets.
+
+Drawings face forward, with clear silhouettes and filled bodies. The map
+projects each icon once, together with its title, onto the isometric or 2D
+label plane. Do not build an isometric perspective into the artwork: it
+would receive a second tilt on the map. Generic symbols follow the map's ink.
+Their shape carries the meaning even without color. Keep titles and C4 boundaries visible when adding or changing icons;
+the symbol supplements them.
+
+Names identify the embedded family (`groma:database`). Adding a drawing means
+adding one catalog entry with original path data. The namespace distinguishes
+the family; it does not require an icon plugin or installation step.
+
+## Vendor identification
+
+This family contains generic architecture symbols, not vendor logos. For a
+GitHub external system, use the Repository icon and the title `GitHub`.
+Do not draw an Octocat imitation or label a generic drawing as an official
+GitHub mark.
+
+GitHub's [official logo guidance](https://brand.github.com/foundations/logo)
+permits identification of integrations but restricts changes to its marks.
+Any future official mark needs separate rendering: retain its supplied
+shape, approved monochrome color and upright proportions. Do not skew it
+onto the map plane, apply an authored accent or add visual effects. The
+recolorable original symbols in this family avoid those restrictions.

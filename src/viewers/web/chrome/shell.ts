@@ -1,6 +1,7 @@
 import { ownsDetails, primarySelection } from '../selection.ts'
 import type { Selection } from '../selection.ts'
 import { bindPopover } from '../atoms/popover.ts'
+import { createIconLibrary } from './icon-library.ts'
 import { bindShortcuts, type ShortcutActions } from './shortcuts.ts'
 
 /** Buttons and keys use the same actions; shell events stay outside map orchestration. */
@@ -12,6 +13,7 @@ export function bindChromeActions(actions: ShortcutActions): void {
   document.getElementById('details-close')!.addEventListener('click', actions.deselect)
   bindPopover(document.getElementById('help')!)
   bindPopover(document.getElementById('credits')!)
+  createIconLibrary()
 }
 
 /** The page elements map orchestration paints into, looked up once. */

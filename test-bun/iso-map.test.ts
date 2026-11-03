@@ -4,10 +4,10 @@ import { test } from 'bun:test'
 
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import { ROOF_SHADOW, centredRect } from '../src/sheet/grid.ts'
-import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, PLANE, buildingFont, curved, roofBlock, textPadding, textWidth } from '../src/sheet/measure.ts'
+import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, PLANE, buildingFont, curved, iconSize, roofBlock, textPadding, textWidth } from '../src/sheet/measure.ts'
 import { sheetScene } from '../src/sheet/scene.ts'
 import type { Building, RoutePoint, SheetScene } from '../src/sheet/types.ts'
-import type { Bounds, Point } from '../src/types.ts'
+import type { AnnotatedArchitectureModel, Bounds, Point } from '../src/types.ts'
 import type { ProjectProfile } from '../src/project-profile.ts'
 import {
   fitCamera,
@@ -26,7 +26,7 @@ import {
 import type { ProjectedScene, ProjectionView } from '../src/viewers/web/iso/projection/project.ts'
 import { presentScene } from '../src/viewers/web/iso/view-motion/presentation.ts'
 import { NESTED_POSE, OVERHEAD_POSE } from '../src/viewers/web/iso/view-motion/orbit.ts'
-import { surfaceLabelLayout } from '../src/viewers/web/iso/painting/text.ts'
+import { surfaceLabelLayout, surfaceText } from '../src/viewers/web/iso/painting/text.ts'
 import { box, openclawFixtureRoot, repositoryRoot, viewerFixtureRoot, worldOf } from './helpers.ts'
 
 const profile = (title: string, overview: string): ProjectProfile => ({
@@ -35,9 +35,19 @@ const profile = (title: string, overview: string): ProjectProfile => ({
   overviewBlocks: [{ spans: [{ text: overview, styles: [] }] }],
 })
 const projectProfile = profile('Shop', 'Shop architecture.')
-async function fixtureScene(root: string): Promise<ProjectedScene> {
+async function fixtureScene(root: string, icons = false): Promise<ProjectedScene> {
   const world = await loadAnnotatedArchitecture(root)
+  if (icons) addIcons(world)
   return projectScene(sheetScene(world), projectProfile)
+}
+
+function addIcons(world: AnnotatedArchitectureModel): void {
+  for (const element of world.elements) {
+    element.icon = element.kind === 'actor' ? 'groma:person' : 'groma:database'
+    if (element.group === undefined) continue
+    const parent = world.elements.find(item => item.representationId === element.parent)
+    if (parent !== undefined) parent.groupAppearance = { ...parent.groupAppearance, [element.group]: { icon: 'groma:group' } }
+  }
 }
 
 function everyPoint(scene: ProjectedScene): Point[] {
@@ -277,27 +287,38 @@ test.concurrent('a route meets the visible upper face of a stepped tower', () =>
   assert.notDeepEqual(route.arrow.at, project(6, 2, 0))
 })
 
-test.concurrent('roof text keeps its owning shape inset', async () => {
-  const scene = await fixtureScene(viewerFixtureRoot)
+test.concurrent('roof icons and text keep their owning shape inset', async () => {
+  const scene = await fixtureScene(viewerFixtureRoot, true)
   for (const { building, text, floors } of scene.buildings) {
     const top = building.floors.at(-1)
     const roof = top === undefined ? building.rect : centredRect(building.rect, top.footprint)
     const roofWidth = roof.w * PLANE
     const size = buildingFont(building)
-    for (const line of text.lines) assert.ok(textWidth(line, size) + 2 * textPadding(size) <= roofWidth)
+    const block = roofBlock(text.lines, size, text.icon)
+    assert.ok(block.w <= roofWidth && block.d <= roof.d * PLANE)
+    assert.equal(text.icon, building.icon)
+    const painted = surfaceText(text, size, 'label', scene.view).children
+    assert.ok(typeof painted !== 'string')
+    const titles = painted.filter(item => item.tag === 'text')
+    assert.ok(Number(titles[0]!.attributes.x) > textPadding(size) + iconSize(size), 'the icon clears the first line')
+    for (const title of titles) {
+      assert.ok(typeof title.children === 'string')
+      assert.ok(Number(title.attributes.x) + textWidth(title.children, size) + textPadding(size) <= roofWidth,
+        'the painted title remains inset after its icon shifts the first line')
+    }
     if (curved(building.shape)) continue
     const roofNorth = floors.at(-1)!.find(face => face.side === 'top')!.points[0]!
     assert.deepEqual(text.origin, roofNorth)
   }
 })
 
-test.concurrent('curved roof titles stay centered in their owning shape', async () => {
-  const scene = await fixtureScene(viewerFixtureRoot)
+test.concurrent('curved roof icons and titles stay centered in their owning shape', async () => {
+  const scene = await fixtureScene(viewerFixtureRoot, true)
   const rounded = scene.buildings.filter(({ building }) => curved(building.shape))
   assert.ok(scene.buildings.length > rounded.length && rounded.length > 0)
   for (const { building, text, floors } of rounded) {
     const { rect, lines } = building
-    const block = roofBlock(lines, buildingFont(building))
+    const block = roofBlock(lines, buildingFont(building), building.icon)
     assert.deepEqual(text.origin, project(rect.gx + (rect.w - block.w / PLANE) / 2, rect.gy + (rect.d - block.d / PLANE) / 2, building.heightUnits))
     assert.equal(floors.length, 1)
     const [band, top] = floors[0]!
@@ -319,8 +340,9 @@ function groundPoint(point: Point, view: ProjectionView): Point {
 }
 
 for (const mode of ['iso', '2d'] as const) {
-  test.concurrent(`${mode} external labels clear their surfaces and roofs and fit the camera`, async () => {
+  test.concurrent(`${mode} external icons and labels clear their surfaces and roofs and fit the camera`, async () => {
     const world = await loadAnnotatedArchitecture(`${repositoryRoot}/test/fixtures/plain-view`)
+    addIcons(world)
     const sheet = sheetScene(world)
     const before = structuredClone(sheet)
     const scene = presentScene(sheet, projectProfile, mode === 'iso' ? NESTED_POSE : OVERHEAD_POSE)

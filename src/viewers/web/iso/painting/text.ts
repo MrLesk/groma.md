@@ -1,7 +1,8 @@
-import { CONTAINER_FONT, PLANE, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
+import { CONTAINER_FONT, PLANE, iconSize, iconWidth, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
 import type { ProjectionView, SurfaceLabel, SurfaceText } from '../projection/project.ts'
 import { planeMatrix, project } from '../projection/project.ts'
 import { node, round, type SvgNode } from './svg.ts'
+import { architectureIconSvg } from './icons.ts'
 
 /** Fixed plane-space sizes keep titles readable without relaying out at every camera scale. */
 const TITLE_STEPS = [
@@ -57,12 +58,14 @@ export function surfaceText(
   view: ProjectionView,
 ): SvgNode {
   const padding = textPadding(size)
-  return node('g', { transform: planeMatrix('ground', text.origin, view) }, className,
-    text.lines.map((line, index) => node('text', {
-      x: padding,
+  return node('g', { transform: planeMatrix('ground', text.origin, view) }, className, [
+    ...architectureIconSvg(text.icon, padding, padding, iconSize(size)),
+    ...text.lines.map((line, index) => node('text', {
+      x: padding + (index === 0 ? iconWidth(text.icon, size) : 0),
       y: padding + size * 0.9 + index * textLineHeight(size),
       'font-size': size,
-    }, 'text', line)))
+    }, 'text', line)),
+  ])
 }
 
 /** The label and its short leader share the surface's identity and ground plane. */
@@ -74,11 +77,14 @@ export function surfaceLabel(
   zoom = 1,
 ): SvgNode {
   const layout = surfaceLabelLayout(text, size, zoom, view)
+  const prefix = iconWidth(text.icon, layout.fontSize)
+  const contentWidth = text.width * layout.fontSize / size
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, 'label surface-label', [
     node('rect', { x: layout.x, width: layout.width, height: layout.height }, 'label-hit'),
     node('line', { x1: text.width / 2, x2: text.width / 2, y1: 0, y2: layout.leader }, 'label-leader'),
+    ...architectureIconSvg(text.icon, (text.width - contentWidth) / 2, layout.baseline - layout.fontSize * 0.9, iconSize(layout.fontSize)),
     node('text', {
-      x: text.width / 2,
+      x: (text.width + prefix) / 2,
       y: layout.baseline,
       'text-anchor': 'middle',
       'font-size': layout.fontSize,

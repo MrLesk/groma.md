@@ -78,6 +78,7 @@ export const creditsCss = `
   #credits .credits-menu { right: 0; padding: 0; }
   #credits .about-logo { display: block; width: 220px; max-width: 100%; height: auto; }
   #credits p { margin: 10px 0; line-height: 1.6; white-space: normal; }
+  #credits #icon-library-open { display: flex; margin: 14px 0; border: 1px solid var(--hairline); }
   #credits .credits-repository { display: inline-block; }
   #credits section { padding: 12px 16px 14px; }
   #credits section + section { border-top: 1px solid var(--hairline); }
@@ -107,6 +108,7 @@ export function creditsControl(infoIcon: string, lockup: string): string {
   return `<details id="credits"><summary class="chrome-button" aria-label="Info">${infoIcon}<span>Info</span></summary>`
     + '<div class="anchored-popover credits-menu" role="dialog" aria-label="About Groma">'
     + `<section aria-label="Groma.md"><div class="about-logo">${lockup}</div>`
+    + '<button id="icon-library-open" class="chrome-button" type="button" aria-haspopup="dialog" aria-controls="icon-library">Icon library</button>'
     + '<p>Your software architecture as Markdown in Git, and one C4 map you can explore. Groma connects source evidence with the responsibilities and relationships described by people and coding agents.</p>'
     + '<a class="credits-repository" href="https://github.com/MrLesk/Groma.md" target="_blank" rel="noreferrer">Groma repository</a>'
     + `</section>${runtime}${development}</div></details>`

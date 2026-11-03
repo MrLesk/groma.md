@@ -4,6 +4,7 @@ import { palettes, webFontFamily, type WebTheme } from '../atoms/theme.ts'
 import { textWidth } from '../../../sheet/measure.ts'
 import { fitCamera, pan } from '../iso/camera/camera.ts'
 import { gridPattern } from '../iso/grid.ts'
+import { appearanceCss } from '../iso/painting/appearance.ts'
 import { buildingsSvg, facadeDefs } from '../iso/painting/buildings.ts'
 import { islandsSvg, sheetSvg, slabsSvg } from '../iso/painting/ground.ts'
 import { routesSvg } from '../iso/painting/routes.ts'
@@ -41,7 +42,7 @@ export function renderCover(payload: CoverPayload, theme: WebTheme): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
     id="map" width="${COVER_SIZE.width}" height="${COVER_SIZE.height}" viewBox="0 0 1200 630"
     font-family="${escaped(webFontFamily)}" color="${palette.ink}">
-    <style>${mapDrawingCss(palette, camera.k)} #map .project-edit { display: none; }</style>
+    <style>${mapDrawingCss(palette, camera.k)} ${appearanceCss(scene, palette)} #map .project-edit { display: none; }</style>
     <defs>
       ${definitions}
       ${markup([gridPattern({ ...camera, k: 0.5 }, scene.view)])}

@@ -10,6 +10,7 @@ import type { Comparison, ComponentChange } from '../../../history/comparison.ts
 import { changeBadge, comparisonReasons, comparisonOverview, comparisonTechnology, comparisonFiles } from '../comparison/details.ts'
 import type { ElementWorkGroup } from '../../../work/pins.ts'
 import type { Zone } from '../../../sheet/types.ts'
+import { groupAddress } from '../../../naming.ts'
 import { findingsForOwner } from '../../../architecture-findings.ts'
 import { removalBlocker } from '../../../removable.ts'
 import { flowsThrough } from '../../flows.ts'
@@ -45,6 +46,10 @@ export interface Inspected {
   id: string
   title: string
   description: string
+  icon?: string
+  color?: string
+  /** Narrative groups edit their parent's appearance metadata, not a C4 element. */
+  group?: true
   kindLabel: string
   origin: Origin
   overview: string
@@ -149,6 +154,8 @@ export function inspectDetails(
     id: element.id,
     title: element.title,
     description: element.description ?? '',
+    icon: element.icon,
+    color: element.color,
     kindLabel: kindLabel(element.kind, element.external),
     origin: element.origin,
     overview: element.overview,
@@ -167,12 +174,29 @@ export function inspectDetails(
   }
 }
 
-/** Inspect either a stored architecture element or the derived placement group. */
+/** Inspect a stored element, a narrative group, or the derived placement group. */
 export function inspectSelection(id: string | undefined, world: ArchitectureGraph, zones: readonly Zone[]): Inspected | undefined {
   const element = world.elements.find(item => item.representationId === id)
   if (element !== undefined) return inspectDetails(element, world)
-  const group = zones.find(zone => zone.unidentifiedContainer && zone.key === id)
-  return group === undefined ? undefined : inspectUnidentifiedContainer(group, world)
+  const group = zones.find(zone => zone.key === id)
+  if (group === undefined) return undefined
+  return group.unidentifiedContainer ? inspectUnidentifiedContainer(group, world) : inspectNarrativeGroup(group, world)
+}
+
+function inspectNarrativeGroup(zone: Zone, world: ArchitectureGraph): Inspected | undefined {
+  const parent = world.elements.find(element => element.representationId === zone.parent)
+  if (parent === undefined) return undefined
+  const members = new Set(zone.members)
+  return {
+    id: groupAddress(parent.id, zone.name), title: zone.name, description: '', kindLabel: 'Group', group: true,
+    icon: parent.groupAppearance?.[zone.name]?.icon, color: parent.groupAppearance?.[zone.name]?.color,
+    origin: 'observed', overview: '',
+    children: world.elements.filter(element => members.has(element.representationId)).map(element => ({
+      id: element.representationId, title: element.title, kind: element.kind, external: element.external,
+    })),
+    relationships: [], flows: [], technology: '', files: [], findings: [],
+    removable: false, matchedGhost: false, movable: false, parent: parent.id,
+  }
 }
 
 /** A display group explains missing placement without exposing architecture writes. */
@@ -279,7 +303,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   const body = host.querySelector('.body')!
   title.replaceChildren()
   title.textContent = inspected.title
-  meta.textContent = `${inspected.kindLabel} · ${inspected.origin}`
+  meta.textContent = inspected.group ? inspected.kindLabel : `${inspected.kindLabel} · ${inspected.origin}`
 
   const change = options.comparison?.components[inspected.id]
   if (change !== undefined) {
@@ -320,7 +344,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
 
     children: () => {
       if (inspected.children.length === 0) return
-      body.append(heading('Children'))
+      body.append(heading(inspected.group ? 'Members' : 'Children'))
       const list = document.createElement('ul')
       for (const child of inspected.children) {
         const item = document.createElement('li')
@@ -378,10 +402,15 @@ export function clearDetails(host: HTMLElement): void {
 function elementFields(inspected: Inspected, options: PaneWrites): EditField[] {
   const fields: EditField[] = [
     { name: 'title', label: 'Title', value: inspected.title, required: true },
+    { name: 'icon', label: 'Icon', value: inspected.icon ?? '', kind: 'icon' },
+    { name: 'color', label: 'Color', value: inspected.color ?? '', kind: 'color' },
+  ]
+  if (inspected.group) return fields
+  fields.push(
     { name: 'description', label: 'Description', value: inspected.description },
     { name: 'overview', label: 'Overview', value: inspected.overview, multiline: true },
     { name: 'technology', label: 'Technology', value: inspected.technology },
-  ]
+  )
   if (inspected.movable) fields.push({
     name: 'parent', label: 'Parent', value: inspected.parent ?? '', options: options.parents ?? [],
   })

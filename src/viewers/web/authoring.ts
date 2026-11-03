@@ -19,6 +19,7 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
   /** Group as and Combine into, while several components are selected. */
   function selectionWrites(ids: readonly string[]): SelectionWrites | undefined {
     if (ids.length < 2 || add === undefined || edit === undefined) return undefined
+    if (!ids.every(id => deps.world().elements.some(element => element.representationId === id && element.kind === 'component'))) return undefined
     return {
       members: ids.map(id => ({ id, title: titleOf(id) })),
       onGroup: name => add({ thing: 'group', name, members: [...ids] }),

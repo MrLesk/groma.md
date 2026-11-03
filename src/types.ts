@@ -86,6 +86,12 @@ export type {
   WorkSnapshot,
 } from '@groma/work-source'
 
+/** Presentation for an authored group, stored by its C4 parent. */
+export interface GroupAppearance {
+  icon?: string
+  color?: string
+}
+
 export interface ArchitectureElement {
   id: string
   kind: C4Kind
@@ -95,6 +101,9 @@ export interface ArchitectureElement {
   parentId: string | null
   external: boolean
   group?: string
+  icon?: string
+  color?: string
+  groupAppearance?: Record<string, GroupAppearance>
   technology?: string
   code: CodeReference[]
   status: ElementStatus
@@ -141,6 +150,9 @@ export interface AnnotatedElement {
   children: string[]
   external: boolean
   group?: string
+  icon?: string
+  color?: string
+  groupAppearance?: Record<string, GroupAppearance>
   technology?: string
   code: CodeReference[]
   /** Total lines across the code files; absent only in hand-built worlds. */

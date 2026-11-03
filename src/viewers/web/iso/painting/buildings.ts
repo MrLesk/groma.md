@@ -49,7 +49,11 @@ function floorSvg(
 export function buildingsSvg(scene: ProjectedScene): SvgNode[] {
   return scene.buildings.map(projected => {
     const { building, floors, text } = projected
-    return node('g', { 'aria-label': building.title, 'data-id': building.representationId }, classOf(projected), [
+    const attributes = {
+      'aria-label': building.title, 'data-id': building.representationId,
+      ...(building.color === undefined ? {} : { 'data-color': building.color }),
+    }
+    return node('g', attributes, classOf(projected), [
       ...floors.flatMap((faces, index) => floorSvg(projected, faces, building.floors[index])),
       surfaceText(text, buildingFont(building), 'label', scene.view),
     ])
