@@ -9,6 +9,8 @@ groma:
     - scanner: typescript
       file: src/scanner/registry.ts
   group: Source scanning
+  icon: groma:worker
+  color: '#8875C5'
 description: Loads selected scanner plugins and collects their results
 ---
 

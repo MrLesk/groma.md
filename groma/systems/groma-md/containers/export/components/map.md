@@ -33,6 +33,8 @@ groma:
     - scanner: typescript
       file: src/viewers/web/iso/painting/appearance.ts
   group: Map drawing
+  icon: groma:browser
+  color: '#5B9A7C'
 description: Paints the browser map as SVG buildings, routes and labels
 ---
 

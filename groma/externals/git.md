@@ -4,6 +4,8 @@ title: Git
 status: stable
 groma:
   id: git
+  icon: groma:repository
+  color: '#C87966'
 description: Supplies repository history and the file inventory used by scans and revisions
 ---
 

@@ -9,6 +9,8 @@ groma:
     - scanner: typescript
       file: src/scanner/session.ts
   group: Source scanning
+  icon: groma:service
+  color: '#5B9A7C'
 description: Owns live scanner state for an open terminal or browser viewer
 ---
 

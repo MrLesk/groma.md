@@ -4,6 +4,8 @@ title: Groma
 status: stable
 groma:
   id: groma-md
+  icon: groma:system
+  color: '#5B9A7C'
 description: Stores architecture as Markdown and provides commands and maps to work with it
 ---
 

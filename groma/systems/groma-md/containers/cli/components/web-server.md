@@ -20,6 +20,8 @@ groma:
     - scanner: typescript
       file: src/viewers/web/startup/plugins.ts
   group: Browser delivery
+  icon: groma:server
+  color: '#2B9A9D'
 description: Serves the local browser map and live architecture operations
 ---
 

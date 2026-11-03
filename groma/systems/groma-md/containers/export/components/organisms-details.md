@@ -30,6 +30,8 @@ groma:
     - scanner: typescript
       file: src/viewers/web/organisms/color-picker.ts
   group: Architecture panels
+  icon: groma:component
+  color: '#4D82C8'
 description: Shows the selected element, its source and its relationships
 ---
 

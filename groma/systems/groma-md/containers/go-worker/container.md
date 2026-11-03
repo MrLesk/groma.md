@@ -6,6 +6,8 @@ groma:
   id: go-worker
   parent: groma-md
   technology: Go
+  icon: groma:worker
+  color: '#4D82C8'
 description: Analyses Go modules in a separate process
 ---
 

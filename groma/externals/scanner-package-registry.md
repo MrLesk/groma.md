@@ -4,6 +4,8 @@ title: Scanner package registry
 status: stable
 groma:
   id: scanner-package-registry
+  icon: groma:cloud
+  color: '#748798'
 description: Publishes scanner packages and the metadata Groma uses to install them
 ---
 

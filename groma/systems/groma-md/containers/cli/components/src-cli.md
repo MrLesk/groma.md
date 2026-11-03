@@ -23,6 +23,8 @@ groma:
       file: src/cli-lifecycle.ts
       symbol: stopOnSignal
   group: Project commands
+  icon: groma:application
+  color: '#4D82C8'
 description: Reads CLI commands and starts the requested Groma action
 ---
 

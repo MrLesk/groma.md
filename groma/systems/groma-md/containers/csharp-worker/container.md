@@ -6,6 +6,8 @@ groma:
   id: csharp-worker
   parent: groma-md
   technology: C#, Roslyn
+  icon: groma:worker
+  color: '#8875C5'
 description: Analyses C# source in a separate .NET process
 ---
 

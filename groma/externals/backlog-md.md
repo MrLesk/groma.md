@@ -4,6 +4,8 @@ title: Backlog.md
 status: stable
 groma:
   id: backlog-md
+  icon: groma:queue
+  color: '#B69445'
 description: Holds project tasks that Groma pins onto architecture elements
 ---
 

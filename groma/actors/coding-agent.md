@@ -4,6 +4,8 @@ title: Coding agent
 status: stable
 groma:
   id: coding-agent
+  icon: groma:worker
+  color: '#8875C5'
 description: An AI assistant that reads and changes architecture through the Groma CLI
 ---
 

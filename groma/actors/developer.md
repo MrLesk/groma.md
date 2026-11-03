@@ -4,6 +4,8 @@ title: Developer
 status: stable
 groma:
   id: developer
+  icon: groma:person
+  color: '#4D82C8'
 description: A person who inspects, scans and curates a project architecture
 ---
 
