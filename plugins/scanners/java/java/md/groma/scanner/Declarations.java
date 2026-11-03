@@ -59,7 +59,12 @@ final class Declarations extends TreePathScanner<Void, Void> {
     @Override public Void visitMethod(MethodTree tree, Void unused) {
         if (tree.getBody() != null) {
             var element = trees.getElement(getCurrentPath());
-            if (element == null) throw new IllegalStateException("Unbound executable declaration");
+            if (element == null) {
+                // javac's error recovery can leave a body unattributed, such as an anonymous class in a conditional
+                // super(...) argument of an unresolved superclass. Tokens need bindings, so none are taken.
+                operation(tree, tree.getName().toString());
+                return super.visitMethod(tree, unused);
+            }
             // A method of an anonymous class, including an enum constant body, is an anonymous callback.
             operation(tree, element.getEnclosingElement() + "#" + element, anonymous() ? null : Tokens.of(getCurrentPath(), trees, authored));
             operationFor.put(element, operationAt.get(tree));

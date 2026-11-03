@@ -300,7 +300,8 @@ body, including the methods of a local class.
 
 Lambdas and the methods of an anonymous class body, including an enum constant
 body, are anonymous callbacks. Static and instance initializer blocks and field
-initializers are initializer code. Neither carries tokens.
+initializers are initializer code. Neither carries tokens, and neither does a
+method whose body javac's error recovery leaves unattributed.
 
 Parameters and the variables declared in the body, such as locals, loop, catch
 and pattern variables and a local class's fields, become slots in declaration
