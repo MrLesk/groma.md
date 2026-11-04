@@ -45,8 +45,8 @@ Swift package and passed all four Swift tests and all 16 Node tests. Its full Bu
 suite had 594 passes, 41 optional skips and two failures in unchanged tests: a Java
 Gradle assertion expected Unix path separators, and a Python test exceeded its
 20-second limit. The Python timeout cause was not established by this work.
-Those failures did not affect the native Swift package qualification. TASK-451
-corrected the path assertion and measured the Python interpreter startup cost to
+Those failures did not affect the native Swift package qualification. Follow-up
+fixes corrected the path assertion and measured the Python interpreter startup cost to
 set the test concurrency to two. The [final CI run](https://github.com/MrLesk/Groma.md/actions/runs/35505469431)
 at commit `8f7285f9` passed the complete repository checks and standalone builds
 on Windows, Linux and macOS, with all existing assertions and time limits retained.

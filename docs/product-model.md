@@ -17,30 +17,14 @@ People and agents use groma.md. They do not edit architecture element or draft
 Markdown by hand. groma.md writes those files so paths, identity, and metadata
 stay consistent. The root `groma/project.md` is different: standard `title` and
 optional `description` fields are frontmatter, while its normal Markdown body
-is the complete project overview. Bare `groma` opens a terminal launcher for
-the current repository: Up and Down choose an executable action, Instructions,
-or the Advanced commands row. Enter runs an action or opens the selected screen.
-The Advanced commands screen contains a read-only table with one concise
-description beside each command: `<name>` is required, `[option]` is optional,
-and `…` means more options. Up and Down select a command, the table keeps it
-visible, and its explanation appears below the table. Tab switches between list
-and reading focus. In reading focus, Up and Down scroll the explanation. J and K
-scroll it one line in either focus; Page Up and Page Down move it one page. The repository
-context, Back row, plugin readiness, and footer remain fixed. Commands stay
-read-only. Enter returns from the selected Back row; Backspace always returns
-with Advanced commands still selected.
-Instructions uses the same logo and repository context,
-selects Overview by default, and shows each shipped guide below its guide table.
-Up and Down choose a guide in list focus. Tab switches to reading focus, where
-arrows scroll content, and back to the guide list. J/K and page keys scroll in
-either focus. The footer names the active focus. Backspace or the Back row
-returns to the launcher, whose arrows continue to select actions.
-Bare `groma instructions` opens this screen on a TTY. Named guides,
-non-interactive use, and `--plain` remain plain text. This catalog is for
-people. `groma agent-instructions [guide]` is a separate, always-plain catalog
-of agent operating rules. Without a guide name it prints an index naming each
-task-focused guide, when to read it, and the command that prints it. Every
-human guide and the agent index point readers to both catalogs.
+is the complete project overview.
+
+Bare `groma` opens an interactive terminal launcher with quick actions,
+`Instructions` (the human guide catalog, also available via `groma instructions`),
+and `Advanced commands` (a reference table of CLI commands and options).
+`groma agent-instructions [guide]` is a separate, always-plain catalog of
+operating rules for coding agents. Without a guide name it prints an index
+naming each task-focused guide, when to read it, and the command that prints it.
 
 `groma init` is the explicit repository-registration action for coding agents.
 It reconciles one short managed groma.md block in each distinct root `AGENTS.md`
@@ -98,13 +82,13 @@ operation before opening a map.
    project. The [browser map](viewers/web/index.md) describes its setup and
    creation controls.
 2. Publish a snapshot with `groma export <directory>`. The generated static
-   site contains the current project profile, architecture map and flows,
-   mapped Backlog work with task details and diffs, and architecture-owned
-   source inspection. It has no editor and never reads the repository or a
-   running groma.md server. Everything in the output directory is public data.
-   Export reads stored architecture without starting a scanner, writes one
-   snapshot, and exits. Run it again to publish updated data. Hosting and
-   access control belong to the chosen static host, outside groma.md.
+   site contains the current project profile, architecture map and flows, and
+   architecture-owned source outlines. It excludes Backlog tasks and editing
+   controls, and never reads the repository or a running groma.md server.
+   Everything in the output directory is public data. Export reads stored
+   architecture without starting a scanner, writes one snapshot, and exits.
+   Run it again to publish updated data. Hosting and access control belong to
+   the chosen static host, outside groma.md.
 3. `groma scan`: scan this repo. Core folds structural scan evidence into Markdown
    and counts architecture findings in the command summary, naming `groma lint`
    to read them. Findings are review
@@ -235,10 +219,10 @@ with `ok` and a short summary of what changed. It does not print elements,
 IDs, or a machine-readable architecture. If someone later needs that, it is
 a different command, not scan.
 
-`groma scan --watch` is the same scan, left running. It watches supported
-TypeScript and C# source and project files. It does not open a viewer. `groma
-view` and `groma web` run one scan before opening, then start that watch
-in-process.
+`groma scan --watch` is the same scan, left running. It watches source and
+project files selected by the enabled scanners in `config.json`. It does not
+open a viewer. `groma view` and `groma web` run one scan before opening, then
+start that watch in-process.
 
 Each language scanner returns a validated observation of source files, symbols,
 source roots, supported execution and interaction facts, and diagnostics. Core
@@ -371,7 +355,7 @@ the configured statuses and
 default status plus one `task list --json` summary containing every configured
 task, including terminal history. It reads `task view <id> --json` only for the
 task whose full details a developer opens. The last configured status is
-terminal. groma.md never reads or watches Backlog storage directly. Static export reads a current task snapshot. Web and terminal
+terminal. groma.md never reads or watches Backlog storage directly. Web and terminal
 share live updates from the Backlog work source: `task list --json --watch`
 provides complete replacement lists, and the plugin notifies its host after
 each complete JSON response. Closing the subscription stops the CLI process.
@@ -382,19 +366,12 @@ file. Each element appears once. References describe planned scope before edits;
 modified files record actual changes and supply task diffs. Unmatched references,
 including external URLs, remain task context.
 
-Loaded architecture snapshots share the derived source lookup in `src/source-index.ts`.
-It reads existing IDs and code references without IO or path normalization. A replacement
-elements array gets a new index; task-only updates reuse it. Each loaded revision has
-its own snapshot. Mutable scanner reconciliation keeps its changing ownership map.
-This is an in-memory lookup for the current filesystem delivery, with no stored metadata
-or new C4 concept. The terminal map marks tasks in its currently shown
+The terminal map marks tasks in its currently shown
 statuses on those elements; default and intermediate statuses start shown. The web map stands one pin per assignee and task
 on the element the task touched last; an unassigned mapped task gets one generic
 Backlog pin. The Live work island filters pins and chips by the configured
 statuses, showing a filter only while that status has a mapped pin. A filter
 appears when the first matching pin arrives. The configured terminal status starts
 hidden. The configured default status represents future work, starts shown, and uses
-draft treatment on the map; every other configured status starts shown. Draft treatment
-belongs to the work projection and does not change groma.md architecture records or
-Markdown. Without the CLI, the plugin supplies empty work and every architecture flow
+draft treatment on the map; every other configured status starts shown. Without the CLI, the plugin supplies empty work and every architecture flow
 remains available.

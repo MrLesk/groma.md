@@ -64,8 +64,7 @@ A top-level, non-parameterized `def main()` with no arguments is execution-entry
 evidence for its own file, following Mojo's [entry-point rule](https://mojolang.org/docs/manual/basics/#hello-world).
 Imported files are not assigned to that entry without compilation-unit evidence.
 Imports, folders, structs and traits do not establish C4 boundaries or
-collaborations. Groma core owns the existing OKF Markdown, source ownership and
-C4 interpretation; this scanner introduces no architecture concept or metadata.
+collaborations.
 
 ## Development
 

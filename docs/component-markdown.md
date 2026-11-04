@@ -74,10 +74,8 @@ architecture; they take no original-value option. Web forms also compare the
 original values of changed fields, returning a conflict before any write when
 another edit changed one of them. An already-applied value succeeds.
 
-Lock timeout and field conflicts make no architecture changes. The lock and
-temporary files are filesystem implementation details, not OKF metadata or C4
-elements. Domain validation and conflict checks are independent of storage.
-Ordinary Markdown readers continue to see the same document format.
+Lock timeout and field conflicts make no architecture changes. Domain validation
+and conflict checks are independent of storage.
 
 This protects cooperating local Groma processes. Separate clones and direct
 file editors do not share this boundary. Changes across several files are not
@@ -214,11 +212,6 @@ Matching hash prefixes grow until the IDs are unique. Contents and scanner
 identity do not enter that hash. Titles use the readable name without the
 hash. An already owned source keeps its stored ID on later scans, including
 when another scanner reports it.
-
-This is a groma.md naming rule for existing C4 components, not another C4 boundary
-or OKF metadata field. Ordinary Markdown and OKF readers see readable titles,
-filenames, and source references; groma.md core owns collision allocation and
-the existing `groma.id` identity.
 
 ### Code references
 
@@ -448,5 +441,5 @@ TypeScript, NestJS, and PostgreSQL.
 
 ```
 
-The live [groma.md system](../groma/systems/groma/system.md) and
-[MVP draft](../groma/drafts/mvp.md) are a complete package example.
+The live [groma.md system](../groma/systems/groma-md/system.md) and
+[project record](../groma/project.md) are a complete package example.

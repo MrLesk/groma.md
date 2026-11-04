@@ -34,8 +34,7 @@ A selected `DESCRIPTION` supplies a package source root and its `Package:`
 name. A file belongs to the nearest containing package root. Other files
 belong to the repository source root. These are source groupings, not C4
 systems, containers, or collaborations. Core retains ownership of architecture
-placement and existing curation. Ordinary Markdown readers see the resulting
-Code links and names; no new OKF fields or C4 levels are added.
+placement and existing curation.
 
 Each source file is inventoried, including a file with no named functions.
 The scanner reports a function when a direct top-level assignment uses

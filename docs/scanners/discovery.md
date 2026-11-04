@@ -35,18 +35,28 @@ depth. These rules are declared by the current official plugins:
 | --- | --- |
 | `package.json` | `typescript`, `@angular/core`, `vue`, and `react` in dependency sections, with their declared version or range |
 | `tsconfig.json` | TypeScript project configuration; it does not declare the compiler version |
+| `*.js`, `*.mjs`, `*.cjs`, `*.jsx` | JavaScript source; no package manifest is required |
+| `*.csproj` | C# project and literal `TargetFramework` or `TargetFrameworks` values |
+| `go.mod` | Go module and its `go` version directive |
 | `pom.xml` | Maven project and literal `java.version`, `maven.compiler.release`, or `maven.compiler.source` values; `org.springframework.boot` is a framework clue |
 | `build.gradle`, `build.gradle.kts` | Gradle build script and the first literal `JavaLanguageVersion.of(...)` or `JavaVersion.VERSION_...` value, when present; Java sources are not verified |
-| `*.scala` | Scala source; compiler version and build configuration are unverified |
-| `*.kt` | Kotlin source; compiler version and build configuration are unverified |
-| `*.csproj` | C# project and literal `TargetFramework` or `TargetFrameworks` values |
+| `*.php` | PHP source; no Composer manifest is required |
 | `pyproject.toml` | Python project configuration and literal `project.requires-python`, when present |
 | `setup.py`, `setup.cfg`, `requirements.txt` | Python project or dependency declaration |
-| `*.php` | PHP source; no Composer manifest is required |
-| `*.swift` | Swift source; no package manifest is required |
-| `*.js`, `*.mjs`, `*.cjs`, `*.jsx` | JavaScript source; no package manifest is required |
-| `go.mod` | Go module and its `go` version directive |
 | `Cargo.toml` | Cargo package or workspace, with a literal package `rust-version` when present |
+| `*.swift` | Swift source; no package manifest is required |
+| `*.rb`, `*.gemspec`, `Gemfile`, `config/routes.rb` | Ruby source or package files, and Rails routing configuration |
+| `*.scala` | Scala source; compiler version and build configuration are unverified |
+| `*.kt` | Kotlin source; compiler version and build configuration are unverified |
+| `*.c` | C source; preprocessor and build configuration are unverified |
+| `*.cpp`, `*.cc`, `*.cxx`, `*.C`, `*.hpp`, `*.hh`, `*.hxx` | C++ source; build configuration and preprocessor branches are unverified |
+| `*.ads`, `*.adb` | Ada source; build configuration and entry points are unverified |
+| `*.dart` | Dart source; Flutter, Serverpod, and build configuration are unverified |
+| `*.mq5` | MQL5 source; preprocessor configuration is unverified |
+| `*.mojo`, `*.🔥` | Mojo source files |
+| `*.cbl`, `*.cob` (case-insensitive) | COBOL source files; dialect and runtime configuration are unverified |
+| `*.asm` | Assembly source; NASM x86-64 compatibility and assembly entry must be confirmed |
+| `*.R`, `*.r` | R source; syntax analysis without executing R |
 
 A file-presence rule whose patterns are all extension globs, such as `*.php`
 and `*.swift`, reports one line per technology with the number of matching
@@ -135,8 +145,3 @@ TypeScript to avoid shared file coverage.
 
 Vue and React add complementary framework evidence when TypeScript is also selected.
 Their dependency declarations do not prove complete framework runtime analysis.
-
-Discovery and scanner selection are operational configuration. They do not
-create OKF concepts, C4 elements, or architecture boundaries. Ordinary Markdown
-and OKF readers keep the same architecture records and links; groma.md's scanner
-module management owns interpretation of this discovery result.

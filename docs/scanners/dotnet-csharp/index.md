@@ -26,8 +26,7 @@ The maintainer build installs its host runtime under the scanner's local
 `node_modules` and copies it into the staged package. Both source development
 and local package scans use normal module resolution. The release assembler
 emits one runtime package per built host and a small adapter referencing all
-of them; runtimes publish before the adapter. This changes package delivery
-only: scanner evidence, OKF records and C4 boundaries are unchanged.
+of them; runtimes publish before the adapter.
 
 ## Source inputs
 

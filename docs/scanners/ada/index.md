@@ -33,7 +33,7 @@ are not associated in this first version.
 There are no inferred execution entries: a library procedure is not necessarily
 a program's main procedure. GPR files, Alire manifests, dependency closure and
 launch configuration are not analyzed. Package hierarchy supplies source names,
-not C4 boundaries. Core owns component placement and OKF Markdown output.
+not C4 boundaries.
 
 ## Code outline
 

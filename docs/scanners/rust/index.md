@@ -76,12 +76,8 @@ This includes a file reached through a symlink.
 Invalid syntax or an engine module-loading error in a file the scan reads fails
 the observation.
 Unresolved external semantics do not fail the source scan. A completed scan
-does not claim that the application compiles.
-
-Crates and compiler contexts are temporary evidence, not new OKF concepts or
-C4 levels. Core owns curated file membership and relationship policy. Markdown
-readers retain readable Code links and responsibilities. Ordinary Rust calls
-do not automatically become architecture relationships.
+does not claim that the application compiles. Ordinary Rust calls do not
+automatically become architecture relationships.
 
 The [rust-analyzer project JSON format](https://rust-analyzer.github.io/book/non_cargo_based_projects.html)
 provides the source graph interface. See

@@ -118,7 +118,3 @@ version. An explicit npm version is eligible for automatic background updates un
 The plugins screen, **Settings → Plugins** in `groma web` or `s` on the welcome
 screen, offers the same operations and lists the bundled plugins the project
 does not use yet, each with **Install**.
-
-`config.json` is operational configuration, not architecture knowledge: it adds
-no OKF concept or C4 element, and a Markdown reader of the architecture sees
-nothing of it.

@@ -1,9 +1,7 @@
 # TUI interaction review examples
 
-Approved refinements for TASK-244. The durable behaviour is described in the
-[Terminal viewer guide](index.md); the Terminal Facelift examples establish its
-root and container views. Human understanding of architecture, relationships
-and flows takes priority.
+The durable behavior is described in the [Terminal viewer guide](index.md).
+Human understanding of architecture, relationships, and flows takes priority.
 
 When an architect opens `groma view`, they can follow architecture and work
 without losing their place. Web 2D and TUI share nested map placement, relationships and work data.

@@ -4,8 +4,8 @@ An independent agent chose these four projects and recorded expected source
 responsibilities before scanning. Its first full-selection trial exposed ordinary
 language defects and macro/conditional-source gaps. Those witnesses drove the
 focused corrections below. The implementation replay on 2026-10-15 uses
-`@groma/scanner-mql5` 0.1.0, macOS ARM64, Bun 1.4.3, Groma base
-`9cc7e909febc63d5128f65ecb65bd5226fa829d8` plus TASK-597. Final independent qualification confirms all six full selections and all 58
+`@groma/scanner-mql5` 0.1.0, macOS ARM64, Bun 1.4.3, and Groma base
+`9cc7e909febc63d5128f65ecb65bd5226fa829d8`. Final independent qualification confirms all six full selections and all 58
 original source witnesses; integration checks remain separate.
 
 The final grammar WASM SHA-256 is

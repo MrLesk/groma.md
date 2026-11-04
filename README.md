@@ -46,9 +46,7 @@ Want automatic architecture diffs on your PRs? **[Add them to your repository.](
 </p>
 
 > [!NOTE]
-> groma.md is free, MIT-licensed, and runs locally with no account or backend. Scans run offline once the scanners are installed. They use deterministic code analysis (fixed rules) and call no AI service. The initial map is limited to what the scanners can detect.
->
-> We recommend reviewing and curating the map at least once after the first scan to check its names, responsibilities, boundaries, and relationships. You can do this yourself with groma.md's commands, or ask your coding agent to help and review its changes. **You can use groma.md entirely without AI.**
+> groma.md is free, MIT-licensed, and runs locally with no account or backend. Scans run offline once the scanners are installed, use deterministic code analysis, and call no AI service. **You can use groma.md entirely without AI.**
 
 ## Get started
 
@@ -60,29 +58,26 @@ Three steps. Scan your code, then review and curate the map yourself or with you
 npm i -g groma.md backlog.md
 ```
 
-The npm command supports Node.js 16.20.2 or newer and needs no separate Bun installation. Installation scripts can stay disabled. This is a compatibility minimum; use security-patched tools to download packages.
-To run without Node or Bun, download the [native executable](https://github.com/MrLesk/groma.md/releases/latest) for your platform, rename it to `groma` (`groma.exe` on Windows), make it executable on Unix, and put it on `PATH`.
-
-Backlog.md provides the tasks shown on the map once the project's `config.json` lists it: answer yes in `groma init`, or run `groma plugin add backlog`. groma.md works without it. macOS requires Apple Silicon.
+Backlog.md provides the tasks shown on the map; groma.md works without it. To run without Node.js, download the [standalone executable](https://github.com/MrLesk/groma.md/releases/latest) for your platform. macOS requires Apple Silicon.
 
 ### 2. Scan
 
 ```sh
 cd your-repo
-groma web     # browser map on http://localhost:4747
+groma web     # scans and opens the browser map on http://localhost:4747
 ```
 
-On a new project, `groma web` walks you through project setup and scanner selection, then runs the first scan and opens the map.
+`groma web` scans your repository automatically at startup and opens the map. On a new project, it first walks you through project setup and scanner selection in your browser.
 
 ### 3. Review and curate
 
-Compare the map with your code and your knowledge of the system. Name responsibilities, combine records that belong together, and add missing descriptions and relationships. Run `groma instructions` for the human guides and use `--help` for each command. Keep the map open while you work: your changes appear on it. If you use a coding agent, you can ask it:
+The first scan gives you a starting map from what the scanners can detect. To turn it into your architecture, click **Copy prompt** on the map's first-scan notice and paste it into your coding agent:
 
 ```text
-Read the current groma.md architecture with `groma agent-instructions` and `groma view --plain`. Compare it with the source code, then annotate the architecture so it reflects the code: combine records that share a responsibility, add missing overviews and relationships, and keep Backlog.md task links current. Use groma.md's CLI for architecture changes, then summarize what you changed.
+Curate this repository's architecture with Groma. Run groma agent-instructions and follow its curation workflow. Describe the architecture as it exists today; do not change application code.
 ```
 
-Setup registers groma.md in your `AGENTS.md` or `CLAUDE.md`, so your agent knows where to start. Later scans keep your curation, whether you or an agent made the changes.
+You can also curate the map yourself with groma.md's commands (`groma instructions` and `--help`). Setup registers groma.md in your `AGENTS.md` or `CLAUDE.md`, so your agent knows where to start. Keep the map open while you work: changes appear live, and later scans keep your curation.
 
 ## Work with your agent
 
@@ -101,12 +96,12 @@ groma view src/orders.ts    # the owner of this file and its relationships
 - <img src=".github/assets/features/relationships.svg" width="20" height="20" alt=""> **Relationships and flows.** Describe how components interact, then chain relationships into named flows readers can step through. [Relationships and flows](docs/component-markdown.md)
 - <img src=".github/assets/features/drafts.svg" width="20" height="20" alt=""> **Drafts.** Sketch systems, containers, and components before they exist. They appear dashed beside the real ones until a scan matches their code and you accept them. [Draft lifecycle](docs/product-model.md#drafts)
 - <img src=".github/assets/features/work.svg" width="20" height="20" alt=""> **See work across the architecture.** Backlog.md tasks pin where people and agents are working; select one to highlight the components it touches and inspect its changes without leaving the map. [Task links](docs/agent-instructions/backlog.md)
-- <img src=".github/assets/features/history.svg" width="20" height="20" alt=""> **Explore past architecture with its code.** Open an earlier revision and inspect the source from that same commit, down to functions and methods.
-- <img src=".github/assets/features/publish.svg" width="20" height="20" alt=""> **Publish a static site.** `groma export ./site` captures the working tree with architecture, flows, and source. Add `--revision <commit>` for one commit or `--from <base> --revision <head>` for a comparison. Exports contain no task data. Scanning and hosting run separately. [Static publication](docs/viewers/web/index.md#static-publication)
+- <img src=".github/assets/features/history.svg" width="20" height="20" alt=""> **Explore history and compare commits.** Open any earlier revision with its source, or compare two commits (or uncommitted changes) on the map to see added, modified, and removed components and relationships.
+- <img src=".github/assets/features/publish.svg" width="20" height="20" alt=""> **Publish a static site.** `groma export ./site` exports a standalone, read-only map of your working tree, a commit, or a commit comparison that you can host anywhere. [Static publication](docs/viewers/web/index.md#static-publication)
 
 ## Plain Markdown, C4, OKF
 
-The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md) bundle: one Markdown document per element, plus records for relationships, flows, and drafts. C4 gives the structure, OKF keeps it portable, and the documents stay readable without groma.md. [Architecture Markdown contract](docs/component-markdown.md)
+The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md) bundle: one Markdown document per element (with its relationships), plus records for flows and drafts. C4 gives the structure, OKF keeps it portable, and the documents stay readable without groma.md. [Architecture Markdown contract](docs/component-markdown.md)
 
 ## Languages
 
@@ -117,22 +112,23 @@ The architecture lives in a `groma/` folder as an [Open Knowledge Format 0.2](ht
 | [Angular](docs/scanners/angular/index.md) | ✅ Available |
 | [React](docs/scanners/react/index.md) | ✅ Available |
 | [Vue](docs/scanners/vue/index.md) | ✅ Available |
-| [C](docs/scanners/c/index.md) | 🧪 Experimental |
-| [C++](docs/scanners/cpp/index.md) | 🧪 Experimental |
-| [Ada](docs/scanners/ada/index.md) | 🧪 Experimental |
-| [Dart (Flutter and Serverpod source)](docs/scanners/dart/index.md) | 🧪 Experimental |
-| [MQL5](docs/scanners/mql5/index.md) | 🧪 Experimental |
-| [Mojo](docs/scanners/mojo/index.md) | 🧪 Experimental |
 | [C#/.NET](docs/scanners/dotnet-csharp/index.md) | ✅ Available |
 | [Go](docs/scanners/go/index.md) | ✅ Available |
 | [Java (Maven, Gradle)](docs/scanners/java/index.md) | ✅ Available |
-| [Scala 3](docs/scanners/scala/index.md) | 🧪 Experimental |
-| [Kotlin](docs/scanners/kotlin/index.md) | 🧪 Experimental |
 | [Python](docs/scanners/python/index.md) | ✅ Available |
-| [Ruby / Rails](docs/scanners/ruby/index.md) | 🧪 Experimental (local build) |
 | [Rust](docs/scanners/rust/index.md) | ✅ Available |
 | [PHP](docs/scanners/php/index.md) | ✅ Available |
 | [Swift](docs/scanners/swift/index.md) | ✅ Available |
+| [C](docs/scanners/c/index.md) | 🧪 Experimental |
+| [C++](docs/scanners/cpp/index.md) | 🧪 Experimental |
+| [Kotlin](docs/scanners/kotlin/index.md) | 🧪 Experimental |
+| [Ruby / Rails](docs/scanners/ruby/index.md) | 🧪 Experimental |
+| [Scala 3](docs/scanners/scala/index.md) | 🧪 Experimental |
+| [Dart (Flutter and Serverpod source)](docs/scanners/dart/index.md) | 🧪 Experimental |
+| [R](docs/scanners/r/index.md) | 🧪 Experimental |
+| [Ada](docs/scanners/ada/index.md) | 🧪 Experimental |
+| [Mojo](docs/scanners/mojo/index.md) | 🧪 Experimental |
+| [MQL5](docs/scanners/mql5/index.md) | 🧪 Experimental |
 | [COBOL (IBM fixed format)](docs/scanners/cobol/index.md) | 🧪 Experimental |
 | [Assembly (NASM x86-64, Linux ELF64)](docs/scanners/nasm/index.md) | 🧪 Experimental |
 | Your favorite language or framework | [Submit an issue with your request](https://github.com/MrLesk/Groma.md/issues) |
@@ -157,7 +153,7 @@ No. Once a document exists, scans refresh only its code references: the symbols 
 
 > ### Can I see architecture changes in pull requests?
 
-Yes. The architecture is Markdown in the same repository, so its changes are part of the pull request. On public repositories, the groma.md GitHub Action adds change counts and a before and after map automatically for PRs from the same repository. For external fork PRs, a maintainer reviews the PR and starts the comparison with **Run workflow**. [Add it to your repository.](https://github.com/MrLesk/groma.md-action#add-pr-comparisons)
+Yes. The architecture is Markdown in the same repository, so its changes are part of the pull request. On public repositories, the groma.md GitHub Action comments on pull requests with change counts and a link to an interactive before-and-after map. [See it on a pull request](https://github.com/MrLesk/groma.md-action/pull/4) or [add it to your repository](https://github.com/MrLesk/groma.md-action#add-pr-comparisons).
 
 > ### What happens if I stop using groma.md?
 
@@ -165,11 +161,7 @@ Nothing breaks. The architecture stays in your repository as ordinary Markdown i
 
 > ### Which languages does it support?
 
-TypeScript, JavaScript, Angular, React, Vue, C, C++, Ada, Dart, MQL5, Mojo, C#/.NET, Go, Java, Scala 3, Kotlin, Python, Ruby / Rails, Rust, PHP, Swift, COBOL, and NASM assembly, each through a scanner plugin; see [Languages](#languages). For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
-
-## Experimental
-
-groma.md is an early prototype. Review the first scan before treating it as your architecture, expect rough edges, and check exports before sharing them, since they include source code. Report problems in [Issues](https://github.com/MrLesk/Groma.md/issues).
+Each language or framework runs through a scanner plugin; see [Languages](#languages) for the current list. For another language, [write a scanner plugin](docs/scanners/creating-a-plugin.md) or [request one](https://github.com/MrLesk/Groma.md/issues).
 
 ## Documentation and contributing
 

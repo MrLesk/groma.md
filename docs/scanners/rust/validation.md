@@ -2,7 +2,7 @@
 
 ## Codex workspace validation, 19 September 2026
 
-TASK-444 exercised the complete local Codex repository with the source adapter
+The complete local Codex repository was exercised with the source adapter
 and the packaged Rust 0.1.2 candidate on macOS arm64. Both returned two project
 roots, 2,586 physical source files and 25,502 operations without changing Codex
 source or installing its dependencies. The source scan took 18.8 seconds.
@@ -135,8 +135,7 @@ the lint, outline and HTTP cases, the focused run of
 The historical smoke run used `npm pack` and extracted that actual artifact before
 loading it into compiled groma.md. It verified `scanner check`, a successful
 scan, curated repeat scans, and unchanged Markdown after malformed Rust fails.
-Only macOS arm64 was exercised. Public publication and other platforms remain
-TASK-326.7 release qualification work.
+Only macOS arm64 was exercised.
 
 ## Recorded artifact hashes
 

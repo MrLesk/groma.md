@@ -1,7 +1,7 @@
 # Fresh-checkout scanner validation
 
-Validated on macOS arm64 on 2026-09-15 for TASK-396. These are local source
-and package checks, not a published release or qualification of other platforms.
+Validated on macOS arm64 on 2026-09-15. These are local source and package
+checks, not a published release or qualification of other platforms.
 
 ## Installed packages
 
@@ -58,14 +58,3 @@ Go, Rust and TypeScript include their native analysis workers. Framework
 packages include their compiler libraries. Runtime licenses and notices travel
 with the packages. Release CI assembles platform assets and runs the same
 fresh-checkout package suite on each build host before publication.
-
-The required `bun run check` covers lint, types, Node tests and Bun tests.
-The cold simplicity review passed. It led to removal of unused Java build-input
-arguments and duplicate Go sorting. Scanner execution changes add no OKF
-metadata or C4 levels; the existing core still owns architecture meaning.
-
-The final repository check passed 16 Node tests and 317 Bun tests. Its 15 skipped
-opt-in tests include the separately executed package, Go and Rust suites. The
-seven C# tests also passed. Both required reviews passed without remaining
-blockers. C# self-contained builds keep runtime-specific restore state in build
-output; the shared dependency lock still passes locked restore after publishing.

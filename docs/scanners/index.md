@@ -60,10 +60,7 @@ previous observation. Closing a session releases its watcher and waits for
 active analysis and publication.
 
 The source runtime emits observations without accessing architecture records.
-The groma.md adapter sends them to core for reconciliation. In OKF, Code links and
-relationship rows remain ordinary readable Markdown; this runtime adds no
-stored metadata. In C4, it is part of the existing scan lifecycle responsibility,
-not another architecture level. Core still owns architectural interpretation.
+The groma.md adapter sends them to core for reconciliation.
 
 `groma scan --watch` publishes after source changes; its first batch establishes
 the session baseline and updates architecture. Starting a watch does not scan
@@ -100,11 +97,6 @@ preprocesses a declared assembly configuration without assembling or linking it.
 For parsers, syntax errors remain scan failures,
 except in the [JavaScript scanner](javascript/index.md), which leaves a file it
 cannot parse out of its evidence and warns.
-
-This changes scanner execution, not the architecture model. In OKF, readers
-still see ordinary Markdown, Code links and relationship rows. In C4, parsers
-and runtimes belong to the existing scanner responsibility; dependencies do
-not become new map elements. groma.md core continues to own architectural meaning.
 
 ## Scanner settings
 
@@ -214,23 +206,31 @@ authored relationships remain intact.
 
 - [Discover project technologies and official scanner candidates](discovery.md)
 - [Select scanners and check project readiness](setup.md)
+- [Shared plugin contract](creating-a-plugin.md)
 - [TypeScript](typescript/index.md)
-- [Python](python/index.md)
-- [R (experimental)](r/index.md)
-- [Ruby / Rails](ruby/index.md)
-- [PHP](php/index.md)
-- [Scala 3](scala/index.md)
-- [Kotlin](kotlin/index.md)
-- [COBOL](cobol/index.md)
-- [NASM assembly](nasm/index.md)
-- [C](c/index.md)
-- [C++](cpp/index.md)
-- [Ada](ada/index.md)
-- [Dart](dart/index.md)
-- [MQL5](mql5/index.md)
-- [Mojo](mojo/index.md)
+- [JavaScript](javascript/index.md)
+- [Angular](angular/index.md)
+- [React](react/index.md)
+- [Vue](vue/index.md)
 - [C#/.NET](dotnet-csharp/index.md)
-- [Shared contract](creating-a-plugin.md)
+- [Go](go/index.md)
+- [Java](java/index.md)
+- [PHP](php/index.md)
+- [Python](python/index.md)
+- [Rust](rust/index.md)
+- [Swift](swift/index.md)
+- [Ruby / Rails (experimental)](ruby/index.md)
+- [Scala 3 (experimental)](scala/index.md)
+- [Kotlin (experimental)](kotlin/index.md)
+- [C (experimental)](c/index.md)
+- [C++ (experimental)](cpp/index.md)
+- [Ada (experimental)](ada/index.md)
+- [Dart (experimental)](dart/index.md)
+- [MQL5 (experimental)](mql5/index.md)
+- [Mojo (experimental)](mojo/index.md)
+- [COBOL (experimental)](cobol/index.md)
+- [NASM assembly (experimental)](nasm/index.md)
+- [R (experimental)](r/index.md)
 
 ## Relationship inference design
 

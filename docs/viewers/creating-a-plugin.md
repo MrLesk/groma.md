@@ -84,8 +84,8 @@ configuration; selected task details still come from `task view --json`.
 Closing the subscription stops and awaits the CLI process. Watch errors are
 reported without restarting the command.
 
-Web and terminal subscribe to this work-source flow. Static export reads one
-current task snapshot and does not start source scanning.
+Web and terminal subscribe to this work-source flow. Static export writes a
+read-only architecture snapshot without tasks or source scanning.
 Source watching and reconciliation belong to the scanner adapter.
 
 Leave when asked means `destroy`, which Ctrl+C calls. The plugin marks

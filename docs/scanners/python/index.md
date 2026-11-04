@@ -278,12 +278,10 @@ The eight [producer decisions](../evidence.md#producer-checklist) for Python:
 
 ## Architecture meaning
 
-Python roots, symbols and operations are temporary scanner evidence. They add
-no OKF record type or C4 containment level. groma.md core owns initial placement
-and preserves curated file ownership. Ordinary Markdown and OKF readers see
-the existing architecture records and Code links with scanner ID `python`.
-Framework dependencies and imports alone do not establish C4 collaborations.
-The same rules apply across Python projects, without assuming a web framework
-or directory layout.
+Python roots, symbols and operations are temporary scanner evidence. groma.md
+core owns initial placement and preserves curated file ownership. Framework
+dependencies and imports alone do not establish C4 collaborations. The same
+rules apply across Python projects, without assuming a web framework or
+directory layout.
 
 See [fresh-checkout validation](../fresh-checkout-validation.md) for exercised projects and limitations.

@@ -1,6 +1,6 @@
 # C# scanner qualification
 
-Local qualification on 8 September 2026 used macOS arm64, Bun 1.4.1, .NET SDKs 10.0.400 and 9.0.317, Roslyn 5.9.0.0, and a compiled groma.md 0.2.0 binary. The consumer binary SHA-256 was `bebd248e71d173b6a3eb780bcd9c946e37071a1148b57c899a4107374a51d5c0`. It was built from the shared working checkout based on `0e1252c92a90ef87b30d4fb5cfa56e768d436fea`, including the uncommitted C# delivery, technology-discovery, and evidence-composition changes for TASK-326. It is a working-tree snapshot, not an immutable Git revision. Linux and Windows consumer qualification belongs to the common release task; this record does not claim those runs passed.
+Local qualification on 8 September 2026 used macOS arm64, Bun 1.4.1, .NET SDKs 10.0.400 and 9.0.317, Roslyn 5.9.0.0, and a compiled groma.md 0.2.0 binary. The consumer binary SHA-256 was `bebd248e71d173b6a3eb780bcd9c946e37071a1148b57c899a4107374a51d5c0`. It was built from the shared working checkout based on `0e1252c92a90ef87b30d4fb5cfa56e768d436fea`. It is a working-tree snapshot, not an immutable Git revision. Linux and Windows consumer qualification belongs to the common release workflow; this record does not claim those runs passed.
 
 ## Reused research
 
@@ -19,13 +19,13 @@ The source witnesses match the research baseline:
 
 The package was relocated into a path containing spaces and loaded by compiled groma.md. The independent project-reference fixture produced six files, two project groups, 19 operations, and 24 invocations. Repeated scans preserved the map byte-for-byte. Combining the two partial-operation files through groma.md kept their common curated owner after a valid source edit. A deliberate compilation failure preserved the complete previous map.
 
-Compiled groma.md also scanned the pinned FluentValidation project. The first scan took 2.477 seconds on this machine. The second scan preserved all architecture Markdown. Adding a valid TypeScript probe and a broken C# probe made the combined scan fail before reconciliation; the map remained byte-identical. The probes were removed and tracked application source stayed unchanged. Map interpretation and review are recorded in TASK-326.2.
+Compiled groma.md also scanned the pinned FluentValidation project. The first scan took 2.477 seconds on this machine. The second scan preserved all architecture Markdown. Adding a valid TypeScript probe and a broken C# probe made the combined scan fail before reconciliation; the map remained byte-identical. The probes were removed and tracked application source stayed unchanged.
 
 ## macOS restore regression
 
 The research failure reproduced on SDK 10.0.400: absolute solution paths below `/var/folders` reached NuGet together with their `/private/var/folders` aliases, and restore reported an already-existing `project.assets.json`. Passing the solution path relative to the fixture's working directory resolves this supported case. Both fixture restore helpers now use relative input; no retry, audit override, timeout increase, or assertion removal was used.
 
-The original default Roslyn test command passes all 17 tests, including that solution case. Eight concurrent Bun tests cover input selection, configuration, scan-trigger files, tooling readiness, failed worker output, and bounded process failure. Focused lint and TypeScript checks pass. The repository-wide check and separate reviews are recorded in the Backlog task.
+The original default Roslyn test command passes all 17 tests, including that solution case. Eight concurrent Bun tests cover input selection, configuration, scan-trigger files, tooling readiness, failed worker output, and bounded process failure. Focused lint and TypeScript checks pass.
 
 ## Domain tests
 

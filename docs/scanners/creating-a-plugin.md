@@ -445,10 +445,6 @@ a new scan or restart the active viewer or watch session. A change to a file the
 scanner's `include` list names triggers a rescan; it does not reload groma.md
 settings.
 
-These settings are groma.md runtime configuration, not OKF knowledge records or
-C4 elements. The scanner module loader owns their delivery; the plugin owns
-their meaning. Architecture Markdown stays readable without interpreting them.
-
 ## Observation contract
 
 Return an observation when the declared analysis succeeds. Throw when it fails;
@@ -531,12 +527,6 @@ This records membership, not several architecture owners. A scanner must not
 merge different compilation contexts into a contradictory certain call target.
 The C# scanner currently rejects files shared by multiple loaded compilation
 contexts; the shared contract does not extend that scanner's supported analysis.
-
-Roots remain temporary evidence, not stored OKF concepts or new C4 boxes.
-An ordinary Markdown or OKF reader sees the existing architecture records,
-Code links, and relationship statements. groma.md core owns source placement and
-identity under its existing architecture profile. This distinction applies to
-solutions, monorepos, and source groupings in other languages as well.
 
 ### Symbols, operations, and invocations
 

@@ -186,8 +186,3 @@ they do not establish that an official public release exists.
 Restoring also checks local selections and fails with the missing directory
 when one is unavailable. To share a local scanner with colleagues, commit its
 runnable package and select a path relative to the repository.
-
-Scanner selection and readiness are operational configuration, not OKF
-concepts or C4 elements. Ordinary Markdown and OKF readers keep the same
-architecture records and links. groma.md's existing scanner module management
-owns package selection; each language plugin owns its source inputs and bundled analysis tools.

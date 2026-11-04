@@ -30,7 +30,7 @@ manually with `publish_scanners` enabled. Leave it disabled for a build-only run
 The author contract is `@groma/scanner`. Official packages use
 `@groma/scanner-<id>`; the main CLI remains `groma.md`. Scanner manifests declare
 their minimum groma.md API version in `groma.scanner.discovery.compatibility.groma`,
-currently `>=0.3.0`. Newer stable groma.md versions remain eligible. Raise the minimum
+such as `>=0.5.0`. Newer stable groma.md versions remain eligible. Raise the minimum
 only when a scanner uses an API introduced in a newer groma.md version, and verify
 it against the supported examples before each release. Keep package versions coordinated with `@groma/scanner`
 where it is a runtime dependency.
