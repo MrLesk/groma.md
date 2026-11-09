@@ -88,7 +88,7 @@ const pins = createPins(host, id => map.anchorOf(id), id => toggleTask(id, false
 const island = createWorkIsland(host, id => toggleTask(id), pins.show, tip)
 const hierarchy = createHierarchy(treeHost, select)
 const tagFocus = bindTagFocus(document.getElementById('tags')!, document.getElementById('tag-focus')!, opened.focusTags, () => { paintViewState(); focusOpened(selection.kind) })
-const themeControl = bindThemeControl(document.getElementById('theme') as HTMLDetailsElement, opened.theme, syncUrl)
+const themeControl = bindThemeControl(document.getElementById('theme') as HTMLDetailsElement, opened.theme, boot.themes, syncUrl)
 let hudVisible = opened.hudVisible
 shell.setHud(hudVisible)
 let selection = opened.selection

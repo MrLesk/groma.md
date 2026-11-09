@@ -7,6 +7,8 @@ import { compareArchitecture, ownedFiles, type SourceTexts } from '../../history
 import { olderFirst, readGitRevision, type GitRevision } from '../../history/revisions.ts'
 import { atRevision, readSourceTexts } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
+import { loadThemes } from '../../themes/configured.ts'
+import type { ThemeDefinition } from '../../themes/definition.ts'
 import type { TagFilter } from '../../tag-selection.ts'
 import { knownTags } from '../../tags.ts'
 import { outlineSourceFiles, readSnapshotCodeStructure } from '../source/structure.ts'
@@ -14,7 +16,7 @@ import { renderPage } from './page.ts'
 import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'
 import type { PublishedView, WebBootPayload } from './payload.ts'
 import { bundleRenderer, loadMapRoot } from './runtime.ts'
-import { coverThemes, generateCovers } from './sharing/images.ts'
+import { generateCover } from './sharing/images.ts'
 import { coverFile } from './sharing/metadata.ts'
 
 export interface WebExportHandle {
@@ -84,7 +86,7 @@ async function refuseTagsNothingCarries(roots: readonly string[], filter: TagFil
 }
 
 /** Materialize existing viewer reads while the requested roots are available; no Git reaches the browser. */
-async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number, filter: TagFilter | undefined): Promise<WebBootPayload> {
+async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number, filter: TagFilter | undefined, themes: ThemeDefinition[]): Promise<WebBootPayload> {
   const to = revisions.at(-1) ?? null
   const from = revisions.length === 2 ? revisions[0]! : undefined
   return atRevision(root, to, async afterRoot => {
@@ -94,7 +96,7 @@ async function publishedSnapshot(root: string, revisions: GitRevision[], generat
     if (filter !== undefined && afterMap.world.elements.length === 0) throw new Error('The export filter leaves no element to export')
     if (from === undefined) {
       const view = await snapshotView(root, afterRoot, to, revisions, generation, afterMap, ownedFiles(afterMap.world))
-      return { ...view.payload, delivery: { kind: 'published', views: [view] } }
+      return { ...view.payload, delivery: { kind: 'published', views: [view] }, themes }
     }
     return atRevision(root, from, async beforeRoot => {
       // In a comparison a tag is carried when either commit carries it.
@@ -111,7 +113,7 @@ async function publishedSnapshot(root: string, revisions: GitRevision[], generat
       ])
       // One comparison, from the older commit to the newer; closing it opens either commit on its own.
       const comparison = comparisonView(before, after)
-      return { ...comparison.payload, delivery: { kind: 'published', views: [before, after, comparison] } }
+      return { ...comparison.payload, delivery: { kind: 'published', views: [before, after, comparison] }, themes }
     })
   })
 }
@@ -160,13 +162,14 @@ export async function exportWebViewer(
   const finished = new Promise<void>(resolve => { closePromise = resolve })
 
   async function publish(): Promise<void> {
-    const snapshot = await publishedSnapshot(repositoryRoot, revisions, ++generation, filter)
+    // The working tree's config.json chooses the themes, also when the map comes from another commit.
+    const themes = await loadThemes(repositoryRoot)
+    const snapshot = await publishedSnapshot(repositoryRoot, revisions, ++generation, filter, themes)
     if (closed) return
     // Nothing is written before the snapshot exists, so an export that fails leaves no directory and no half-written site.
     await mkdir(output, { recursive: true })
     await replaceFile(path.join(output, 'render.js'), renderer)
-    const covers = await generateCovers(snapshot)
-    for (const theme of coverThemes) await replaceFile(path.join(output, coverFile(theme)), covers[theme])
+    for (const theme of themes) await replaceFile(path.join(output, coverFile(theme.id)), await generateCover(snapshot, theme))
     await replaceFile(path.join(output, 'snapshot.js'), snapshotScript(snapshot))
     await replaceFile(path.join(output, 'index.html'), renderPage(snapshot, url))
     await replaceFile(path.join(output, 'version.js'), versionScript(snapshot.generation))
