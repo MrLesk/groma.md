@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T22:54:00Z'
+updated_date: '2026-11-09T22:59:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -101,6 +101,8 @@ No tests of palette values.
 Decisions: a theme is data with one shape (id, title, scheme, chromeOpacity, palette with the named colors), checked by one validator that the bundled themes pass through too. config.json themes lists { id } for a bundled theme or { id, source } for a theme file; without the list a project has the three bundled themes. Auto shows the first listed theme whose scheme matches the system appearance, so list order is the association between themes and system modes. The enabled themes travel in the boot payload; the page, the picker, the link reader and the covers take that list, and nothing imports a fixed theme list. A link or path naming a theme the project does not enable is passed over, which keeps the existing fallback order (link, publication path, saved choice). Themes use the plugin commands (add, remove, list, and the new clone) but are not part of plugin presence or restore: a theme has nothing to install, and a missing theme file fails the page load with its path. A clone is written to <groma-root>/<id>.theme.json, a JSON file the OKF index does not list. Not done: themes do not appear in the Plugins settings screens, and there is no palette editor; the file is edited by hand.
 
 Verification: bun run check passed (28 Node tests, 1019 Bun tests, 64 environment-dependent skips, 0 failures). On the editing fixture: groma plugin list showed the three bundled themes; groma plugin clone dark midnight wrote the file and enabled it; after editing four palette values and removing blueprint, groma web offered Auto, Light, Dark and Midnight, a link with theme=midnight opened in it with the og:image pointing at cover-midnight.png, that cover was served and cover-blueprint.png returned 404; with the system appearance emulated as dark, Auto showed Dark; the container authored violet stayed violet in the custom theme. groma export on groma.md own map wrote one cover per enabled theme.
+
+Automated PR review, applied: auto is reserved and cannot be a theme id, in config.json or when cloning, because the picker and Auto resolution use that word; cloning refuses a destination file that already exists, since a theme taken out of the picker keeps its file and its palette edits. Both are covered by the clone test. Also: the setup page takes its theme ids from the bundled themes, and the configuration docs say what a clone does not copy (the few line treatments that belong to the bundled Dark and Blueprint).
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

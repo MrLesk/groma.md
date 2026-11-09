@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { loadThemes } from '../src/themes/configured.ts'
 import { AUTO_THEME, shownTheme } from '../src/themes/definition.ts'
-import { cloneTheme, disableTheme } from '../src/themes/management.ts'
+import { cloneTheme, disableTheme, enableTheme } from '../src/themes/management.ts'
 import { renderPage } from '../src/viewers/web/page.ts'
 import type { WebBootPayload } from '../src/viewers/web/payload.ts'
 
@@ -31,6 +31,13 @@ test.concurrent('a cloned theme with one changed value loads beside the bundled 
     expect(themes[2]!.palette.paper).toBe('#0B1020')
     expect(themes[2]!.palette.ink).toBe(themes[1]!.palette.ink)
 
+    // A theme taken out of the picker keeps its file, and a later clone of the same id must not replace it.
+    await disableTheme(root, 'midnight')
+    await expect(cloneTheme(root, 'dark', 'midnight')).rejects.toThrow('already exists')
+    expect(JSON.parse(await readFile(file, 'utf8')).palette.paper).toBe('#0B1020')
+    await expect(cloneTheme(root, 'dark', 'auto')).rejects.toThrow()
+
+    await enableTheme(root, cloned.source!)
     delete definition.palette.ink
     await writeFile(file, JSON.stringify(definition))
     await expect(loadThemes(root)).rejects.toThrow('palette.ink')

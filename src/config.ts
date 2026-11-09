@@ -3,6 +3,7 @@ import type { ScannerSettings } from '@groma/scanner'
 import { backlogPlugin } from '@groma/work-source-backlog'
 import ignore from 'ignore'
 import { GromaFileSystem } from './groma-filesystem.ts'
+import { AUTO_THEME } from './themes/definition.ts'
 
 export interface ConfiguredScanner {
   id: string
@@ -156,6 +157,7 @@ function configuredThemes(value: unknown, filename: string): ConfiguredTheme[] |
     if (typeof entry.id !== 'string' || !pluginId.test(entry.id)) {
       throw new Error(`${filename} themes id must be lowercase kebab-case`)
     }
+    if (entry.id === AUTO_THEME) throw new Error(`${filename} themes id ${AUTO_THEME} is reserved for following the system appearance`)
     if (entry.source !== undefined && (typeof entry.source !== 'string' || entry.source.trim() === '')) {
       throw new Error(`${filename} themes source must be non-empty`)
     }

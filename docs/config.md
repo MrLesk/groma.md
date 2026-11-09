@@ -83,7 +83,10 @@ Bundled themes and theme files have one shape and one loader
 | `palette.colors` | One value for each named color: `red`, `orange`, `yellow`, `blue`, `violet`, `pink`. |
 
 A theme file must define every value; one that does not fails to load with the
-name of the missing field. **Auto** shows the first listed theme whose `scheme`
+name of the missing field. A theme file sets colours and panel opacity. The
+bundled Dark and Blueprint also carry a few line treatments of their own, such
+as Blueprint's underlined keywords in the source view, which a clone does not
+take. **Auto** shows the first listed theme whose `scheme`
 matches the system appearance, so the order of the list decides which light and
 which dark theme Auto uses. A theme chosen by name stays chosen.
 
