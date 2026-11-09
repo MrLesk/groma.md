@@ -6,6 +6,7 @@ groma:
   id: cli
   parent: groma-md
   technology: TypeScript, Bun
+  color: blue
 description: 'Runs Groma on the user''s computer: storage, scans, terminal views and local HTTP'
 ---
 

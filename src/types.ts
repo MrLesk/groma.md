@@ -1,4 +1,5 @@
 import type { ScanDiagnostic, ScannerIdentity } from '@groma/scanner'
+import type { ColorName } from './colors.ts'
 
 export type C4Kind = 'actor' | 'system' | 'container' | 'component'
 export type Origin = 'observed' | 'draft'
@@ -99,6 +100,8 @@ export interface ArchitectureElement {
   technology?: string
   /** OKF tags: authored categories that cut across the hierarchy. Omitted when the element has none. */
   tags?: string[]
+  /** The authored color name; each UI theme decides what it looks like. */
+  color?: ColorName
   code: CodeReference[]
   status: ElementStatus
   /** The draft record this element belongs to; a stable element may carry it too. */
@@ -147,6 +150,8 @@ export interface AnnotatedElement {
   technology?: string
   /** OKF tags: authored categories that cut across the hierarchy. Omitted when the element has none. */
   tags?: string[]
+  /** The authored color name; each UI theme decides what it looks like. */
+  color?: ColorName
   code: CodeReference[]
   /** Total lines across the code files; absent only in hand-built worlds. */
   codeLines?: number

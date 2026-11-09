@@ -60,6 +60,17 @@ test('reads OKF tags from the top-level list and leaves an untagged element with
   assert.equal('tags' in elements.find(element => element.id === 'buyer')!, false)
 })
 
+test('reads an authored color name from the groma mapping', { concurrency: true }, () => {
+  const colored = elementDocument({
+    id: 'orders',
+    kind: 'system',
+    sourceFilename: 'groma/systems/orders/system.md',
+    extraGroma: { color: 'violet' },
+  })
+
+  assert.equal(buildArchitectureModel([colored]).elements[0]!.color, 'violet')
+})
+
 test('orders equivalent unchanged trees deterministically', { concurrency: true }, () => {
   const system = elementDocument({
     id: 'z-system',

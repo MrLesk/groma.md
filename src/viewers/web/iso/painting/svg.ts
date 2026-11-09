@@ -25,6 +25,11 @@ function attributesOf(tag: string, attributes: Record<string, string | number>, 
 }
 
 /** One element of the shared drawing; strokes get `vector-effect` so they stay one pixel at every zoom. */
+/** The data-color attribute of an element that has an authored color; the map stylesheet turns it into paint. */
+export function colorAttribute(item: { color?: string }): Record<string, string> {
+  return item.color === undefined ? {} : { 'data-color': item.color }
+}
+
 export function node(
   tag: string,
   attributes: Record<string, string | number> = {},

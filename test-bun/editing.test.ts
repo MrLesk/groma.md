@@ -111,6 +111,21 @@ test.concurrent('tag edits replace and remove the OKF list, and other edits and 
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('color edits set and clear the name, refuse an unknown one, and other edits and scans keep it', async () => {
+  const root = await fixture()
+  try {
+    const read = async () => (await loadAnnotatedArchitecture(root)).elements.find(element => element.id === 'api')!
+    await writes.edit(root, { id: 'api', color: 'violet' })
+    await writes.edit(root, { id: 'api', title: 'Order API' })
+    await scanRepository(root)
+    assert.equal((await read()).color, 'violet')
+    await assert.rejects(writes.edit(root, { id: 'api', color: 'teal' }))
+    assert.equal((await read()).color, 'violet')
+    await writes.edit(root, { id: 'api', color: '' })
+    assert.equal((await read()).color, undefined)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('draft relationships survive edits and scans and require explicit acceptance', async () => {
   const root = await fixture()
   try {
