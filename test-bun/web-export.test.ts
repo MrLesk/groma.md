@@ -61,6 +61,32 @@ test.concurrent('a filtered export publishes neither an excluded component nor i
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('a filtered comparison publishes no source from the commit that excludes a component', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-export-filter-commits-'))
+  const git = async (...args: string[]) => {
+    const process = Bun.spawn(['git', ...args], { cwd: root, stdout: 'pipe', stderr: 'pipe' })
+    const output = await new Response(process.stdout).text()
+    expect(await process.exited).toBe(0)
+    return output.trim()
+  }
+  const commit = async (message: string) => {
+    await git('add', '.')
+    await git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', 'commit', '--quiet', '-m', message)
+    return git('rev-parse', 'HEAD')
+  }
+  try {
+    await cp(fixture, root, { recursive: true })
+    await git('init', '--quiet')
+    const published = await commit('Public orders')
+    await writes.edit(root, { id: 'orders', tags: 'internal' })
+    await writeFile(path.join(root, 'src/orders.ts'), 'export const internalOnly = true\n')
+    const internal = await commit('Orders become internal')
+    const boot = await publish(root, { from: published, revision: internal, excludeFilter: ['internal'] })
+    expect(boot.comparison?.components.orders?.status).toBe('removed')
+    expect(JSON.stringify(boot)).not.toContain('internalOnly')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('commit export and its one older-to-newer comparison use only bundled commits independently of checkout', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-export-commits-'))
   const git = async (...args: string[]) => {
