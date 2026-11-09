@@ -4,7 +4,7 @@ import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
 import type { Plane, ProjectionView } from '../projection/project.ts'
-import { COLOR_EDGE, COLOR_LIMIT, COLOR_STRENGTH, FACADE_MARK, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
+import { COLOR_EDGE, COLOR_STRENGTH, FACADE_MARK, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
 import type { Level } from './scale.ts'
 import { mark, node, type SvgNode } from './svg.ts'
 
@@ -80,44 +80,57 @@ function stroke(level: Level, palette: Palette | undefined, zoom: number): strin
   return palette === undefined ? `--stroke: ${width}px;` : `stroke-width: ${Number(width) / zoom};`
 }
 
-/** In the browser a surface takes its element's authored color when one is set (the --color-* variables below), else the level's ink tint. */
-function surfaceColours(kind: string, depth: number, palette?: Palette): string {
+/** The ink share of each tinted level's top; `kind` is the class of the element whose faces take the tint. */
+const SURFACE_DEPTH = {
+  island: depthOf('island'),
+  system: depthOf('island') - 0.5,
+  slab: depthOf('slab'),
+  building: depthOf('building'),
+}
+
+/** In the browser a surface takes its element's authored color when one is set (the --tint-* variables below), else the level's ink tint. */
+function surfaceColours(kind: keyof typeof SURFACE_DEPTH, palette?: Palette): string {
+  const depth = SURFACE_DEPTH[kind]
   const fill = (side: 'top' | 'right' | 'left', share: number) => palette === undefined
-    ? `var(--color-${side}, ${paintTint(share)})` : paintTint(share, palette)
+    ? `var(--tint-${side}, ${paintTint(share)})` : paintTint(share, palette)
   return `#map .${kind} .ground, #map .${kind} .top { fill: ${fill('top', tintAt(depth))}; }
     #map .${kind} .right { fill: ${fill('right', tintAt(depth + SIDE.right))}; }
     #map .${kind} .left { fill: ${fill('left', tintAt(depth + SIDE.left))}; }`
 }
 
-/** The levels an authored color paints, with the selector of the element that carries data-color. */
+/**
+ * The elements an authored color paints. `own` reaches the element's own faces and none of the surfaces drawn inside
+ * it: a slab holds its group zones, so its faces are its direct children. `top` is the class of its top surface.
+ */
 const COLORED_LEVELS = [
-  { selector: '.island', depth: depthOf('island') - 0.5 },
-  { selector: '.slab', depth: depthOf('slab') },
-  { selector: '.building', depth: depthOf('building') },
-]
+  { kind: 'system', own: ' > ', top: 'ground' },
+  { kind: 'slab', own: ' > ', top: 'top' },
+  { kind: 'building', own: ' ', top: 'top' },
+] as const
 
 /**
- * An authored color replaces the ink in its element's surface tints, at a stronger share, and tints the outline.
- * The browser sets variables that the surface and stroke rules read, so selection, lit, draft and comparison rules
- * keep working unchanged. A cover has no variables and no states, so it gets the resolved values as plain rules.
+ * An authored color replaces the ink in its element's surface tints, at a stronger share, and tints its outline.
+ * The browser sets four --tint-* variables on the element that the surface and stroke rules read, so selection, lit,
+ * draft and comparison rules keep working unchanged; group zones reset them, because a color belongs to its element
+ * alone. A cover has no variables and no states, so it gets the same values as plain rules.
  */
 function authoredColours(palette?: Palette): string {
-  const share = (depth: number) => Math.min(COLOR_LIMIT, tintAt(depth) * COLOR_STRENGTH)
-  return COLOR_NAMES.flatMap(name => COLORED_LEVELS.map(({ selector, depth }) => {
-    const element = `#map ${selector}[data-color="${name}"]`
-    const sides = { top: share(depth), right: share(depth + SIDE.right), left: share(depth + SIDE.left) }
+  return COLOR_NAMES.flatMap(name => COLORED_LEVELS.map(({ kind, own, top }) => {
+    const element = `#map .${kind}[data-color="${name}"]`
+    const depth = SURFACE_DEPTH[kind]
+    const share = (side: number) => tintAt(depth + side) * COLOR_STRENGTH
     if (palette === undefined) {
-      const color = `var(--color-${name})`
-      const mix = (amount: number, base: string) => `color-mix(in srgb, ${color} ${(amount * 100).toFixed(1)}%, ${base})`
-      return `${element} { --color-top: ${mix(sides.top, 'var(--paper)')}; --color-right: ${mix(sides.right, 'var(--paper)')}; `
-        + `--color-left: ${mix(sides.left, 'var(--paper)')}; --color-edge: ${mix(COLOR_EDGE, 'var(--map-line)')}; }`
+      const mix = (amount: number, base: string) => `color-mix(in srgb, var(--color-${name}) ${(amount * 100).toFixed(1)}%, ${base})`
+      return `${element} { --tint-top: ${mix(share(0), 'var(--paper)')}; --tint-right: ${mix(share(SIDE.right), 'var(--paper)')}; `
+        + `--tint-left: ${mix(share(SIDE.left), 'var(--paper)')}; --tint-edge: ${mix(COLOR_EDGE, 'var(--map-line)')}; }`
     }
     const color = palette.colors[name]
-    return `${element} .ground, ${element} .top { fill: ${mixColour(palette.paper, color, sides.top)}; }
-    ${element} .right { fill: ${mixColour(palette.paper, color, sides.right)}; }
-    ${element} .left { fill: ${mixColour(palette.paper, color, sides.left)}; }
-    ${element} .ground, ${element} .face { stroke: ${mixColour(palette.line, color, COLOR_EDGE)}; }
-    ${element}.ghost .ground, ${element}.ghost .face { fill: none; }`
+    const face = `${element}${own}`
+    return `${face}.${top} { fill: ${mixColour(palette.paper, color, share(0))}; }
+    ${face}.right { fill: ${mixColour(palette.paper, color, share(SIDE.right))}; }
+    ${face}.left { fill: ${mixColour(palette.paper, color, share(SIDE.left))}; }
+    ${face}.${top}, ${face}.face { stroke: ${mixColour(palette.line, color, COLOR_EDGE)}; }
+    ${element}.ghost${own}.${top}, ${element}.ghost${own}.face { fill: none; }`
   })).join('\n  ')
 }
 
@@ -138,8 +151,8 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   return `
   #map .sheet { pointer-events: none; ${stroke('island', palette, zoom)} }
   #map .calibration-tick, #map .compass, #map .project-plate { ${stroke('building', palette, zoom)} }
-  /* zones lie inside slab groups and keep their own weight while the slab is hovered or selected */
-  #map .zone { ${stroke('building', palette, zoom)} --emphasis: 1; }
+  /* zones lie inside slab groups: they keep their own weight while the slab is hovered or selected, and never take its authored color */
+  #map .zone { ${stroke('building', palette, zoom)} --emphasis: 1; ${palette === undefined ? '--tint-top: initial; --tint-right: initial; --tint-left: initial; --tint-edge: initial;' : ''} }
   #map .island { ${stroke('island', palette, zoom)} }
   #map .slab { ${stroke('slab', palette, zoom)} }
   #map .building { ${stroke('building', palette, zoom)} }
@@ -152,7 +165,7 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
     stroke: ${line}; stroke-linejoin: round;
     ${width}
   }
-  ${palette === undefined ? '#map .ground, #map .face { stroke: var(--color-edge, var(--map-line)); }' : ''}
+  ${palette === undefined ? '#map .ground, #map .face { stroke: var(--tint-edge, var(--map-line)); }' : ''}
   #map .frame, #map .calibration-tick,
   #map .compass .ring, #map .compass .star,
   #map .project-plate .edit-frame, #map .project-plate .pencil path { fill: none; }
@@ -182,11 +195,13 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .project-edit .pencil .tip, #map .project-edit .pencil .lead { stroke: none; }
   #map .grid { fill: none; stroke: ${grid}; }
   #map .grid.major { stroke: ${gridMajor}; }
-  ${surfaceColours('island', depthOf('island'), palette)}
-  ${surfaceColours('system', depthOf('island') - 0.5, palette)}
-  ${surfaceColours('slab', depthOf('slab'), palette)}
-  ${surfaceColours('building', depthOf('building'), palette)}
-  #map .actor .face { fill: ${palette === undefined ? `var(--color-top, ${paper})` : paper}; }
+  ${surfaceColours('island', palette)}
+  ${surfaceColours('system', palette)}
+  ${surfaceColours('slab', palette)}
+  ${surfaceColours('building', palette)}
+  ${palette === undefined
+    ? `#map .actor .top { fill: var(--tint-top, ${paper}); } #map .actor .right { fill: var(--tint-right, ${paper}); } #map .actor .left { fill: var(--tint-left, ${paper}); }`
+    : `#map .actor .face { fill: ${paper}; }`}
   ${authoredColours(palette)}
   #map .zone .ground { fill: url(#hatch-ground); }
   #map .pattern { stroke: none; pointer-events: none; }
@@ -272,7 +287,7 @@ export const mapCss = `
   #map .building.hovered:not(.selected), #map .slab.hovered:not(.selected):not(.context),
   #map .island.system.hovered:not(.selected):not(.context), #map .context { --emphasis: ${emphasis(0.5)}; }
   #map .building.hovered:not(.selected) .face, #map .slab.hovered:not(.selected):not(.context) .face,
-  #map .island.system.hovered:not(.selected):not(.context) > .ground { stroke: var(--map-line); }
+  #map .island.system.hovered:not(.selected):not(.context) > .ground { stroke: var(--tint-edge, var(--map-line)); }
   #map .selected, #map .touched,
   #map .building.lit, #map .slab.lit, #map .island.lit { --emphasis: ${emphasis(1)}; }
   #map .context .face, #map .island.context > .ground, #map .selected .face, #map :is(.island, .zone).selected > .ground,
@@ -288,7 +303,7 @@ export const mapCss = `
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) .face { stroke: color-mix(in srgb, var(--highlight) 45%, var(--map-line)); }
   body:not([data-comparison]) #map .camera:has(.component-focus) .building.component:not(.component-focus):not(.neighbor) { opacity: 0.3; }
   /* Color means change while comparing, so authored colors step aside. */
-  body[data-comparison] #map [data-color] { --color-top: initial; --color-right: initial; --color-left: initial; --color-edge: initial; }
+  body[data-comparison] #map [data-color] { --tint-top: initial; --tint-right: initial; --tint-left: initial; --tint-edge: initial; }
   body[data-comparison] #map .building:not([data-change]):not(.selected):not(.component-focus):not(.neighbor),
   body[data-comparison] #map .route:not([data-change]):not(.route-base):not(.selected):not(.endpoint):not(.lit) { opacity: .4; }
   body[data-comparison] #map .route-base { opacity: .4; }
