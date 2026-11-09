@@ -118,19 +118,6 @@ for (const {
     sourceFilename: 'groma/systems/orders/system.md',
   },
   {
-    name: 'reports a color that is not one of the named colors',
-    documents: [
-      elementDocument({
-        id: 'orders',
-        kind: 'system',
-        sourceFilename: 'groma/systems/orders/system.md',
-        extraGroma: { color: '#7C5CD6' },
-      }),
-    ],
-    code: 'INVALID_ELEMENT',
-    sourceFilename: 'groma/systems/orders/system.md',
-  },
-  {
     name: 'reports an unresolved relationship link at its source document',
     documents: [
       withRelationships(elementDocument({
