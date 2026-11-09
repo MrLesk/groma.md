@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T22:59:00Z'
+updated_date: '2026-11-09T23:04:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -49,6 +49,7 @@ modified_files:
   - docs/viewers/web/index.md
   - groma/systems/groma-md/containers/cli/components/themes.md
   - groma/systems/groma-md/containers/export/components/map-sharing.md
+  - test-bun/web-theme.test.ts
 type: feature
 ordinal: 700000
 ---
@@ -103,6 +104,8 @@ Decisions: a theme is data with one shape (id, title, scheme, chromeOpacity, pal
 Verification: bun run check passed (28 Node tests, 1019 Bun tests, 64 environment-dependent skips, 0 failures). On the editing fixture: groma plugin list showed the three bundled themes; groma plugin clone dark midnight wrote the file and enabled it; after editing four palette values and removing blueprint, groma web offered Auto, Light, Dark and Midnight, a link with theme=midnight opened in it with the og:image pointing at cover-midnight.png, that cover was served and cover-blueprint.png returned 404; with the system appearance emulated as dark, Auto showed Dark; the container authored violet stayed violet in the custom theme. groma export on groma.md own map wrote one cover per enabled theme.
 
 Automated PR review, applied: auto is reserved and cannot be a theme id, in config.json or when cloning, because the picker and Auto resolution use that word; cloning refuses a destination file that already exists, since a theme taken out of the picker keeps its file and its palette edits. Both are covered by the clone test. Also: the setup page takes its theme ids from the bundled themes, and the configuration docs say what a clone does not copy (the few line treatments that belong to the bundled Dark and Blueprint).
+
+Cold simplicity review (one round), applied: a publication path naming a theme the project does not enable is ignored when the link is written too, so Auto on such a path no longer writes theme=auto over the recipient saved theme (regression, now asserted); the saved choice is validated where it is read, so the theme control takes a checked value and the fallback helper is gone; the rule that no themes list means the bundled themes lives in one function (themeEntries); enabling a theme takes an explicit entry and one function turns command input into an entry; the plugin kind stays scanner or work source, and only a reported selection can be a theme; cloning an unknown theme says so. Kept, with the docs and the bundled-theme comment corrected to say it: a few stylesheet rules still name dark and blueprint (syntax line treatments, the Blueprint panel border and glow), so a clone takes the colours and not those; removing or generalising them changes how the bundled themes look and is Alex decision. Kept: the link readers default to the bundled themes when no list is passed, which is the project default and what the existing tests use; both production callers pass the enabled list.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

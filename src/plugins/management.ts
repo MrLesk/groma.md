@@ -7,7 +7,8 @@ import {
   updateScanner,
   type ScannerInstallOptions,
 } from '../scanner/modules/inventory.ts'
-import { disableTheme, enableTheme, enabledThemes, namesTheme } from '../themes/management.ts'
+import { themeEntries } from '../themes/configured.ts'
+import { disableTheme, enableTheme, themeEntry } from '../themes/management.ts'
 import { bundledWorkSource, bundledWorkSources, checkWorkSourceReadiness, type BundledWorkSource } from '../work/sources.ts'
 
 /**
@@ -21,7 +22,7 @@ import { bundledWorkSource, bundledWorkSources, checkWorkSourceReadiness, type B
  * file in the repository. src/themes/management.ts owns its entries, and add, remove and list reach it from here.
  */
 
-export type PluginKind = 'scanner' | 'workSource' | 'theme'
+export type PluginKind = 'scanner' | 'workSource'
 
 /** One listed plugin as this computer has it. */
 export interface PluginPresence {
@@ -62,9 +63,9 @@ async function ensureTool(bundled: BundledWorkSource, latest: boolean): Promise<
   return after.version
 }
 
-/** A plugin as a command reports it after adding or updating it. */
+/** A plugin or a theme as a command reports it after adding or updating it. */
 export interface PluginSelection {
-  kind: PluginKind
+  kind: PluginKind | 'theme'
   id: string
   selection: string
 }
@@ -80,7 +81,8 @@ export function themeSelection(theme: { id: string; source?: string }): PluginSe
  */
 export async function addPlugin(root: string, input: string, options: ScannerInstallOptions = {}): Promise<PluginSelection> {
   const id = input.trim()
-  if (namesTheme(id)) return themeSelection(await enableTheme(root, id))
+  const theme = themeEntry(id)
+  if (theme !== undefined) return themeSelection(await enableTheme(root, theme))
   if (!Object.hasOwn(bundledWorkSources, id)) {
     const added = await addScanner(root, input, options)
     return { kind: 'scanner', id: added.id, selection: added.source }
@@ -100,7 +102,7 @@ export async function addPlugin(root: string, input: string, options: ScannerIns
 export async function removePlugin(root: string, id: string): Promise<string> {
   const config = await readGromaConfig(root)
   if (config.scanners.some(scanner => scanner.id === id)) return removeScanner(root, id)
-  if ((await enabledThemes(root)).some(theme => theme.id === id)) {
+  if (themeEntries(config).some(theme => theme.id === id)) {
     await disableTheme(root, id)
     return id
   }
@@ -123,7 +125,7 @@ export async function updatePlugin(root: string, id: string, input?: string, opt
     const updated = await updateScanner(root, id, input, options)
     return { kind: 'scanner', id, selection: updated.source }
   }
-  if ((await enabledThemes(root)).some(theme => theme.id === id)) throw new Error(`${id} is a theme and has no releases; edit its theme file instead`)
+  if (themeEntries(config).some(theme => theme.id === id)) throw new Error(`${id} is a theme and has no releases; edit its theme file instead`)
   const selected = config.workSources.find(work => work.id === id)
   if (!selected) throw new Error(`plugin is not configured: ${id}`)
   if (input !== undefined) throw new Error(`${id} ships inside groma.md; update it without a source`)

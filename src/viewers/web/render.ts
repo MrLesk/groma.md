@@ -53,7 +53,7 @@ let sheet = boot.sheet
 let project: ProjectProfile | undefined = boot.project ?? undefined
 let currentPins = boot.pins
 let mapMeta = { generation: boot.generation, timings: boot.timings }
-const opened = readView(location, world, work.items, boot.revisions, readSavedTheme(localStorage), boot.comparison, readSavedMapControls(localStorage), boot.themes)
+const opened = readView(location, world, work.items, boot.revisions, readSavedTheme(localStorage, boot.themes), boot.comparison, readSavedMapControls(localStorage), boot.themes)
 saveMapControls(opened, localStorage)
 const changes = createComparisonControl(document.body, select, () => {
   repaintScene(false)
@@ -162,7 +162,7 @@ function syncUrl(): void {
     theme: themeControl.mode,
     hudVisible,
     ...(opened.inset === undefined ? {} : { inset: opened.inset }),
-  }, world, work.items, location.pathname, revisionControl.comparison)
+  }, world, work.items, location.pathname, revisionControl.comparison, boot.themes)
   history.replaceState(null, '', `${location.pathname}${query}`)
 }
 

@@ -37,7 +37,7 @@ test.concurrent('a cloned theme with one changed value loads beside the bundled 
     expect(JSON.parse(await readFile(file, 'utf8')).palette.paper).toBe('#0B1020')
     await expect(cloneTheme(root, 'dark', 'auto')).rejects.toThrow()
 
-    await enableTheme(root, cloned.source!)
+    await enableTheme(root, cloned)
     delete definition.palette.ink
     await writeFile(file, JSON.stringify(definition))
     await expect(loadThemes(root)).rejects.toThrow('palette.ink')
