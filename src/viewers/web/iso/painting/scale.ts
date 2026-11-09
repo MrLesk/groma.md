@@ -29,9 +29,8 @@ export function strokeAt(depth: number): number {
   return BUILDING_STROKE * STROKE_RATIO ** (depthOf('building') - depth)
 }
 
-/** An authored color takes this many times the ink share of its surface, so its hue reads at fit zoom; never more than COLOR_LIMIT. */
-export const COLOR_STRENGTH = 2.4
-export const COLOR_LIMIT = 0.55
+/** An authored color takes this many times the ink share of its surface, so its hue reads at fit zoom. */
+export const COLOR_STRENGTH = 2
 /** Share of the authored color in the outline of its element; the rest is the neutral line. */
 export const COLOR_EDGE = 0.7
 
