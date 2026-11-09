@@ -165,7 +165,7 @@ const script = `
   ${pluginSelectionScript}
   ${restoreScript}
   const theme = localStorage.getItem('groma.theme');
-  if (['light', 'dark', 'blueprint'].includes(theme)) document.documentElement.dataset.theme = theme;
+  if (${JSON.stringify(bundledThemes.map(theme => theme.id))}.includes(theme)) document.documentElement.dataset.theme = theme;
   const main = document.querySelector('main');
   const content = document.querySelector('#startup-content');
   const progress = document.querySelector('#startup-progress');

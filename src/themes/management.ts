@@ -3,6 +3,7 @@ import { isPluginId, readGromaConfig, updateGromaConfig, type ConfiguredTheme } 
 import { GromaFileSystem } from '../groma-filesystem.ts'
 import { bundledTheme } from './bundled.ts'
 import { defaultThemes, loadTheme } from './configured.ts'
+import { AUTO_THEME } from './definition.ts'
 
 /** The theme entries in effect: config.json's list, or every bundled theme while it has none. */
 export async function enabledThemes(root: string): Promise<ConfiguredTheme[]> {
@@ -42,7 +43,7 @@ export async function disableTheme(root: string, id: string): Promise<void> {
  * value of the theme, so editing it is how a project makes its own.
  */
 export async function cloneTheme(root: string, from: string, id: string): Promise<ConfiguredTheme> {
-  if (!isPluginId(id)) throw new Error('a theme id is lowercase kebab-case, such as midnight')
+  if (!isPluginId(id) || id === AUTO_THEME) throw new Error(`a theme id is lowercase kebab-case, such as midnight, and not ${AUTO_THEME}`)
   const config = await readGromaConfig(root)
   const themes = config.themes ?? defaultThemes
   if ([...config.scanners, ...config.workSources, ...themes].some(plugin => plugin.id === id)) {
@@ -53,6 +54,10 @@ export async function cloneTheme(root: string, from: string, id: string): Promis
   const filename = `${id}.theme.json`
   const title = `${id[0]!.toUpperCase()}${id.slice(1).replaceAll('-', ' ')}`
   const definition = { title, scheme: source.scheme, chromeOpacity: source.chromeOpacity, palette: source.palette }
-  await filesystem.withAccess(() => filesystem.write(filename, `${JSON.stringify(definition, null, 2)}\n`))
+  await filesystem.withAccess(async () => {
+    // A theme taken out of the picker keeps its file, so an existing file may hold someone's palette.
+    if (filesystem.exists(filename)) throw new Error(`${filesystem.sourceFilename(filename)} already exists; enable it with groma plugin add, or choose another id`)
+    await filesystem.write(filename, `${JSON.stringify(definition, null, 2)}\n`)
+  })
   return enableTheme(root, `./${filesystem.sourceFilename(filename)}`)
 }
