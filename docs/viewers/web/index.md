@@ -114,8 +114,8 @@ the stored architecture.
 
 ### Social previews
 
-Export also writes `cover-light.png`, `cover-dark.png`, and `cover-blueprint.png`
-at 1200x630 pixels. Each cover uses the actual map, the graph-paper grid, and a
+Export also writes one `cover-<theme id>.png` per enabled theme, such as
+`cover-light.png`, at 1200x630 pixels. Each cover uses the actual map, the graph-paper grid, and a
 footer with the project title and groma.md attribution.
 
 Set the public directory URL when publishing so the initial HTML contains
@@ -196,8 +196,10 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   IDs and titles from the configured work source. `Up`/`Down` preview matches;
   `Enter` opens the selected element or task; `Escape` restores the prior selection
   and camera.
-- **Themes:** **Settings -> Theme** offers **Auto**, **Light**, **Dark**, and
-  **Blueprint**.
+- **Themes:** **Settings -> Theme** offers **Auto** and the
+  [themes `config.json` enables](../../config.md#themes): the bundled **Light**,
+  **Dark** and **Blueprint** unless the project lists its own. **Auto** follows
+  the system appearance.
 
 ### Time machine and revision comparison
 
@@ -299,8 +301,9 @@ The URL query string tracks the current view so any state can be shared by link:
 - `tag=<tag>`, repeated for several tags, focuses the map on those tags. A tag
   the architecture does not use is ignored. The focus is part of the link and is
   not saved as a browser preference, because tags belong to one project.
-- `view=iso|2d|layers`, `hide=...`, `theme=auto|light|dark|blueprint`, `hud=off`,
-  and `inset=<pixels>` configure projection and chrome.
+- `view=iso|2d|layers`, `hide=...`, `theme=auto|<theme id>`, `hud=off`, and
+  `inset=<pixels>` configure projection and chrome. A theme id the project does
+  not enable is ignored, so the link falls back to the saved choice.
 
 An embedding page (such as a slide deck or docs site) can drive an iframe without
 reloading by posting `{ gromaView: '?component=<id>&tab=how' }` to the iframe

@@ -53,7 +53,7 @@ let sheet = boot.sheet
 let project: ProjectProfile | undefined = boot.project ?? undefined
 let currentPins = boot.pins
 let mapMeta = { generation: boot.generation, timings: boot.timings }
-const opened = readView(location, world, work.items, boot.revisions, readSavedTheme(localStorage), boot.comparison, readSavedMapControls(localStorage))
+const opened = readView(location, world, work.items, boot.revisions, readSavedTheme(localStorage), boot.comparison, readSavedMapControls(localStorage), boot.themes)
 saveMapControls(opened, localStorage)
 const changes = createComparisonControl(document.body, select, () => {
   repaintScene(false)
@@ -368,7 +368,7 @@ function focusOpened(kind: Selection['kind']): void {
 }
 /** An embedding page opens another view in place, from the same query string the URL carries. */
 function openView(search: string): void {
-  const next = readView({ search, pathname: location.pathname }, world, work.items, boot.revisions, themeControl.mode, revisionControl.comparison, currentMapControls())
+  const next = readView({ search, pathname: location.pathname }, world, work.items, boot.revisions, themeControl.mode, revisionControl.comparison, currentMapControls(), boot.themes)
   if (next.hudVisible !== hudVisible) toggleHud()
   source.clear()
   selection = next.selection

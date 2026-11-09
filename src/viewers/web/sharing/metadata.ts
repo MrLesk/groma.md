@@ -1,6 +1,6 @@
 import type { ProjectProfile } from '../../../project-profile.ts'
 import { escaped } from '../atoms/escape.ts'
-import { AUTO_THEME, shownTheme, themeMode, type ThemeDefinition } from '../../../themes/definition.ts'
+import { AUTO_THEME, shownTheme, type ThemeDefinition } from '../../../themes/definition.ts'
 import { readTheme } from '../url.ts'
 import { COVER_SIZE } from './cover.ts'
 
@@ -11,8 +11,7 @@ export function coverFile(themeId: string): string {
 
 /** The theme whose cover a link shows. A crawler has no system appearance, so Auto means the light one. */
 export function coverTheme(url: URL | undefined, themes: readonly ThemeDefinition[]): ThemeDefinition {
-  const mode = url === undefined ? AUTO_THEME : themeMode(readTheme(url), themes)
-  return shownTheme(mode, themes, false)
+  return shownTheme(url === undefined ? AUTO_THEME : readTheme(url, AUTO_THEME, themes), themes, false)
 }
 
 /** Emitted in the initial HTML, before any browser script or saved preference. */

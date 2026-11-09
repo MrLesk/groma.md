@@ -31,8 +31,9 @@ the conversion does not run again.
 
 ## Plugins
 
-Each section lists the plugins of one kind. No plugin runs unless the file lists
-it. Ids are lowercase kebab-case; one id names one plugin across all sections.
+Each section lists the plugins of one kind. No scanner or work source runs
+unless the file lists it. Ids are lowercase kebab-case; one id names one entry
+across all sections, [themes](#themes) included.
 
 - `scanners`: `id`, `source` and `include`, optionally `settings` and `exclude`.
   [Scanner settings](scanners/setup.md) describes them.
@@ -46,6 +47,56 @@ recorded as its commit), and a local `./path` runs from the repository.
 A plugin without a `source` is bundled: it ships inside groma.md and has its
 version. The Backlog.md work source reads tasks through the Backlog.md CLI; its
 `version` is the lowest CLI version the project uses.
+
+## Themes
+
+`themes` lists the UI themes the web map offers, in picker order. A theme owns
+the interface and the map background: surfaces, text, grid, controls, and what
+each [named color](component-markdown.md#colors) looks like. It never changes
+which color an element has.
+
+```json
+{
+  "themes": [
+    { "id": "light" },
+    { "id": "dark" },
+    { "id": "midnight", "source": "./groma/midnight.theme.json" }
+  ]
+}
+```
+
+- An entry without a `source` is a bundled theme: `light`, `dark` or `blueprint`.
+- An entry with a `source` is a theme file in the repository, at a path relative
+  to the repository root.
+- Without a `themes` list a project offers the three bundled themes. With one,
+  the picker offers exactly the listed themes, after a reload.
+
+Bundled themes and theme files have one shape and one loader
+([`src/themes/`](../src/themes/definition.ts)). A theme file is JSON:
+
+| Field | Meaning |
+| --- | --- |
+| `title` | The name the picker shows. |
+| `scheme` | `light` or `dark`: the system appearance the theme suits. |
+| `chromeOpacity` | Share of the paper colour in the translucent panels, from 0 to 1. |
+| `palette` | Every colour of the interface and the map, each as `#RRGGBB`; `hover` may be any CSS colour. |
+| `palette.colors` | One value for each named color: `red`, `orange`, `yellow`, `blue`, `violet`, `pink`. |
+
+A theme file must define every value; one that does not fails to load with the
+name of the missing field. **Auto** shows the first listed theme whose `scheme`
+matches the system appearance, so the order of the list decides which light and
+which dark theme Auto uses. A theme chosen by name stays chosen.
+
+To make your own theme, clone one and edit the file:
+
+```sh
+groma plugin clone dark midnight
+```
+
+This writes `<groma-root>/midnight.theme.json` with every value of Dark and adds
+it to `themes`. `groma plugin add blueprint` or `groma plugin add ./theme.json`
+enables a theme, `groma plugin remove dark` takes one out of the picker, and
+`groma plugin list` shows the enabled themes.
 
 `exclude` and `useGitignore` apply to every scanner; see
 [Scanners](scanners/index.md).
