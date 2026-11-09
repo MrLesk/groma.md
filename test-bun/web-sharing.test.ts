@@ -7,6 +7,7 @@ import { EMPTY_WORK_SNAPSHOT, type WorkSource } from '@groma/work-source'
 import { loadProjectProfile, saveProjectProfile } from '../src/project-profile.ts'
 import { exportWebViewer } from '../src/viewers/web/export.ts'
 import { startWebViewer } from '../src/viewers/web/server.ts'
+import { bundledThemes } from '../src/themes/bundled.ts'
 import { sharingMetadata } from '../src/viewers/web/sharing/metadata.ts'
 
 const fixture = path.resolve(import.meta.dir, '../test/fixtures/empty-project')
@@ -90,7 +91,7 @@ test.concurrent('Auto shares a light cover without inventing an unauthored proje
   try {
     await cp(fixture, root, { recursive: true })
     const project = await loadProjectProfile(root)
-    const fields = await headMetadata(`<html><head>${sharingMetadata(project!, new URL('https://example.test/architecture/auto/'))}</head></html>`)
+    const fields = await headMetadata(`<html><head>${sharingMetadata(project!, bundledThemes, new URL('https://example.test/architecture/auto/'))}</head></html>`)
     assert.equal(fields.get('og:image'), 'https://example.test/architecture/auto/cover-light.png')
     assert.equal(fields.has('og:description'), false)
   } finally { await rm(root, { recursive: true, force: true }) }

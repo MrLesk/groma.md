@@ -1,13 +1,16 @@
 ---
 id: TASK-636
 title: Make UI themes cloneable and configurable
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@claude'
 created_date: '2026-10-28T20:33:00Z'
+updated_date: '2026-11-09T22:46:00Z'
 labels:
   - personalization
 milestone: m-6
-dependencies: []
+dependencies:
+  - TASK-637
 references:
   - src/config.ts
   - src/viewers/web/atoms/theme.ts
@@ -17,6 +20,29 @@ documentation:
   - ROADMAP.md
   - docs/config.md
   - docs/viewers/web/index.md
+modified_files:
+  - src/themes/definition.ts
+  - src/themes/bundled.ts
+  - src/viewers/web/atoms/theme.ts
+  - src/config.ts
+  - src/themes/configured.ts
+  - src/viewers/web/startup/page.ts
+  - src/viewers/web/payload.ts
+  - src/viewers/web/page.ts
+  - src/viewers/web/chrome/theme-control.ts
+  - src/viewers/web/url.ts
+  - src/viewers/web/data.ts
+  - src/viewers/web/iso/painting/style.ts
+  - src/viewers/web/sharing/cover.ts
+  - src/viewers/web/sharing/images.ts
+  - src/viewers/web/sharing/metadata.ts
+  - src/viewers/web/render.ts
+  - src/viewers/web/export.ts
+  - src/viewers/web/map-session.ts
+  - test-bun/web-sharing.test.ts
+  - src/themes/management.ts
+  - src/plugins/management.ts
+  - src/plugins/cli.ts
 type: feature
 ordinal: 700000
 ---
@@ -47,3 +73,18 @@ This is application configuration, not architecture knowledge: it introduces no 
 - [ ] #3 Public contracts or documentation are updated when behavior changes.
 - [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Theme domain (src/themes/): definition.ts holds the Palette and ThemeDefinition shapes and the one validator; bundled.ts holds Light, Dark and Blueprint as that data; configured.ts reads the enabled themes for a project. A custom theme is a JSON file with the same shape, so bundled and custom themes take one path.
+2. config.json gains a themes list of { id } for a bundled theme or { id, source } for a theme file. Without the list a project enables the three bundled themes. Each definition names the system appearance it suits (scheme), and Auto shows the first enabled theme of the current appearance.
+3. Web: the enabled themes travel in the boot payload. The page writes one style block and one picker option per theme, the theme control validates and resolves against that list, and covers are drawn per enabled theme. Nothing imports a fixed theme list any more.
+4. Plugin family: groma plugin add and remove accept themes, plugin list shows them, and groma plugin clone <theme> <new-id> writes a copy of a theme into the Groma directory and enables it, which is the supported way to start a custom theme.
+5. Docs: project configuration, web viewer, a short theme file reference.
+
+Tests (authority: acceptance criteria 1 to 4).
+- Themes: a cloned theme with one changed palette value loads beside the bundled ones in config order; a theme file missing a palette value fails naming the field. Wrong result caught: a custom theme silently falling back to a bundled palette. Gap: no theme loading exists.
+- Picker and Auto: the page lists exactly the enabled themes, and Auto resolves to the first enabled theme of each appearance. Wrong result caught: a removed theme still offered, or Auto choosing a disabled theme. Extends the existing web theme coverage.
+No tests of palette values.
+<!-- SECTION:PLAN:END -->

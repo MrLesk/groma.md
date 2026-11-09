@@ -1,39 +1,6 @@
-import { GROMA_ACCENT, GROMA_ACCENT_ON_LIGHT } from '../../../brand.ts'
-import { COLOR_NAMES, type ColorName } from '../../../colors.ts'
-
-/** Every colour the page and the map use, as CSS variable values; the map's level tints mix paper and ink in its stylesheet. */
-export interface Palette {
-  paper: string
-  ink: string
-  muted: string
-  /** Brand or positive-status green used as text on paper; light paper needs the darker green. */
-  accentText: string
-  /** Durable interaction emphasis: selection, focus and active flows. */
-  highlight: string
-  /** Interaction emphasis used as text on paper. */
-  highlightText: string
-  hairline: string
-  /** Sidebar row hover wash. */
-  hover: string
-  /** Geometry strokes at rest: faces, grounds, routes and glyphs. */
-  line: string
-  /** The kind patterns: dots, crosses, storey lines, grain and the zone hatch. */
-  hatch: string
-  syntaxComment: string
-  syntaxFunction: string
-  syntaxKeyword: string
-  syntaxNumber: string
-  syntaxString: string
-  syntaxType: string
-  diffAdded: string
-  diffModified: string
-  diffRemoved: string
-  /** What each authored color name looks like in this theme; the map mixes it into the paper. */
-  colors: Record<ColorName, string>
-}
-
-export type WebTheme = 'light' | 'dark' | 'blueprint'
-export type WebThemeMode = 'auto' | WebTheme
+import { GROMA_ACCENT } from '../../../brand.ts'
+import { COLOR_NAMES } from '../../../colors.ts'
+import type { ThemeDefinition } from '../../../themes/definition.ts'
 
 /** Shared typography for the interactive map and its published cover. */
 export const webFontFamily = "'DejaVu Sans Mono', monospace"
@@ -46,98 +13,13 @@ export function mixColour(paper: string, ink: string, share: number): string {
   return `#${channels}`
 }
 
-export const themeModes: readonly WebThemeMode[] = ['auto', 'light', 'dark', 'blueprint']
-
-export const palettes: Record<WebTheme, Palette> = {
-  light: {
-    paper: '#FFFFFF',
-    ink: '#22262E',
-    muted: '#585B62',
-    accentText: GROMA_ACCENT_ON_LIGHT,
-    highlight: '#1D9E75',
-    highlightText: '#147A59',
-    hairline: '#E4E6EA',
-    hover: 'rgba(34, 38, 46, 0.05)',
-    line: '#A2A6AE',
-    hatch: '#C4C8CF',
-    syntaxComment: '#7A8190',
-    syntaxFunction: '#087F8C',
-    syntaxKeyword: '#7C3AED',
-    syntaxNumber: '#C2410C',
-    syntaxString: '#0E7C55',
-    syntaxType: '#2563EB',
-    diffAdded: '#2563EB',
-    diffModified: '#9A6700',
-    diffRemoved: '#B42318',
-    colors: { red: '#D9483B', orange: '#E0782A', yellow: '#C79A08', blue: '#2F7FD9', violet: '#7C5CD6', pink: '#D4479A' },
-  },
-  dark: {
-    paper: '#111315',
-    ink: '#E6E8EB',
-    muted: '#9AA0A8',
-    accentText: GROMA_ACCENT,
-    highlight: GROMA_ACCENT,
-    highlightText: GROMA_ACCENT,
-    hairline: '#2A2E33',
-    hover: 'rgba(230, 232, 235, 0.08)',
-    line: '#6B717A',
-    hatch: '#4A5058',
-    syntaxComment: '#7D8590',
-    syntaxFunction: '#FFD866',
-    syntaxKeyword: '#FF6BCB',
-    syntaxNumber: '#FFA657',
-    syntaxString: '#7EE787',
-    syntaxType: '#79C0FF',
-    diffAdded: '#79C0FF',
-    diffModified: '#E3B341',
-    diffRemoved: '#FF7B72',
-    colors: { red: '#F27A6E', orange: '#F5A25B', yellow: '#E6C34A', blue: '#6FB1FF', violet: '#A990FF', pink: '#F27CC0' },
-  },
-  blueprint: {
-    paper: '#07152B',
-    ink: '#D8F3FF',
-    muted: '#79A9BD',
-    accentText: GROMA_ACCENT,
-    highlight: GROMA_ACCENT,
-    highlightText: GROMA_ACCENT,
-    hairline: '#164764',
-    hover: 'rgba(89, 203, 244, 0.09)',
-    line: '#527CB0',
-    hatch: '#2C496C',
-    syntaxComment: '#6E9CB0',
-    syntaxFunction: '#FFFFFF',
-    syntaxKeyword: '#FFE066',
-    syntaxNumber: '#FF8FAB',
-    syntaxString: '#70E1F5',
-    syntaxType: '#D9B8FF',
-    diffAdded: '#B8F26B',
-    diffModified: '#FFE066',
-    diffRemoved: '#FF8FAB',
-    colors: { red: '#FF8A8A', orange: '#FFB070', yellow: '#FFE066', blue: '#8CCBFF', violet: '#C3A6FF', pink: '#FF9AD5' },
-  },
-}
-
-/** Whether a stored or shared value names a supported user choice. */
-export function isThemeMode(value: string | null | undefined): value is WebThemeMode {
-  return themeModes.includes(value as WebThemeMode)
-}
-
-/** Resolves Auto without making browser preferences part of the palette model. */
-export function resolveTheme(mode: WebThemeMode, prefersDark: boolean): WebTheme {
-  return mode === 'auto' ? prefersDark ? 'dark' : 'light' : mode
-}
-
-/** The short control label for a theme choice. */
-export function themeLabel(mode: WebThemeMode): string {
-  return mode[0]!.toUpperCase() + mode.slice(1)
-}
-
 /** Brand signals shared by every theme. */
 export const accent = GROMA_ACCENT
 /** Dark foreground for saturated accent and work-marker surfaces. */
 export const onColour = '#020B12'
 
-export function cssBlock(palette: Palette): string {
+/** One theme as the CSS variables the page and the map read. */
+export function cssBlock({ palette, chromeOpacity }: ThemeDefinition): string {
   return `
   --paper: ${palette.paper};
   --ink: ${palette.ink};
@@ -162,6 +44,7 @@ export function cssBlock(palette: Palette): string {
   --diff-removed: ${palette.diffRemoved};
   --map-grid: ${mixColour(palette.paper, palette.line, 0.12)};
   --map-grid-major: ${mixColour(palette.paper, palette.line, 0.2)};
+  --chrome-surface: color-mix(in srgb, var(--paper) ${Math.round(chromeOpacity * 100)}%, transparent);
 ${COLOR_NAMES.map(name => `  --color-${name}: ${palette.colors[name]};`).join('\n')}
 `
 }

@@ -2,6 +2,7 @@ import type { Comparison } from '../../history/comparison.ts'
 import type { GitRevision } from '../../history/revisions.ts'
 import type { SheetScene } from '../../sheet/types.ts'
 import type { ProjectProfile } from '../../project-profile.ts'
+import type { ThemeDefinition } from '../../themes/definition.ts'
 import type { AnnotatedArchitectureModel, WorkSnapshot } from '../../types.ts'
 import type { WorkPin } from '../../work/pins.ts'
 import type { SourcePayload } from '../source/read.ts'
@@ -59,5 +60,5 @@ export type WebDelivery =
   | { kind: 'live'; readOnly?: boolean }
   | { kind: 'published'; views: PublishedView[] }
 
-/** Initial page data plus the one delivery boundary the browser must use. */
-export type WebBootPayload = WebPayload & { delivery: WebDelivery }
+/** Initial page data, the one delivery boundary the browser must use, and the UI themes the project enables, in picker order. */
+export type WebBootPayload = WebPayload & { delivery: WebDelivery; themes: ThemeDefinition[] }

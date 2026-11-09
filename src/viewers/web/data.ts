@@ -189,7 +189,7 @@ export function openWebBoot(boot: WebBootPayload, url: Pick<Location, 'search'>)
   const params = new URLSearchParams(url.search)
   if (boot.delivery.kind === 'live' || (!params.has('revision') && !params.has('from'))) return boot
   const view = publishedView(boot, params.get('revision') ?? undefined, params.get('from') ?? undefined)
-  return { ...view.payload, delivery: boot.delivery }
+  return { ...view.payload, delivery: boot.delivery, themes: boot.themes }
 }
 
 export function createWebDataSource(boot: WebBootPayload): WebDataSource {

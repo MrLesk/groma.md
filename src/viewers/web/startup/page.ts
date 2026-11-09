@@ -7,7 +7,8 @@ import { restoreContent, restoreCss, restoreScript, type RestoreRow } from './re
 
 import type { GromaInitResult } from '../../../initialize.ts'
 import { escaped } from '../atoms/escape.ts'
-import { cssBlock, palettes } from '../atoms/theme.ts'
+import { bundledTheme, bundledThemes } from '../../../themes/bundled.ts'
+import { cssBlock } from '../atoms/theme.ts'
 import { chromeCss } from '../atoms/chrome.ts'
 import { startupUpdate, type StartupProgress } from './progress.ts'
 
@@ -27,12 +28,11 @@ interface SetupPage {
   restore?: readonly RestoreRow[]
 }
 
+/** Setup runs before a project has a configuration, so it uses the bundled themes. */
 const style = `
-  :root { ${cssBlock(palettes.light)} color-scheme: light; }
-  @media (prefers-color-scheme: dark) { :root { ${cssBlock(palettes.dark)} color-scheme: dark; } }
-  [data-theme="light"] { ${cssBlock(palettes.light)} color-scheme: light; }
-  [data-theme="dark"] { ${cssBlock(palettes.dark)} color-scheme: dark; }
-  [data-theme="blueprint"] { ${cssBlock(palettes.blueprint)} color-scheme: dark; }
+  :root { ${cssBlock(bundledTheme('light')!)} color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { ${cssBlock(bundledTheme('dark')!)} color-scheme: dark; } }
+  ${bundledThemes.map(theme => `[data-theme="${theme.id}"] { ${cssBlock(theme)} color-scheme: ${theme.scheme}; }`).join('\n  ')}
   * { box-sizing: border-box; }
   body {
     margin: 0; min-height: 100dvh; padding: 32px 20px;
