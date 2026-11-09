@@ -5,6 +5,7 @@ import { compiledAsset } from '../../compiled-asset.ts'
 import { loadAnnotatedArchitecture } from '../../core.ts'
 import { loadProjectProfile } from '../../project-profile.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
+import { subsetByTags, type TagFilter } from '../../tag-selection.ts'
 import type { WebMapPayload } from './payload.ts'
 
 export type MapLoadPhase = 'loading-architecture' | 'preparing-map'
@@ -24,10 +25,11 @@ export async function bundleRenderer(): Promise<string> {
   return build.outputs[0]!.text()
 }
 
-/** Loads and composes the current architecture map without optional work data. */
+/** Loads and composes the current architecture map without optional work data. A tag filter keeps only its subset, before layout. */
 export async function loadMapRoot(
   repositoryRoot: string,
   onProgress?: (phase: MapLoadPhase) => void | Promise<void>,
+  filter?: TagFilter,
 ): Promise<Pick<WebMapPayload, 'project' | 'world' | 'sheet' | 'timings'>> {
   onProgress?.('loading-architecture')
   const started = performance.now()
@@ -39,7 +41,7 @@ export async function loadMapRoot(
     })(),
     loadProjectProfile(repositoryRoot),
   ])
-  const world = architecture.world
+  const world = filter === undefined ? architecture.world : subsetByTags(architecture.world, filter)
   // The live host can deliver its status before layout occupies the event loop.
   await onProgress?.('preparing-map')
   const sheet = measuredSheetScene(world)
