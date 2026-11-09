@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T22:28:00Z'
+updated_date: '2026-11-09T22:48:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -79,6 +79,8 @@ Decisions: the flags are --include-filter and --exclude-filter with comma-separa
 Verification: bun run check passed (28 Node tests, 1014 Bun tests, 64 environment-dependent skips, 0 failures). On groma.md own map, groma export --include-filter scanning --exclude-filter terminal wrote a site with 1 system, 4 containers and 53 components laid out on their own, and --include-filter with an unused tag failed naming the tag. The export test proves an excluded component and its source text are absent from the published payload.
 
 Automated PR review, applied: a comparison export read the union of both commits owned files for each snapshot, so a component excluded in the newer commit still published its newer source. A filtered snapshot now reads only the files its own subset owns; a two-commit export test fails without the fix. Criterion 3 is unchecked and the task is back in progress: the worked example is the implementer proposal and waits for Alex to approve it.
+
+Cold simplicity review (one round), applied: the filter is built once in the command as a TagFilter and is absent when both flags are empty, so filtered has one meaning from the command to the source reads; the guard against an empty result now checks the exported commit only and says the filter leaves no element, so a comparison whose older commit lacks the tag no longer fails and the message is true when include and exclude name the same tag; the worked example excludes internal instead of legacy, which the Tags sample puts on the container itself; the subset comment states that draft ids pass through.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

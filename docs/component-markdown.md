@@ -280,8 +280,8 @@ architecture stay as they are.
 selection to decide what a static export contains. Include keeps the matches and
 their context. Exclude then removes its own matches and wins over include.
 
-Continue the example: component `refunds` in `checkout-api` is tagged `legacy`.
-`--include-filter payments --exclude-filter legacy` exports:
+Continue the example: component `refunds` in `checkout-api` is tagged `internal`.
+`--include-filter payments --exclude-filter internal` exports:
 
 | Part | Exported |
 | --- | --- |

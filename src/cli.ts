@@ -145,10 +145,10 @@ interface ExportCommandOptions {
 async function exportWeb(directory: string, options: ExportCommandOptions): Promise<void> {
   const root = process.cwd()
   const { exportWebViewer } = await import('./viewers/web/export.ts')
+  const filter = { include: parseTags(options.includeFilter ?? ''), exclude: parseTags(options.excludeFilter ?? '') }
+  const filtered = filter.include.length > 0 || filter.exclude.length > 0
   const exported = await exportWebViewer(root, directory, {
-    url: options.url, revision: options.revision, from: options.from,
-    ...(options.includeFilter === undefined ? {} : { includeFilter: parseTags(options.includeFilter) }),
-    ...(options.excludeFilter === undefined ? {} : { excludeFilter: parseTags(options.excludeFilter) }),
+    url: options.url, revision: options.revision, from: options.from, ...(filtered ? { filter } : {}),
   })
   console.log(`groma export at ${path.resolve(directory)}`)
   await exported.close()
