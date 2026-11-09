@@ -112,9 +112,10 @@ function appendSourceState(
   if (state.line !== undefined) pairs.push(['line', String(state.line)])
 }
 
-/** A publication can select a theme through its architecture/{theme}/ directory. */
-function pathTheme(pathname: string): string | undefined {
-  return pathname.match(/\/architecture\/([^/]+)\/?$/)?.[1]
+/** A publication can select a theme through its architecture/{theme}/ directory, when the project enables that theme. */
+function pathTheme(pathname: string, themes: readonly ThemeDefinition[]): string | undefined {
+  const published = pathname.match(/\/architecture\/([^/]+)\/?$/)?.[1]
+  return isThemeMode(published, themes) ? published : undefined
 }
 
 /**
@@ -127,9 +128,7 @@ export function readTheme(
   themes: readonly ThemeDefinition[] = bundledThemes,
 ): string {
   const selected = new URLSearchParams(url.search).get('theme')
-  if (isThemeMode(selected, themes)) return selected
-  const published = pathTheme(url.pathname)
-  return isThemeMode(published, themes) ? published : defaultTheme
+  return isThemeMode(selected, themes) ? selected : pathTheme(url.pathname, themes) ?? defaultTheme
 }
 
 function readTab(params: URLSearchParams, file: string | undefined, change: ComponentChange | undefined): DetailsTab {
@@ -233,7 +232,14 @@ function appendFlow(pairs: [string, string][], flow: FlowRef | undefined, world:
 }
 
 /** The query string includes map-control defaults so recipients open the same presentation. */
-export function writeView(state: ViewState, world: ArchitectureGraph, work: readonly WorkItem[], pathname: string, comparison?: Comparison): string {
+export function writeView(
+  state: ViewState,
+  world: ArchitectureGraph,
+  work: readonly WorkItem[],
+  pathname: string,
+  comparison?: Comparison,
+  themes: readonly ThemeDefinition[] = bundledThemes,
+): string {
   const elements = new Map(world.elements.map(element => [element.representationId, element]))
   const selected = state.selection.kind === 'architecture'
     ? elements.get(state.selection.ids.at(-1) ?? '')
@@ -249,7 +255,7 @@ export function writeView(state: ViewState, world: ArchitectureGraph, work: read
   }
   for (const tag of state.focusTags) pairs.push(['tag', encodeURIComponent(tag)])
   pairs.push(...mapControlEntries(state))
-  if (state.theme !== (pathTheme(pathname) ?? AUTO_THEME)) pairs.push(['theme', state.theme])
+  if (state.theme !== (pathTheme(pathname, themes) ?? AUTO_THEME)) pairs.push(['theme', state.theme])
   if (!state.hudVisible) pairs.push(['hud', 'off'])
   if (state.inset !== undefined) pairs.push(['inset', String(state.inset)])
   return pairs.length === 0 ? '' : `?${pairs.map(([key, value]) => `${key}=${value}`).join('&')}`

@@ -1,4 +1,4 @@
-import { AUTO_THEME, shownTheme, themeMode, type ThemeDefinition } from '../../../themes/definition.ts'
+import { AUTO_THEME, isThemeMode, shownTheme, type ThemeDefinition } from '../../../themes/definition.ts'
 import { bindPopover } from '../atoms/popover.ts'
 import { createThemeTransition } from './motion.ts'
 
@@ -11,14 +11,15 @@ export interface ThemeControl {
 
 type ThemeStorage = Pick<Storage, 'getItem' | 'setItem'>
 
-/** The saved choice as stored; the control checks it against the enabled themes. */
-export function readSavedTheme(storage: Pick<Storage, 'getItem'>): string {
-  return storage.getItem(THEME_STORAGE_KEY) ?? AUTO_THEME
+/** The saved choice when the picker still offers it, otherwise Auto: a project may have removed the theme since. */
+export function readSavedTheme(storage: Pick<Storage, 'getItem'>, themes: readonly ThemeDefinition[]): string {
+  const saved = storage.getItem(THEME_STORAGE_KEY)
+  return isThemeMode(saved, themes) ? saved : AUTO_THEME
 }
 
 /**
- * Owns the theme dropdown, the saved choice and the system appearance behind Auto. The choice is Auto or one of the
- * enabled themes; a saved or shared value naming any other theme falls back to Auto.
+ * Owns the theme dropdown, the saved choice and the system appearance behind Auto. `initial` is Auto or the id of an
+ * enabled theme, as readView returns it.
  */
 export function bindThemeControl(
   control: HTMLDetailsElement,
@@ -30,7 +31,7 @@ export function bindThemeControl(
 ): ThemeControl {
   const label = control.querySelector<HTMLElement>('.label')!
   const transition = createThemeTransition(document.body)
-  let mode = themeMode(initial, themes)
+  let mode = initial
 
   const applyTheme = (): void => {
     const theme = shownTheme(mode, themes, preference.matches)
@@ -47,7 +48,7 @@ export function bindThemeControl(
       ? event.target.closest<HTMLButtonElement>('.theme-option[data-theme-mode]')
       : null
     if (option === null || !control.contains(option)) return
-    const selected = themeMode(option.dataset.themeMode, themes)
+    const selected = option.dataset.themeMode!
     control.removeAttribute('open')
     control.querySelector('summary')!.focus()
     storage.setItem(THEME_STORAGE_KEY, selected)
