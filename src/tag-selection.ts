@@ -1,5 +1,5 @@
 import { ancestorIds, parentOfElements } from './viewers/relationship-text.ts'
-import type { AnnotatedElement } from './types.ts'
+import type { AnnotatedArchitectureModel, AnnotatedElement } from './types.ts'
 
 /** What a set of tags selects in one architecture. Every id is a representation id. */
 export interface TagSelection {
@@ -47,4 +47,39 @@ export function selectByTags(elements: readonly Tagged[], tags: readonly string[
     for (const ancestor of ancestorIds(id, parentOf)) if (!matched.has(ancestor)) parents.add(ancestor)
   }
   return { matched, parents }
+}
+
+/** The tags that choose a subset of an architecture. An empty include list keeps everything. */
+export interface TagFilter {
+  include: readonly string[]
+  exclude: readonly string[]
+}
+
+/**
+ * The part of an architecture a tag filter keeps. Include keeps what its tags select
+ * together with the parents that hold it. Exclude then removes what its tags select,
+ * and wins when both name the same element. A relationship stays when both of its ends
+ * stay, and a flow stays when all of its steps stay. A subset carries no scan findings,
+ * because they name source files across the whole project.
+ */
+export function subsetByTags(world: AnnotatedArchitectureModel, filter: TagFilter): AnnotatedArchitectureModel {
+  const excluded = selectByTags(world.elements, filter.exclude).matched
+  const included = filter.include.length === 0
+    ? world.elements.map(element => element.representationId)
+    : [...selectByTags(world.elements, filter.include).matched]
+  const parentOf = parentOfElements(world.elements)
+  const kept = new Set<string>()
+  for (const id of included) {
+    // An excluded parent already excludes everything inside it, so a kept element's parents are never excluded.
+    if (!excluded.has(id)) for (const ancestor of ancestorIds(id, parentOf)) kept.add(ancestor)
+  }
+  const relationships = world.relationships.filter(item => kept.has(item.source) && kept.has(item.target))
+  const relationshipIds = new Set(relationships.map(item => item.id))
+  return {
+    flows: world.flows.filter(flow => flow.steps.every(step => relationshipIds.has(step.relationshipId))),
+    drafts: world.drafts,
+    elements: world.elements.filter(element => kept.has(element.representationId))
+      .map(element => ({ ...element, children: element.children.filter(child => kept.has(child)) })),
+    relationships,
+  }
 }
