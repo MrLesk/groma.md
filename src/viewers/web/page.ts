@@ -310,6 +310,9 @@ const style = `
   #details .tabs.controls button + button { margin-left: 0; border-left: 1px solid var(--hairline); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   #details .chip { border: 1px solid var(--hairline); padding: 2px 8px; margin: 0; }
+  /* People type a tag again in commands, so its chip keeps the authored spelling. */
+  #details .chips.tags { margin-bottom: 12px; }
+  #details .chips.tags .chip { border-radius: 10px; font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--ink); }
   .controls { display: flex; }
   .controls button {
     padding: 6px 14px;

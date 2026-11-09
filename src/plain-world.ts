@@ -8,6 +8,7 @@ import { readDocument } from './markdown-emitter.ts'
 import { missingOwnerReason } from './source-coverage.ts'
 import { listPage, listWindowFooter, type ListWindow } from './list-window.ts'
 import { requireGromaMapping } from './okf-profile.ts'
+import { formatTags } from './tags.ts'
 import { ancestorIds, parentOfElements, showsRelationshipText } from './viewers/relationship-text.ts'
 import type {
   AnnotatedElement,
@@ -137,6 +138,7 @@ function elementDetails(element: AnnotatedElement): string[] {
   const lines = [headerTokens(element).join('  ')]
   if (element.parent !== null) lines.push(`parent: ${element.parent}`)
   if (element.technology !== undefined) lines.push(`technology: ${element.technology}`)
+  if (element.tags !== undefined) lines.push(`tags: ${formatTags(element.tags)}`)
   if (element.description !== undefined) lines.push(`description: ${element.description}`)
   if (element.overview !== '') lines.push(...element.overview.split(/\n\s*\n/))
   return lines
