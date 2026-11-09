@@ -2,6 +2,8 @@
 type: C4 Component
 title: Kotlin source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: kotlin-src-index
   parent: cli

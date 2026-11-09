@@ -2,6 +2,8 @@
 type: C4 Component
 title: Java scanner adapter
 status: stable
+tags:
+  - scanning
 groma:
   id: java-src-index
   parent: cli

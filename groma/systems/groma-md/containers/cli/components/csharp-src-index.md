@@ -2,6 +2,8 @@
 type: C4 Component
 title: C# scanner adapter
 status: stable
+tags:
+  - scanning
 groma:
   id: csharp-src-index
   parent: cli

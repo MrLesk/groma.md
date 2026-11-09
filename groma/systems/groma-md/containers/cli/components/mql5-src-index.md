@@ -2,6 +2,8 @@
 type: C4 Component
 title: MQL5 source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: mql5-src-index
   parent: cli

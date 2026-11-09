@@ -231,6 +231,9 @@ export interface DetailsOptions {
   onSelect: (id: string, additive: boolean) => void,
   onToggleFlow: (flow: FlowRef) => void,
   activeFlows: readonly FlowRef[]
+  /** The tags the map is focused on, and the toggle a tag chip calls. */
+  focusTags: readonly string[]
+  onToggleTag: (tag: string) => void
   tab: DetailsTab
   onTab: (tab: DetailsTab) => void,
   code: readonly CodeFile[]

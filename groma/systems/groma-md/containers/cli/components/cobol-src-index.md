@@ -2,6 +2,8 @@
 type: C4 Component
 title: COBOL source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: cobol-src-index
   parent: cli

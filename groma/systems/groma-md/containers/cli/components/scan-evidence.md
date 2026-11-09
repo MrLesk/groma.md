@@ -2,6 +2,8 @@
 type: C4 Component
 title: Source interactions
 status: stable
+tags:
+  - scanning
 groma:
   id: scan-evidence
   parent: cli
