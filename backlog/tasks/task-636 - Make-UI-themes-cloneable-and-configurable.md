@@ -1,11 +1,11 @@
 ---
 id: TASK-636
 title: Make UI themes cloneable and configurable
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T22:46:00Z'
+updated_date: '2026-11-09T22:54:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -43,6 +43,12 @@ modified_files:
   - src/themes/management.ts
   - src/plugins/management.ts
   - src/plugins/cli.ts
+  - test-bun/web-page-inset.test.ts
+  - test-bun/themes.test.ts
+  - docs/config.md
+  - docs/viewers/web/index.md
+  - groma/systems/groma-md/containers/cli/components/themes.md
+  - groma/systems/groma-md/containers/export/components/map-sharing.md
 type: feature
 ordinal: 700000
 ---
@@ -59,19 +65,19 @@ This is application configuration, not architecture knowledge: it introduces no 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Light, Dark, and Blueprint are bundled UI theme plugins using the same definition and loading path as a custom theme.
-- [ ] #2 A user can clone any bundled theme, change its UI palette, register the clone in config.json, and select it without editing Groma's source.
-- [ ] #3 The picker lists exactly the enabled themes in config.json. Removing a bundled theme from that configuration keeps it out of the picker after reload.
-- [ ] #4 Configuration associates enabled themes with system light and dark modes. Auto follows those associations when the system mode changes; an explicitly selected theme remains selected.
-- [ ] #5 Theme changes affect the interface and map background without changing authored element or group icon/color assignments.
+- [x] #1 Light, Dark, and Blueprint are bundled UI theme plugins using the same definition and loading path as a custom theme.
+- [x] #2 A user can clone any bundled theme, change its UI palette, register the clone in config.json, and select it without editing Groma's source.
+- [x] #3 The picker lists exactly the enabled themes in config.json. Removing a bundled theme from that configuration keeps it out of the picker after reload.
+- [x] #4 Configuration associates enabled themes with system light and dark modes. Auto follows those associations when the system mode changes; an explicitly selected theme remains selected.
+- [x] #5 Theme changes affect the interface and map background without changing authored element or group icon/color assignments.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -88,3 +94,17 @@ Tests (authority: acceptance criteria 1 to 4).
 - Picker and Auto: the page lists exactly the enabled themes, and Auto resolves to the first enabled theme of each appearance. Wrong result caught: a removed theme still offered, or Auto choosing a disabled theme. Extends the existing web theme coverage.
 No tests of palette values.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Decisions: a theme is data with one shape (id, title, scheme, chromeOpacity, palette with the named colors), checked by one validator that the bundled themes pass through too. config.json themes lists { id } for a bundled theme or { id, source } for a theme file; without the list a project has the three bundled themes. Auto shows the first listed theme whose scheme matches the system appearance, so list order is the association between themes and system modes. The enabled themes travel in the boot payload; the page, the picker, the link reader and the covers take that list, and nothing imports a fixed theme list. A link or path naming a theme the project does not enable is passed over, which keeps the existing fallback order (link, publication path, saved choice). Themes use the plugin commands (add, remove, list, and the new clone) but are not part of plugin presence or restore: a theme has nothing to install, and a missing theme file fails the page load with its path. A clone is written to <groma-root>/<id>.theme.json, a JSON file the OKF index does not list. Not done: themes do not appear in the Plugins settings screens, and there is no palette editor; the file is edited by hand.
+
+Verification: bun run check passed (28 Node tests, 1019 Bun tests, 64 environment-dependent skips, 0 failures). On the editing fixture: groma plugin list showed the three bundled themes; groma plugin clone dark midnight wrote the file and enabled it; after editing four palette values and removing blueprint, groma web offered Auto, Light, Dark and Midnight, a link with theme=midnight opened in it with the og:image pointing at cover-midnight.png, that cover was served and cover-blueprint.png returned 404; with the system appearance emulated as dark, Auto showed Dark; the container authored violet stayed violet in the custom theme. groma export on groma.md own map wrote one cover per enabled theme.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+UI themes are data. Light, Dark and Blueprint are bundled theme definitions that pass through the same validator and loader as a project own theme file. config.json lists the enabled themes; the picker, shared links and covers follow that list, and Auto shows the first listed theme of the system appearance. groma plugin clone <theme> <id> writes an editable copy of a theme and enables it, and plugin add, remove and list handle themes. Each theme defines the named colors, so authored colors keep their names and take the theme values.
+<!-- SECTION:FINAL_SUMMARY:END -->

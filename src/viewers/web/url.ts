@@ -5,7 +5,8 @@ import type { Comparison } from '../../history/comparison.ts'
 import type { GitRevision } from '../../history/revisions.ts'
 import type { AnnotatedElement, AnnotatedRelationship, ArchitectureGraph, C4Kind, WorkItem } from '../../types.ts'
 import type { FlowRef } from '../flows.ts'
-import { AUTO_THEME } from '../../themes/definition.ts'
+import { bundledThemes } from '../../themes/bundled.ts'
+import { AUTO_THEME, isThemeMode, type ThemeDefinition } from '../../themes/definition.ts'
 import { mapControlEntries, readMapControls, type MapControls } from './chrome/map-view.ts'
 import type { DetailsTab } from './organisms/details.ts'
 import { noSelection, selectTask } from './selection.ts'
@@ -22,7 +23,7 @@ export interface ViewState extends MapControls {
   /** The tags the map is focused on. */
   focusTags: readonly string[]
   tab: DetailsTab
-  /** Auto or a theme id as the link, the path or the saved choice names it; the theme control checks it against the enabled themes. */
+  /** Auto, or the id of an enabled theme. */
   theme: string
   hudVisible: boolean
   inset?: number
@@ -116,9 +117,19 @@ function pathTheme(pathname: string): string | undefined {
   return pathname.match(/\/architecture\/([^/]+)\/?$/)?.[1]
 }
 
-/** The theme a link asks for: its `theme` entry, else its publication path, else the given default. */
-export function readTheme(url: Pick<URL, 'search' | 'pathname'>, defaultTheme: string = AUTO_THEME): string {
-  return new URLSearchParams(url.search).get('theme') ?? pathTheme(url.pathname) ?? defaultTheme
+/**
+ * The theme a link asks for: its `theme` entry, else its publication path, else the given default. An entry or a path
+ * that names no enabled theme is passed over, so an old link falls back instead of breaking.
+ */
+export function readTheme(
+  url: Pick<URL, 'search' | 'pathname'>,
+  defaultTheme: string = AUTO_THEME,
+  themes: readonly ThemeDefinition[] = bundledThemes,
+): string {
+  const selected = new URLSearchParams(url.search).get('theme')
+  if (isThemeMode(selected, themes)) return selected
+  const published = pathTheme(url.pathname)
+  return isThemeMode(published, themes) ? published : defaultTheme
 }
 
 function readTab(params: URLSearchParams, file: string | undefined, change: ComponentChange | undefined): DetailsTab {
@@ -149,6 +160,7 @@ export function readView(
   defaultTheme: string = AUTO_THEME,
   comparison?: Comparison,
   defaultControls?: MapControls,
+  themes: readonly ThemeDefinition[] = bundledThemes,
 ): ViewState {
   const params = new URLSearchParams(url.search)
   const inset = Number(params.get('inset'))
@@ -175,7 +187,7 @@ export function readView(
     flows,
     focusTags: focusTags(params, world),
     tab: readTab(params, source.file, comparison?.components[selected?.id ?? '']),
-    theme: readTheme(url, defaultTheme),
+    theme: readTheme(url, defaultTheme, themes),
     hudVisible: params.get('hud') !== 'off',
   }
 }
