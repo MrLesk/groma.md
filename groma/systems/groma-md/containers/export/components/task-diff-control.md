@@ -2,6 +2,8 @@
 type: C4 Component
 title: Task changes panel
 status: stable
+tags:
+  - work
 groma:
   id: task-diff-control
   parent: export

@@ -2,6 +2,8 @@
 type: C4 Component
 title: Duplicate review data
 status: stable
+tags:
+  - scanning
 groma:
   id: src-architecture-findings
   parent: cli

@@ -2,6 +2,8 @@
 type: C4 Component
 title: Web host
 status: stable
+tags:
+  - web
 groma:
   id: web-server
   parent: cli

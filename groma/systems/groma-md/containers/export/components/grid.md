@@ -2,6 +2,8 @@
 type: C4 Component
 title: Map grid
 status: stable
+tags:
+  - map
 groma:
   id: grid
   parent: export

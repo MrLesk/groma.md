@@ -246,6 +246,34 @@ empty value removes the field. The web Edit form has the same Tags field. Groma
 writes tags without commas, blanks, or repeats, and reads any list of non-empty
 strings that another OKF tool wrote.
 
+#### Focusing on tags
+
+The web map can focus on one or more tags. One rule decides what a set of tags
+selects, [`selectByTags`](../src/tag-selection.ts):
+
+- An element matches when it carries any of the tags.
+- A match takes everything inside it.
+- The systems and containers that hold a match are its parents, and stay with it.
+
+For example, system `shop` holds containers `checkout-api`, tagged `payments`,
+and `storefront`. Component `cart` in `storefront` is tagged `payments` too, and
+component `catalog` is not. Focusing on `payments` gives:
+
+| Part | Result |
+| --- | --- |
+| `checkout-api` and all its components | Match. |
+| `cart` | Match. |
+| `shop` and `storefront` | Parents: they stay, because they hold a match. |
+| `catalog` | Recedes. |
+
+The map then decides what it draws around those elements
+([`IsoMap.focusTags`](../src/viewers/web/iso/painting/map.ts)): a group stays
+when one of its members matches, and a relationship stays when both of its ends
+match.
+
+Focusing changes emphasis only. Positions, containment and the stored
+architecture stay as they are.
+
 ### Code references
 
 `groma.code` is a list. Each entry contains only:

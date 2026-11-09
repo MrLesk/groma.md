@@ -2,6 +2,8 @@
 type: C4 Component
 title: Map fonts
 status: stable
+tags:
+  - map
 groma:
   id: fonts-index
   parent: export

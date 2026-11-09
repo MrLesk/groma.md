@@ -2,6 +2,8 @@
 type: C4 Component
 title: Map placement
 status: stable
+tags:
+  - map
 groma:
   id: scene
   parent: cli

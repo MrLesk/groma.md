@@ -2,6 +2,8 @@
 type: C4 Component
 title: Camera control
 status: stable
+tags:
+  - map
 groma:
   id: camera
   parent: export

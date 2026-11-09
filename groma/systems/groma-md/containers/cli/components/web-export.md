@@ -2,6 +2,8 @@
 type: C4 Component
 title: Static export
 status: stable
+tags:
+  - web
 groma:
   id: web-export
   parent: cli

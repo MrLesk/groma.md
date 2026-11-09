@@ -2,6 +2,8 @@
 type: C4 Component
 title: C++ source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: cpp-src-index
   parent: cli

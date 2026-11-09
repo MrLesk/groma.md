@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal projection
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: projection
   parent: cli

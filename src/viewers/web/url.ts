@@ -1,4 +1,5 @@
 import type { ComponentChange } from '../../history/comparison.ts'
+import { tagsInUse } from '../../tag-selection.ts'
 import { comparisonDefaultTab } from './comparison/details.ts'
 import type { Comparison } from '../../history/comparison.ts'
 import type { GitRevision } from '../../history/revisions.ts'
@@ -18,6 +19,8 @@ export interface ViewState extends MapControls {
   line?: number
   selection: Selection
   flows: FlowRef[]
+  /** The tags the map is focused on. */
+  focusTags: readonly string[]
   tab: DetailsTab
   theme: WebThemeMode
   hudVisible: boolean
@@ -72,6 +75,11 @@ function activeFlows(params: URLSearchParams, world: ArchitectureGraph): FlowRef
   const step = Number.isInteger(requested) && requested >= 1 && requested <= flow.steps.length ? requested - 1 : undefined
   if (step !== undefined) active.step = step
   return flows
+}
+
+/** Repeated `tag=<tag>` entries, kept only while the world uses the tag. */
+function focusTags(params: URLSearchParams, world: ArchitectureGraph): string[] {
+  return tagsInUse(world.elements, [...new Set(params.getAll('tag'))])
 }
 
 function sourceState(
@@ -129,7 +137,7 @@ function appendTab(pairs: [string, string][], state: ViewState, change: Componen
  * Reads the ordered architecture selection (repeated `<kind>=<id>` and
  * `relationship=<source id>/<target id>` entries) or `task=<id>`,
  * checked flows (repeated `flow=<id>`) and the last flow's one-based `step=<number>`,
- * `tab=how|tasks`, `view=iso|2d|layers`, `hide=<comma-separated filters>`,
+ * focused tags (repeated `tag=<tag>`), `tab=how|tasks`, `view=iso|2d|layers`, `hide=<comma-separated filters>`,
  * `theme=auto|light|dark|blueprint` and `hud=off`. A query theme overrides
  * the publication path theme, then the saved default. Ids are the authored ids; anything the world
  * or the work does not know is ignored, a kind naming an element of another kind included.
@@ -166,6 +174,7 @@ export function readView(
     ...source,
     selection,
     flows,
+    focusTags: focusTags(params, world),
     tab: readTab(params, source.file, comparison?.components[selected?.id ?? '']),
     theme: readTheme(url, defaultTheme),
     hudVisible: params.get('hud') !== 'off',
@@ -227,6 +236,7 @@ export function writeView(state: ViewState, world: ArchitectureGraph, work: read
   for (const flow of state.flows) {
     appendFlow(pairs, flow === state.flows.at(-1) ? flow : { id: flow.id }, world)
   }
+  for (const tag of state.focusTags) pairs.push(['tag', encodeURIComponent(tag)])
   pairs.push(...mapControlEntries(state))
   if (state.theme !== (pathTheme(pathname) ?? 'auto')) pairs.push(['theme', state.theme])
   if (!state.hudVisible) pairs.push(['hud', 'off'])

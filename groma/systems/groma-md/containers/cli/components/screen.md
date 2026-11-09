@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal panels
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: screen
   parent: cli

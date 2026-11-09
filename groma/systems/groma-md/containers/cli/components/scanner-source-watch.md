@@ -2,6 +2,8 @@
 type: C4 Component
 title: Source watch
 status: stable
+tags:
+  - scanning
 groma:
   id: scanner-source-watch
   parent: cli

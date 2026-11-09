@@ -2,6 +2,8 @@
 type: C4 Component
 title: Dart source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: dart-src-index
   parent: cli

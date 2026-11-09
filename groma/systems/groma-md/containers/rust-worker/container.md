@@ -2,6 +2,8 @@
 type: C4 Container
 title: Rust worker
 status: stable
+tags:
+  - scanning
 groma:
   id: rust-worker
   parent: groma-md

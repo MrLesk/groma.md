@@ -2,6 +2,8 @@
 type: C4 Component
 title: TypeScript source outline
 status: stable
+tags:
+  - scanning
 groma:
   id: src-structure
   parent: cli

@@ -2,6 +2,8 @@
 type: C4 Component
 title: TypeScript HTTP analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: src-http-endpoints
   parent: cli

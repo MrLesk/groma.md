@@ -2,6 +2,8 @@
 type: C4 Component
 title: Project scan support
 status: stable
+tags:
+  - scanning
 groma:
   id: scanners-projects
   parent: cli
