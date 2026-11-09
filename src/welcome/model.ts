@@ -80,7 +80,7 @@ export const advancedCommands = [
   {
     command: 'groma edit <id> …',
     description: 'id + change options',
-    content: 'Changes an element, a draft record, or the project record by id: rename, describe, set technology, tag with a draft, or curate scanned structure.',
+    content: 'Changes an element, a draft record, or the project record by id: rename, describe, set technology or tags, link to a draft, or curate scanned structure.',
   },
   {
     command: 'groma remove <id>',
