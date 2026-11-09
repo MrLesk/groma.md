@@ -24,6 +24,7 @@ import { mapDebugCss } from './chrome/map-debug.ts'
 import { mapViewControl, mapViewCss } from './chrome/map-view.ts'
 import { c4FilterControl, c4FilterCss } from './chrome/c4-filter.ts'
 import { tagFocusCss } from './chrome/tag-focus.ts'
+import { colorSwatchesCss } from './organisms/color-swatches.ts'
 import { motionCss } from './chrome/motion.ts'
 import { detailsPanelCss } from './chrome/shell.ts'
 import { flowRowCss } from './flow/row.ts'
@@ -128,7 +129,7 @@ const style = `
   body.hud-hidden #pins { display: none; }
   button { font: inherit; color: inherit; background: transparent; cursor: pointer; }
   button:focus-visible { outline: 2px solid var(--highlight); outline-offset: -1px; }
-  #legend span, #tags .title, #details .meta, #details .section, #hierarchy .section, #tree .group, #zoom, #details .chip, #stats, .pane-label {
+  #legend span, #tags .title, #details .color-swatches .title, #details .meta, #details .section, #hierarchy .section, #tree .group, #zoom, #details .chip, #stats, .pane-label {
     font-size: 10px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -388,7 +389,7 @@ const style = `
 ${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
 ${emptyStateCss}
 ${addDialogCss}${editorCss}
-${relationshipCardCss}${removeCss}${editableCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}${tagFocusCss}`
+${relationshipCardCss}${removeCss}${editableCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}${tagFocusCss}${colorSwatchesCss}`
 
 function legend(): string {
   return legendKinds.map(line => {

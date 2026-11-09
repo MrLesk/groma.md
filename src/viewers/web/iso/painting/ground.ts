@@ -2,7 +2,7 @@ import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, ISLAND_SPACING, textWidth } fr
 import type { Compass, PlateText, ProjectPlate, RichPlateText, Segment } from '../projection/blueprint.ts'
 import type { ProjectedScene, ProjectedZone, ProjectionView } from '../projection/project.ts'
 import { planeMatrix } from '../projection/project.ts'
-import { node, pointsAttribute, round, type SvgNode } from './svg.ts'
+import { colorAttribute, node, pointsAttribute, round, type SvgNode } from './svg.ts'
 import { surfaceLabel } from './text.ts'
 
 function pathOf(segments: readonly Segment[]): string {
@@ -100,7 +100,7 @@ export function islandsSvg(scene: ProjectedScene, zoom = 1): SvgNode[] {
   return [
     ...scene.islands.map(({ island, polygon, text }) => {
       const attributes: Record<string, string> = island.element === null
-        ? {} : { 'data-id': island.element.representationId, 'aria-label': island.name }
+        ? {} : { 'data-id': island.element.representationId, 'aria-label': island.name, ...colorAttribute(island.element) }
       return node('g', attributes, `island ${island.kind}`, [
         node('polygon', { points: pointsAttribute(polygon) }, 'ground'),
         ...(island.kind === 'system' ? [] : [node('polygon', { points: pointsAttribute(polygon) }, 'pattern')]),
@@ -117,7 +117,7 @@ export function slabsSvg(scene: ProjectedScene, zoom = 1): SvgNode[] {
   return scene.slabs.map(({ slab, faces, text }) => {
     const ghost = slab.origin === 'observed' ? '' : ` ghost ${slab.origin}`
     const top = faces.find(face => face.side === 'top')!
-    return node('g', { 'aria-label': slab.title, 'data-id': slab.representationId }, `slab${ghost}`, [
+    return node('g', { 'aria-label': slab.title, 'data-id': slab.representationId, ...colorAttribute(slab) }, `slab${ghost}`, [
       ...faces.map(face => node('polygon', { points: pointsAttribute(face.points) }, `face ${face.side}`)),
       node('polygon', { points: pointsAttribute(top.points) }, 'pattern'),
       surfaceLabel(text, CONTAINER_FONT, scene.view, 0, zoom),

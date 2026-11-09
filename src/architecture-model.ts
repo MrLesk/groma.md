@@ -1,6 +1,7 @@
 import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
+import { COLOR_NAMES, isColorName, type ColorName } from './colors.ts'
 import { isArchitectureId, isReservedId, kebabCase } from './naming.ts'
 import { DRAFT_TYPE, c4Kind, requireGromaMapping } from './okf-profile.ts'
 import { storedConnections } from './relationship-markdown.ts'
@@ -55,7 +56,7 @@ function invalidElement(sourceFilename: string, message: string): never {
 
 function validateGromaFields(groma: Record<string, unknown>, sourceFilename: string): void {
   const unknownFields = Object.keys(groma).filter(field => {
-    return !['id', 'parent', 'group', 'technology', 'code', 'draft'].includes(field)
+    return !['id', 'parent', 'group', 'technology', 'color', 'code', 'draft'].includes(field)
   })
   if (unknownFields.length > 0) {
     invalidElement(sourceFilename, `unsupported groma field(s): ${unknownFields.join(', ')}`)
@@ -87,6 +88,12 @@ function tagsOf(value: unknown, sourceFilename: string): string[] | undefined {
     invalidElement(sourceFilename, 'tags must be a list of non-empty strings')
   }
   return value.length === 0 ? undefined : [...value]
+}
+
+function colorOf(value: unknown, sourceFilename: string): ColorName | undefined {
+  if (value === undefined) return undefined
+  if (!isColorName(value)) invalidElement(sourceFilename, `color must be one of ${COLOR_NAMES.join(', ')}`)
+  return value
 }
 
 function requireId(value: unknown, sourceFilename: string, label: string): string {
@@ -147,6 +154,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
   const group = optionalText(groma.group, 'group', sourceFilename)
   const technology = optionalText(groma.technology, 'technology', sourceFilename)
   const tags = tagsOf(document.frontmatter.tags, sourceFilename)
+  const color = colorOf(groma.color, sourceFilename)
   const draft = draftOf(groma, sourceFilename)
 
   return {
@@ -162,6 +170,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     ...(group === undefined ? {} : { group }),
     ...(technology === undefined ? {} : { technology }),
     ...(tags === undefined ? {} : { tags }),
+    ...(color === undefined ? {} : { color }),
     code: codeReferencesOf(groma.code, kind, message => {
       throw new ArchitectureModelError('INVALID_ELEMENT', sourceFilename, message)
     }),

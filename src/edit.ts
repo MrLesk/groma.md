@@ -56,9 +56,14 @@ function isStructural(input: EditArchitectureInput): boolean {
     || input.newId !== undefined
 }
 
+/** Tags and color exist only on C4 elements; every other edit target refuses them. */
+function hasPresentation(input: EditArchitectureInput): boolean {
+  return input.tags !== undefined || input.color !== undefined
+}
+
 /** The project record: its title, description and overview, merged into the current profile. */
 async function editProject(repositoryRoot: string, input: EditArchitectureInput): Promise<string> {
-  if (isStructural(input) || input.draft !== undefined || input.technology !== undefined || input.tags !== undefined) {
+  if (isStructural(input) || input.draft !== undefined || input.technology !== undefined || hasPresentation(input)) {
     throw new Error('only --title, --description and --overview are valid on the project')
   }
   const overview = input.overview
@@ -82,7 +87,7 @@ async function editDraftRecord(
   record: DraftRecord,
   input: EditArchitectureInput,
 ): Promise<string> {
-  if (input.description !== undefined || input.technology !== undefined || input.tags !== undefined
+  if (input.description !== undefined || input.technology !== undefined || hasPresentation(input)
     || input.draft !== undefined || isStructural(input)) {
     throw new Error('only --title and --overview are valid on a draft record')
   }
@@ -112,13 +117,13 @@ async function elementMeaning(
 function editAddressed(repositoryRoot: string, input: EditArchitectureInput): Promise<string | StructuralResult> | undefined {
   if (input.relation === undefined && isGroupAddress(input.id)) {
     if (input.relation !== undefined || input.overview !== undefined || input.description !== undefined
-      || input.technology !== undefined || input.tags !== undefined || input.draft !== undefined || isStructural(input)) {
+      || input.technology !== undefined || hasPresentation(input) || input.draft !== undefined || isStructural(input)) {
       throw new Error('only --title is valid on a group')
     }
     return editGroup(repositoryRoot, { address: input.id, title: input.title, original: input.original })
   }
   if (input.relation !== undefined) {
-    if (input.title !== undefined || input.overview !== undefined || input.tags !== undefined
+    if (input.title !== undefined || input.overview !== undefined || hasPresentation(input)
       || input.draft !== undefined || isStructural(input)) {
       throw new Error('only --description and --technology are valid on a relation')
     }
@@ -141,7 +146,7 @@ export async function editArchitecture(
   const flow = records.flows.find(document => requireGromaMapping(document.frontmatter, document.sourceFilename).id === input.id)
   if (flow !== undefined) {
     if (input.newId !== undefined) throw new Error('--id renames systems, containers, and components')
-    if (input.tags !== undefined) throw new Error('--tags is valid on actors, systems, containers, and components')
+    if (hasPresentation(input)) throw new Error('--tags and --color are valid on actors, systems, containers, and components')
     checkEdit(input.original, resolveFlows([flow], model)[0]!, input)
     return editFlow(repositoryRoot, records, flow, input)
   }
@@ -154,10 +159,10 @@ export async function editArchitecture(
   }
 
   checkEdit(input.original, { ...element, tags: formatTags(element.tags), parent: element.parentId ?? '' }, input)
-  const meaning = [input.title, input.overview, input.description, input.technology, input.tags, input.draft]
+  const meaning = [input.title, input.overview, input.description, input.technology, input.tags, input.color, input.draft]
   const hasMeaning = meaning.some(value => value !== undefined)
   if (!hasMeaning && !isStructural(input)) {
-    throw new Error('--title, --overview, --description, --technology, --tags or --draft is required')
+    throw new Error('--title, --overview, --description, --technology, --tags, --color or --draft is required')
   }
   const source = hasMeaning ? await elementMeaning(repositoryRoot, records, element, input) : undefined
 
@@ -167,6 +172,7 @@ export async function editArchitecture(
       title: input.title,
       technology: input.technology,
       tags: input.tags,
+      color: input.color,
       draft: input.draft,
       overview: input.overview,
       description: input.description,

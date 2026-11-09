@@ -1,4 +1,5 @@
 import { GROMA_ACCENT, GROMA_ACCENT_ON_LIGHT } from '../../../brand.ts'
+import { COLOR_NAMES, type ColorName } from '../../../colors.ts'
 
 /** Every colour the page and the map use, as CSS variable values; the map's level tints mix paper and ink in its stylesheet. */
 export interface Palette {
@@ -27,6 +28,8 @@ export interface Palette {
   diffAdded: string
   diffModified: string
   diffRemoved: string
+  /** What each authored color name looks like in this theme; the map mixes it into the paper. */
+  colors: Record<ColorName, string>
 }
 
 export type WebTheme = 'light' | 'dark' | 'blueprint'
@@ -66,6 +69,7 @@ export const palettes: Record<WebTheme, Palette> = {
     diffAdded: '#2563EB',
     diffModified: '#9A6700',
     diffRemoved: '#B42318',
+    colors: { red: '#D9483B', orange: '#E0782A', yellow: '#C79A08', blue: '#2F7FD9', violet: '#7C5CD6', pink: '#D4479A' },
   },
   dark: {
     paper: '#111315',
@@ -87,6 +91,7 @@ export const palettes: Record<WebTheme, Palette> = {
     diffAdded: '#79C0FF',
     diffModified: '#E3B341',
     diffRemoved: '#FF7B72',
+    colors: { red: '#F27A6E', orange: '#F5A25B', yellow: '#E6C34A', blue: '#6FB1FF', violet: '#A990FF', pink: '#F27CC0' },
   },
   blueprint: {
     paper: '#07152B',
@@ -108,6 +113,7 @@ export const palettes: Record<WebTheme, Palette> = {
     diffAdded: '#B8F26B',
     diffModified: '#FFE066',
     diffRemoved: '#FF8FAB',
+    colors: { red: '#FF8A8A', orange: '#FFB070', yellow: '#FFE066', blue: '#8CCBFF', violet: '#C3A6FF', pink: '#FF9AD5' },
   },
 }
 
@@ -156,5 +162,6 @@ export function cssBlock(palette: Palette): string {
   --diff-removed: ${palette.diffRemoved};
   --map-grid: ${mixColour(palette.paper, palette.line, 0.12)};
   --map-grid-major: ${mixColour(palette.paper, palette.line, 0.2)};
+${COLOR_NAMES.map(name => `  --color-${name}: ${palette.colors[name]};`).join('\n')}
 `
 }

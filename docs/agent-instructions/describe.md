@@ -31,14 +31,16 @@ of writing guesses. Optional fields need content only when they add meaning.
 
 | Command | Target | Options |
 | --- | --- | --- |
-| `groma edit <id>` | an element ID: actor, external system, system, container, or component | `--title`, `--description`, `--overview`, `--technology`, `--tags` |
+| `groma edit <id>` | an element ID: actor, external system, system, container, or component | `--title`, `--description`, `--overview`, `--technology`, `--tags`, `--color` |
 | `groma edit <draft-id>` | a draft ID | `--title`, `--overview` |
 | `groma edit project` | the word `project`, meaning the project record | `--title`, `--description`, `--overview` |
 
 `--title` renames the record; its ID stays. An empty `--description`,
 `--technology` or `--tags` value removes that field, and an empty `--overview`
 clears the body. `--tags payments,legacy` replaces the whole list, so name every
-tag the element keeps. `groma view` has no `project` target: the project record is
+tag the element keeps. `--color` takes one of the names `groma edit --help`
+lists and only changes how the element looks on the map; set it when the user
+asks for it. `groma view` has no `project` target: the project record is
 `<groma-root>/project.md`. Read that file, and change it only through
 `groma edit project`.
 

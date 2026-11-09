@@ -113,8 +113,9 @@ operation before opening a map.
      --overview <markdown>` sets the draft outcome. The optional concise OKF
      field is changed separately with `--description`. `--title` renames a
      part or a draft record while its id and file stay; `--technology` sets or
-     clears an element's technology, and `--tags` replaces or clears its
-     [OKF tags](component-markdown.md#tags). In the web map the details pane
+     clears an element's technology, `--tags` replaces or clears its
+     [OKF tags](component-markdown.md#tags), and `--color` sets or clears its
+     [named map color](component-markdown.md#colors). In the web map the details pane
      edits title, description, overview, technology and tags in place and links
      the element to a draft; every field posts the input `groma edit` takes.
    - Atomic scan evidence is curated with `groma edit`: combine empty scan
