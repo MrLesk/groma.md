@@ -95,9 +95,14 @@ export function themeDefinition(id: string, value: unknown, source: string): The
   }
 }
 
-/** The mode a saved or shared value names: itself when it is Auto or an enabled theme, otherwise Auto. */
+/** Whether a saved or shared value is a choice the picker offers: Auto or an enabled theme. */
+export function isThemeMode(value: string | null | undefined, themes: readonly ThemeDefinition[]): value is string {
+  return value === AUTO_THEME || themes.some(theme => theme.id === value)
+}
+
+/** The mode a saved or shared value names: itself when the picker offers it, otherwise Auto. */
 export function themeMode(value: string | null | undefined, themes: readonly ThemeDefinition[]): string {
-  return themes.some(theme => theme.id === value) ? value! : AUTO_THEME
+  return isThemeMode(value, themes) ? value : AUTO_THEME
 }
 
 /** The theme a mode shows. Auto takes the first enabled theme of the system appearance, or the first theme when none suits it. */
