@@ -139,6 +139,7 @@ function elementDetails(element: AnnotatedElement): string[] {
   if (element.parent !== null) lines.push(`parent: ${element.parent}`)
   if (element.technology !== undefined) lines.push(`technology: ${element.technology}`)
   if (element.tags !== undefined) lines.push(`tags: ${formatTags(element.tags)}`)
+  if (element.color !== undefined) lines.push(`color: ${element.color}`)
   if (element.description !== undefined) lines.push(`description: ${element.description}`)
   if (element.overview !== '') lines.push(...element.overview.split(/\n\s*\n/))
   return lines
