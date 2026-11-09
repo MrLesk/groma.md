@@ -1,4 +1,5 @@
 import type { Comparison } from '../../../../history/comparison.ts'
+import type { TagSelection } from '../../../../tag-selection.ts'
 import type { Point } from '../../../../types.ts'
 import { layerLabelsSvg, layerPlanesSvg } from './layer-planes.ts'
 import type { LayeredScene } from '../projection/separation.ts'
@@ -43,6 +44,8 @@ export interface IsoMap {
   mark(ids: ReadonlySet<string>): void
   /** Gives the inspected component a breathing glow and softly accents its direct component neighbors. */
   markNeighbors(selectedId: string | undefined, neighbors: ReadonlySet<string>): void
+  /** Tag focus: keeps the bodies the tags match and their parents, the zones with a matched member and the routes whose two ends match; everything else recedes. Undefined clears it. */
+  focusTags(selection: TagSelection | undefined): void
   /** Lights route ids and direct endpoints; contextual ancestors stay neutral while everything off the path dims. */
   setLitRoutes(litRouteIds: ReadonlySet<string>, onPath: (id: string) => boolean, focusedRouteId?: string): void
   hitId(target: EventTarget | null): string | undefined
@@ -78,10 +81,11 @@ function paintSurface(name: string, layers: SVGGElement[]) {
   return { surface, scene, world }
 }
 
-/** What the highlight setters read from the scene besides the drawn elements: each route's ids and ends, and the surface under each body. */
+/** What the highlight setters read from the scene besides the drawn elements: each route's ids and ends, each zone's members, and the surface under each body. */
 function highlightInputs(scene: LayeredScene) {
   return {
     routes: scene.routes.map(({ route }) => ({ id: route.id, ids: route.relationshipIds ?? [route.id], source: route.source, target: route.target })),
+    zones: scene.zones.map(({ zone }) => ({ key: zone.key, members: zone.members })),
     surfaces: [
       ...scene.buildings.map(({ building }) => [building.representationId, building.surface] as const),
       ...scene.slabs.map(({ slab }) => [slab.representationId, slab.island] as const),
@@ -132,6 +136,8 @@ export function createMap(host: HTMLElement): IsoMap {
   let items = new Map<string, Element>()
   let painted: LayeredScene | undefined
   let routes = new Map<string, RouteNode>()
+  /** Each drawn zone with the ids of its member components. */
+  let zones: { group: Element; members: string[] }[] = []
   let labelStep = surfaceLabelStep(1)
   /** The slab or system island each building and slab stands on, by id. */
   let surfaces = new Map<string, string>()
@@ -189,6 +195,12 @@ export function createMap(host: HTMLElement): IsoMap {
       const entry = { group: groups.get(route.id)!, ids: route.ids, source: route.source, target: route.target }
       for (const id of route.ids) routes.set(id, entry)
     }
+    const zoneGroups = new Map([layers.islands, layers.slabs].flatMap(group =>
+      [...group.querySelectorAll<SVGGElement>('[data-zone]')].map(zone => [zone.dataset.zone!, zone] as const)))
+    zones = inputs.zones.flatMap(zone => {
+      const group = zoneGroups.get(zone.key)
+      return group === undefined ? [] : [{ group, members: zone.members }]
+    })
     surfaces = new Map(inputs.surfaces)
   }
 
@@ -287,6 +299,16 @@ export function createMap(host: HTMLElement): IsoMap {
       for (const [itemId, node] of items) node.classList.toggle('touched', ids.has(itemId))
       for (const route of new Set(routes.values())) {
         route.group.classList.toggle('touched', ids.has(route.source))
+      }
+    },
+    focusTags(selection) {
+      cameraLayer.element.toggleAttribute('data-tag-focus', selection !== undefined)
+      const matched = selection?.matched ?? new Set<string>()
+      const parents = selection?.parents ?? new Set<string>()
+      for (const [itemId, node] of items) node.classList.toggle('tag-match', matched.has(itemId) || parents.has(itemId))
+      for (const zone of zones) zone.group.classList.toggle('tag-match', zone.members.some(id => matched.has(id)))
+      for (const route of new Set(routes.values())) {
+        route.group.classList.toggle('tag-match', matched.has(route.source) && matched.has(route.target))
       }
     },
     setLitRoutes(litRouteIds, onPath, focusedRouteId) {

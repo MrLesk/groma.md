@@ -2,6 +2,8 @@
 type: C4 Component
 title: Map view motion
 status: stable
+tags:
+  - map
 groma:
   id: presentation
   parent: export

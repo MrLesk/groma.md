@@ -2,6 +2,8 @@
 type: C4 Component
 title: Mojo source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: mojo-src-index
   parent: cli

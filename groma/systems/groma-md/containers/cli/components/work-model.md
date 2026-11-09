@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal task reader
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: work-model
   parent: cli

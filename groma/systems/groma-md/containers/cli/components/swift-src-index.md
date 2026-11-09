@@ -2,6 +2,8 @@
 type: C4 Component
 title: Swift scanner adapter
 status: stable
+tags:
+  - scanning
 groma:
   id: swift-src-index
   parent: cli

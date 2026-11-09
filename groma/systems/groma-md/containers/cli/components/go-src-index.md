@@ -2,6 +2,8 @@
 type: C4 Component
 title: Go scanner adapter
 status: stable
+tags:
+  - scanning
 groma:
   id: go-src-index
   parent: cli

@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal flow reader
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: flow
   parent: cli

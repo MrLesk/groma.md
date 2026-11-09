@@ -2,6 +2,8 @@
 type: C4 Component
 title: NASM source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: nasm-src-index
   parent: cli

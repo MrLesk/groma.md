@@ -2,6 +2,8 @@
 type: C4 Component
 title: Scanner discovery
 status: stable
+tags:
+  - scanning
 groma:
   id: modules-discovery
   parent: cli

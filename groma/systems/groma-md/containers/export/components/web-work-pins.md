@@ -2,6 +2,8 @@
 type: C4 Component
 title: Task map markers
 status: stable
+tags:
+  - work
 groma:
   id: web-work-pins
   parent: export

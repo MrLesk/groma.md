@@ -2,6 +2,8 @@
 type: C4 Component
 title: Python analysis runtime
 status: stable
+tags:
+  - scanning
 groma:
   id: runtime
   parent: cli

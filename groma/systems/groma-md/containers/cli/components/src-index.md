@@ -2,6 +2,8 @@
 type: C4 Component
 title: Python scanner adapter
 status: stable
+tags:
+  - scanning
 groma:
   id: src-index
   parent: cli
