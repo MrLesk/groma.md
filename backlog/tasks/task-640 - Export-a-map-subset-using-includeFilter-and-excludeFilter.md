@@ -1,11 +1,11 @@
 ---
 id: TASK-640
 title: Export a map subset using includeFilter and excludeFilter
-status: Done
+status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T22:19:00Z'
+updated_date: '2026-11-09T22:28:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -47,7 +47,7 @@ Before implementation, confirm one filtered-export example covering parent conte
 <!-- AC:BEGIN -->
 - [x] #1 The supported map export entry point accepts includeFilter and excludeFilter, separately and together.
 - [x] #2 Exports contain the selected subset according to the same tag matching rules as the web map; excluded architecture is absent rather than merely dimmed.
-- [x] #3 One approved example documents include/exclude overlap, required parent context, and which relationships remain.
+- [ ] #3 One approved example documents include/exclude overlap, required parent context, and which relationships remain.
 - [x] #4 Retained architecture keeps its authored metadata, and exporting does not modify the source architecture.
 <!-- AC:END -->
 
@@ -77,6 +77,8 @@ Tests (authority: acceptance criteria 1 to 3).
 Decisions: the flags are --include-filter and --exclude-filter with comma-separated tags, the same text form as groma edit --tags. The subset is taken before layout, so the exported sheet is laid out for what remains and only retained components contribute source text; this is what keeps an excluded part out of a public export. The worked example in the Markdown contract was written by the implementer, not confirmed by Alex beforehand. Not changed, existing behavior: an export error prints a stack trace, as --from without --revision already does.
 
 Verification: bun run check passed (28 Node tests, 1014 Bun tests, 64 environment-dependent skips, 0 failures). On groma.md own map, groma export --include-filter scanning --exclude-filter terminal wrote a site with 1 system, 4 containers and 53 components laid out on their own, and --include-filter with an unused tag failed naming the tag. The export test proves an excluded component and its source text are absent from the published payload.
+
+Automated PR review, applied: a comparison export read the union of both commits owned files for each snapshot, so a component excluded in the newer commit still published its newer source. A filtered snapshot now reads only the files its own subset owns; a two-commit export test fails without the fix. Criterion 3 is unchecked and the task is back in progress: the worked example is the implementer proposal and waits for Alex to approve it.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

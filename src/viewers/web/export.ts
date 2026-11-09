@@ -93,11 +93,13 @@ async function publishedSnapshot(root: string, revisions: GitRevision[], generat
     return atRevision(root, from, async beforeRoot => {
       const beforeMap = await loadExportedMap(beforeRoot, filter)
       const files = [...new Set([...ownedFiles(beforeMap.world), ...ownedFiles(afterMap.world)])]
+      // A filtered snapshot reads only the files its own subset owns: a part excluded in one commit publishes no source from that commit.
+      const filesOf = (map: typeof afterMap) => filter === undefined ? files : ownedFiles(map.world)
       // The time machine lists the commits newest first, as it does live.
       const history = [...revisions].reverse()
       const [before, after] = await Promise.all([
-        snapshotView(root, beforeRoot, from, history, generation, beforeMap, files),
-        snapshotView(root, afterRoot, to, history, generation, afterMap, files),
+        snapshotView(root, beforeRoot, from, history, generation, beforeMap, filesOf(beforeMap)),
+        snapshotView(root, afterRoot, to, history, generation, afterMap, filesOf(afterMap)),
       ])
       // One comparison, from the older commit to the newer; closing it opens either commit on its own.
       const comparison = comparisonView(before, after)
