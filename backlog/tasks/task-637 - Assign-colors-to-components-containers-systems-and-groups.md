@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T22:39:00Z'
+updated_date: '2026-11-09T22:49:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -115,6 +115,8 @@ No tests of exact color values.
 Decisions: Alex said on 2026-11-09 that a stored hex is poor UX, that colors must not be automatic, and that themes define the named colors; whether a color belongs to an element or to a tag he left open. This task puts the name on the element (groma.color), the smallest primitive that needs no other concept. Six names, none green; each bundled theme supplies its own value per name. In the browser a colored element sets four variables that the existing surface and stroke rules read, so selection, lit, draft and comparison rules work unchanged; covers get resolved plain rules because resvg has no variables. A color is not inherited by children. Group colors are left out: a group has no document, and where to store its presentation is Alex decision. The earlier agent PR for this task (MrLesk/groma.md#195) stored a hex and a groupAppearance map; nothing from it is used.
 
 Verification: bun run check passed (28 Node tests, 1017 Bun tests, 64 environment-dependent skips, 0 failures). On groma.md own map, with its five containers colored: Iso at fit zoom in Light, Dark and Blueprint shows each container tinted with a colored outline and its zones following the outline; a selected colored container keeps its tint under the green selection outline; the exported cover shows the colors; in a two-commit comparison export the colored slabs compute to the neutral fill and stroke. On the editing fixture in groma web, clicking a swatch in the details pane tinted the slab at once and marked the swatch; groma edit --color with an unknown name is refused naming the six names.
+
+Cold simplicity review (one round), applied: on covers the color rules reach only the element own faces, so a group hatch inside a colored container is no longer painted over; group zones reset the tint variables, so a color stays on its element in the browser as on covers and the docs sentence about inheritance is true; the cap that gave both sides of a colored building one fill is gone and the strength is 2, which keeps the side shading; a colored actor shades its sides in the browser as on its cover; a hovered colored element keeps its outline color; the per-element variables are named --tint-* so they do not read as the theme --color-<name> values; one depth table feeds both the neutral and the colored surface rules; the two model tests that repeated the editing test are removed. The planned cover stylesheet assertion was not written: it would freeze selector text, and the theme type already requires a value for every name. Kept on purpose: the swatch row writes at once without the Edit form conflict check, because applying a color is a single field overwrite like the CLI.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
