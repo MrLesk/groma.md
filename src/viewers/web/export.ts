@@ -6,6 +6,7 @@ import { compareArchitecture, ownedFiles, type SourceTexts } from '../../history
 import { olderFirst, readGitRevision, type GitRevision } from '../../history/revisions.ts'
 import { atRevision, readSourceTexts } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
+import type { TagFilter } from '../../tag-selection.ts'
 import { outlineSourceFiles, readSnapshotCodeStructure } from '../source/structure.ts'
 import { renderPage } from './page.ts'
 import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'
@@ -23,6 +24,10 @@ export interface WebExportOptions {
   url?: string
   revision?: string
   from?: string
+  /** Export only what these tags select, with the parents that hold it. */
+  includeFilter?: readonly string[]
+  /** Leave out what these tags select; wins over includeFilter. */
+  excludeFilter?: readonly string[]
   watch?: boolean
   onError?: (error: unknown) => void
 }
@@ -66,18 +71,27 @@ function comparisonView(before: PublishedView, after: PublishedView): PublishedV
   }
 }
 
+/** The exported subset of one snapshot. An include filter that selects nothing is a mistake worth stopping for, not an empty site. */
+async function loadExportedMap(root: string, filter: TagFilter | undefined) {
+  const map = await loadMapRoot(root, undefined, filter)
+  if (filter !== undefined && filter.include.length > 0 && map.world.elements.length === 0) {
+    throw new Error(`No element carries ${filter.include.join(', ')}`)
+  }
+  return map
+}
+
 /** Materialize existing viewer reads while the requested roots are available; no Git reaches the browser. */
-async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number): Promise<WebBootPayload> {
+async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number, filter: TagFilter | undefined): Promise<WebBootPayload> {
   const to = revisions.at(-1) ?? null
   const from = revisions.length === 2 ? revisions[0]! : undefined
   return atRevision(root, to, async afterRoot => {
-    const afterMap = await loadMapRoot(afterRoot)
+    const afterMap = await loadExportedMap(afterRoot, filter)
     if (from === undefined) {
       const view = await snapshotView(root, afterRoot, to, revisions, generation, afterMap, ownedFiles(afterMap.world))
       return { ...view.payload, delivery: { kind: 'published', views: [view] } }
     }
     return atRevision(root, from, async beforeRoot => {
-      const beforeMap = await loadMapRoot(beforeRoot)
+      const beforeMap = await loadExportedMap(beforeRoot, filter)
       const files = [...new Set([...ownedFiles(beforeMap.world), ...ownedFiles(afterMap.world)])]
       // The time machine lists the commits newest first, as it does live.
       const history = [...revisions].reverse()
@@ -124,6 +138,8 @@ export async function exportWebViewer(
   options: WebExportOptions = {},
 ): Promise<WebExportHandle> {
   const revisions = await exportRevisions(repositoryRoot, options)
+  const filter = options.includeFilter === undefined && options.excludeFilter === undefined
+    ? undefined : { include: options.includeFilter ?? [], exclude: options.excludeFilter ?? [] }
   const url = options.url === undefined ? undefined : new URL(options.url)
   if (url !== undefined && !url.pathname.endsWith('/')) url.pathname += '/'
   const output = path.resolve(outputDirectory)
@@ -137,7 +153,7 @@ export async function exportWebViewer(
   const finished = new Promise<void>(resolve => { closePromise = resolve })
 
   async function publish(): Promise<void> {
-    const snapshot = await publishedSnapshot(repositoryRoot, revisions, ++generation)
+    const snapshot = await publishedSnapshot(repositoryRoot, revisions, ++generation, filter)
     if (closed) return
     const covers = await generateCovers(snapshot)
     for (const theme of coverThemes) await replaceFile(path.join(output, coverFile(theme)), covers[theme])

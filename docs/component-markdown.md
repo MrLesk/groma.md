@@ -274,6 +274,26 @@ match.
 Focusing changes emphasis only. Positions, containment and the stored
 architecture stay as they are.
 
+#### Exporting a subset
+
+`groma export --include-filter <tags> --exclude-filter <tags>` uses the same
+selection to decide what a static export contains. Include keeps the matches and
+their context. Exclude then removes its own matches and wins over include.
+
+Continue the example: component `refunds` in `checkout-api` is tagged `legacy`.
+`--include-filter payments --exclude-filter legacy` exports:
+
+| Part | Exported |
+| --- | --- |
+| `checkout-api` and its other components | Yes. |
+| `refunds` | No. Exclude wins, although its container is included. |
+| `cart` | Yes. |
+| `shop` and `storefront` | Yes, as the parents of exported parts. |
+| `catalog` | No. |
+| A relationship from `cart` to a component of `checkout-api` | Yes: both ends are exported. |
+| A relationship from `catalog` to `cart`, or to `refunds` | No: one end is absent. |
+| A flow with a step over an absent relationship | No. |
+
 ### Code references
 
 `groma.code` is a list. Each entry contains only:

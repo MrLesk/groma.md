@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 import { cp, mkdtemp, readFile, rm, writeFile, mkdir } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { writes } from '../src/authoring.ts'
 import { exportWebViewer, type WebExportOptions } from '../src/viewers/web/export.ts'
 import { createWebDataSource, openWebBoot } from '../src/viewers/web/data.ts'
 import type { WebBootPayload } from '../src/viewers/web/payload.ts'
@@ -44,6 +45,19 @@ test.concurrent('working-tree export retains uncommitted source and contains one
     const data = createWebDataSource(boot)
     expect((await data.readSource('orders', 'src/orders.ts')).source).toContain('uncommitted')
     await expect(data.readTask('TASK-1')).rejects.toThrow()
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('a filtered export publishes neither an excluded component nor its source text', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-export-filter-'))
+  try {
+    await cp(fixture, root, { recursive: true })
+    await writeFile(path.join(root, 'src/orders.ts'), 'export const internalOnly = true\n')
+    await writes.edit(root, { id: 'orders', tags: 'internal' })
+    const boot = await publish(root, { excludeFilter: ['internal'] })
+    expect(boot.world.elements.map(element => element.id).sort()).toEqual(['api', 'shop'])
+    expect(JSON.stringify(boot)).not.toContain('internalOnly')
+    await expect(publish(root, { includeFilter: ['missing'] })).rejects.toThrow('No element carries missing')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 

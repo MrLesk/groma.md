@@ -87,6 +87,31 @@ commit, and the revision picker offers the two exported commits.
 contents, and outlines; `web/data.ts` selects those bundled views through the
 same read boundary used by the live viewer.
 
+### Filtered exports
+
+`--include-filter` and `--exclude-filter` take comma-separated
+[OKF tags](../../component-markdown.md#tags) and export the part of the
+architecture meant for one audience:
+
+```sh
+groma export ./site --include-filter payments --exclude-filter internal
+```
+
+- `--include-filter` keeps what the tags select, with the parents that hold it.
+  Without it the export starts from the whole architecture.
+- `--exclude-filter` removes what its tags select, and wins when both filters
+  name the same element.
+- A relationship is exported when both of its ends are, and a flow when all of
+  its steps are.
+
+An excluded element is absent, not dimmed: the map is laid out for the subset,
+and the element's descriptions and source files are not written to the output.
+An include filter that selects nothing fails instead of writing an empty site.
+The [worked example](../../component-markdown.md#exporting-a-subset) shows the
+rule, which is `subsetByTags` in
+[`src/tag-selection.ts`](../../../src/tag-selection.ts). Exporting never changes
+the stored architecture.
+
 ### Social previews
 
 Export also writes `cover-light.png`, `cover-dark.png`, and `cover-blueprint.png`
