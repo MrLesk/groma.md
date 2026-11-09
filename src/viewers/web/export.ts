@@ -24,10 +24,8 @@ export interface WebExportOptions {
   url?: string
   revision?: string
   from?: string
-  /** Export only what these tags select, with the parents that hold it. */
-  includeFilter?: readonly string[]
-  /** Leave out what these tags select; wins over includeFilter. */
-  excludeFilter?: readonly string[]
+  /** Export only the subset these tags keep; absent exports everything. */
+  filter?: TagFilter
   watch?: boolean
   onError?: (error: unknown) => void
 }
@@ -71,27 +69,20 @@ function comparisonView(before: PublishedView, after: PublishedView): PublishedV
   }
 }
 
-/** The exported subset of one snapshot. An include filter that selects nothing is a mistake worth stopping for, not an empty site. */
-async function loadExportedMap(root: string, filter: TagFilter | undefined) {
-  const map = await loadMapRoot(root, undefined, filter)
-  if (filter !== undefined && filter.include.length > 0 && map.world.elements.length === 0) {
-    throw new Error(`No element carries ${filter.include.join(', ')}`)
-  }
-  return map
-}
-
 /** Materialize existing viewer reads while the requested roots are available; no Git reaches the browser. */
 async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number, filter: TagFilter | undefined): Promise<WebBootPayload> {
   const to = revisions.at(-1) ?? null
   const from = revisions.length === 2 ? revisions[0]! : undefined
   return atRevision(root, to, async afterRoot => {
-    const afterMap = await loadExportedMap(afterRoot, filter)
+    const afterMap = await loadMapRoot(afterRoot, undefined, filter)
+    // A filter that leaves nothing of the exported commit is a mistake worth stopping for, not an empty site.
+    if (filter !== undefined && afterMap.world.elements.length === 0) throw new Error('The export filter leaves no element to export')
     if (from === undefined) {
       const view = await snapshotView(root, afterRoot, to, revisions, generation, afterMap, ownedFiles(afterMap.world))
       return { ...view.payload, delivery: { kind: 'published', views: [view] } }
     }
     return atRevision(root, from, async beforeRoot => {
-      const beforeMap = await loadExportedMap(beforeRoot, filter)
+      const beforeMap = await loadMapRoot(beforeRoot, undefined, filter)
       const files = [...new Set([...ownedFiles(beforeMap.world), ...ownedFiles(afterMap.world)])]
       // A filtered snapshot reads only the files its own subset owns: a part excluded in one commit publishes no source from that commit.
       const filesOf = (map: typeof afterMap) => filter === undefined ? files : ownedFiles(map.world)
@@ -140,8 +131,7 @@ export async function exportWebViewer(
   options: WebExportOptions = {},
 ): Promise<WebExportHandle> {
   const revisions = await exportRevisions(repositoryRoot, options)
-  const filter = options.includeFilter === undefined && options.excludeFilter === undefined
-    ? undefined : { include: options.includeFilter ?? [], exclude: options.excludeFilter ?? [] }
+  const { filter } = options
   const url = options.url === undefined ? undefined : new URL(options.url)
   if (url !== undefined && !url.pathname.endsWith('/')) url.pathname += '/'
   const output = path.resolve(outputDirectory)

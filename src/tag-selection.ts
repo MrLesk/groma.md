@@ -59,8 +59,8 @@ export interface TagFilter {
  * The part of an architecture a tag filter keeps. Include keeps what its tags select
  * together with the parents that hold it. Exclude then removes what its tags select,
  * and wins when both name the same element. A relationship stays when both of its ends
- * stay, and a flow stays when all of its steps stay. A subset carries no scan findings,
- * because they name source files across the whole project.
+ * stay, and a flow stays when all of its steps stay. Draft ids pass through unchanged.
+ * Scan findings are left out, because they name source files across the whole project.
  */
 export function subsetByTags(world: AnnotatedArchitectureModel, filter: TagFilter): AnnotatedArchitectureModel {
   const excluded = selectByTags(world.elements, filter.exclude).matched
