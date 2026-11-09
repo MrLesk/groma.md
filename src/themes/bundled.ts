@@ -3,7 +3,8 @@ import { themeDefinition, type ThemeDefinition } from './definition.ts'
 
 /**
  * The themes that ship inside groma.md. They are plain theme data, checked by the same validator as a project's own
- * theme files, so a clone of one is a complete starting point.
+ * theme files, so a clone of one starts with every colour. A few stylesheet rules still name `dark` and `blueprint`
+ * (syntax and panel line treatments); those belong to these two themes and a clone does not take them.
  */
 export const bundledThemes: readonly ThemeDefinition[] = [
   themeDefinition('light', {

@@ -1,11 +1,16 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { readGromaConfig, type ConfiguredTheme } from '../config.ts'
+import { readGromaConfig, type ConfiguredTheme, type GromaConfig } from '../config.ts'
 import { bundledTheme, bundledThemes } from './bundled.ts'
 import { themeDefinition, type ThemeDefinition } from './definition.ts'
 
 /** What a project enables while config.json has no themes list: every bundled theme. */
-export const defaultThemes: readonly ConfiguredTheme[] = bundledThemes.map(theme => ({ id: theme.id }))
+const defaultThemes: readonly ConfiguredTheme[] = bundledThemes.map(theme => ({ id: theme.id }))
+
+/** The theme entries a configuration has in effect: its themes list, or the default. The one place that rule lives. */
+export function themeEntries(config: GromaConfig): readonly ConfiguredTheme[] {
+  return config.themes ?? defaultThemes
+}
 
 /** One enabled theme: the bundled one of that id, or the definition in the entry's file. */
 export async function loadTheme(repositoryRoot: string, entry: ConfiguredTheme): Promise<ThemeDefinition> {
@@ -25,6 +30,5 @@ export async function loadTheme(repositoryRoot: string, entry: ConfiguredTheme):
 
 /** The themes a project enables, in config.json order. Bundled and custom themes come through the same path. */
 export async function loadThemes(repositoryRoot: string): Promise<ThemeDefinition[]> {
-  const listed = (await readGromaConfig(repositoryRoot)).themes ?? defaultThemes
-  return Promise.all(listed.map(entry => loadTheme(repositoryRoot, entry)))
+  return Promise.all(themeEntries(await readGromaConfig(repositoryRoot)).map(entry => loadTheme(repositoryRoot, entry)))
 }

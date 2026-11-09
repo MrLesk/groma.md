@@ -100,11 +100,6 @@ export function isThemeMode(value: string | null | undefined, themes: readonly T
   return value === AUTO_THEME || themes.some(theme => theme.id === value)
 }
 
-/** The mode a saved or shared value names: itself when the picker offers it, otherwise Auto. */
-export function themeMode(value: string | null | undefined, themes: readonly ThemeDefinition[]): string {
-  return isThemeMode(value, themes) ? value : AUTO_THEME
-}
-
 /** The theme a mode shows. Auto takes the first enabled theme of the system appearance, or the first theme when none suits it. */
 export function shownTheme(mode: string, themes: readonly ThemeDefinition[], prefersDark: boolean): ThemeDefinition {
   const named = themes.find(theme => theme.id === mode)
