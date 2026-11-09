@@ -15,10 +15,10 @@ import { readComparison } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
 import { listGitRevisions, withGitRevision } from '../../history/revisions.ts'
 import { renderPage } from './page.ts'
+import { loadThemes } from '../../themes/configured.ts'
 import type { WebMapPayload, WebPayload, WebRevision, WebWorkPayload } from './payload.ts'
 import { bundleRenderer, loadMapRoot } from './runtime.ts'
-import { coverThemes, generateCovers, type CoverImages } from './sharing/images.ts'
-import { coverFile } from './sharing/metadata.ts'
+import { generateCover } from './sharing/images.ts'
 import { readSource } from '../source/read.ts'
 import { readCodeStructure } from '../source/structure.ts'
 import { readTaskDiff } from '../source/diff.ts'
@@ -88,7 +88,8 @@ export async function createWebMapSession(
     work: EMPTY_WORK_SNAPSHOT,
   }
   let closed = false
-  let covers: Promise<CoverImages> | undefined
+  /** Covers of the current map, keyed by the whole theme definition so an edited theme file gets a fresh cover. */
+  const covers = new Map<string, Promise<Uint8Array<ArrayBuffer>>>()
   const clients = new Set<ReadableStreamDefaultController<Uint8Array>>()
   const encoder = new TextEncoder()
 
@@ -245,7 +246,7 @@ export async function createWebMapSession(
       ...next,
     }
     for (const file of ownedFiles(map.world)) sourceFiles.add(file)
-    covers = undefined
+    covers.clear()
     broadcast(worldEvent())
   }
 
@@ -386,7 +387,9 @@ export async function createWebMapSession(
   async function pageResponse(url: URL): Promise<Response> {
     const selected = await payloadFor(url)
     if (selected instanceof Response) return selected
-    return new Response(renderPage({ ...selected, delivery: { kind: 'live', readOnly: options.readOnly } }, url), {
+    // Read on every page load, so a change to the themes in config.json shows after a reload.
+    const themes = await loadThemes(repositoryRoot)
+    return new Response(renderPage({ ...selected, delivery: { kind: 'live', readOnly: options.readOnly }, themes }, url), {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store',
@@ -405,10 +408,15 @@ export async function createWebMapSession(
     ['/events', eventsResponse],
   ])
 
-  for (const theme of coverThemes) routes.set(`/${coverFile(theme)}`, async () => {
-    covers ??= generateCovers(map)
-    return new Response((await covers)[theme], { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' } })
-  })
+  /** The social preview of one enabled theme, at the path sharing metadata names. */
+  async function coverResponse(themeId: string): Promise<Response> {
+    const theme = (await loadThemes(repositoryRoot)).find(item => item.id === themeId)
+    if (theme === undefined) return new Response('Unknown theme', { status: 404 })
+    const key = JSON.stringify(theme)
+    const cover = covers.get(key) ?? generateCover(map, theme)
+    covers.set(key, cover)
+    return new Response(await cover, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' } })
+  }
 
   /** The shared writes at the path of their verb; each posts the input the CLI builds from its flags. */
   const writeRoutes = new Map<string, (request: Request) => Promise<Response>>([
@@ -436,7 +444,9 @@ export async function createWebMapSession(
     const write = request.method === 'POST' ? writeRoutes.get(url.pathname) : undefined
     if (write !== undefined) return write(request)
     const route = routes.get(url.pathname)
-    return route === undefined ? pageResponse(url) : route(request, url)
+    if (route !== undefined) return route(request, url)
+    const cover = url.pathname.match(/^\/cover-(.+)\.png$/)
+    return cover === null ? pageResponse(url) : coverResponse(cover[1]!)
   }
 
   publishWork()
@@ -460,7 +470,7 @@ export async function createWebMapSession(
         worldChain,
         workChain,
         revisionRead,
-        covers,
+        ...covers.values(),
       ])
     },
   }

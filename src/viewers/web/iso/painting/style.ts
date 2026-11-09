@@ -1,5 +1,6 @@
 import { COLOR_NAMES } from '../../../../colors.ts'
-import { mixColour, webFontFamily, type Palette } from '../../atoms/theme.ts'
+import type { Palette } from '../../../../themes/definition.ts'
+import { mixColour, webFontFamily } from '../../atoms/theme.ts'
 import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
