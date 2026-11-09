@@ -80,6 +80,15 @@ function optionalText(
   return value as string
 }
 
+/** OKF `tags` is a top-level list of short strings. An empty list means the same as no tags. */
+function tagsOf(value: unknown, sourceFilename: string): string[] | undefined {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value) || value.some(tag => typeof tag !== 'string' || tag.trim() === '')) {
+    invalidElement(sourceFilename, 'tags must be a list of non-empty strings')
+  }
+  return value.length === 0 ? undefined : [...value]
+}
+
 function requireId(value: unknown, sourceFilename: string, label: string): string {
   if (typeof value !== 'string' || !isArchitectureId(value)) {
     invalidElement(sourceFilename, `${label} requires a lowercase kebab-case stable id`)
@@ -137,6 +146,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
   const parent = optionalText(groma.parent, 'parent', sourceFilename)
   const group = optionalText(groma.group, 'group', sourceFilename)
   const technology = optionalText(groma.technology, 'technology', sourceFilename)
+  const tags = tagsOf(document.frontmatter.tags, sourceFilename)
   const draft = draftOf(groma, sourceFilename)
 
   return {
@@ -151,6 +161,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     external,
     ...(group === undefined ? {} : { group }),
     ...(technology === undefined ? {} : { technology }),
+    ...(tags === undefined ? {} : { tags }),
     code: codeReferencesOf(groma.code, kind, message => {
       throw new ArchitectureModelError('INVALID_ELEMENT', sourceFilename, message)
     }),

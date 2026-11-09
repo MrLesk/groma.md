@@ -153,6 +153,7 @@ Each C4 concept has these standard top-level fields:
 | `type` | yes | Exactly `C4 Actor`, `C4 System`, `C4 Container`, or `C4 Component`. |
 | `title` | yes | The readable concept name. |
 | `description` | no | A concise standard OKF description. |
+| `tags` | no | The standard OKF list of short strings that name cross-cutting categories. |
 | `status` | yes | `draft` for a concept that does not exist yet; `stable` otherwise. |
 
 groma.md-only fields live together under `groma`:
@@ -169,8 +170,9 @@ groma.md-only fields live together under `groma`:
 Architecture IDs use lowercase Unicode words separated by hyphens. Each word
 starts with a letter or digit and keeps its letters, digits, and combining
 marks. For example, `Студент` receives `студент` and `Вход студента` receives
-`вход-студента`. Elements, parent references, draft records and tags, and flows
-use this same Groma naming rule; it does not add an OKF or C4 requirement.
+`вход-студента`. Elements, parent references, draft records, the `groma.draft`
+field, and flows use this same Groma naming rule; it does not add an OKF or C4
+requirement.
 
 There is no `kind` field. The standard `type` carries the C4 type, and the
 body does not repeat `title` as a level-one heading.
@@ -212,6 +214,37 @@ Matching hash prefixes grow until the IDs are unique. Contents and scanner
 identity do not enter that hash. Titles use the readable name without the
 hash. An already owned source keeps its stored ID on later scans, including
 when another scanner reports it.
+
+### Tags
+
+`tags` is the OKF field for categories that cut across the hierarchy, such as a
+business area, an owning team, or a quality like `legacy`. It is authored
+project vocabulary. Groma never derives tags from source and scans keep them.
+
+```markdown
+---
+type: C4 Container
+title: Checkout API
+status: stable
+tags:
+  - payments
+  - legacy
+groma:
+  id: checkout-api
+  parent: shop
+---
+```
+
+Any OKF reader sees the two categories. Groma reads the list on actors, systems,
+external systems, containers, and components, and shows it with the concept. A
+tag adds no C4 element, parent, or relationship, and it is unrelated to the
+`groma.draft` field that links a concept to a draft record. There is no
+`groma.tags` field and no separate tag catalog.
+
+`groma edit <id> --tags payments,legacy` replaces the concept's list, and an
+empty value removes the field. The web Edit form has the same Tags field. Groma
+writes tags without commas, blanks, or repeats, and reads any list of non-empty
+strings that another OKF tool wrote.
 
 ### Code references
 

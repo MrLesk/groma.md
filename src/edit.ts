@@ -25,6 +25,7 @@ import { requireGromaMapping } from './okf-profile.ts'
 import type { ArchitectureElement, ArchitectureRecords } from './types.ts'
 import { checkEdit, type EditValues } from './authoring-conflict.ts'
 import { resolveFlows } from './flow-model.ts'
+import { formatTags } from './tags.ts'
 
 export interface EditArchitectureInput extends MeaningChanges {
   id: string
@@ -57,7 +58,7 @@ function isStructural(input: EditArchitectureInput): boolean {
 
 /** The project record: its title, description and overview, merged into the current profile. */
 async function editProject(repositoryRoot: string, input: EditArchitectureInput): Promise<string> {
-  if (isStructural(input) || input.draft !== undefined || input.technology !== undefined) {
+  if (isStructural(input) || input.draft !== undefined || input.technology !== undefined || input.tags !== undefined) {
     throw new Error('only --title, --description and --overview are valid on the project')
   }
   const overview = input.overview
@@ -81,7 +82,8 @@ async function editDraftRecord(
   record: DraftRecord,
   input: EditArchitectureInput,
 ): Promise<string> {
-  if (input.description !== undefined || input.technology !== undefined || input.draft !== undefined || isStructural(input)) {
+  if (input.description !== undefined || input.technology !== undefined || input.tags !== undefined
+    || input.draft !== undefined || isStructural(input)) {
     throw new Error('only --title and --overview are valid on a draft record')
   }
   const overview = input.overview
@@ -110,13 +112,14 @@ async function elementMeaning(
 function editAddressed(repositoryRoot: string, input: EditArchitectureInput): Promise<string | StructuralResult> | undefined {
   if (input.relation === undefined && isGroupAddress(input.id)) {
     if (input.relation !== undefined || input.overview !== undefined || input.description !== undefined
-      || input.technology !== undefined || input.draft !== undefined || isStructural(input)) {
+      || input.technology !== undefined || input.tags !== undefined || input.draft !== undefined || isStructural(input)) {
       throw new Error('only --title is valid on a group')
     }
     return editGroup(repositoryRoot, { address: input.id, title: input.title, original: input.original })
   }
   if (input.relation !== undefined) {
-    if (input.title !== undefined || input.overview !== undefined || input.draft !== undefined || isStructural(input)) {
+    if (input.title !== undefined || input.overview !== undefined || input.tags !== undefined
+      || input.draft !== undefined || isStructural(input)) {
       throw new Error('only --description and --technology are valid on a relation')
     }
     return editRelation(repositoryRoot, {
@@ -138,6 +141,7 @@ export async function editArchitecture(
   const flow = records.flows.find(document => requireGromaMapping(document.frontmatter, document.sourceFilename).id === input.id)
   if (flow !== undefined) {
     if (input.newId !== undefined) throw new Error('--id renames systems, containers, and components')
+    if (input.tags !== undefined) throw new Error('--tags is valid on actors, systems, containers, and components')
     checkEdit(input.original, resolveFlows([flow], model)[0]!, input)
     return editFlow(repositoryRoot, records, flow, input)
   }
@@ -149,9 +153,12 @@ export async function editArchitecture(
     return editDraftRecord(repositoryRoot, record, input)
   }
 
-  checkEdit(input.original, { ...element, parent: element.parentId ?? '' }, input)
-  const hasMeaning = [input.title, input.overview, input.description, input.technology, input.draft].some(value => value !== undefined)
-  if (!hasMeaning && !isStructural(input)) throw new Error('--title, --overview, --description, --technology or --draft is required')
+  checkEdit(input.original, { ...element, tags: formatTags(element.tags), parent: element.parentId ?? '' }, input)
+  const meaning = [input.title, input.overview, input.description, input.technology, input.tags, input.draft]
+  const hasMeaning = meaning.some(value => value !== undefined)
+  if (!hasMeaning && !isStructural(input)) {
+    throw new Error('--title, --overview, --description, --technology, --tags or --draft is required')
+  }
   const source = hasMeaning ? await elementMeaning(repositoryRoot, records, element, input) : undefined
 
   if (isStructural(input)) {
@@ -159,6 +166,7 @@ export async function editArchitecture(
       id: input.id,
       title: input.title,
       technology: input.technology,
+      tags: input.tags,
       draft: input.draft,
       overview: input.overview,
       description: input.description,

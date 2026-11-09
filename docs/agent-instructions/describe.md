@@ -18,6 +18,10 @@ explain.
   inventory.
 - Technology names the actual implementation or storage technology when it
   helps a reader understand the element. Leave it unset when unknown.
+- Tags name the categories that cut across the hierarchy and that the project's
+  people already use, such as a business area or an owning team. Reuse the tags
+  other elements carry before adding a new one, and leave an element untagged
+  when no category applies.
 
 Use code, project documentation, and confirmed user context to support these
 claims. Keep useful existing annotations, and report missing knowledge instead
@@ -27,13 +31,14 @@ of writing guesses. Optional fields need content only when they add meaning.
 
 | Command | Target | Options |
 | --- | --- | --- |
-| `groma edit <id>` | an element ID: actor, external system, system, container, or component | `--title`, `--description`, `--overview`, `--technology` |
+| `groma edit <id>` | an element ID: actor, external system, system, container, or component | `--title`, `--description`, `--overview`, `--technology`, `--tags` |
 | `groma edit <draft-id>` | a draft ID | `--title`, `--overview` |
 | `groma edit project` | the word `project`, meaning the project record | `--title`, `--description`, `--overview` |
 
-`--title` renames the record; its ID stays. An empty `--description` or
-`--technology` value removes that field, and an empty `--overview` clears the
-body. `groma view` has no `project` target: the project record is
+`--title` renames the record; its ID stays. An empty `--description`,
+`--technology` or `--tags` value removes that field, and an empty `--overview`
+clears the body. `--tags payments,legacy` replaces the whole list, so name every
+tag the element keeps. `groma view` has no `project` target: the project record is
 `<groma-root>/project.md`. Read that file, and change it only through
 `groma edit project`.
 

@@ -3,6 +3,7 @@ import { cp, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'bun:test'
+import { parseFrontmatter } from 'comark'
 import { writes } from '../src/authoring.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import { scanRepository } from '../src/scanner.ts'
@@ -85,6 +86,29 @@ test.concurrent('web edits reject conflicting fields as one request and accept u
     await session?.close()
     await rm(root, { recursive: true, force: true })
   }
+})
+
+test.concurrent('tag edits replace and remove the OKF list, and other edits and scans keep it', async () => {
+  const root = await fixture()
+  try {
+    const read = async () => (await loadAnnotatedArchitecture(root)).elements.find(element => element.id === 'stock')!
+    await writes.edit(root, { id: 'stock', tags: 'inventory, checkout,inventory' })
+    assert.deepEqual((await read()).tags, ['inventory', 'checkout'])
+    await writes.edit(root, { id: 'stock', title: 'Availability' })
+    await scanRepository(root)
+    assert.deepEqual((await read()).tags, ['inventory', 'checkout'])
+    const source = await GromaFileSystem.open(root).read('systems/shop/containers/api/components/stock.md')
+    const { tags, groma } = parseFrontmatter(source).data as { tags: unknown; groma: Record<string, unknown> }
+    assert.deepEqual(tags, ['inventory', 'checkout'])
+    assert.equal('tags' in groma, false)
+    await writes.edit(root, { id: 'stock', tags: 'warehouse, cold' })
+    assert.deepEqual((await read()).tags, ['warehouse', 'cold'])
+    // A form opened before that edit proposes the same tags in another spelling: already applied, so no conflict.
+    await writes.edit(root, { id: 'stock', tags: 'warehouse,cold', original: { tags: 'warehouse' } })
+    await writes.edit(root, { id: 'stock', tags: '' })
+    assert.equal((await read()).tags, undefined)
+    await assert.rejects(writes.edit(root, { id: 'project', title: 'Shop', tags: 'warehouse' }))
+  } finally { await rm(root, { recursive: true, force: true }) }
 })
 
 test.concurrent('draft relationships survive edits and scans and require explicit acceptance', async () => {

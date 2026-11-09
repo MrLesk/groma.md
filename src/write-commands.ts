@@ -137,7 +137,8 @@ export function registerWriteCommands(program: Command): void {
     .option('--steps <markdown>', 'flow Steps table: From | To | Action, with Markdown endpoint links')
     .option('--description <text>', 'optional short summary (empty removes it), or how a relation works')
     .option('--technology <text>', 'technology of an element (empty removes it) or of a relation')
-    .option('--draft <draft-id>', 'tag this element with the draft that touches it')
+    .option('--tags <tags>', 'comma-separated OKF tags of an element; replaces its list (empty removes it)')
+    .option('--draft <draft-id>', 'link this element to the draft that touches it')
     .option('--group <name>', 'assign this component to a sibling group')
     .option('--ungroup', 'remove this component from its group')
     .option('--parent <id>', 'move an empty scanned component to this container, or a container to this system')
@@ -156,6 +157,7 @@ export function registerWriteCommands(program: Command): void {
           steps: options.steps,
           description: options.description,
           technology: options.technology,
+          tags: options.tags,
           draft: options.draft,
           group: options.group,
           ungroup: options.ungroup,

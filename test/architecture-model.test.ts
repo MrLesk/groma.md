@@ -45,6 +45,21 @@ test('resolves a relationship link to the target document stable id', { concurre
   assert.deepEqual(model.relationships.map(row => [row.sourceId, row.targetId]), [['architect', 'stable-platform-id']])
 })
 
+test('reads OKF tags from the top-level list and leaves an untagged element without the field', { concurrency: true }, () => {
+  const tagged = elementDocument({
+    id: 'orders',
+    kind: 'system',
+    sourceFilename: 'groma/systems/orders/system.md',
+    tags: ['payments', 'legacy'],
+  })
+  const untagged = elementDocument({ id: 'buyer', kind: 'actor', sourceFilename: 'groma/actors/buyer.md' })
+
+  const elements = buildArchitectureModel([tagged, untagged]).elements
+
+  assert.deepEqual(elements.find(element => element.id === 'orders')!.tags, ['payments', 'legacy'])
+  assert.equal('tags' in elements.find(element => element.id === 'buyer')!, false)
+})
+
 test('orders equivalent unchanged trees deterministically', { concurrency: true }, () => {
   const system = elementDocument({
     id: 'z-system',
