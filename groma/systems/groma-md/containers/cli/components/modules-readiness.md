@@ -2,6 +2,8 @@
 type: C4 Component
 title: Scanner readiness
 status: stable
+tags:
+  - scanning
 groma:
   id: modules-readiness
   parent: cli

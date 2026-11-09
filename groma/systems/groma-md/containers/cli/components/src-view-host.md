@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal session
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: src-view-host
   parent: cli

@@ -2,6 +2,8 @@
 type: C4 Component
 title: Scan results
 status: stable
+tags:
+  - scanning
 groma:
   id: src-scanner
   parent: cli

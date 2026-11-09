@@ -2,6 +2,8 @@
 type: C4 Component
 title: Backlog adapter
 status: stable
+tags:
+  - work
 groma:
   id: backlog-src-index
   parent: cli

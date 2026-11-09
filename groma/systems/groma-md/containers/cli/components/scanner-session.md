@@ -2,6 +2,8 @@
 type: C4 Component
 title: Live scanner session
 status: stable
+tags:
+  - scanning
 groma:
   id: scanner-session
   parent: cli

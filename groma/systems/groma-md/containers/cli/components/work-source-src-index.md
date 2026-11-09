@@ -2,6 +2,8 @@
 type: C4 Component
 title: Work source contract
 status: stable
+tags:
+  - work
 groma:
   id: work-source-src-index
   parent: cli
