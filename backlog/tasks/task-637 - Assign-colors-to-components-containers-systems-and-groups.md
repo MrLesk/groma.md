@@ -1,11 +1,11 @@
 ---
 id: TASK-637
 title: 'Assign named colors to actors, systems, containers and components'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T22:36:00Z'
+updated_date: '2026-11-09T22:39:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -80,18 +80,18 @@ Group colors are not part of this task: a group is a name on its members and has
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 An author can assign, change, and clear a named color on an actor, system, external system, container, and component through a documented Groma authoring action.
-- [ ] #2 The web map displays the authored color on the corresponding element in every UI theme, and the theme defines the value of each name.
-- [ ] #3 Assignments survive reloads and scans and are unchanged by switching UI themes.
-- [ ] #4 Selection, lit flows, task marks, drafts and comparison keep their own signals over an authored color.
+- [x] #1 An author can assign, change, and clear a named color on an actor, system, external system, container, and component through a documented Groma authoring action.
+- [x] #2 The web map displays the authored color on the corresponding element in every UI theme, and the theme defines the value of each name.
+- [x] #3 Assignments survive reloads and scans and are unchanged by switching UI themes.
+- [x] #4 Selection, lit flows, task marks, drafts and comparison keep their own signals over an authored color.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -108,3 +108,17 @@ Tests (authority: acceptance criteria 1 to 4).
 - Map: a colored container reaches the drawn slab as data-color, and the cover stylesheet holds an explicit fill for it. Wrong result caught: the authored color never reaches the map or the exported cover. Extends the iso map coverage.
 No tests of exact color values.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Decisions: Alex said on 2026-11-09 that a stored hex is poor UX, that colors must not be automatic, and that themes define the named colors; whether a color belongs to an element or to a tag he left open. This task puts the name on the element (groma.color), the smallest primitive that needs no other concept. Six names, none green; each bundled theme supplies its own value per name. In the browser a colored element sets four variables that the existing surface and stroke rules read, so selection, lit, draft and comparison rules work unchanged; covers get resolved plain rules because resvg has no variables. A color is not inherited by children. Group colors are left out: a group has no document, and where to store its presentation is Alex decision. The earlier agent PR for this task (MrLesk/groma.md#195) stored a hex and a groupAppearance map; nothing from it is used.
+
+Verification: bun run check passed (28 Node tests, 1017 Bun tests, 64 environment-dependent skips, 0 failures). On groma.md own map, with its five containers colored: Iso at fit zoom in Light, Dark and Blueprint shows each container tinted with a colored outline and its zones following the outline; a selected colored container keeps its tint under the green selection outline; the exported cover shows the colors; in a two-commit comparison export the colored slabs compute to the neutral fill and stroke. On the editing fixture in groma web, clicking a swatch in the details pane tinted the slab at once and marked the swatch; groma edit --color with an unknown name is refused naming the six names.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Elements can carry one of six named colors. groma.color stores the name, groma edit --color and a swatch row in the web details pane set or clear it, and the choice applies at once. Each UI theme defines what every name looks like; the map mixes that value into the element surfaces and outline, in the browser and on exported covers. Selection, lit flows, task marks and drafts keep their own look, and comparison switches authored colors off. groma.md own containers are colored. Group colors are not included and need a storage decision.
+<!-- SECTION:FINAL_SUMMARY:END -->
