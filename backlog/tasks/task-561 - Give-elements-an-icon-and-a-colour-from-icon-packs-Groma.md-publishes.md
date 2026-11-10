@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-11-10T08:09:00Z'
+updated_date: '2026-11-10T08:11:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -65,6 +65,10 @@ modified_files:
   - docs/agent-instructions/describe.md
   - test-bun/architecture-icons.test.ts
   - test-bun/editing.test.ts
+  - groma/systems/groma-md/containers/cli/components/src-architecture-model.md
+  - groma/systems/groma-md/containers/export/components/button.md
+  - groma/systems/groma-md/containers/export/components/map.md
+  - groma/systems/groma-md/containers/export/components/organisms-details.md
 type: feature
 ordinal: 1
 ---
