@@ -1,6 +1,7 @@
-import { buildingFont } from '../../../../sheet/measure.ts'
+import { PLANE, buildingFont, roofIconLead } from '../../../../sheet/measure.ts'
 import type { BuildingFloor } from '../../../../sheet/types.ts'
 import type { Plane, ProjectedBuilding, ProjectedScene } from '../projection/project.ts'
+import { roofIcon } from './icons.ts'
 import { facadePattern, facadePatternId } from './style.ts'
 import { colorAttribute, node, pointsAttribute, type SvgNode } from './svg.ts'
 import { surfaceText } from './text.ts'
@@ -45,13 +46,19 @@ function floorSvg(
     : [node('g', { 'data-files': floor.files.join('\n'), 'data-file-type': floor.facadeFileType }, 'floor', body)]
 }
 
-/** Buildings back to front: visible floors, patterned side faces and names on the final roofs. */
-export function buildingsSvg(scene: ProjectedScene): SvgNode[] {
+/**
+ * Buildings back to front: visible floors, patterned side faces, and on the final roofs the name with its icon
+ * before it. `stillZoom` is the camera scale of a still image such as a cover; the live map passes none.
+ */
+export function buildingsSvg(scene: ProjectedScene, stillZoom?: number): SvgNode[] {
   return scene.buildings.map(projected => {
     const { building, floors, text } = projected
+    const font = buildingFont(building)
+    const roofSide = building.kind === 'component' ? undefined : Math.min(building.rect.w, building.rect.d) * PLANE
     return node('g', { 'aria-label': building.title, 'data-id': building.representationId, ...colorAttribute(building) }, classOf(projected), [
       ...floors.flatMap((faces, index) => floorSvg(projected, faces, building.floors[index])),
-      surfaceText(text, buildingFont(building), 'label', scene.view),
+      surfaceText(text, font, 'label', scene.view, building.icon === undefined ? 0 : roofIconLead(font)),
+      ...(building.icon === undefined ? [] : [roofIcon(building.icon, text, font, scene.view, roofSide, stillZoom)]),
     ])
   })
 }

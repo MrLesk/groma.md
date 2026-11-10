@@ -1,4 +1,5 @@
 import type { ColorName } from '../colors.ts'
+import type { IconName } from '../icons.ts'
 import type { AnnotatedRelationship, C4Kind, Origin } from '../types.ts'
 
 /** A rectangle in map cells: `gx`, `gy` is the north corner, `w` runs along gx, `d` along gy. */
@@ -17,6 +18,8 @@ export interface SheetItem {
   origin: Origin
   /** The element's authored color name, which each viewer theme resolves. */
   color?: ColorName
+  /** The element's authored icon name; its name makes room for the icon's slot. */
+  icon?: IconName
 }
 
 export type IslandKind = 'actors' | 'external' | 'system'
