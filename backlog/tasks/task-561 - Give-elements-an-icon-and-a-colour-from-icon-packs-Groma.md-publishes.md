@@ -1,11 +1,11 @@
 ---
 id: TASK-561
 title: 'Assign icons to actors, systems, containers and components'
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-11-10T08:23:00Z'
+updated_date: '2026-11-10T08:26:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -87,18 +87,18 @@ An architecture author gives an actor, system, external system, container or com
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 An author can assign, change, and clear an icon on an actor, system, external system, container, and component through a documented Groma authoring action.
-- [ ] #2 The web map shows each assigned icon on its element in the Iso, 2D and Layers views, in the hierarchy and in the details.
-- [ ] #3 Assignments survive reloads and scans and remain the same when the UI theme changes.
-- [ ] #4 The documented storage uses Groma presentation metadata without changing C4 containment, and no icon is assigned automatically.
+- [x] #1 An author can assign, change, and clear an icon on an actor, system, external system, container, and component through a documented Groma authoring action.
+- [x] #2 The web map shows each assigned icon on its element in the Iso, 2D and Layers views, in the hierarchy and in the details.
+- [x] #3 Assignments survive reloads and scans and remain the same when the UI theme changes.
+- [x] #4 The documented storage uses Groma presentation metadata without changing C4 containment, and no icon is assigned automatically.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -121,3 +121,11 @@ Verification on groma's own map (icons assigned on every level in a scratch copy
 Groma's own map sets no icon in this branch: the architecture comparison job reads pull requests with the released groma.md, which rejects a new groma field until the next release.
 Reviews. Cold review and full-context review ran on the first snapshot. Fixed from them: icon parts no longer share the buildings' face classes (hover, draft, comparison and colored covers repainted them); parts are drawn back to front with a part over what it stands on (the cache chip's front pins were covered); only title icons are landmarks (an enlarged roof icon left its roof); the camera rules sit side by side in icon-camera.ts and the still path now fades inner lines by the same ramp as the live map; one slot function and one painter per name kind; a still is a named option; wall marks only type-check on boxes; cylinder renamed from round; Color row and Icon grid share one control. Left for Alex: a table of authored name fields (color and icon are now two hand-kept copies of the same path), and whether the live map should use the painter path for camera rules so one mechanism remains.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+An actor, system, external system, container or component can carry one of 23 named icons in groma.icon, set with groma edit --icon or the Icon grid in the web details pane. The web map draws each name as an isometric object built from the map's own boxes and cylinders in the Iso and Layers views, and as a flat glyph in the 2D view, the hierarchy rows and the details title. The icon stands in a slot the layout reserves before the name. The icon before a system's or container's title stays readable when the map is zoomed out; roof icons shrink with the map and fade out when tiny. Covers draw the same icons.
+Verified: bun run check passes (28 Node tests, 959 Bun tests, 64 environment-dependent skips, 0 failures); icons assigned on every level of a scratch copy of groma's own map and inspected in Iso, 2D, Layers, Light, Dark and the cover; the picker applied and cleared an icon at once.
+Not included: icons on groups (by decision), icon packs, vendor logos, animation, icons in the terminal map (plain output prints the name). Groma's own map sets no icon until a release knows the field. Open for Alex: his verdict on the artwork, a table for authored name fields, and whether the live map should use the painter path for the camera rules.
+<!-- SECTION:FINAL_SUMMARY:END -->
