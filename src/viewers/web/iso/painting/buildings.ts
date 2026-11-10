@@ -1,10 +1,10 @@
-import { PLANE, buildingFont, roofIconLead } from '../../../../sheet/measure.ts'
+import { buildingFont } from '../../../../sheet/measure.ts'
 import type { BuildingFloor } from '../../../../sheet/types.ts'
 import type { Plane, ProjectedBuilding, ProjectedScene } from '../projection/project.ts'
-import { roofIcon } from './icons.ts'
+import type { Still } from './icon-camera.ts'
+import { roofName } from './names.ts'
 import { facadePattern, facadePatternId } from './style.ts'
 import { colorAttribute, node, pointsAttribute, type SvgNode } from './svg.ts'
-import { surfaceText } from './text.ts'
 
 function classOf(projected: ProjectedBuilding): string {
   const { building } = projected
@@ -48,17 +48,14 @@ function floorSvg(
 
 /**
  * Buildings back to front: visible floors, patterned side faces, and on the final roofs the name with its icon
- * before it. `stillZoom` is the camera scale of a still image such as a cover; the live map passes none.
+ * before it. `still` is set for a drawing without a live stylesheet, such as a cover; the live map passes none.
  */
-export function buildingsSvg(scene: ProjectedScene, stillZoom?: number): SvgNode[] {
+export function buildingsSvg(scene: ProjectedScene, still?: Still): SvgNode[] {
   return scene.buildings.map(projected => {
     const { building, floors, text } = projected
-    const font = buildingFont(building)
-    const roofSide = building.kind === 'component' ? undefined : Math.min(building.rect.w, building.rect.d) * PLANE
     return node('g', { 'aria-label': building.title, 'data-id': building.representationId, ...colorAttribute(building) }, classOf(projected), [
       ...floors.flatMap((faces, index) => floorSvg(projected, faces, building.floors[index])),
-      surfaceText(text, font, 'label', scene.view, building.icon === undefined ? 0 : roofIconLead(font)),
-      ...(building.icon === undefined ? [] : [roofIcon(building.icon, text, font, scene.view, roofSide, stillZoom)]),
+      ...roofName(text, buildingFont(building), scene.view, building.icon, still),
     ])
   })
 }

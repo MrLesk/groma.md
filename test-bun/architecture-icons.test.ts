@@ -1,12 +1,11 @@
 import { expect, test } from 'bun:test'
 import type { IconName } from '../src/icons.ts'
-import { COMPONENT_FONT, roofIconSide, textPadding } from '../src/sheet/measure.ts'
+import { COMPONENT_FONT, roofIconSlot } from '../src/sheet/measure.ts'
 import { sheetScene } from '../src/sheet/scene.ts'
 import type { AnnotatedElement, ArchitectureGraph, C4Kind } from '../src/types.ts'
 import { iconObjects } from '../src/viewers/web/icons/objects.ts'
 import { buildingsSvg } from '../src/viewers/web/iso/painting/buildings.ts'
 import { slabsSvg } from '../src/viewers/web/iso/painting/ground.ts'
-import { LANDMARK_MIN_SIDE, landmarkZoom } from '../src/viewers/web/iso/painting/scale.ts'
 import type { SvgNode } from '../src/viewers/web/iso/painting/svg.ts'
 import { projectScene } from '../src/viewers/web/iso/projection/project.ts'
 
@@ -46,21 +45,15 @@ test.concurrent('a roof name starts after its icon slot, and the building grows 
   expect(iconOf(buildingsSvg(projectScene(sheetScene(world())))[0]!)).toBeUndefined()
 
   const name = childrenOf(childrenOf(building).find(child => child.attributes.class === 'label')!)[0]!
-  expect(Number(name.attributes.x)).toBeGreaterThanOrEqual(textPadding(COMPONENT_FONT) + roofIconSide(COMPONENT_FONT))
+  const slot = roofIconSlot(COMPONENT_FONT)
+  expect(Number(name.attributes.x)).toBeGreaterThanOrEqual(slot.x + slot.side)
   expect(scene.buildings[0]!.building.rect.w).toBeGreaterThan(plain.rect.w)
 })
 
 test.concurrent('a container icon is a landmark and a component icon is not', () => {
   const scene = projectScene(sheetScene(world({ container: 'browser', component: 'database' })))
   expect(iconOf(slabsSvg(scene)[0]!)!.attributes.class).toBe('icon landmark')
-  expect(iconOf(buildingsSvg(scene)[0]!)!.attributes.class).toBe('icon minor')
-})
-
-test.concurrent('a landmark keeps its readable size when zoomed out, within its room, and its own size when zoomed in', () => {
-  const side = 40
-  expect(side * 0.1 * landmarkZoom(0.1, side, 99)).toBeCloseTo(LANDMARK_MIN_SIDE)
-  expect(landmarkZoom(0.1, side, 2)).toBe(2)
-  expect(landmarkZoom(4, side, 99)).toBe(1)
+  expect(iconOf(buildingsSvg(scene)[0]!)!.attributes.class).toBe('icon')
 })
 
 test.concurrent('every icon object stays inside its footprint, so it never stands on the name beside it', () => {

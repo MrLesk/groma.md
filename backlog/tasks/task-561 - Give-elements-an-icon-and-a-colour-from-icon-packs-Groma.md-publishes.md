@@ -5,18 +5,20 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-11-10T08:11:00Z'
+updated_date: '2026-11-10T08:23:00Z'
 labels:
   - personalization
 milestone: m-6
 dependencies: []
 references:
+  - src/icons.ts
+  - src/viewers/web/icons/objects.ts
+  - src/viewers/web/icons/glyphs.ts
+  - src/viewers/web/iso/painting/icons.ts
+  - src/sheet/measure.ts
   - src/architecture-model.ts
-  - src/authoring.ts
   - src/edit.ts
-  - src/group.ts
-  - src/markdown-emitter.ts
-  - src/viewers/web/iso/painting/buildings.ts
+  - src/viewers/web/organisms/icon-picker.ts
 documentation:
   - ROADMAP.md
   - docs/component-markdown.md
@@ -69,6 +71,10 @@ modified_files:
   - groma/systems/groma-md/containers/export/components/button.md
   - groma/systems/groma-md/containers/export/components/map.md
   - groma/systems/groma-md/containers/export/components/organisms-details.md
+  - src/viewers/web/iso/painting/icon-camera.ts
+  - src/viewers/web/iso/painting/names.ts
+  - src/viewers/web/organisms/instant-choice.ts
+  - src/viewers/web/organisms/color-swatches.ts
 type: feature
 ordinal: 1
 ---
@@ -99,16 +105,19 @@ An architecture author gives an actor, system, external system, container or com
 
 <!-- SECTION:PLAN:BEGIN -->
 1. Store one icon name per element in groma.icon; src/icons.ts lists the 23 generic names (people, applications, running parts, data, other). groma edit --icon sets and clears it; it follows the same path as groma.color (model validation, emitter, edit guards, combine refusal, plain view, comparison).
-2. Draw every name twice. An object (src/viewers/web/icons/objects.ts) is built from boxes, upright prisms and balls in a 1 x 1 footprint and is projected with the map's own boxFaces and curvedFaces, so it turns with the map in Iso and Layers and takes theme tints, the element's authored color and selection. A flat glyph (icons/glyphs.ts) is drawn in the 2D view, the hierarchy rows, the details title and the picker.
-3. Position is automatic: the icon stands in a square slot before the element's name. The sheet reserves the slot (roofBlock, nameCells), so a roof or title band grows and the name never lies under the icon. Roof icons for actors, external systems and components; title-band icons for systems and containers.
-4. Zoom rules live in scale.ts and the map stylesheet: icons of systems, containers, actors and external systems are landmarks that keep a readable screen size when the map is zoomed out (title icons unbounded, roof icons within their roof); component icons shrink and hide below 14 px; inner lines fade on small objects; line width follows the icon's screen size, not the map weight. A cover has no live stylesheet, so the painter fixes the same rules from the cover's camera scale.
-5. Details pane: an Icon grid applies a choice at once through the shared edit write, like the Color row.
-6. Tests. (a) Rule: an author sets, changes and clears an icon, an unknown name and a non-element target are refused, and edits and scans keep it; authority: acceptance criteria 1 and 3; failure caught: icon lost by a scan or an invalid name stored; gap: no icon coverage existed; one test beside the color edit test. (b) Rule: a name starts after its icon slot and the building grows to hold both; authority: Alex's statement that positioning is automatic; failure caught: icon drawn over the name; one painter-level test on a three-element world. (c) Rule: a container icon is a landmark and a component icon is not, and a landmark keeps its readable size within its room; authority: plan step 4; failure caught: component icons flooding the overview or a landmark outgrowing its roof. (d) Rule: every object stays inside its footprint; failure caught: an object standing on the name beside it.
+2. Draw every name twice. An object (src/viewers/web/icons/objects.ts, built with parts.ts from boxes, upright prisms and balls in a 1 x 1 footprint) is projected with the map's own boxFaces and curvedFaces, so it turns with the map in Iso and Layers. A flat glyph (icons/glyphs.ts) is drawn in the 2D view, the hierarchy rows, the details title and the picker. Icon parts carry their own classes (icon-part, icon-top, icon-left, icon-right, icon-line, icon-solid, icon-screen), so no building rule reaches them; they read the element's tint variables, so they take its authored color.
+3. Position is automatic: the icon stands in a square slot before the element's name. sheet/measure.ts owns the slot (roofIconSlot for roofs, TITLE_ICON_LEAD and surfaceLabelLayout for title bands), so a roof or band grows and the name never lies under the icon. iso/painting/names.ts draws each name together with its icon from that one slot.
+4. Camera rules live in iso/painting/icon-camera.ts, each as a function for a still image and as the stylesheet expression for the live map, side by side: the icon before a system's or container's title is a landmark that is enlarged to stay readable when the map is zoomed out; a roof icon shrinks with the map and fades out when tiny; inner lines fade on small objects; line width follows the icon's screen size.
+5. Details pane: an Icon grid applies a choice at once through the shared edit write. The Color row and the Icon grid share organisms/instant-choice.ts.
+6. Tests. (a) Rule: an author sets, changes and clears an icon, an unknown name and the project record are refused, and edits and scans keep it; authority: acceptance criteria 1 and 3; failure caught: icon lost by a scan or an invalid name stored; gap: no icon coverage existed; one test beside the color edit test. (b) Rule: a name starts after its icon slot and the building grows to hold both; authority: Alex's statement that positioning is automatic; failure caught: icon drawn over the name; one painter-level test on a three-element world. (c) Rule: a container icon is a landmark and a component icon is not; failure caught: component icons flooding the overview. (d) Rule: every object stays inside its footprint; failure caught: an object standing on the name beside it. The cold review removed a test of landmarkZoom because it restated the function.
 7. Docs: component-markdown Icons section and field table, product-model, web viewer index, agent describe guide, agent instruction line.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-State on 2026-11-09: not built. Alex called icons very experimental and is undecided between animated isometric line objects, static isometric objects, and flat glyphs skewed onto the map plane. Three independent proposals were collected from one neutral brief (a fresh Claude agent and two Codex models). All three recommend flat glyphs: one drawing per meaning, laid on the plane beside the element name (so it skews in Iso and is upright in 2D with no second artwork), reused upright in the hierarchy rows (14 to 16 px), the details header (20 to 24 px) and search results, about 11 or 12 generic glyphs, no animation, the stored value a readable word such as database that the terminal can print. Their reasons against isometric objects: they need about 48 px to read, a second flat drawing for 2D, small sizes and the panes, more artwork, and repaint cost if animated. They differ at fit zoom: two add an upright 12 to 14 px marker on every iconed element when its plane slot is too small, the third shows nothing on components at fit and relies on surfaces and search. The earlier agent PR (MrLesk/groma.md#194) drew the glyph only as a prefix of the name on the map, which is invisible at fit zoom and absent from the panes. Open decisions for Alex before building: the artwork style, and whether fit zoom gets upright markers. Group icons have the same storage question as group colors.
+2026-11-10. Decision record. Alex left the artwork open (animated isometric, static isometric or flat) and on 2026-11-10 asked to see icons that are made nice, isometric or flat, saying earlier icon notes were obsolete. I decided: static isometric objects in the tilted views and flat glyphs in the 2D view and the panes, both drawn by me in code, no animation, no icon pack. Reasons: an object built from the map's own faces belongs to the map and turns with it; the 2D view and the panes need a flat drawing anyway; only lit flows animate on the map. Groups carry no icon by decision: an icon says what an element is.
+Verification on groma's own map (icons assigned on every level in a scratch copy, never committed): objects on component, actor and external roofs and before system and container titles in Iso and Layers; glyphs in 2D, hierarchy rows, the details title and the picker; a click in the picker applied and cleared an icon at once; Light and Dark; the cover shows the container icons.
+Groma's own map sets no icon in this branch: the architecture comparison job reads pull requests with the released groma.md, which rejects a new groma field until the next release.
+Reviews. Cold review and full-context review ran on the first snapshot. Fixed from them: icon parts no longer share the buildings' face classes (hover, draft, comparison and colored covers repainted them); parts are drawn back to front with a part over what it stands on (the cache chip's front pins were covered); only title icons are landmarks (an enlarged roof icon left its roof); the camera rules sit side by side in icon-camera.ts and the still path now fades inner lines by the same ramp as the live map; one slot function and one painter per name kind; a still is a named option; wall marks only type-check on boxes; cylinder renamed from round; Color row and Icon grid share one control. Left for Alex: a table of authored name fields (color and icon are now two hand-kept copies of the same path), and whether the live map should use the painter path for camera rules so one mechanism remains.
 <!-- SECTION:NOTES:END -->
