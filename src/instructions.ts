@@ -52,6 +52,7 @@ Say what must be true, not how to build it. Do not specify frameworks, file layo
 - Technology of an element: groma edit <id> --technology <text>. Pass an empty value to remove it.
 - OKF tags of an element: groma edit <id> --tags <a,b>. The value replaces the whole list; pass an empty value to remove it.
 - Map color of an element: groma edit <id> --color <name>, one of red, orange, yellow, blue, violet, pink. Pass an empty value to remove it.
+- Map icon of an element: groma edit <id> --icon <name>; groma edit --help lists the names. Pass an empty value to remove it.
 - Current long overview: groma edit <id> --overview <markdown>. Pass an empty value to clear it.
 - Optional concise description: groma edit <id> --description <text>. Pass an empty value to remove it.
 - Group sibling components: groma add group <name> <ids...>. A group is addressed as <container-id>/<group-kebab>: groma edit group <address> --title <text> renames it, groma remove group <address> [ids...] takes the named members out or dissolves it. One component: groma edit <id> --group <name> or --ungroup.
