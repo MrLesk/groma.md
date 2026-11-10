@@ -8,7 +8,6 @@ groma:
   id: export
   parent: groma-md
   technology: TypeScript, SVG
-  color: violet
 description: Browser map for inspecting, editing and sharing architecture
 ---
 

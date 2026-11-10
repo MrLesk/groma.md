@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T22:49:00Z'
+updated_date: '2026-11-10T08:12:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -117,6 +117,8 @@ Decisions: Alex said on 2026-11-09 that a stored hex is poor UX, that colors mus
 Verification: bun run check passed (28 Node tests, 1017 Bun tests, 64 environment-dependent skips, 0 failures). On groma.md own map, with its five containers colored: Iso at fit zoom in Light, Dark and Blueprint shows each container tinted with a colored outline and its zones following the outline; a selected colored container keeps its tint under the green selection outline; the exported cover shows the colors; in a two-commit comparison export the colored slabs compute to the neutral fill and stroke. On the editing fixture in groma web, clicking a swatch in the details pane tinted the slab at once and marked the swatch; groma edit --color with an unknown name is refused naming the six names.
 
 Cold simplicity review (one round), applied: on covers the color rules reach only the element own faces, so a group hatch inside a colored container is no longer painted over; group zones reset the tint variables, so a color stays on its element in the browser as on covers and the docs sentence about inheritance is true; the cap that gave both sides of a colored building one fill is gone and the strength is 2, which keeps the side shading; a colored actor shades its sides in the browser as on its cover; a hovered colored element keeps its outline color; the per-element variables are named --tint-* so they do not read as the theme --color-<name> values; one depth table feeds both the neutral and the colored surface rules; the two model tests that repeated the editing test are removed. The planned cover stylesheet assertion was not written: it would freeze selector text, and the theme type already requires a value for every name. Kept on purpose: the swatch row writes at once without the Edit form conflict check, because applying a color is a single field overwrite like the CLI.
+
+2026-11-10: removed the colors I had set on groma's own five containers. The architecture comparison job builds each pull request's comparison with the released groma.md, and 0.7.8 rejects the new groma.color field, so the job failed on this branch and on every branch above it. The own map gets its colors back after the release that knows the field.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

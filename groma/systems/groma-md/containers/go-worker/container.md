@@ -8,7 +8,6 @@ groma:
   id: go-worker
   parent: groma-md
   technology: Go
-  color: orange
 description: Analyses Go modules in a separate process
 ---
 
