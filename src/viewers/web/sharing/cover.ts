@@ -30,10 +30,10 @@ export function renderCover(payload: CoverPayload, { palette }: ThemeDefinition)
   const camera = pan(fitCamera(scene.bounds, { width: 1144, height: 432 }), 28, 26)
   const drawing = markup([
     node('g', {}, 'sheet', sheetSvg(scene)),
-    node('g', {}, 'islands', islandsSvg(scene, camera.k)),
-    node('g', {}, 'slabs', slabsSvg(scene, camera.k)),
+    node('g', {}, 'islands', islandsSvg(scene, camera.k, camera.k)),
+    node('g', {}, 'slabs', slabsSvg(scene, camera.k, camera.k)),
     node('g', {}, 'routes', routesSvg(scene)),
-    node('g', {}, 'items', buildingsSvg(scene)),
+    node('g', {}, 'items', buildingsSvg(scene, camera.k)),
   ])
   const definitions = markup([...mapDefs(scene.view), ...facadeDefs(scene)]).replaceAll('var(--map-hatch)', palette.hatch)
   const title = titleWithin(payload.project?.title ?? 'Groma', 600)

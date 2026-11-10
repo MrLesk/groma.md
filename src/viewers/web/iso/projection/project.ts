@@ -23,6 +23,10 @@ const DEFAULT_PITCH = 30
 const RAD = Math.PI / 180
 const WORLD_SCALE = CELL_X / Math.cos(DEFAULT_YAW * RAD)
 const HEIGHT_SCALE = HEIGHT_UNIT / Math.cos(DEFAULT_PITCH * RAD)
+/** Screen pixels of one cell's length seen face on; a ball of that radius is one cell wide. */
+export const CELL_LENGTH = WORLD_SCALE
+/** Height units as long as one cell, so a box one cell wide and this high is a cube. */
+export const CELL_HEIGHT = WORLD_SCALE / HEIGHT_SCALE
 /** Straight segments drawn along a semicircle of a curved roof. */
 const ARC_STEPS = 16
 /** Screen pixels a slab's thickness hangs below the grid line: its top is the ground, its sides are drawn over the island in front of it. */
@@ -257,13 +261,13 @@ function onVisibleBuilding(
 }
 
 /**
- * The roof and the one front band of a curved building: the ring between its
+ * The roof and the one front band of a curved building, or of any upright shape with the ring `outline`: the ring between its
  * screen-left and screen-right extremes along the base and back along the
  * top. Stepping back through the ring from the left extreme reaches the right
  * extreme along the front, the part turned to the viewer. The band is the
  * left face for tint and pattern.
  */
-function curvedFaces(
+export function curvedFaces(
   outline: readonly { gx: number; gy: number }[],
   z0: number,
   z1: number,
@@ -333,7 +337,7 @@ function roofText(building: Building, view: ProjectionView): SurfaceText {
   const top = building.floors.at(-1)
   const roof = top === undefined ? building.rect : centredRect(building.rect, top.footprint)
   if (!curved(shape)) return { origin: project(roof.gx, roof.gy, heightUnits, view), lines }
-  const block = roofBlock(lines, buildingFont(building))
+  const block = roofBlock(lines, buildingFont(building), building.icon !== undefined)
   return {
     origin: project(
       roof.gx + (roof.w - block.w / PLANE) / 2,

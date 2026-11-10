@@ -30,7 +30,7 @@ function hierarchyRow(
 ): HTMLButtonElement {
   const button = sidebarRow(row.title, row.kind, row.hasChildren
     ? { expanded: row.expanded, count: row.count, toggle: () => onToggle(row) }
-    : undefined)
+    : undefined, row.icon)
   button.dataset.id = row.id
   if (selectedIds.has(row.id)) button.classList.add('selected')
   if (row.origin !== 'observed') button.classList.add('ghost')

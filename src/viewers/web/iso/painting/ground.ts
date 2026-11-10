@@ -2,6 +2,7 @@ import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, ISLAND_SPACING, textWidth } fr
 import type { Compass, PlateText, ProjectPlate, RichPlateText, Segment } from '../projection/blueprint.ts'
 import type { ProjectedScene, ProjectedZone, ProjectionView } from '../projection/project.ts'
 import { planeMatrix } from '../projection/project.ts'
+import { titleIcon } from './icons.ts'
 import { colorAttribute, node, pointsAttribute, round, type SvgNode } from './svg.ts'
 import { surfaceLabel } from './text.ts'
 
@@ -95,16 +96,21 @@ function zoneGroup(zone: ProjectedZone, view: ProjectionView, zoom: number): Svg
   ])
 }
 
-/** System islands carry their architecture identity; actor and external grounds do not. */
-export function islandsSvg(scene: ProjectedScene, zoom = 1): SvgNode[] {
+/**
+ * System islands carry their architecture identity; actor and external grounds do not. `zoom` picks the titles'
+ * size step. `stillZoom` is the camera scale of a still image such as a cover; the live map passes none.
+ */
+export function islandsSvg(scene: ProjectedScene, zoom = 1, stillZoom?: number): SvgNode[] {
   return [
     ...scene.islands.map(({ island, polygon, text }) => {
       const attributes: Record<string, string> = island.element === null
         ? {} : { 'data-id': island.element.representationId, 'aria-label': island.name, ...colorAttribute(island.element) }
+      const icon = island.element?.icon
       return node('g', attributes, `island ${island.kind}`, [
         node('polygon', { points: pointsAttribute(polygon) }, 'ground'),
         ...(island.kind === 'system' ? [] : [node('polygon', { points: pointsAttribute(polygon) }, 'pattern')]),
-        surfaceLabel(text, ISLAND_FONT, scene.view, ISLAND_SPACING, zoom),
+        surfaceLabel(text, ISLAND_FONT, scene.view, ISLAND_SPACING, zoom, icon !== undefined),
+        ...(icon === undefined ? [] : [titleIcon(icon, text, ISLAND_FONT, scene.view, zoom, stillZoom)]),
       ])
     }),
     ...scene.zones.filter(zone => scene.islands.some(item => item.island.key === zone.zone.parent))
@@ -112,15 +118,16 @@ export function islandsSvg(scene: ProjectedScene, zoom = 1): SvgNode[] {
   ]
 }
 
-/** Container slabs have hanging sides, external names and zones on top. */
-export function slabsSvg(scene: ProjectedScene, zoom = 1): SvgNode[] {
+/** Container slabs have hanging sides, external names and zones on top. `zoom` and `stillZoom` are as for islandsSvg. */
+export function slabsSvg(scene: ProjectedScene, zoom = 1, stillZoom?: number): SvgNode[] {
   return scene.slabs.map(({ slab, faces, text }) => {
     const ghost = slab.origin === 'observed' ? '' : ` ghost ${slab.origin}`
     const top = faces.find(face => face.side === 'top')!
     return node('g', { 'aria-label': slab.title, 'data-id': slab.representationId, ...colorAttribute(slab) }, `slab${ghost}`, [
       ...faces.map(face => node('polygon', { points: pointsAttribute(face.points) }, `face ${face.side}`)),
       node('polygon', { points: pointsAttribute(top.points) }, 'pattern'),
-      surfaceLabel(text, CONTAINER_FONT, scene.view, 0, zoom),
+      surfaceLabel(text, CONTAINER_FONT, scene.view, 0, zoom, slab.icon !== undefined),
+      ...(slab.icon === undefined ? [] : [titleIcon(slab.icon, text, CONTAINER_FONT, scene.view, zoom, stillZoom)]),
       ...scene.zones.filter(zone => zone.zone.parent === slab.representationId)
         .map(zone => zoneGroup(zone, scene.view, zoom)),
     ])

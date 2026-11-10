@@ -56,9 +56,9 @@ function isStructural(input: EditArchitectureInput): boolean {
     || input.newId !== undefined
 }
 
-/** Tags and color exist only on C4 elements; every other edit target refuses them. */
+/** Tags, color and icon exist only on C4 elements; every other edit target refuses them. */
 function hasElementOnlyField(input: EditArchitectureInput): boolean {
-  return input.tags !== undefined || input.color !== undefined
+  return input.tags !== undefined || input.color !== undefined || input.icon !== undefined
 }
 
 /** The project record: its title, description and overview, merged into the current profile. */
@@ -146,7 +146,7 @@ export async function editArchitecture(
   const flow = records.flows.find(document => requireGromaMapping(document.frontmatter, document.sourceFilename).id === input.id)
   if (flow !== undefined) {
     if (input.newId !== undefined) throw new Error('--id renames systems, containers, and components')
-    if (hasElementOnlyField(input)) throw new Error('--tags and --color are valid on actors, systems, containers, and components')
+    if (hasElementOnlyField(input)) throw new Error('--tags, --color and --icon are valid on actors, systems, containers, and components')
     checkEdit(input.original, resolveFlows([flow], model)[0]!, input)
     return editFlow(repositoryRoot, records, flow, input)
   }
@@ -159,10 +159,10 @@ export async function editArchitecture(
   }
 
   checkEdit(input.original, { ...element, tags: formatTags(element.tags), parent: element.parentId ?? '' }, input)
-  const meaning = [input.title, input.overview, input.description, input.technology, input.tags, input.color, input.draft]
+  const meaning = [input.title, input.overview, input.description, input.technology, input.tags, input.color, input.icon, input.draft]
   const hasMeaning = meaning.some(value => value !== undefined)
   if (!hasMeaning && !isStructural(input)) {
-    throw new Error('--title, --overview, --description, --technology, --tags, --color or --draft is required')
+    throw new Error('--title, --overview, --description, --technology, --tags, --color, --icon or --draft is required')
   }
   const source = hasMeaning ? await elementMeaning(repositoryRoot, records, element, input) : undefined
 
@@ -173,6 +173,7 @@ export async function editArchitecture(
       technology: input.technology,
       tags: input.tags,
       color: input.color,
+      icon: input.icon,
       draft: input.draft,
       overview: input.overview,
       description: input.description,

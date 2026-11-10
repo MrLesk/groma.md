@@ -37,6 +37,7 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
       ...(edit === undefined ? {} : {
         onEdit: (input, original) => edit({ id: selectedId, ...input, original }),
         onColor: color => edit({ id: selectedId, color }),
+        onIcon: icon => edit({ id: selectedId, icon }),
         parents: deps.world().elements.filter(element => element.kind === 'container')
           .map(element => ({ id: element.id, title: element.title }))
           .sort((left, right) => left.title.localeCompare(right.title) || left.id.localeCompare(right.id)),
