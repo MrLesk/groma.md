@@ -1,4 +1,4 @@
-import { CONTAINER_FONT, ICON_GAP_RATIO, PLANE, TITLE_ICON_RATIO, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
+import { CONTAINER_FONT, PLANE, TITLE_ICON_LEAD, TITLE_ICON_RATIO, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
 import type { ProjectionView, SurfaceLabel, SurfaceText } from '../projection/project.ts'
 import { planeMatrix, project } from '../projection/project.ts'
 import { node, round, type SvgNode } from './svg.ts'
@@ -38,7 +38,7 @@ export function surfaceLabelLayout(
   const paddingX = Math.min(step.padding / length(1, 0), text.band.width / 20)
   const paddingY = Math.min(step.padding / length(0, 1), text.band.height / 20)
   /** Font sizes the slot and its gap take before the title. */
-  const leadShare = icon ? TITLE_ICON_RATIO + ICON_GAP_RATIO : 0
+  const leadShare = icon ? TITLE_ICON_LEAD : 0
   const fontSize = Math.min(
     step.size * size / CONTAINER_FONT,
     size * (text.band.width - 2 * paddingX) / (text.width + leadShare * size),
