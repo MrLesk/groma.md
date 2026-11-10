@@ -8,7 +8,6 @@ groma:
   id: rust-worker
   parent: groma-md
   technology: Rust, rust-analyzer
-  color: red
 description: Analyses Cargo projects in a separate process
 ---
 
