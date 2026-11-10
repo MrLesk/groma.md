@@ -27,6 +27,8 @@ import { c4FilterControl, c4FilterCss } from './chrome/c4-filter.ts'
 import { tagFocusCss } from './chrome/tag-focus.ts'
 import { choiceFieldCss } from './organisms/choice-field.ts'
 import { colorSwatchesCss } from './organisms/color-swatches.ts'
+import { iconPickerCss } from './organisms/icon-picker.ts'
+import { glyphCss } from './icons/glyph-element.ts'
 import { motionCss } from './chrome/motion.ts'
 import { detailsPanelCss } from './chrome/shell.ts'
 import { flowRowCss } from './flow/row.ts'
@@ -283,6 +285,7 @@ const style = `
   }
   #details .meta { margin: 0 0 6px; }
   #details h1 { font-size: 21px; font-weight: 600; line-height: 1.3; margin: 0 0 16px; overflow-wrap: anywhere; }
+  #details h1 .glyph { margin: 0 8px -3px 0; }
   #details .description { margin: 0 0 10px; color: var(--muted); }
   #details .selection-writes { display: grid; gap: 8px; margin: 0 0 16px; }
   #details .selection-writes form { display: flex; gap: 8px; }
@@ -372,6 +375,8 @@ const style = `
   .row .mark { display: grid; place-items: center; width: 8px; height: 12px; }
   .row .mark::before { content: ''; width: 7px; height: 7px; background: currentColor; }
   .row .kind-actor::before { border-radius: 50%; }
+  .row .mark.with-glyph { width: 14px; height: 14px; }
+  .row .mark.with-glyph::before { display: none; }
   .row .kind-container::before { height: 4px; border: 1px solid currentColor; background: transparent; transform: skewX(-25deg); }
   .row .kind-component::before { width: 4px; height: 4px; }
   .row .twist.toggle:hover, .tree-section .twist:hover { color: var(--accent-text); cursor: pointer; }
@@ -386,7 +391,7 @@ const style = `
 ${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
 ${emptyStateCss}
 ${addDialogCss}${editorCss}
-${relationshipCardCss}${removeCss}${editableCss}${tagRowCss}${tagsFieldCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}${tagFocusCss}${choiceFieldCss}${colorSwatchesCss}`
+${relationshipCardCss}${removeCss}${editableCss}${tagRowCss}${tagsFieldCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}${tagFocusCss}${choiceFieldCss}${colorSwatchesCss}${iconPickerCss}${glyphCss}`
 
 function legend(): string {
   return legendKinds.map(line => {

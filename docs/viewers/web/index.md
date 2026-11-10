@@ -234,6 +234,25 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   stored only by **Save**, and stays on the map from the pick until the saved
   map arrives
   ([`editing/appearance-preview.ts`](../../../src/viewers/web/editing/appearance-preview.ts)).
+- **Icons:** The Edit form of an element has an **Icon** field: no icon, then
+  each [named icon](../../component-markdown.md#icons). The element's name makes
+  room for the saved icon, so the map lays itself out again.
+  - In the Iso and Layers views the icon is a small object standing before the
+    name: on the roof of an actor, external system or component, and on the
+    ground before the title of a system or container. Objects are built from
+    the map's own boxes and cylinders, so they turn with the map, take the
+    element's authored color and follow selection.
+  - In the 2D view the object gives way to the icon's flat glyph, which also
+    marks the element's row in the hierarchy and its title in the details.
+  - The icons of systems, containers, actors and external systems never get
+    smaller than a readable size on screen. A component's icon shrinks with
+    the map and disappears when it would be a smudge; its inner lines fade
+    out first.
+  - [`icons/objects.ts`](../../../src/viewers/web/icons/objects.ts) holds the
+    objects, [`icons/glyphs.ts`](../../../src/viewers/web/icons/glyphs.ts) the
+    glyphs, and [`iso/painting/icons.ts`](../../../src/viewers/web/iso/painting/icons.ts)
+    draws both. Adding an icon means adding its name to
+    [`src/icons.ts`](../../../src/icons.ts), one object and one glyph.
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
   IDs and titles from the configured work source. `Up`/`Down` preview matches;
   `Enter` opens the selected element or task; `Escape` restores the prior selection

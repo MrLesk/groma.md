@@ -2,6 +2,7 @@ import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
 import { COLOR_NAMES, isColorName, type ColorName } from './colors.ts'
+import { ICON_NAMES, isIconName, type IconName } from './icons.ts'
 import { isArchitectureId, isReservedId, kebabCase } from './naming.ts'
 import { DRAFT_TYPE, c4Kind, requireGromaMapping } from './okf-profile.ts'
 import { storedConnections } from './relationship-markdown.ts'
@@ -56,7 +57,7 @@ function invalidElement(sourceFilename: string, message: string): never {
 
 function validateGromaFields(groma: Record<string, unknown>, sourceFilename: string): void {
   const unknownFields = Object.keys(groma).filter(field => {
-    return !['id', 'parent', 'group', 'technology', 'color', 'code', 'draft'].includes(field)
+    return !['id', 'parent', 'group', 'technology', 'color', 'icon', 'code', 'draft'].includes(field)
   })
   if (unknownFields.length > 0) {
     invalidElement(sourceFilename, `unsupported groma field(s): ${unknownFields.join(', ')}`)
@@ -93,6 +94,12 @@ function tagsOf(value: unknown, sourceFilename: string): string[] | undefined {
 function colorOf(value: unknown, sourceFilename: string): ColorName | undefined {
   if (value === undefined) return undefined
   if (!isColorName(value)) invalidElement(sourceFilename, `color must be one of ${COLOR_NAMES.join(', ')}`)
+  return value
+}
+
+function iconOf(value: unknown, sourceFilename: string): IconName | undefined {
+  if (value === undefined) return undefined
+  if (!isIconName(value)) invalidElement(sourceFilename, `icon must be one of ${ICON_NAMES.join(', ')}`)
   return value
 }
 
@@ -155,6 +162,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
   const technology = optionalText(groma.technology, 'technology', sourceFilename)
   const tags = tagsOf(document.frontmatter.tags, sourceFilename)
   const color = colorOf(groma.color, sourceFilename)
+  const icon = iconOf(groma.icon, sourceFilename)
   const draft = draftOf(groma, sourceFilename)
 
   return {
@@ -171,6 +179,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     ...(technology === undefined ? {} : { technology }),
     ...(tags === undefined ? {} : { tags }),
     ...(color === undefined ? {} : { color }),
+    ...(icon === undefined ? {} : { icon }),
     code: codeReferencesOf(groma.code, kind, message => {
       throw new ArchitectureModelError('INVALID_ELEMENT', sourceFilename, message)
     }),
