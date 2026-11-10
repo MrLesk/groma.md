@@ -26,7 +26,9 @@ const MIN_ROOF_ICON = 30
 /** The slot before a surface's title in its front band, in font sizes; the band's depth caps it at the largest titles. */
 export const TITLE_ICON_RATIO = 2
 /** The gap between a slot and the name, in font sizes. */
-export const ICON_GAP_RATIO = 0.4
+const ICON_GAP_RATIO = 0.4
+/** Font sizes a title's icon slot and its gap take before the title. */
+export const TITLE_ICON_LEAD = TITLE_ICON_RATIO + ICON_GAP_RATIO
 
 /** A roof line wider than this wraps, when the name has a space to wrap at. */
 const MAX_LINE_CELLS = 4
@@ -60,14 +62,15 @@ export function buildingFont(element: Pick<AnnotatedElement, 'kind' | 'external'
   return element.kind === 'component' ? COMPONENT_FONT : ROOF_FONT
 }
 
-/** Side of the icon slot on a roof whose name has this font size, in plane pixels. */
-export function roofIconSide(size: number): number {
-  return Math.max(MIN_ROOF_ICON, ROOF_ICON_RATIO * size)
-}
-
-/** Plane pixels a roof name moves along +gx to leave its icon slot free. */
-export function roofIconLead(size: number): number {
-  return roofIconSide(size) + Math.ceil(size * ICON_GAP_RATIO)
+/**
+ * The icon slot on a roof whose name has this font size, in plane pixels: where the square lies from the name
+ * block's north corner, its side, and how far the name moves along +gx to leave it free. roofBlock sizes the
+ * block with it and the painter draws with it, so the two always agree.
+ */
+export function roofIconSlot(size: number): { x: number; y: number; side: number; lead: number } {
+  const padding = textPadding(size)
+  const side = Math.max(MIN_ROOF_ICON, ROOF_ICON_RATIO * size)
+  return { x: padding, y: padding / 2, side, lead: side + Math.ceil(size * ICON_GAP_RATIO) }
 }
 
 /** Roof insets and line spacing grow with the title size. */
@@ -91,7 +94,7 @@ export function labelBand(size: number): number {
 
 /** Cells a surface needs along +gx so its own name, and its icon when it has one, fit in its front band. */
 export function nameCells(name: string, size: number, spacing = 0, icon = false): number {
-  const lead = icon ? (TITLE_ICON_RATIO + ICON_GAP_RATIO) * size : 0
+  const lead = icon ? TITLE_ICON_LEAD * size : 0
   return Math.ceil((textWidth(name, size, spacing) + lead + 2 * SURFACE_PAD) / PLANE)
 }
 
@@ -250,7 +253,8 @@ export function roofBlock(lines: readonly string[], size = ROOF_FONT, icon = fal
   const padding = textPadding(size)
   const text = { w: Math.max(...lines.map(line => textWidth(line, size))), d: lines.length * textLineHeight(size) }
   if (!icon) return { w: text.w + 2 * padding, d: text.d + 2 * padding }
-  return { w: roofIconLead(size) + text.w + 2 * padding, d: Math.max(text.d + 2 * padding, roofIconSide(size) + padding) }
+  const slot = roofIconSlot(size)
+  return { w: slot.lead + text.w + 2 * padding, d: Math.max(text.d + 2 * padding, 2 * slot.y + slot.side) }
 }
 
 /** The roof holds its name and every wall has room for the building's connection ports. */

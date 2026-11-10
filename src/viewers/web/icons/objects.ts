@@ -1,5 +1,5 @@
 import type { IconName } from '../../../icons.ts'
-import { arc, ball, block, box, frame, line, prism, ring, round, screen } from './parts.ts'
+import { arc, ball, block, box, cylinder, frame, line, prism, ring, screen } from './parts.ts'
 import type { IconPart, Spot } from './parts.ts'
 
 /** The middle of the footprint. */
@@ -41,23 +41,23 @@ function pin(x: number, y: number): IconPart {
 }
 
 /**
- * One object per icon name. Parts are drawn lowest first, then back to front, so list a part
- * that stands on another with a higher z. Keep every object inside the 1 × 1 footprint.
+ * One object per icon name. The painter draws parts back to front and a part over whatever it stands on,
+ * so their order here does not matter. Keep every object inside the 1 × 1 footprint.
  */
 export const iconObjects: Record<IconName, readonly IconPart[]> = {
   person: [
-    round(C, C, 0.3, 0, 0.07),
-    round(C, C, 0.21, 0.07, 0.25),
-    round(C, C, 0.14, 0.32, 0.2),
+    cylinder(C, C, 0.3, 0, 0.07),
+    cylinder(C, C, 0.21, 0.07, 0.25),
+    cylinder(C, C, 0.14, 0.32, 0.2),
     ball(C, C, 0.72, 0.17),
   ],
   agent: [
-    round(C, C, 0.13, 0, 0.12),
+    cylinder(C, C, 0.13, 0, 0.12),
     box(0.16, 0.24, 0.12, 0.68, 0.52, 0.5,
       screen('south', 0.23, 0.2, 0.77, 0.54),
       block('south', 0.32, 0.36, 0.42, 0.46), block('south', 0.58, 0.36, 0.68, 0.46),
       line('south', 0.43, 0.27, 0.57, 0.27)),
-    round(C, C, 0.02, 0.62, 0.2),
+    cylinder(C, C, 0.02, 0.62, 0.2),
     ball(C, C, 0.87, 0.06),
   ],
   browser: [
@@ -96,7 +96,7 @@ export const iconObjects: Record<IconName, readonly IconPart[]> = {
   ],
   worker: [
     prism(gear(0.47, 0.35, 8), 0, 0.16),
-    round(C, C, 0.17, 0.16, 0.08, ring('top', C, C, 0.08)),
+    cylinder(C, C, 0.17, 0.16, 0.08, ring('top', C, C, 0.08)),
   ],
   gateway: [
     box(0.04, 0.36, 0, 0.2, 0.28, 0.78),
@@ -104,15 +104,15 @@ export const iconObjects: Record<IconName, readonly IconPart[]> = {
     box(0, 0.32, 0.78, 1, 0.36, 0.16),
   ],
   scheduler: [
-    round(C, C, 0.46, 0, 0.12,
+    cylinder(C, C, 0.46, 0, 0.12,
       line('top', C, C, C, 0.2), line('top', C, C, 0.7, C),
       line('top', C, 0.1, C, 0.14), line('top', 0.9, C, 0.86, C), line('top', C, 0.9, C, 0.86), line('top', 0.1, C, 0.14, C)),
-    round(C, C, 0.04, 0.12, 0.05),
+    cylinder(C, C, 0.04, 0.12, 0.05),
   ],
   database: [
-    round(C, C, 0.4, 0, 0.24),
-    round(C, C, 0.4, 0.32, 0.24),
-    round(C, C, 0.4, 0.64, 0.24),
+    cylinder(C, C, 0.4, 0, 0.24),
+    cylinder(C, C, 0.4, 0.32, 0.24),
+    cylinder(C, C, 0.4, 0.64, 0.24),
   ],
   cache: [
     pin(0.3, 0.08), pin(0.6, 0.08), pin(0.3, 0.82), pin(0.6, 0.82),
@@ -145,9 +145,9 @@ export const iconObjects: Record<IconName, readonly IconPart[]> = {
     box(0.06, 0.06, 0, 0.88, 0.88, 0.07,
       line('top', 0.3, 0.74, 0.3, 0.26),
       line('top', 0.3, 0.6, 0.5, 0.6, 0.7, 0.42, 0.7, 0.26)),
-    round(0.3, 0.74, 0.09, 0.07, 0.1),
-    round(0.3, 0.26, 0.09, 0.07, 0.1),
-    round(0.7, 0.26, 0.09, 0.07, 0.1),
+    cylinder(0.3, 0.74, 0.09, 0.07, 0.1),
+    cylinder(0.3, 0.26, 0.09, 0.07, 0.1),
+    cylinder(0.7, 0.26, 0.09, 0.07, 0.1),
   ],
   package: [
     box(0.14, 0.14, 0, 0.72, 0.72, 0.6,
@@ -160,8 +160,8 @@ export const iconObjects: Record<IconName, readonly IconPart[]> = {
   lock: [
     box(0.2, 0.32, 0, 0.6, 0.36, 0.5,
       ring('south', 0.5, 0.3, 0.06), line('south', 0.5, 0.24, 0.5, 0.12)),
-    round(0.34, 0.5, 0.05, 0.5, 0.3),
-    round(0.66, 0.5, 0.05, 0.5, 0.3),
+    cylinder(0.34, 0.5, 0.05, 0.5, 0.3),
+    cylinder(0.66, 0.5, 0.05, 0.5, 0.3),
     box(0.29, 0.44, 0.8, 0.42, 0.12, 0.1),
   ],
   mail: [

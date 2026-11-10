@@ -202,15 +202,17 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
     element's authored color and follow selection.
   - In the 2D view the object gives way to the icon's flat glyph, which also
     marks the element's row in the hierarchy and its title in the details.
-  - The icons of systems, containers, actors and external systems never get
-    smaller than a readable size on screen. A component's icon shrinks with
-    the map and disappears when it would be a smudge; its inner lines fade
-    out first.
+  - The icon before a system's or container's title is a landmark: it never
+    gets smaller than a readable size on screen, so a zoomed-out map still
+    shows what its large parts are. An icon on a roof shrinks with the map
+    and fades out when it would be a smudge; its inner lines fade out first.
   - [`icons/objects.ts`](../../../src/viewers/web/icons/objects.ts) holds the
     objects, [`icons/glyphs.ts`](../../../src/viewers/web/icons/glyphs.ts) the
     glyphs, and [`iso/painting/icons.ts`](../../../src/viewers/web/iso/painting/icons.ts)
-    draws both. Adding an icon means adding its name to
-    [`src/icons.ts`](../../../src/icons.ts), one object and one glyph.
+    draws both; [`iso/painting/icon-camera.ts`](../../../src/viewers/web/iso/painting/icon-camera.ts)
+    holds the rules by which an icon follows the camera. Adding an icon means
+    adding its name to [`src/icons.ts`](../../../src/icons.ts), one object, one
+    glyph, and its name in the [contract's table](../../component-markdown.md#icons).
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
   IDs and titles from the configured work source. `Up`/`Down` preview matches;
   `Enter` opens the selected element or task; `Escape` restores the prior selection

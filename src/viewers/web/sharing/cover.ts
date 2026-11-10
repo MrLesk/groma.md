@@ -28,12 +28,14 @@ function titleWithin(title: string, width: number): string {
 export function renderCover(payload: CoverPayload, { palette }: ThemeDefinition): string {
   const scene = presentScene(payload.sheet, payload.project ?? undefined, NESTED_POSE)
   const camera = pan(fitCamera(scene.bounds, { width: 1144, height: 432 }), 28, 26)
+  /** A cover has no live stylesheet, so its painters fix what follows the camera at this scale. */
+  const still = { zoom: camera.k }
   const drawing = markup([
     node('g', {}, 'sheet', sheetSvg(scene)),
-    node('g', {}, 'islands', islandsSvg(scene, camera.k, camera.k)),
-    node('g', {}, 'slabs', slabsSvg(scene, camera.k, camera.k)),
+    node('g', {}, 'islands', islandsSvg(scene, camera.k, still)),
+    node('g', {}, 'slabs', slabsSvg(scene, camera.k, still)),
     node('g', {}, 'routes', routesSvg(scene)),
-    node('g', {}, 'items', buildingsSvg(scene, camera.k)),
+    node('g', {}, 'items', buildingsSvg(scene, still)),
   ])
   const definitions = markup([...mapDefs(scene.view), ...facadeDefs(scene)]).replaceAll('var(--map-hatch)', palette.hatch)
   const title = titleWithin(payload.project?.title ?? 'Groma', 600)
