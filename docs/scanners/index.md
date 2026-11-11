@@ -46,9 +46,12 @@ Source watching belongs to one shared source runtime per watch session. The
 first relevant change collects an initial observation from every enabled scanner.
 A change, including a newly created file, triggers each scanner whose `include`
 list names the path and whose exclusions do not, as
-[Selecting source files](#selecting-source-files) describes. The shared runtime
-groups nearby changes and runs only those scanners; scanners that share a path
-run together.
+[Selecting source files](#selecting-source-files) describes. The path is the
+file's place in the repository: a change the operating system reports through
+another path to the repository, such as a symlink to its folder, is a change to
+the same file, and a change outside the repository triggers nothing. The shared
+runtime groups nearby changes and runs only those scanners; scanners that share
+a path run together.
 Changes received during analysis are queued, and scanner runs never overlap.
 
 The session retains each scanner's latest successful observation in memory.
