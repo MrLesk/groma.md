@@ -70,6 +70,12 @@ targets. Executable wrappers remain separate operations. Trait dispatch,
 function-pointer and callback value flow, calls in closure and async-block
 bodies, macro-expanded call bodies and generated sources are not extracted.
 
+The worker reads each Rust file as the Rust compiler does: a `\r\n` line ending
+counts as `\n`. A file checked out with Windows line endings therefore reports
+the same declarations, calls and comparison tokens as its `\n` copy, including
+a string literal that a `\` continues on the next line. Positions and lines
+still refer to the file on disk.
+
 A physical file shared by multiple module contexts appears once, with no guessed
 declarations or targets and a `rust-unsupported-compilation-contexts` diagnostic.
 This includes a file reached through a symlink.

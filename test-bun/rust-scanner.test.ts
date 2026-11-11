@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { appendFile, cp, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
+import { appendFile, cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import rustPackage from '../plugins/scanners/rust/package.json'
@@ -73,6 +73,39 @@ rustTest('inactive cfg branches and test functions produce no ordinary source fa
     expect(observation.invocations!.filter(call => call.source === conditional.id)).toHaveLength(1)
     expect(conditional.tokens).not.toContain('create')
     expect(observation.operations!.some(operation => operation.name === 'test_only')).toBeFalse()
+  })
+}, 60000)
+
+rustTest('a file with Windows line endings scans like its LF copy, with positions in the file on disk', async () => {
+  await fixture('rust-semantic', async root => {
+    const file = path.join(root, 'src/provider.rs')
+    // A `\` that ends a line inside a string literal continues the literal on the next line.
+    const added = 'pub fn joined() -> String {\n    format!("first 😀 \\\n        second")\n}\npub fn after() { run(); }\n'
+    const unix = `${await readFile(file, 'utf8')}${added}`.replaceAll('\r\n', '\n')
+    const windows = unix.replaceAll('\n', '\r\n')
+    const scan = async (source: string) => {
+      await writeFile(file, source)
+      return scanRustSource(root, {}, await rustFiles(root), worker)
+    }
+    // Operations and calls without their offsets, which count the carriage returns of the file on disk.
+    // An observation orders them by offset, so they are sorted here.
+    const facts = (observation: ScanObservation) => [
+      ...observation.operations!.map(({ file, name, startLine, endLine, tokens }) => JSON.stringify({ file, name, startLine, endLine, tokens })),
+      ...evidence(observation).map(call => JSON.stringify({
+        caller: call.caller.name, line: call.line, member: call.member, unresolved: call.unresolved,
+        providers: call.providers.map(provider => provider.name),
+      })),
+    ].sort()
+    const expected = facts(await scan(unix))
+    const observation = await scan(windows)
+    expect(facts(observation)).toEqual(expected)
+    const after = observation.operations!.find(operation => operation.name === 'after')!
+    expect(after.position).toBe(windows.indexOf('pub fn after'))
+    expect(observation.invocations!.find(call => call.source === after.id)!.position).toBe(windows.lastIndexOf('run()'))
+    // An escape Rust does not have still fails the scan, at its byte offset in the file on disk.
+    const invalid = `${windows}pub fn broken() -> &'static str { "\\q" }\r\n`
+    const offset = Buffer.byteLength(invalid.slice(0, invalid.indexOf('"\\q"')))
+    await expect(scan(invalid)).rejects.toThrow(new RegExp(`invalid Rust syntax.*\\D${offset}\\.\\.`))
   })
 }, 60000)
 
