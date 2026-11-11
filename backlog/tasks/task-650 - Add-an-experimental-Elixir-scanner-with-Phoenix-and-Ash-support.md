@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-11T22:51:00Z'
-updated_date: '2026-11-11T23:36:00Z'
+updated_date: '2026-11-11T23:42:00Z'
 labels: []
 dependencies: []
 references:
@@ -50,6 +50,22 @@ modified_files:
   - .github/workflows/ci.yml
   - test-bun/scanner-fresh-checkout.test.ts
   - test-bun/elixir-scanner.test.ts
+  - plugins/scanners/elixir/src/phoenix/paths.ts
+  - plugins/scanners/elixir/src/phoenix/router.ts
+  - plugins/scanners/elixir/src/phoenix/endpoints.ts
+  - test/fixtures/elixir-phoenix/assets/js/app.js
+  - test/fixtures/elixir-phoenix/lib/portal/application.ex
+  - test/fixtures/elixir-phoenix/lib/portal_web.ex
+  - test/fixtures/elixir-phoenix/lib/portal_web/controllers/item_controller.ex
+  - test/fixtures/elixir-phoenix/lib/portal_web/controllers/late_controller.ex
+  - test/fixtures/elixir-phoenix/lib/portal_web/controllers/note_controller.ex
+  - test/fixtures/elixir-phoenix/lib/portal_web/live/board_live.ex
+  - test/fixtures/elixir-phoenix/lib/portal_web/live/empty_live.ex
+  - test/fixtures/elixir-phoenix/lib/portal_web/live/plain_live.ex
+  - test/fixtures/elixir-phoenix/lib/portal_web/reports/summary_controller.ex
+  - test/fixtures/elixir-phoenix/lib/portal_web/router.ex
+  - test/fixtures/elixir-phoenix/mix.exs
+  - test-bun/elixir-phoenix.test.ts
 type: feature
 ordinal: 706000
 ---
@@ -171,4 +187,6 @@ Separate Ash scanner; outgoing HTTP clients; compared-operation tokens; call tar
 
 <!-- SECTION:NOTES:BEGIN -->
 Milestone 1 (language evidence): package skeleton, bundled tree-sitter-elixir 0.3.5 parser, Mix project and source selection, modules, name/arity outlines, operations, unresolved calls and one execution entry per project; catalog, release staging, CI and fresh-checkout integration. Round trip confirmed through core: a Code symbol Shop.Orders.total/2 written by core's Markdown writer survives a rescan, reads back unchanged and marks its outline entry; a symbol the scan does not report is removed by the rescan, so the test fails when the spelling differs. Checks: bun test test-bun/elixir-scanner.test.ts (4 pass), fresh-checkout elixir package (1 pass), typecheck and Biome lint clean.
+
+Milestone 2 (Phoenix): router recognition (use Phoenix.Router, or use Web, :router proven through the web module's router/0), scope, verbs, match, resources, forward, live and live_session, path reading, blockers and registration order. The phoenix fixture scan returns 18 endpoints in registration order; with the built JavaScript scanner core derives the two proven rows and none for a route registered after a blocker. Checks: elixir-scanner and elixir-phoenix tests (6 pass), typecheck and Biome lint clean.
 <!-- SECTION:NOTES:END -->

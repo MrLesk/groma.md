@@ -133,6 +133,74 @@ enclosing function. The forms of `Kernel.SpecialForms`, such as `case`, `with`
 and `for`, are syntax and are not calls. `defdelegate` is an operation without
 a resolved call. The scanner reports no compared-operation tokens.
 
+## Phoenix endpoints
+
+A module is a Phoenix router when it states `use Phoenix.Router`, or
+`use Web, :router` where the one selected module `Web` declares `router/0`
+and writes `use Phoenix.Router` inside it, as a generated application's web
+module does. No other `use` is followed.
+
+The scanner reads these forms of `Phoenix.Router` and
+`Phoenix.LiveView.Router`, with literal arguments:
+
+| Form | Reported as |
+| --- | --- |
+| `get`, `post`, `put`, `patch`, `delete`, `options`, `connect`, `trace`, `head` with a path, a controller and an action atom | One endpoint for that method |
+| `match :verb, path, Controller, :action` | One endpoint; `:*` accepts every method |
+| `resources path, Controller` with `only`, `except`, `param`, `name`, `as` and `singleton`, and a nested block | The routes Phoenix generates, in its order, then the nested routes under `/:name_param` |
+| `live path, LiveView` | One `GET` endpoint |
+| `scope` with a path, an alias, `path:`, `alias:`, `as:`, `log:`, `private:` and `assigns:` | The path and module prefix of the routes inside |
+| `forward path, Plug` | The routes of a mounted [AshJsonApi router](#ash), otherwise a blocker |
+| `live_session` | Its routes, unchanged |
+| `pipeline`, `plug`, `pipe_through` | Nothing |
+
+A route names its handler: the controller module and the action atom. The
+module is the written alias after the router's lexical aliases, placed under
+the module prefix of its scopes unless the route states `alias: false`. The
+endpoint resolves only when exactly one selected file declares that module and
+the module declares the public function `action/2`. A `live` route is handled
+by the first of `mount/3`, `handle_params/3` and `render/1` that the LiveView
+module declares, the callbacks LiveView runs for the page's HTTP request.
+
+The shared HTTP producer decisions are:
+
+1. **Prefixes:** every `scope` path, nested scopes, the `resources` path and
+   its nested member prefix, and the `forward` path of a mounted AshJsonApi
+   router are part of the path. A scope whose path or alias is not literal, or
+   that states `host:` or an option outside the table, is one blocker in place
+   of its routes.
+2. **Endpoints:** controller actions and LiveView pages answer requests.
+   Pipelines and their plugs run only after a route is chosen and never change
+   which route that is, so they report nothing. Endpoint-level plugs, sockets
+   and channels are not read.
+3. **Dynamic values:** `:name` alone in a segment is a parameter. `*name` is an
+   optional catch-all, because a Phoenix glob also matches no segment. A path
+   with interpolation keeps only its readable literal prefix.
+4. **Helpers:** not applicable; the scanner reports no outgoing requests.
+5. **Base:** not applicable, for the same reason.
+6. **File-location routes:** Phoenix has none; every route names its handler.
+7. **Constraints:** a segment that mixes text with a parameter, such as
+   `v:version` or `:id.json`, is a constrained parameter. Phoenix has no typed
+   parameters.
+8. **Order:** Phoenix matches routes from top to bottom, so every endpoint
+   reports `order`: the router file and the route's index in its registration
+   sequence. A file that declares several routers gives all their endpoints
+   position 0. A route the scanner sees but cannot read keeps its position as a
+   blocker: its literal prefix, a constrained optional catch-all and method
+   `*`, named after the router file's `(module)` operation. Blockers are a
+   route whose handler is not exactly one selected public function, a `forward`
+   to anything but a readable AshJsonApi router, an unreadable `scope` or
+   `resources`, and every other call in a routing scope, including a
+   conditional block such as `if Mix.env() == :dev do`. Such a call may
+   register any route under its scope, so the blocker stands at the enclosing
+   scope's path. The scanner encodes no other library's routes or default
+   paths. Core derives no relationship to a blocker or past an earlier one.
+
+`resources` with an `alias:`, `private:` or `assigns:` option and a `forward`
+with router options stay blockers, as does a `forward` to a second Phoenix
+router or to a `Plug.Router` module. Routes declared in a `Plug.Router` module
+are not read.
+
 ## Limits
 
 Every observation carries `ELIXIR_SOURCE_SCOPE`. Invalid source syntax fails
