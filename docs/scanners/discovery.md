@@ -46,6 +46,7 @@ depth. These rules are declared by the current official plugins:
 | `Cargo.toml` | Cargo package or workspace, with a literal package `rust-version` when present |
 | `*.swift` | Swift source; no package manifest is required |
 | `*.rb`, `*.gemspec`, `Gemfile`, `config/routes.rb` | Ruby source or package files, and Rails routing configuration |
+| `mix.exs`, `lib/*_web/router.ex` | Mix project and its literal `elixir` requirement, and a Phoenix router in the generator's location; Ash has no discovery clue |
 | `*.scala` | Scala source; compiler version and build configuration are unverified |
 | `*.kt` | Kotlin source; compiler version and build configuration are unverified |
 | `*.c` | C source; preprocessor and build configuration are unverified |

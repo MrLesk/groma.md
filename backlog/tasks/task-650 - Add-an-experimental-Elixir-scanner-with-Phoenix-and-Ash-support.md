@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-11T22:51:00Z'
-updated_date: '2026-11-11T23:49:00Z'
+updated_date: '2026-11-11T23:50:00Z'
 labels: []
 dependencies: []
 references:
@@ -88,6 +88,11 @@ modified_files:
   - test/fixtures/elixir-ash/mix.exs
   - test-bun/elixir-fixture.ts
   - test-bun/elixir-ash.test.ts
+  - README.md
+  - docs/scanners/index.md
+  - docs/scanners/discovery.md
+  - docs/scanners/evidence.md
+  - docs/scanners/creating-a-plugin.md
 type: feature
 ordinal: 706000
 ---

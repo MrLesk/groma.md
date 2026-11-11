@@ -223,6 +223,7 @@ authored relationships remain intact.
 - [Rust](rust/index.md)
 - [Swift](swift/index.md)
 - [Ruby / Rails (experimental)](ruby/index.md)
+- [Elixir / Phoenix / Ash (experimental)](elixir/index.md)
 - [Scala 3 (experimental)](scala/index.md)
 - [Kotlin (experimental)](kotlin/index.md)
 - [C (experimental)](c/index.md)
