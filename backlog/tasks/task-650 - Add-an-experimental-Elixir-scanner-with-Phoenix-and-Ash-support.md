@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-11T22:51:00Z'
-updated_date: '2026-11-11T23:16:00Z'
+updated_date: '2026-11-11T23:20:00Z'
 labels: []
 dependencies: []
 references:
@@ -34,11 +34,11 @@ The scope follows the existing scanners as an educated guess Alex asked for. Its
 <!-- AC:BEGIN -->
 - [ ] #1 A packaged elixir scanner scans a Mix project from a fresh checkout without Elixir, Erlang, Mix, Hex dependencies, a project build or application execution, and a repeat scan is identical.
 - [ ] #2 Elixir source listing, Mix project membership including umbrella apps, declarations, visibility and Code outlines follow the existing scanner contract; Mix projects stay source groups and never become C4 boundaries.
-- [ ] #3 Mix application and escript launch declarations supply execution entries with their own compiled source through the existing placement contract.
-- [ ] #4 Named functions supply operations and call evidence; a call reports a target only where the source identifies exactly one selected function, and every other call stays unresolved.
+- [ ] #3 A Mix project supplies one execution entry from its application callback, or from its escript main module when it declares no callback, with its own compiled source through the existing placement contract.
+- [ ] #4 Named functions supply operations and call evidence; call targets stay unresolved, as in the Ruby and Python scanners.
 - [ ] #5 Phoenix router declarations supply HTTP endpoints with their complete declared path and the local controller action that handles them, answering the eight producer decisions; routes the scanner cannot read remain blockers.
-- [ ] #6 Ash resources and domains supply what their DSL declares and plain Elixir parsing cannot see: resource actions as operations, code-interface functions as declarations and call targets, and AshJsonApi routes as HTTP endpoints under the prefix where the Phoenix router mounts them.
-- [ ] #7 Discovery reports Elixir, Phoenix and Ash from Mix declarations, and the scanner is integrated with the official catalog, release staging and CI like the other tree-sitter scanners.
+- [ ] #6 Ash resources and domains supply what their DSL declares and plain Elixir parsing cannot see: resource actions as operations, code-interface functions as declarations, and AshJsonApi routes as HTTP endpoints under the prefix where the Phoenix router mounts them.
+- [ ] #7 Discovery reports Elixir from Mix declarations and Phoenix from its router file through the existing rule types, Ash is documented as supported without a discovery clue, and the scanner is integrated with the official catalog, release staging and CI like the other tree-sitter scanners.
 - [ ] #8 Scanner documentation states inputs, supported constructs and limits, and the validation record covers at least eight open source repositories at exact commits that also contain other languages, at least three of them using Ash, scanned together with the official scanners for those languages: source witnesses for outlines, entries, endpoints and frontend-to-backend rows or their explicit uncertainty, identical repeat scans and unchanged source.
 <!-- AC:END -->
 
