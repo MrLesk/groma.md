@@ -170,8 +170,10 @@ rules. Live inputs also respect the configured Git-ignore policy; historical
 inputs come from the requested Git tree. Use this context for declarations in
 other components, such as NASM macros, or package language versions. Read these
 paths from `repositoryRoot`, which may be a historical source snapshot without
-Git metadata. Return declarations only for the requested references; context
-files do not change their ownership or become architecture elements.
+Git metadata. Such a snapshot holds every file as committed, and a symbolic
+link as a file holding its target path. Return declarations only for the
+requested references; context files do not change their ownership or become
+architecture elements.
 
 Each reference holds one owned `file` and the `symbols` its Code links name.
 When a file has Code links from several configured scanners, the one with the
