@@ -1,16 +1,63 @@
+use std::path::Path;
+
 use ra_ap_hir::{Local, Semantics};
 use ra_ap_ide_db::RootDatabase;
 use ra_ap_syntax::ast::{self, HasName};
-use ra_ap_syntax::{AstNode, NodeOrToken, SyntaxKind, SyntaxNode, SyntaxToken, T, TextSize};
+use ra_ap_syntax::{AstNode, NodeOrToken, SyntaxKind, SyntaxNode, SyntaxToken, T, TextRange, TextSize};
 
-/// Zero-based UTF-16 offset, the unit the observation contract counts.
-pub fn position(text: &str, offset: TextSize) -> usize {
-    text[..usize::from(offset)].encode_utf16().count()
+/// The text of one Rust file as the Rust compiler reads it: every `\r\n` line ending is one `\n`.
+/// A file checked out with Windows line endings then means what its `\n` copy means. In the raw
+/// file, the `\` that continues a string literal on the next line is followed by `\r`, which is
+/// not an escape Rust knows.
+///
+/// The worker parses only `normalized()`, so an offset in a syntax tree is an offset in that text.
+/// The other methods turn such an offset into the place in the file on disk that the worker reports.
+pub struct SourceText {
+    normalized: String,
+    /// The offset in `normalized` of each `\n` that is `\r\n` in the file.
+    removed_carriage_returns: Vec<TextSize>,
 }
 
-/// One-based line.
-pub fn line(text: &str, offset: TextSize) -> usize {
-    text[..usize::from(offset)].bytes().filter(|byte| *byte == b'\n').count() + 1
+impl SourceText {
+    pub fn read(file: &Path) -> std::io::Result<Self> {
+        let on_disk = std::fs::read_to_string(file)?;
+        let mut normalized = String::with_capacity(on_disk.len());
+        let mut removed_carriage_returns = Vec::new();
+        let mut rest = on_disk.as_str();
+        while let Some(carriage_return) = rest.find("\r\n") {
+            normalized.push_str(&rest[..carriage_return]);
+            removed_carriage_returns.push(TextSize::of(normalized.as_str()));
+            rest = &rest[carriage_return + 1..];
+        }
+        normalized.push_str(rest);
+        Ok(Self { normalized, removed_carriage_returns })
+    }
+
+    /// The text to parse.
+    pub fn normalized(&self) -> &str {
+        &self.normalized
+    }
+
+    /// Zero-based UTF-16 offset in the file on disk, the unit the observation contract counts.
+    pub fn position(&self, offset: TextSize) -> usize {
+        // A carriage return is one UTF-16 unit.
+        self.normalized[..usize::from(offset)].encode_utf16().count() + self.carriage_returns_before(offset)
+    }
+
+    /// One-based line, which is the same line in the file on disk.
+    pub fn line(&self, offset: TextSize) -> usize {
+        self.normalized[..usize::from(offset)].bytes().filter(|byte| *byte == b'\n').count() + 1
+    }
+
+    /// The byte range in the file on disk.
+    pub fn on_disk_range(&self, range: TextRange) -> TextRange {
+        let on_disk = |offset| offset + TextSize::new(self.carriage_returns_before(offset) as u32);
+        TextRange::new(on_disk(range.start()), on_disk(range.end()))
+    }
+
+    fn carriage_returns_before(&self, offset: TextSize) -> usize {
+        self.removed_carriage_returns.iter().filter(|line_end| **line_end < offset).count()
+    }
 }
 
 /// The text of a string literal, without escape sequences.

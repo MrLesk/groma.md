@@ -2,14 +2,14 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::{Context, bail};
-use ra_ap_hir::{AnyDiagnostic, AsAssocItem, CallableKind, Crate, Function, Semantics};
+use ra_ap_hir::{AnyDiagnostic, AsAssocItem, CallableKind, ChangeWithProcMacros, Crate, Function, Semantics};
 use ra_ap_ide_db::RootDatabase;
-use ra_ap_syntax::{AstNode, SyntaxNode, TextSize, WalkEvent, ast, ast::{HasAttrs, HasName}};
-use ra_ap_vfs::FileId;
+use ra_ap_syntax::{AstNode, SyntaxError, SyntaxNode, TextSize, WalkEvent, ast, ast::{HasAttrs, HasName}};
+use ra_ap_vfs::{FileId, Vfs};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::text::{line, position};
+use crate::text::SourceText;
 use crate::url;
 use crate::{endpoints, requests};
 use crate::tokens::operation_tokens;
@@ -35,7 +35,8 @@ pub struct Executable {
 
 pub(crate) struct Source {
     pub(crate) file: String,
-    pub(crate) text: String,
+    /// The text `syntax` is parsed from. It turns an offset in `syntax` into a place in the file.
+    pub(crate) text: SourceText,
     pub(crate) syntax: ast::SourceFile,
 }
 
@@ -58,9 +59,10 @@ pub fn scan(input: Input) -> anyhow::Result<Value> {
         prefill_caches: false,
         num_worker_threads: 1, proc_macro_processes: 1,
     };
-    let (db, vfs, _) =
+    let (mut db, vfs, _) =
         ra_ap_load_cargo::load_workspace(workspace, &Default::default(), &load)
             .context("rust-analyzer could not load the source crate graph")?;
+    normalize_engine_text(&mut db, &vfs);
     ra_ap_hir::attach_db(&db, || {
         let sema = Semantics::new(&db);
         let selected: HashSet<_> = input.targets.iter().collect();
@@ -118,16 +120,21 @@ pub fn scan(input: Input) -> anyhow::Result<Value> {
                 continue;
             }
             let file_id = variants[0];
-            let text = std::fs::read_to_string(&absolute)?;
+            let text = SourceText::read(&absolute)?;
             let edition = sema
                 .file_to_module_defs(file_id)
                 .next()
                 .unwrap()
                 .krate(&db)
                 .edition(&db);
-            let parsed = ast::SourceFile::parse(&text, edition);
+            let parsed = ast::SourceFile::parse(text.normalized(), edition);
             if !parsed.errors().is_empty() {
-                bail!("{file}: invalid Rust syntax: {:?}", parsed.errors());
+                let errors: Vec<_> = parsed
+                    .errors()
+                    .iter()
+                    .map(|error| SyntaxError::new(error.to_string(), text.on_disk_range(error.range())))
+                    .collect();
+                bail!("{file}: invalid Rust syntax: {errors:?}");
             }
             let syntax = sema.parse_guess_edition(file_id);
             sources.push(Source { file, text, syntax });
@@ -166,6 +173,22 @@ pub fn scan(input: Input) -> anyhow::Result<Value> {
             "diagnostics": diagnostics,
         }))
     })
+}
+
+/// The engine loads each Rust file as it is on disk. This gives it the text `SourceText` holds
+/// instead, before any analysis runs, so a syntax tree of the engine has the offsets and the
+/// literal text of the file as the compiler reads it.
+fn normalize_engine_text(db: &mut RootDatabase, vfs: &Vfs) {
+    let mut change = ChangeWithProcMacros::default();
+    for (file, path) in vfs.iter() {
+        // The engine also loads Cargo manifests and Markdown, which are not Rust source.
+        let Some(path) = path.as_path().filter(|path| path.extension() == Some("rs")) else { continue };
+        // The engine holds no text for a file that is not UTF-8, and none is set here.
+        if let Ok(text) = SourceText::read(path.as_ref()) {
+            change.change_file(file, Some(text.normalized().to_owned()));
+        }
+    }
+    db.apply_change(change);
 }
 
 /// Module files of these crates that the scan may read. The scan never reads another module file, so such a file
@@ -223,14 +246,14 @@ fn declarations(
                 continue;
             };
             let start = first_token_start(syntax.syntax());
-            let position = position(&source.text, start);
+            let position = source.text.position(start);
             let id = format!("{}:{position}", source.file);
             functions.insert(function, id.clone());
             // Every Rust operation is a named function; core applies the minimum compared sizes.
             operations.push(json!({
                 "id": id, "file": source.file, "name": name.text().to_string(), "position": position,
-                "startLine": line(&source.text, start),
-                "endLine": line(&source.text, syntax.syntax().text_range().end()),
+                "startLine": source.text.line(start),
+                "endLine": source.text.line(syntax.syntax().text_range().end()),
                 "tokens": operation_tokens(sema, &syntax, &body),
             }));
         }
@@ -268,11 +291,11 @@ fn calls(
                             .is_none()
                     })
                     .and_then(|function| functions.get(&function));
-                let offset = position(&source.text, first_token_start(&node));
+                let offset = source.text.position(first_token_start(&node));
                 let mut invocation = json!({
                     "source": caller, "targets": target.into_iter().collect::<Vec<_>>(),
                     "unresolved": target.is_none(),
-                    "line": line(&source.text, node.text_range().start()), "position": offset,
+                    "line": source.text.line(node.text_range().start()), "position": offset,
                 });
                 if let Some(name) =
                     ast::MethodCallExpr::cast(node.clone()).and_then(|call| call.name_ref())
