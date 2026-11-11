@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-11T22:51:00Z'
-updated_date: '2026-11-11T23:26:00Z'
+updated_date: '2026-11-11T23:36:00Z'
 labels: []
 dependencies: []
 references:
@@ -16,6 +16,40 @@ references:
   - docs/scanners/ruby/validation.md
   - src/scanner/modules/official-catalog.ts
   - scripts/scanner-release.ts
+modified_files:
+  - plugins/scanners/elixir/package.json
+  - bun.lock
+  - plugins/scanners/elixir/ELIXIR-GRAMMAR-NOTICE
+  - plugins/scanners/elixir/build.ts
+  - plugins/scanners/elixir/src/parser.ts
+  - plugins/scanners/elixir/src/syntax.ts
+  - plugins/scanners/elixir/src/aliases.ts
+  - plugins/scanners/elixir/src/modules.ts
+  - plugins/scanners/elixir/src/calls.ts
+  - plugins/scanners/elixir/src/mix.ts
+  - plugins/scanners/elixir/src/source.ts
+  - plugins/scanners/elixir/src/index.ts
+  - test/fixtures/elixir-mix/apps/dynamic/mix.exs
+  - test/fixtures/elixir-mix/apps/dynamic/src/plugin.ex
+  - test/fixtures/elixir-mix/apps/shop/extra/audit.ex
+  - test/fixtures/elixir-mix/apps/shop/lib/shop/application.ex
+  - test/fixtures/elixir-mix/apps/shop/lib/shop/cli.ex
+  - test/fixtures/elixir-mix/apps/shop/lib/shop/orders.ex
+  - test/fixtures/elixir-mix/apps/shop/mix.exs
+  - test/fixtures/elixir-mix/apps/shop/priv/templates/report.ex
+  - test/fixtures/elixir-mix/apps/shop/test/support/broken.ex
+  - test/fixtures/elixir-mix/apps/tool/lib/tool/cli.ex
+  - test/fixtures/elixir-mix/apps/tool/lib/tool/shape.ex
+  - test/fixtures/elixir-mix/apps/tool/mix.exs
+  - test/fixtures/elixir-mix/lib/stray.ex
+  - test/fixtures/elixir-mix/mix.exs
+  - docs/scanners/elixir/index.md
+  - docs/scanners/elixir/validation.md
+  - src/scanner/modules/official-catalog.ts
+  - scripts/scanner-release.ts
+  - .github/workflows/ci.yml
+  - test-bun/scanner-fresh-checkout.test.ts
+  - test-bun/elixir-scanner.test.ts
 type: feature
 ordinal: 706000
 ---
@@ -132,3 +166,9 @@ Fixtures are minimal generic worlds, not copies of real projects. No test assert
 
 Separate Ash scanner; outgoing HTTP clients; compared-operation tokens; call targets; HEEx and EEx, LiveView and component source units, channels and sockets, AshGraphql, AshPhoenix forms, Ecto schemas, process and message relationships; expansion of other macros, `use` callbacks, protocol dispatch, `apply/3`; aliases injected by `use`; scanner settings; Plug.Router applications; forwarding to a second Phoenix router; other libraries' routing macros; Ash fragments; Mix tasks and releases as entries; Ash in discovery.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Milestone 1 (language evidence): package skeleton, bundled tree-sitter-elixir 0.3.5 parser, Mix project and source selection, modules, name/arity outlines, operations, unresolved calls and one execution entry per project; catalog, release staging, CI and fresh-checkout integration. Round trip confirmed through core: a Code symbol Shop.Orders.total/2 written by core's Markdown writer survives a rescan, reads back unchanged and marks its outline entry; a symbol the scan does not report is removed by the rescan, so the test fails when the spelling differs. Checks: bun test test-bun/elixir-scanner.test.ts (4 pass), fresh-checkout elixir package (1 pass), typecheck and Biome lint clean.
+<!-- SECTION:NOTES:END -->
