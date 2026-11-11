@@ -188,7 +188,8 @@ declaration inside another type or function is nested and is not listed. PHP
 also counts a function declared directly inside `if (!function_exists('name'))`
 as top-level when the guard names that function. C# top-level statements, with
 the local functions and lambdas they declare, form the program's entry point
-and are not listed.
+and are not listed. Elixir modules namespace each other, so a module declared
+inside another module is its own top-level type, named `Outer.Inner`.
 
 - `kind: 'function'` is a top-level function, or a function literal (arrow
   function, function expression, or lambda) assigned directly to a top-level
@@ -198,7 +199,7 @@ and are not listed.
   It has no `members` list. Programs are Code declarations, not C4 containers;
   nested programs are omitted.
 - `kind: 'type'` is a top-level class, interface, struct, union, record, enum, trait,
-  or protocol, a Scala or Kotlin object, or a Go defined type such as `type X struct{}` or `type X int`.
+  or protocol, a Scala or Kotlin object, an Elixir module, or a Go defined type such as `type X struct{}` or `type X int`.
   A named type whose form is a function, such as a C# `delegate` or a Go
   `type X func(...)`, is a type with an empty `members` list. Type aliases are
   never listed: TypeScript `type X = ...`, Go `type X = Y`, and Rust
@@ -234,7 +235,10 @@ constructor; see [Dart outlines](dart/index.md#inputs-and-source-structure).
 Ruby members match qualified `Module::Type#method` instance methods and
 `Module::Type.method` singleton methods. A concern's `class_methods` block matches
 `Concern::ClassMethods#method`, the instance method of the module Rails defines
-for including classes, and appears under its declaring concern in the outline. Other
+for including classes, and appears under its declaring concern in the outline.
+Elixir members match `Module.name/arity`, the outline row shows `name/arity`, and
+clauses of one name and arity are one member; a function an Ash code interface
+generates matches `Module.name` and shows its bare name. Other
 members and scanners match bare names. A link naming a type
 never marks its members.
 
@@ -272,6 +276,7 @@ follows; a dash means the language has no such case.
 | Python | Other names, including `__init__` and other `__dunder__` names | Members named `_name` | - | Members named `__name`; top-level names starting with `_` |
 | R | Top-level source bindings; package export visibility is unverified | - | - | - |
 | Ruby | Class/module methods by default; `public`; singleton methods | `protected` | - | `private`; instance `initialize`; top-level methods |
+| Elixir | Modules; `def`, `defmacro`, `defguard` and `defdelegate`; Ash code interface functions | - | - | `defp`, `defmacrop` and `defguardp` |
 | PHP | `public`; members without a modifier; top-level functions and types | `protected` | - | `private` |
 | Swift | `open`, `public` | - | `package`, `internal`; no modifier elsewhere | `fileprivate`, `private` |
 
