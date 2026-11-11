@@ -1,6 +1,6 @@
 import type { CodeVisibility } from '@groma/scanner'
 import type { Node } from 'web-tree-sitter'
-import { aliasesAfter, fileAliases, insideModule, moduleName, type Aliases } from './aliases.ts'
+import { aliasesAfter, aliasesBefore, fileAliases, insideModule, moduleName, type Aliases } from './aliases.ts'
 import { body, callName, operator, options, positional } from './syntax.ts'
 
 /*
@@ -39,22 +39,22 @@ export interface FunctionDeclaration {
 }
 
 /** The definition forms of the language and what each declares. `delegate` forms have no body of their own. */
-const definitionForms: Record<string, { kind: 'function' | 'macro'; visibility: CodeVisibility; delegate?: true }> = {
-  def: { kind: 'function', visibility: 'public' },
-  defp: { kind: 'function', visibility: 'private' },
-  defdelegate: { kind: 'function', visibility: 'public', delegate: true },
-  defmacro: { kind: 'macro', visibility: 'public' },
-  defmacrop: { kind: 'macro', visibility: 'private' },
-  defguard: { kind: 'macro', visibility: 'public' },
-  defguardp: { kind: 'macro', visibility: 'private' },
-}
+const definitionForms = new Map<string, { kind: 'function' | 'macro'; visibility: CodeVisibility; delegate?: true }>([
+  ['def', { kind: 'function', visibility: 'public' }],
+  ['defp', { kind: 'function', visibility: 'private' }],
+  ['defdelegate', { kind: 'function', visibility: 'public', delegate: true }],
+  ['defmacro', { kind: 'macro', visibility: 'public' }],
+  ['defmacrop', { kind: 'macro', visibility: 'private' }],
+  ['defguard', { kind: 'macro', visibility: 'public' }],
+  ['defguardp', { kind: 'macro', visibility: 'private' }],
+])
 
-const moduleForms: Record<string, ModuleKind> = { defmodule: 'module', defprotocol: 'protocol', defimpl: 'implementation' }
+const moduleForms = new Map<string, ModuleKind>([['defmodule', 'module'], ['defprotocol', 'protocol'], ['defimpl', 'implementation']])
 
 /** Whether a statement declares a function, macro or module rather than calling something. */
 export function isDefinition(statement: Node): boolean {
   const name = callName(statement) ?? ''
-  return name in definitionForms || name in moduleForms
+  return definitionForms.has(name) || moduleForms.has(name)
 }
 
 /** `defimpl Protocol, for: Type` declares the module `Protocol.Type`; without `for:` the type is the enclosing module. */
@@ -80,7 +80,7 @@ function declaredName(statement: Node, kind: ModuleKind, aliases: Aliases): stri
 function collectScopes(statements: Node[], initial: Aliases, found: ModuleScope[]): void {
   let aliases = initial
   for (const statement of statements) {
-    const kind = moduleForms[callName(statement) ?? '']
+    const kind = moduleForms.get(callName(statement) ?? '')
     const inner = kind && body(statement)
     // A module whose name is computed has no provable identity, so nothing inside it is reported.
     const name = inner && declaredName(statement, kind, aliases)
@@ -100,6 +100,19 @@ export function moduleScopes(root: Node): ModuleScope[] {
   return found
 }
 
+/** The lexical aliases in force where `node` is written inside the module body. */
+export function aliasesAt(scope: ModuleScope, node: Node): Aliases {
+  return aliasesBefore(scope.aliases, scope.statements, node)
+}
+
+/** The `use Module, ...` statements of a module body, each with the full name of the module it uses. */
+export function moduleUses(scope: ModuleScope): { module: string; statement: Node }[] {
+  return scope.statements.flatMap(statement => {
+    const module = callName(statement) === 'use' ? moduleName(positional(statement)[0], aliasesAt(scope, statement)) : undefined
+    return module === undefined ? [] : [{ module, statement }]
+  })
+}
+
 /**
  * The name and arity a definition states: `name(a, b)`, `name(a) when guard`, or a bare `name`.
  * A computed name such as `unquote(name)(a)` and an operator definition state no name.
@@ -117,7 +130,7 @@ function functionHead(definition: Node): { name: string; arity: number } | undef
 export function moduleFunctions(scope: ModuleScope): FunctionDeclaration[] {
   const functions = new Map<string, FunctionDeclaration>()
   for (const statement of scope.statements) {
-    const form = definitionForms[callName(statement) ?? '']
+    const form = definitionForms.get(callName(statement) ?? '')
     const head = form && functionHead(statement)
     if (!form || !head) continue
     const key = `${head.name}/${head.arity}`

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { createScanObservation, type CodeFile, type ScanDiagnostic, type ScannerPlugin } from '@groma/scanner'
+import { ashMounts, ashRoutingWrappers, readAsh } from './ash/index.ts'
 import { compiledSources, mixProject, projectEntries, projectRoots, type MixProject } from './mix.ts'
 import { moduleScopes } from './modules.ts'
 import { elixirLanguage, grammarVersion, parseElixir } from './parser.ts'
@@ -14,9 +15,11 @@ import { elixirSource, moduleIndex } from './source.ts'
  * 1. `mix.ts` reads every `mix.exs` and decides which `.ex` files Mix compiles.
  * 2. Each compiled file is parsed once. `modules.ts`, `source.ts` and `calls.ts` describe its modules
  *    and functions.
- *    and functions; `phoenix/router.ts` reads the routes of router modules.
+ *    and functions, `phoenix/router.ts` reads the routes of router modules, and `ash/` reads Ash
+ *    resources, domains and JSON:API routers.
  * 3. Facts that need several files are resolved after all files are read: execution entries, and in
- *    `phoenix/endpoints.ts` the function that handles each route.
+ *    `phoenix/endpoints.ts` the function that handles each route. Phoenix knows nothing about Ash:
+ *    this file hands it the lookup of what an AshJsonApi router serves under a `forward`.
  */
 
 const isMixFile = (file: string) => path.posix.basename(file) === 'mix.exs'
@@ -41,9 +44,11 @@ async function selectSources(root: string, files: readonly string[], unparsable:
 async function readSource(root: string, file: string, entries: readonly string[] = []) {
   return parseElixir(file, await readFile(path.join(root, file), 'utf8'), tree => {
     const scopes = moduleScopes(tree)
+    const ash = readAsh(scopes, file)
     return {
-      ...elixirSource(file, scopes, [], entries),
-      routers: scopes.flatMap(scope => routerDeclaration(scope, file, []) ?? []),
+      ...elixirSource(file, scopes, ash.declared, entries),
+      ash,
+      routers: scopes.flatMap(scope => routerDeclaration(scope, file, ashRoutingWrappers) ?? []),
       routerProviders: scopes.filter(providesRouter).map(scope => scope.name),
     }
   })
@@ -75,14 +80,16 @@ export default {
     for (const file of sources.keys()) parsed.push(await readSource(root, file))
     const moduleNamed = moduleIndex(parsed)
     const routerProviders = new Set(parsed.flatMap(source => source.routerProviders))
+    const ash = parsed.map(source => source.ash)
+    const mounts = ashMounts(ash.flatMap(facts => facts.resources), ash.flatMap(facts => facts.domains), ash.flatMap(facts => facts.routers))
     const phoenix = phoenixEndpoints(parsed.flatMap(source => source.routers),
-      module => moduleNamed(module) !== undefined && routerProviders.has(module), moduleNamed, () => undefined)
+      module => moduleNamed(module) !== undefined && routerProviders.has(module), moduleNamed, mounts)
     return createScanObservation({
       scanner: { id: 'elixir', technology: 'elixir', engine: 'tree-sitter-elixir', engineVersion: grammarVersion },
       roots: projectRoots(projects, root),
       files: parsed.map(source => ({ file: source.file, roots: [sources.get(source.file)!.file], symbols: source.symbols })),
       entryPoints: projectEntries(projects, sources, root, module => moduleNamed(module)?.file),
-      operations: [...parsed.flatMap(source => source.operations), ...phoenix.operations],
+      operations: [...parsed.flatMap(source => source.operations), ...ash.flatMap(facts => facts.operations), ...phoenix.operations],
       invocations: parsed.flatMap(source => source.invocations),
       httpEndpoints: phoenix.endpoints,
       diagnostics: diagnostics(projects, sources),
