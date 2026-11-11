@@ -1,8 +1,7 @@
-import { execFile, spawn } from 'node:child_process'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { spawn } from 'node:child_process'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { promisify } from 'node:util'
 
 import { loadArchitecture } from '../architecture-reader.ts'
 import { annotateArchitecture } from '../core.ts'
@@ -151,7 +150,7 @@ function parseRevisions(output: string): GitRevision[] {
 export async function listGromaRevisions(repositoryRoot: string): Promise<GromaRevision[]> {
   const revisions = await readRevisionLog(repositoryRoot, [GromaFileSystem.open(repositoryRoot).directory])
   const result: GromaRevision[] = []
-  // Bound simultaneous archive extraction and Markdown parsing during startup.
+  // Bound simultaneous snapshot writing and Markdown parsing during startup.
   for (let index = 0; index < revisions.length; index += 4) {
     result.push(...await Promise.all(revisions.slice(index, index + 4).map(async revision => ({
       ...revision,
@@ -169,26 +168,113 @@ export async function listGromaRevisions(repositoryRoot: string): Promise<GromaR
   return result
 }
 
+/** One file of a revision snapshot: the path Git records, and the identity and byte length of its stored content. */
+interface SnapshotFile {
+  path: string
+  objectId: string
+  size: number
+}
+
+/** The files a revision records under `paths`, or all of its files when no path is given. */
+async function listSnapshotFiles(repositoryRoot: string, revisionId: string, paths: string[]): Promise<SnapshotFile[]> {
+  // Git prints `<mode> <type> <object id> <size>\t<path>` per file. With -z the path is verbatim and a NUL ends it.
+  const entries = await runGit(['ls-tree', '-r', '-l', '-z', revisionId, '--', ...paths], repositoryRoot)
+  return entries.split('\0').filter(Boolean).flatMap(entry => {
+    const tab = entry.indexOf('\t')
+    const [, type, objectId, size] = entry.slice(0, tab).split(/ +/)
+    // A submodule is recorded as a commit of another repository, so it has no content here.
+    return type === 'blob' ? [{ path: entry.slice(tab + 1), objectId: objectId!, size: Number(size) }] : []
+  })
+}
+
+/** Regroups a byte stream into consecutive blocks of the given lengths. A stream that ends early yields fewer blocks. */
+async function* splitByLength(stream: AsyncIterable<Uint8Array>, lengths: number[]): AsyncGenerator<Buffer> {
+  if (lengths.length === 0) return
+  let index = 0
+  let block = Buffer.alloc(lengths[index]!)
+  let filled = 0
+  for await (const chunk of stream) {
+    let offset = 0
+    while (offset < chunk.length) {
+      const part = chunk.subarray(offset, offset + block.length - filled)
+      block.set(part, filled)
+      filled += part.length
+      offset += part.length
+      if (filled === block.length) {
+        yield block
+        index += 1
+        if (index === lengths.length) return
+        block = Buffer.alloc(lengths[index]!)
+        filled = 0
+      }
+    }
+  }
+}
+
+/** Where a recorded path lands in a snapshot. A path that leaves the snapshot is refused, as Git refuses to check it out. */
+function snapshotLocation(snapshotRoot: string, file: string): string {
+  const location = path.join(snapshotRoot, file)
+  if (!location.startsWith(snapshotRoot + path.sep)) throw new Error(`invalid path '${file}'`)
+  return location
+}
+
+/**
+ * Writes the files into the empty directory `snapshotRoot`. Git hands over each path as text and each content as
+ * stored, and Groma writes the file itself, so no archive tool, locale or line-ending setting takes part. A symbolic
+ * link is written as Git stores it: a file holding the link's target.
+ */
+async function writeSnapshotFiles(repositoryRoot: string, files: SnapshotFile[], snapshotRoot: string): Promise<void> {
+  const directories = new Set(files.map(file => path.dirname(snapshotLocation(snapshotRoot, file.path))))
+  for (const directory of directories) await mkdir(directory, { recursive: true })
+  // `git cat-file --batch` answers each object id, in order, with this header line, the content, and a line feed.
+  const header = (file: SnapshotFile) => `${file.objectId} blob ${file.size}\n`
+  // The listing gave every size, so the length of each answer is known before it arrives.
+  const answerLengths = files.map(file => header(file).length + file.size + 1)
+  // Not `runGit`: it gives Git no input and decodes its output as text, and file content here is raw bytes.
+  const child = Bun.spawn(['git', 'cat-file', '--batch'], {
+    cwd: repositoryRoot,
+    stdin: Buffer.from(files.map(file => `${file.objectId}\n`).join('')),
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
+  try {
+    let written = 0
+    for await (const answer of splitByLength(child.stdout, answerLengths)) {
+      const file = files[written]!
+      const expected = header(file)
+      if (answer.toString('latin1', 0, expected.length) !== expected) {
+        throw new Error(`Git has no content for ${file.path}`)
+      }
+      const content = answer.subarray(expected.length, expected.length + file.size)
+      await writeFile(snapshotLocation(snapshotRoot, file.path), content)
+      written += 1
+    }
+    if (written < files.length) {
+      throw new Error((await new Response(child.stderr).text()).trim() || 'git cat-file ended early')
+    }
+  } finally {
+    // Git has already finished unless writing stopped early.
+    child.kill()
+  }
+}
+
+/**
+ * Opens a revision as a temporary directory and always removes it afterwards. The directory holds each requested file
+ * under the exact path Git records, with its committed bytes, on every system. The repository itself is only read.
+ */
 async function withGitTree<T>(
   repositoryRoot: string,
   revisionId: string,
   paths: string[],
   load: (snapshotRoot: string) => Promise<T>,
 ): Promise<T> {
-  const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'groma-revision-'))
-  const snapshotRoot = path.join(temporaryRoot, 'tree')
+  const snapshotRoot = await mkdtemp(path.join(tmpdir(), 'groma-revision-'))
   try {
-    await mkdir(snapshotRoot)
-    await runGit([
-      '-c', 'core.autocrlf=false', 'archive', '--format=tar',
-      '--output', path.join(temporaryRoot, 'archive.tar'), revisionId, ...paths,
-    ], repositoryRoot)
-    // A complete file avoids a broken pipe when tar stops reading archive padding.
-    // Keep tar's path relative: GNU tar treats Windows drive letters as remote hosts.
-    await promisify(execFile)('tar', ['-xf', '../archive.tar'], { cwd: snapshotRoot })
+    const files = await listSnapshotFiles(repositoryRoot, revisionId, paths)
+    await writeSnapshotFiles(repositoryRoot, files, snapshotRoot)
     return await load(snapshotRoot)
   } finally {
-    await rm(temporaryRoot, { recursive: true, force: true })
+    await rm(snapshotRoot, { recursive: true, force: true })
   }
 }
 
