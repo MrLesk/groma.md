@@ -23,10 +23,19 @@ application-specific extractor rules or copied test architecture.
   client to the controllers that handle its requests, and no row for a route
   registered after a blocker that could take the request first.
 
+- `test-bun/elixir-ash.test.ts` and `test/fixtures/elixir-ash/` verify action
+  operations from entities and `defaults`, code interface functions on a
+  domain and on a resource, AshJsonApi routes declared on a domain and on a
+  resource under the Phoenix `forward` path, the shared mount position, the
+  blocker that follows a mount, relationship and document blockers, a router
+  with computed domains, a router nothing forwards to, and routes inside
+  `ash_authentication_live_session`. With the built JavaScript scanner, core
+  derives the row from a browser client to the resource whose action answers.
+
 Run the package and repository checks:
 
 ```sh
-bun test test-bun/elixir-scanner.test.ts test-bun/elixir-phoenix.test.ts
+bun test test-bun/elixir-scanner.test.ts test-bun/elixir-phoenix.test.ts test-bun/elixir-ash.test.ts
 bun plugins/scanners/elixir/build.ts /tmp/elixir-packages/elixir
 GROMA_TEST_PACKAGES=/tmp/elixir-packages bun test --timeout 60000 test-bun/scanner-fresh-checkout.test.ts --test-name-pattern '^elixir package'
 bun run check

@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-11T22:51:00Z'
-updated_date: '2026-11-11T23:42:00Z'
+updated_date: '2026-11-11T23:49:00Z'
 labels: []
 dependencies: []
 references:
@@ -66,6 +66,28 @@ modified_files:
   - test/fixtures/elixir-phoenix/lib/portal_web/router.ex
   - test/fixtures/elixir-phoenix/mix.exs
   - test-bun/elixir-phoenix.test.ts
+  - plugins/scanners/elixir/src/ash/dsl.ts
+  - plugins/scanners/elixir/src/ash/resource.ts
+  - plugins/scanners/elixir/src/ash/code-interface.ts
+  - plugins/scanners/elixir/src/ash/json-api.ts
+  - plugins/scanners/elixir/src/ash/domain.ts
+  - plugins/scanners/elixir/src/ash/mount.ts
+  - plugins/scanners/elixir/src/ash/index.ts
+  - test/fixtures/elixir-ash/assets/js/app.js
+  - test/fixtures/elixir-ash/lib/desk/application.ex
+  - test/fixtures/elixir-ash/lib/desk/support.ex
+  - test/fixtures/elixir-ash/lib/desk/support/note.ex
+  - test/fixtures/elixir-ash/lib/desk/support/ticket.ex
+  - test/fixtures/elixir-ash/lib/desk_web.ex
+  - test/fixtures/elixir-ash/lib/desk_web/controllers/late_controller.ex
+  - test/fixtures/elixir-ash/lib/desk_web/dynamic_router.ex
+  - test/fixtures/elixir-ash/lib/desk_web/json_api_router.ex
+  - test/fixtures/elixir-ash/lib/desk_web/live/home_live.ex
+  - test/fixtures/elixir-ash/lib/desk_web/router.ex
+  - test/fixtures/elixir-ash/lib/desk_web/spare_router.ex
+  - test/fixtures/elixir-ash/mix.exs
+  - test-bun/elixir-fixture.ts
+  - test-bun/elixir-ash.test.ts
 type: feature
 ordinal: 706000
 ---
@@ -189,4 +211,6 @@ Separate Ash scanner; outgoing HTTP clients; compared-operation tokens; call tar
 Milestone 1 (language evidence): package skeleton, bundled tree-sitter-elixir 0.3.5 parser, Mix project and source selection, modules, name/arity outlines, operations, unresolved calls and one execution entry per project; catalog, release staging, CI and fresh-checkout integration. Round trip confirmed through core: a Code symbol Shop.Orders.total/2 written by core's Markdown writer survives a rescan, reads back unchanged and marks its outline entry; a symbol the scan does not report is removed by the rescan, so the test fails when the spelling differs. Checks: bun test test-bun/elixir-scanner.test.ts (4 pass), fresh-checkout elixir package (1 pass), typecheck and Biome lint clean.
 
 Milestone 2 (Phoenix): router recognition (use Phoenix.Router, or use Web, :router proven through the web module's router/0), scope, verbs, match, resources, forward, live and live_session, path reading, blockers and registration order. The phoenix fixture scan returns 18 endpoints in registration order; with the built JavaScript scanner core derives the two proven rows and none for a route registered after a blocker. Checks: elixir-scanner and elixir-phoenix tests (6 pass), typecheck and Biome lint clean.
+
+Milestone 3 (Ash): resource actions as operations, code-interface define entries as bare-name declarations on their host module, AshJsonApi routes of domains and resources mounted under the Phoenix forward of their router, and the ash_authentication_live_session wrapper. Two points decided during implementation and stated in the scanner page: (1) a readable mount is followed by a blocker for the whole mount path at the next position, because the mounted router answers every other request under that path; (2) a relationship route without an action is a blocker at its literal prefix as approved, which covers the resource's whole base path. Checks: elixir-scanner, elixir-phoenix and elixir-ash tests (9 pass), typecheck and Biome lint clean.
 <!-- SECTION:NOTES:END -->

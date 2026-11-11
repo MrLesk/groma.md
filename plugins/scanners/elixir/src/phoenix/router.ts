@@ -1,7 +1,7 @@
 import type { HttpEndpointSegment } from '@groma/scanner'
 import type { Node } from 'web-tree-sitter'
-import { aliasesAfter, aliasesBefore, moduleName, type Aliases } from '../aliases.ts'
-import { isDefinition, moduleFunctions, type ModuleScope } from '../modules.ts'
+import { aliasesAfter, moduleName, type Aliases } from '../aliases.ts'
+import { isDefinition, moduleFunctions, moduleUses, type ModuleScope } from '../modules.ts'
 import { atomList, atomLiteral, body, booleanLiteral, callName, options, positional, stringLiteral } from '../syntax.ts'
 import { readablePrefix, routeSegments } from './paths.ts'
 
@@ -198,11 +198,12 @@ const scopeRoutes: Reader = (statement, scope, wrappers) => {
   return routes(inner, { prefix: [...scope.prefix, ...own], module, aliases: scope.aliases }, wrappers)
 }
 
-const documentedForms: Record<string, Reader> = {
-  scope: scopeRoutes, resources: resourceRoutes, forward: forwardRoute, live: liveRoute, match: matchRoute,
-  get: verbRoute, post: verbRoute, put: verbRoute, patch: verbRoute, delete: verbRoute,
-  options: verbRoute, connect: verbRoute, trace: verbRoute, head: verbRoute,
-}
+const verbs = ['get', 'post', 'put', 'patch', 'delete', 'options', 'connect', 'trace', 'head']
+
+const documentedForms = new Map<string, Reader>([
+  ['scope', scopeRoutes], ['resources', resourceRoutes], ['forward', forwardRoute], ['live', liveRoute], ['match', matchRoute],
+  ...verbs.map((verb): [string, Reader] => [verb, verbRoute]),
+])
 
 /** Statements that register no route: pipelines and their plugs run after a route is chosen. */
 const nonRouting = new Set(['pipeline', 'pipe_through', 'plug', 'import', 'alias', 'require', 'use'])
@@ -214,7 +215,7 @@ function statementRoutes(statement: Node, scope: RoutingScope, wrappers: Readonl
   if (statement.type !== 'call') return []
   const name = callName(statement)
   if (name !== undefined && (nonRouting.has(name) || isDefinition(statement))) return []
-  const reader = name === undefined ? undefined : documentedForms[name]
+  const reader = name === undefined ? undefined : documentedForms.get(name)
   if (reader) return reader(statement, scope, wrappers)
   const inner = name !== undefined && wrappers.has(name) ? body(statement) : undefined
   // A path-preserving wrapper such as `live_session` only groups its routes. Any other call, and a
@@ -232,15 +233,11 @@ function routes(statements: readonly Node[], scope: RoutingScope, wrappers: Read
   return found
 }
 
-const isUse = (statement: Node) => callName(statement) === 'use'
-
 /** How a module declares itself a router: `use Phoenix.Router`, or `use Web, :router` naming `Web`. */
 function routerUse(scope: ModuleScope): { via?: string } | undefined {
-  for (const statement of scope.statements.filter(isUse)) {
-    const [target, selector] = positional(statement)
-    const name = moduleName(target, aliasesBefore(scope.aliases, scope.statements, statement))
-    if (name === 'Phoenix.Router') return {}
-    if (name !== undefined && atomLiteral(selector) === 'router') return { via: name }
+  for (const { module, statement } of moduleUses(scope)) {
+    if (module === 'Phoenix.Router') return {}
+    if (atomLiteral(positional(statement)[1]) === 'router') return { via: module }
   }
   return undefined
 }
@@ -260,7 +257,7 @@ export function routerDeclaration(scope: ModuleScope, file: string, wrappers: re
 }
 
 function containsRouterUse(node: Node): boolean {
-  if (isUse(node) && positional(node)[0]?.text === 'Phoenix.Router') return true
+  if (callName(node) === 'use' && positional(node)[0]?.text === 'Phoenix.Router') return true
   return node.namedChildren.some(containsRouterUse)
 }
 

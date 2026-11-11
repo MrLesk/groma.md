@@ -201,6 +201,78 @@ with router options stay blockers, as does a `forward` to a second Phoenix
 router or to a `Plug.Router` module. Routes declared in a `Plug.Router` module
 are not read.
 
+## Ash
+
+Ash resources and domains declare their behavior through a DSL, so plain
+function parsing sees almost none of it. The scanner reads these literal
+declarations and expands nothing else. A resource is a module that states
+`use Ash.Resource`; a domain is one that states `use Ash.Domain`. Resources
+built through another `use`, and Ash fragments, are not recognized.
+
+**Actions.** Inside a resource's `actions do ... end`, each `create`, `read`,
+`update`, `destroy` or `action` entity with a literal name, and each name in a
+literal `defaults` list such as `defaults [:read, create: :*]`, is one
+operation in the resource file, named `Resource.action (action)`. Actions are
+operations only; they are not outline rows.
+
+**Code interfaces.** `define :name` generates functions on the module that
+hosts it: the resource for an entry in its `code_interface` block, the domain
+for an entry in `resources do resource Ticket do ... end end`. The scanner
+reports one public function of that module, as a symbol and an outline member.
+It is shown by its bare name, such as `open_ticket`, and linked as
+`Module.open_ticket`, because the generated arities depend on the action and
+are not provable without expanding Ash. It has no operation and no call. Not
+read: `define_calculation`, a name ending in `?`, and a `functions:`,
+`namespace` or `define?` option, which change which functions exist or where.
+
+**AshJsonApi routes.** Routes are read from `json_api do routes do ... end end`
+of a resource, with its `base`, and of a domain, with `base_route` blocks or the
+resource as an entity's first argument:
+
+| Entity | Method | Default path |
+| --- | --- | --- |
+| `get action` | `GET` | `/:id` |
+| `index action` | `GET` | `/` |
+| `post action` | `POST` | `/` |
+| `patch action` | `PATCH` | `/:id` |
+| `delete action` | `DELETE` | `/:id` |
+| `related relationship, action` | `GET` | `/:id/relationship` |
+| `relationship relationship, action` | `GET` | `/:id/relationships/relationship` |
+| `route method, path, action` | the stated method | the stated path |
+
+A literal `route:` option replaces the default path. A module that states
+`use AshJsonApi.Router, domains: [...]` serves the routes of its domains and of
+every resource those domains list. Domains are literal modules, also in the
+`Module.concat(["Desk.Support"])` form the installer writes.
+
+These routes become endpoints only where a Phoenix router forwards to that
+router module. The path is the Phoenix scope prefix, the `forward` path, the
+base and the route. The operation is the action the route names, when its
+resource declares that action exactly once. A router that no Phoenix router
+forwards to reports nothing, because its served path is not in the source.
+
+AshJsonApi orders the routes of one router by its own rules, so all routes of
+one mount share the `forward`'s position: their order among themselves is
+unknown to core. The mounted router answers every other request under its
+path as well, so the position after it holds a blocker for the whole mount
+path, and a later Phoenix route under that path derives no relationship.
+
+Blockers inside a mount: `post_to_relationship`, `patch_relationship` and
+`delete_from_relationship`, which name no action; a route whose action the
+resource does not declare; the `open_api` and `json_schema` documents the
+router answers itself; and the `/schema` routes of a domain with
+`serve_schema? true`. A blocker covers everything under its literal prefix, so
+a resource that declares such a route derives no relationship under its base.
+When a router's domains, a domain's resources or any served routes block is
+not literal, or a listed resource is not exactly one selected `use
+Ash.Resource` module, the whole mount is one blocker.
+
+`ash_authentication_live_session`, AshAuthentication's wrapper around
+`live_session`, keeps the paths of the routes inside it and is read through.
+AshAuthentication's other routing macros, such as `auth_routes` and
+`sign_out_route`, are not read and are blockers for their scope, like any
+other library's macro.
+
 ## Limits
 
 Every observation carries `ELIXIR_SOURCE_SCOPE`. Invalid source syntax fails
