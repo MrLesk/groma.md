@@ -1,23 +1,23 @@
 import type { ProjectProfile } from '../../../project-profile.ts'
 import { escaped } from '../atoms/escape.ts'
-import { resolveTheme, type WebTheme } from '../atoms/theme.ts'
+import { AUTO_THEME, shownTheme, type ThemeDefinition } from '../../../themes/definition.ts'
 import { readTheme } from '../url.ts'
 import { COVER_SIZE } from './cover.ts'
 
-export function coverFile(theme: WebTheme): string {
-  return `cover-${theme}.png`
+/** The cover image of one theme, by its id. */
+export function coverFile(themeId: string): string {
+  return `cover-${themeId}.png`
 }
 
-/** A crawler has no system preference: Auto uses the light cover. */
-export function coverTheme(url: URL): WebTheme {
-  return resolveTheme(readTheme(url), false)
+/** The theme whose cover a link shows. A crawler has no system appearance, so Auto means the light one. */
+export function coverTheme(url: URL | undefined, themes: readonly ThemeDefinition[]): ThemeDefinition {
+  return shownTheme(url === undefined ? AUTO_THEME : readTheme(url, AUTO_THEME, themes), themes, false)
 }
 
 /** Emitted in the initial HTML, before any browser script or saved preference. */
-export function sharingMetadata(project: ProjectProfile | null, url?: URL): string {
+export function sharingMetadata(project: ProjectProfile | null, themes: readonly ThemeDefinition[], url?: URL): string {
   const title = project?.title ?? 'Groma'
-  const theme = url === undefined ? 'light' : coverTheme(url)
-  const file = coverFile(theme)
+  const file = coverFile(coverTheme(url, themes).id)
   const fields: [string, string][] = [
     ['og:title', title],
     ['og:type', 'website'],

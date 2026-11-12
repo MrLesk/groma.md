@@ -5,7 +5,8 @@ import type { Comparison } from '../../history/comparison.ts'
 import type { GitRevision } from '../../history/revisions.ts'
 import type { AnnotatedElement, AnnotatedRelationship, ArchitectureGraph, C4Kind, WorkItem } from '../../types.ts'
 import type { FlowRef } from '../flows.ts'
-import { isThemeMode, type WebThemeMode } from './atoms/theme.ts'
+import { bundledThemes } from '../../themes/bundled.ts'
+import { AUTO_THEME, isThemeMode, type ThemeDefinition } from '../../themes/definition.ts'
 import { mapControlEntries, readMapControls, type MapControls } from './chrome/map-view.ts'
 import type { DetailsTab } from './organisms/details.ts'
 import { noSelection, selectTask } from './selection.ts'
@@ -22,7 +23,8 @@ export interface ViewState extends MapControls {
   /** The tags the map is focused on. */
   focusTags: readonly string[]
   tab: DetailsTab
-  theme: WebThemeMode
+  /** Auto, or the id of an enabled theme. */
+  theme: string
   hudVisible: boolean
   inset?: number
 }
@@ -110,16 +112,23 @@ function appendSourceState(
   if (state.line !== undefined) pairs.push(['line', String(state.line)])
 }
 
-/** A publication can select a theme through its architecture/{theme}/ directory. */
-function pathTheme(pathname: string): WebThemeMode | undefined {
-  const theme = pathname.match(/\/architecture\/([^/]+)\/?$/)?.[1]
-  return isThemeMode(theme) ? theme : undefined
+/** A publication can select a theme through its architecture/{theme}/ directory, when the project enables that theme. */
+function pathTheme(pathname: string, themes: readonly ThemeDefinition[]): string | undefined {
+  const published = pathname.match(/\/architecture\/([^/]+)\/?$/)?.[1]
+  return isThemeMode(published, themes) ? published : undefined
 }
 
-/** The browser and initial sharing metadata resolve the same explicit theme. */
-export function readTheme(url: Pick<URL, 'search' | 'pathname'>, defaultTheme: WebThemeMode = 'auto'): WebThemeMode {
+/**
+ * The theme a link asks for: its `theme` entry, else its publication path, else the given default. An entry or a path
+ * that names no enabled theme is passed over, so an old link falls back instead of breaking.
+ */
+export function readTheme(
+  url: Pick<URL, 'search' | 'pathname'>,
+  defaultTheme: string = AUTO_THEME,
+  themes: readonly ThemeDefinition[] = bundledThemes,
+): string {
   const selected = new URLSearchParams(url.search).get('theme')
-  return isThemeMode(selected) ? selected : pathTheme(url.pathname) ?? defaultTheme
+  return isThemeMode(selected, themes) ? selected : pathTheme(url.pathname, themes) ?? defaultTheme
 }
 
 function readTab(params: URLSearchParams, file: string | undefined, change: ComponentChange | undefined): DetailsTab {
@@ -138,7 +147,7 @@ function appendTab(pairs: [string, string][], state: ViewState, change: Componen
  * `relationship=<source id>/<target id>` entries) or `task=<id>`,
  * checked flows (repeated `flow=<id>`) and the last flow's one-based `step=<number>`,
  * focused tags (repeated `tag=<tag>`), `tab=how|tasks`, `view=iso|2d|layers`, `hide=<comma-separated filters>`,
- * `theme=auto|light|dark|blueprint` and `hud=off`. A query theme overrides
+ * `theme=auto|<theme id>` and `hud=off`. A query theme overrides
  * the publication path theme, then the saved default. Ids are the authored ids; anything the world
  * or the work does not know is ignored, a kind naming an element of another kind included.
  */
@@ -147,9 +156,10 @@ export function readView(
   world: ArchitectureGraph,
   work: readonly WorkItem[],
   revisions: readonly GitRevision[] = [],
-  defaultTheme: WebThemeMode = 'auto',
+  defaultTheme: string = AUTO_THEME,
   comparison?: Comparison,
   defaultControls?: MapControls,
+  themes: readonly ThemeDefinition[] = bundledThemes,
 ): ViewState {
   const params = new URLSearchParams(url.search)
   const inset = Number(params.get('inset'))
@@ -176,7 +186,7 @@ export function readView(
     flows,
     focusTags: focusTags(params, world),
     tab: readTab(params, source.file, comparison?.components[selected?.id ?? '']),
-    theme: readTheme(url, defaultTheme),
+    theme: readTheme(url, defaultTheme, themes),
     hudVisible: params.get('hud') !== 'off',
   }
 }
@@ -222,7 +232,14 @@ function appendFlow(pairs: [string, string][], flow: FlowRef | undefined, world:
 }
 
 /** The query string includes map-control defaults so recipients open the same presentation. */
-export function writeView(state: ViewState, world: ArchitectureGraph, work: readonly WorkItem[], pathname: string, comparison?: Comparison): string {
+export function writeView(
+  state: ViewState,
+  world: ArchitectureGraph,
+  work: readonly WorkItem[],
+  pathname: string,
+  comparison?: Comparison,
+  themes: readonly ThemeDefinition[] = bundledThemes,
+): string {
   const elements = new Map(world.elements.map(element => [element.representationId, element]))
   const selected = state.selection.kind === 'architecture'
     ? elements.get(state.selection.ids.at(-1) ?? '')
@@ -238,7 +255,7 @@ export function writeView(state: ViewState, world: ArchitectureGraph, work: read
   }
   for (const tag of state.focusTags) pairs.push(['tag', encodeURIComponent(tag)])
   pairs.push(...mapControlEntries(state))
-  if (state.theme !== (pathTheme(pathname) ?? 'auto')) pairs.push(['theme', state.theme])
+  if (state.theme !== (pathTheme(pathname, themes) ?? AUTO_THEME)) pairs.push(['theme', state.theme])
   if (!state.hudVisible) pairs.push(['hud', 'off'])
   if (state.inset !== undefined) pairs.push(['inset', String(state.inset)])
   return pairs.length === 0 ? '' : `?${pairs.map(([key, value]) => `${key}=${value}`).join('&')}`

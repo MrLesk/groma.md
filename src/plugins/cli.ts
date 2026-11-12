@@ -1,6 +1,7 @@
 import type { Command } from 'commander'
 import { parseListWindow, printListPage, withListWindowOptions } from '../list-window.ts'
-import { addPlugin, pluginPresence, removePlugin, restoreFailure, restoreMissingPlugins, updatePlugin, type PluginSelection } from './management.ts'
+import { cloneTheme, enabledThemes } from '../themes/management.ts'
+import { addPlugin, pluginPresence, removePlugin, restoreFailure, restoreMissingPlugins, themeSelection, updatePlugin, type PluginSelection } from './management.ts'
 
 /** Runs one command action; a failure prints its message alone and sets the exit code. The scanner commands share it. */
 export async function runPluginCommand(action: () => Promise<void>): Promise<void> {
@@ -28,13 +29,26 @@ export function registerPluginCommands(program: Command): void {
 
   plugin
     .command('add')
-    .description('Add a bundled plugin by id, or install and add a scanner from npm, Git, or a local path')
-    .argument('<plugin>', 'bundled plugin id (backlog), package name, package@version, git+https://repository#tag-or-commit, or ./path')
+    .description('Add a bundled plugin by id, a theme file, or install and add a scanner from npm, Git, or a local path')
+    .argument('<plugin>', 'bundled plugin id (backlog, or a theme: light, dark, blueprint), ./theme.json, package name, package@version, git+https://repository#tag-or-commit, or ./path')
     .action(async (input: string) => {
       await runPluginCommand(async () => {
         const added = await addPlugin(process.cwd(), input)
         console.log('ok')
         console.log(selectionLine(added))
+      })
+    })
+
+  plugin
+    .command('clone')
+    .description('Copy a theme into the Groma directory as a file you can edit, and enable the copy')
+    .argument('<theme>', 'id of the theme to copy, such as dark')
+    .argument('<id>', 'id of the new theme, such as midnight')
+    .action(async (theme: string, id: string) => {
+      await runPluginCommand(async () => {
+        const cloned = await cloneTheme(process.cwd(), theme, id)
+        console.log('ok')
+        console.log(selectionLine(themeSelection(cloned)))
       })
     })
 
@@ -68,6 +82,8 @@ export function registerPluginCommands(program: Command): void {
       await runPluginCommand(async () => {
         const lines = (await pluginPresence(process.cwd())).map(item =>
           pluginLine([item.kind, item.id, item.present ? 'found' : 'missing', item.selection, item.message]))
+        // Themes have nothing to install, so they are listed as enabled rather than found or missing.
+        lines.push(...(await enabledThemes(process.cwd())).map(theme => selectionLine(themeSelection(theme))))
         printListPage(lines, parseListWindow(options, process.argv.slice(2)))
       })
     })

@@ -15,7 +15,8 @@ import { chromeCss } from './atoms/chrome.ts'
 import { escaped } from './atoms/escape.ts'
 import { anchoredPopoverCss } from './atoms/popover.ts'
 import { kindGlyph, kindLabel } from '../atoms/kind.ts'
-import { cssBlock, palettes, themeLabel, themeModes, webFontFamily, type WebThemeMode } from './atoms/theme.ts'
+import { AUTO_THEME, shownTheme, type ThemeDefinition } from '../../themes/definition.ts'
+import { cssBlock, webFontFamily } from './atoms/theme.ts'
 import { addDialogCss } from './chrome/add.ts'
 import { creditsControl, creditsCss } from './chrome/credits.ts'
 import { editorCss } from './editing/gestures.ts'
@@ -78,11 +79,9 @@ const style = `
   ${fontCss}
   ${pluginSettingsCss}${duplicatesCss}${projectReviewCss}${settingsCss}${settingsDialogCss}
   :root {
-    ${cssBlock(palettes.light)}
     --backlog-mark-image: url("data:image/png;base64,${backlogMark}");
     --chrome-radius: 10px;
     --control-radius: 6px;
-    --chrome-surface: color-mix(in srgb, var(--paper) 35%, transparent);
     --chrome-motion: 260ms;
     --chrome-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
     --tree-step: 16px;
@@ -90,11 +89,6 @@ const style = `
     --details-column: clamp(360px, 32vw, 420px);
     --hierarchy-inset: var(--hierarchy-column);
     --details-inset: var(--details-column);
-  }
-  [data-theme="dark"] { ${cssBlock(palettes.dark)} }
-  [data-theme="blueprint"] {
-    ${cssBlock(palettes.blueprint)}
-    --chrome-surface: color-mix(in srgb, var(--paper) 78%, transparent);
   }
   html { margin: 0; height: 100%; overflow-x: auto; overflow-y: hidden; background: var(--paper); }
   *, *::before, *::after { box-sizing: border-box; }
@@ -400,17 +394,25 @@ function legend(): string {
   }).join('')
 }
 
-const themeIcons: Record<WebThemeMode, string> = {
-  auto: autoIcon,
-  light: sunIcon,
-  dark: moonIcon,
-  blueprint: blueprintIcon,
+/**
+ * One block of variables per enabled theme. The first block holds until the browser script sets data-theme: it is the
+ * theme Auto shows on a light system.
+ */
+function themeCss(themes: readonly ThemeDefinition[]): string {
+  return [`:root { ${cssBlock(shownTheme(AUTO_THEME, themes, false))} }`,
+    ...themes.map(theme => `[data-theme="${theme.id}"] { ${cssBlock(theme)} }`)].join('\n')
 }
 
-function themeControl(): string {
-  const options = themeModes
-    .map(mode => `<button class="anchored-option theme-option" type="button" data-theme-mode="${mode}" aria-current="${String(mode === 'auto')}">${themeIcons[mode]}<span>${themeLabel(mode)}</span></button>`)
-    .join('')
+function themeIcon(theme: ThemeDefinition): string {
+  if (theme.id === 'blueprint') return blueprintIcon
+  return theme.scheme === 'dark' ? moonIcon : sunIcon
+}
+
+/** The picker offers Auto and exactly the themes the project enables. */
+function themeControl(themes: readonly ThemeDefinition[]): string {
+  const option = (mode: string, icon: string, title: string) =>
+    `<button class="anchored-option theme-option" type="button" data-theme-mode="${escaped(mode)}" aria-current="${String(mode === AUTO_THEME)}">${icon}<span>${escaped(title)}</span></button>`
+  const options = [option(AUTO_THEME, autoIcon, 'Auto'), ...themes.map(theme => option(theme.id, themeIcon(theme), theme.title))].join('')
   return `<details id="theme" data-theme-mode="auto"><summary class="anchored-option" aria-label="Theme"><span>Theme</span><span class="label">Auto</span><span class="theme-chevron"></span></summary><div class="anchored-popover theme-menu">${options}</div></details>`
 }
 
@@ -462,11 +464,11 @@ export function renderPage(payload: WebBootPayload, url?: URL): string {
   const readOnly = payload.delivery.kind === 'live' && payload.delivery.readOnly
     ? '<span id="read-only" title="Run groma web again to restore the missing plugins.">Read-only: plugins missing</span>' : ''
   return `<!doctype html><html><head><meta charset="utf-8"><title>${escaped(payload.project?.title ?? 'Groma')}</title>`
-    + sharingMetadata(payload.project, url)
-    + `<style>${style}</style></head><body data-delivery="${payload.delivery.kind}"${chromeInset(url)}>`
+    + sharingMetadata(payload.project, payload.themes, url)
+    + `<style>${style}${themeCss(payload.themes)}</style></head><body data-delivery="${payload.delivery.kind}"${chromeInset(url)}>`
     + `<header id="header"><div class="header-context">${lockup}<span id="stats"></span>${readOnly}${revisionControl(payload, { history: historyIcon, loader: revisionLoader })}</div>`
     + searchControl({ search: searchIcon, close: closeIcon })
-    + `<div class="header-actions">${projectReviewControl}<div id="map-controls" class="controls" aria-label="Map controls"><button id="fit" aria-label="Fit map">${fitIcon}<span>Fit</span></button><button id="zoom-out" aria-label="Zoom out"><span class="control-glyph">−</span></button><span id="zoom" aria-live="polite"></span><button id="zoom-in" aria-label="Zoom in"><span class="control-glyph">+</span></button></div><div class="header-utilities">${settingsControl(themeControl())}${helpControl()}${creditsControl(infoIcon, lockup)}</div></div>`
+    + `<div class="header-actions">${projectReviewControl}<div id="map-controls" class="controls" aria-label="Map controls"><button id="fit" aria-label="Fit map">${fitIcon}<span>Fit</span></button><button id="zoom-out" aria-label="Zoom out"><span class="control-glyph">−</span></button><span id="zoom" aria-live="polite"></span><button id="zoom-in" aria-label="Zoom in"><span class="control-glyph">+</span></button></div><div class="header-utilities">${settingsControl(themeControl(payload.themes))}${helpControl()}${creditsControl(infoIcon, lockup)}</div></div>`
     + '</header>'
     + `<nav id="hierarchy" aria-label="Hierarchy"><div id="hierarchy-title"><span class="pane-label">Hierarchy</span>${writable ? '<button id="add" type="button" aria-label="Add">+</button>' : ''}<button id="hierarchy-toggle" type="button" aria-controls="hierarchy-content">${hierarchyIcon}</button></div><div id="hierarchy-content"><div id="flows"></div><div id="tree"></div><div id="tags" hidden></div><div id="legend">${legend()}</div></div></nav>`
     + `<div id="map" role="tabpanel" aria-label="Architecture map"></div>${mapViewControl()}${c4FilterControl()}`

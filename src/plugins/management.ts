@@ -7,6 +7,8 @@ import {
   updateScanner,
   type ScannerInstallOptions,
 } from '../scanner/modules/inventory.ts'
+import { themeEntries } from '../themes/configured.ts'
+import { disableTheme, enableTheme, themeEntry } from '../themes/management.ts'
 import { bundledWorkSource, bundledWorkSources, checkWorkSourceReadiness, type BundledWorkSource } from '../work/sources.ts'
 
 /**
@@ -16,6 +18,8 @@ import { bundledWorkSource, bundledWorkSources, checkWorkSourceReadiness, type B
  * - scanner: its last selected source is on this computer; npm restoration selects the newest compatible release.
  * - work source: it ships inside groma.md, and its tool is installed at the listed version or newer; restoring
  *   installs the current tool.
+ * A theme is listed in config.json too, but it has nothing to install or restore: it ships inside groma.md or is a
+ * file in the repository. src/themes/management.ts owns its entries, and add, remove and list reach it from here.
  */
 
 export type PluginKind = 'scanner' | 'workSource'
@@ -59,19 +63,26 @@ async function ensureTool(bundled: BundledWorkSource, latest: boolean): Promise<
   return after.version
 }
 
-/** A plugin as a command reports it after adding or updating it. */
+/** A plugin or a theme as a command reports it after adding or updating it. */
 export interface PluginSelection {
-  kind: PluginKind
+  kind: PluginKind | 'theme'
   id: string
   selection: string
 }
 
+/** A theme entry as a command reports it: its file, or `bundled`. */
+export function themeSelection(theme: { id: string; source?: string }): PluginSelection {
+  return { kind: 'theme', id: theme.id, selection: theme.source ?? 'bundled' }
+}
+
 /**
- * Adds a plugin to config.json and makes it present. A bundled work source is named by its id (`backlog`): its tool
+ * Adds a plugin to config.json and makes it present. A bundled theme id or a theme file is enabled as a theme. A bundled work source is named by its id (`backlog`): its tool
  * is installed when missing and the installed version is recorded. Anything else is a scanner source.
  */
 export async function addPlugin(root: string, input: string, options: ScannerInstallOptions = {}): Promise<PluginSelection> {
   const id = input.trim()
+  const theme = themeEntry(id)
+  if (theme !== undefined) return themeSelection(await enableTheme(root, theme))
   if (!Object.hasOwn(bundledWorkSources, id)) {
     const added = await addScanner(root, input, options)
     return { kind: 'scanner', id: added.id, selection: added.source }
@@ -91,6 +102,10 @@ export async function addPlugin(root: string, input: string, options: ScannerIns
 export async function removePlugin(root: string, id: string): Promise<string> {
   const config = await readGromaConfig(root)
   if (config.scanners.some(scanner => scanner.id === id)) return removeScanner(root, id)
+  if (themeEntries(config).some(theme => theme.id === id)) {
+    await disableTheme(root, id)
+    return id
+  }
   if (!config.workSources.some(work => work.id === id)) throw new Error(`plugin is not configured: ${id}`)
   await updateGromaConfig(root, current => {
     if (!current.workSources.some(work => work.id === id)) throw new Error(`plugin is not configured: ${id}`)
@@ -110,6 +125,7 @@ export async function updatePlugin(root: string, id: string, input?: string, opt
     const updated = await updateScanner(root, id, input, options)
     return { kind: 'scanner', id, selection: updated.source }
   }
+  if (themeEntries(config).some(theme => theme.id === id)) throw new Error(`${id} is a theme and has no releases; edit its theme file instead`)
   const selected = config.workSources.find(work => work.id === id)
   if (!selected) throw new Error(`plugin is not configured: ${id}`)
   if (input !== undefined) throw new Error(`${id} ships inside groma.md; update it without a source`)
