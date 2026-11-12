@@ -21,6 +21,7 @@ import { createFlowList } from '../flow/list.ts'
 import type { CodeFile } from '../../source/structure.ts'
 import { paintElementWork } from '../work/component-tasks.ts'
 import { codeList } from './code-lists.ts'
+import { colorSwatches } from './color-swatches.ts'
 import { heading, paragraph } from '../atoms/text.ts'
 import { tagChips } from '../chrome/tag-focus.ts'
 import { editButton, isEditing, type EditField } from './editable.ts'
@@ -51,6 +52,8 @@ export interface Inspected {
   origin: Origin
   overview: string
   tags: string[]
+  /** The authored color name, or '' when the element has none. */
+  color: string
   relationships: RelationshipPairData[]
   flows: FlowRowData[]
   children: InspectedChild[]
@@ -156,6 +159,7 @@ export function inspectDetails(
     origin: element.origin,
     overview: element.overview,
     tags: element.tags ?? [],
+    color: element.color ?? '',
     relationships,
     flows: flowsThrough(element.representationId, world).map(flow => ({
       flow: { id: flow.id }, title: flow.title,
@@ -188,7 +192,7 @@ export function inspectUnidentifiedContainer(zone: Zone, world: ArchitectureGrap
     children: world.elements.filter(element => members.has(element.representationId)).map(element => ({
       id: element.representationId, title: element.title, kind: element.kind, external: element.external,
     })),
-    tags: [], relationships: [], flows: [], technology: '', files: [], findings: [],
+    tags: [], color: '', relationships: [], flows: [], technology: '', files: [], findings: [],
     removable: false, matchedGhost: false, movable: false, parent: zone.parent,
   }
 }
@@ -321,6 +325,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
         body.append(tagChips(inspected.tags.map(tag => ({ tag })), options.focusTags, options.onToggleTag))
       }
       if (inspected.overview !== '') body.append(paragraph('overview', inspected.overview))
+      if (options.onColor !== undefined) body.append(colorSwatches(inspected.color, options.onColor))
     },
 
     relationships: () => {

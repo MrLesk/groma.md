@@ -29,6 +29,11 @@ export function strokeAt(depth: number): number {
   return BUILDING_STROKE * STROKE_RATIO ** (depthOf('building') - depth)
 }
 
+/** An authored color takes this many times the ink share of its surface, so its hue reads at fit zoom. */
+export const COLOR_STRENGTH = 2
+/** Share of the authored color in the outline of its element; the rest is the neutral line. */
+export const COLOR_EDGE = 0.7
+
 /** Share of ink mixed into the paper, 0 to 1. */
 export function tintAt(depth: number): number {
   return ISLAND_TINT * TINT_RATIO ** depth

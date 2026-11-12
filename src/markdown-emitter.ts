@@ -22,6 +22,8 @@ export interface MeaningChanges {
   technology?: string
   /** Comma-separated OKF tags that replace the element's list; empty text removes it. */
   tags?: string
+  /** A color name from src/colors.ts; empty text removes it. */
+  color?: string
   draft?: string
 }
 
@@ -32,6 +34,7 @@ export function withMeaning(source: string, input: MeaningChanges): string {
   source = withDescription(source, input.description)
   if (input.technology !== undefined) source = withGromaField(source, 'technology', input.technology || undefined)
   if (input.tags !== undefined) source = withTags(source, parseTags(input.tags))
+  if (input.color !== undefined) source = withGromaField(source, 'color', input.color || undefined)
   if (input.draft !== undefined) source = withGromaField(source, 'draft', input.draft || undefined)
   return source
 }
@@ -79,7 +82,7 @@ export function withGromaCode(source: string, code: CodeReference[]): string {
 
 export function withGromaField(
   source: string,
-  field: 'id' | 'group' | 'parent' | 'draft' | 'technology',
+  field: 'id' | 'group' | 'parent' | 'draft' | 'technology' | 'color',
   value: string | undefined,
 ): string {
   return withGromaChange(source, groma => {

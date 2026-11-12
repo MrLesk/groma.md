@@ -186,6 +186,12 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   select, by the [matching rule](../../component-markdown.md#focusing-on-tags).
   [`chrome/tag-focus.ts`](../../../src/viewers/web/chrome/tag-focus.ts) owns the
   focused tags.
+- **Colors:** On a live current map the details pane of an element shows a
+  **Color** row: no color, then each [named color](../../component-markdown.md#colors)
+  in the current theme's values. A click applies it at once. The map mixes the
+  color into the element's surfaces and outline; selection, lit flows, task marks
+  and drafts keep their own look over it, and a comparison switches authored
+  colors off because color means change there.
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
   IDs and titles from the configured work source. `Up`/`Down` preview matches;
   `Enter` opens the selected element or task; `Escape` restores the prior selection

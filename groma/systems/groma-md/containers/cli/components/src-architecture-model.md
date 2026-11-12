@@ -26,6 +26,8 @@ groma:
       file: src/tags.ts
     - scanner: typescript
       file: src/tag-selection.ts
+    - scanner: typescript
+      file: src/colors.ts
   group: Architecture records
 description: Builds the in-memory C4 model from stored Markdown records
 ---

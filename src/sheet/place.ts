@@ -66,6 +66,7 @@ function item(element: AnnotatedElement): SheetItem {
     id: element.id,
     title: element.title,
     origin: element.origin,
+    ...(element.color === undefined ? {} : { color: element.color }),
   }
 }
 

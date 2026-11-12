@@ -165,6 +165,7 @@ groma.md-only fields live together under `groma`:
 | `draft` | no | ID of the draft record this concept belongs to or that touches it. |
 | `group` | no | Readable name of a hand-authored sibling cluster. |
 | `technology` | no | Free text naming implementation technology, comma-separated. |
+| `color` | no | One named map color: `red`, `orange`, `yellow`, `blue`, `violet`, or `pink`. |
 | `code` | no | Scanner-produced source evidence. |
 
 Architecture IDs use lowercase Unicode words separated by hyphens. Each word
@@ -293,6 +294,32 @@ Continue the example: component `refunds` in `checkout-api` is tagged `internal`
 | A relationship from `cart` to a component of `checkout-api` | Yes: both ends are exported. |
 | A relationship from `catalog` to `cart`, or to `refunds` | No: one end is absent. |
 | A flow with a step over an absent relationship | No. |
+
+### Colors
+
+`groma.color` gives a concept one named color so the large parts of a map can be
+told apart at a glance. It is Groma presentation metadata: it adds no C4 element,
+parent, or relationship, and an ordinary Markdown or OKF reader still has the
+title, description, body and links.
+
+```yaml
+groma:
+  id: checkout-api
+  parent: shop
+  color: violet
+```
+
+The document stores only the name. Every UI theme says what each name looks
+like, so one authored color reads well in Light, Dark and Blueprint, and a hex
+value is never stored. No name is green, because green marks selection and lit
+flows. [`src/colors.ts`](../src/colors.ts) holds the list.
+
+`groma edit <id> --color violet` sets the color of an actor, system, external
+system, container, or component, and an empty value removes it. The web details
+pane offers the same names as a row of swatches that applies at once. Nothing is
+colored automatically, a color is not inherited by what the element contains,
+and scans keep it. Groups cannot carry a color: a group is a name on its members
+and has no document.
 
 ### Code references
 
