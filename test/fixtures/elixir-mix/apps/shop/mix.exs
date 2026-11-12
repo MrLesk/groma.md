@@ -20,7 +20,7 @@ defmodule Shop.MixProject do
   end
 
   defp elixirc_paths(:test), do: elixirc_paths(:dev) ++ ["test/support"]
-  defp elixirc_paths(_), do: ["lib", "extra/"]
+  defp elixirc_paths(_), do: ["lib", "extra/", "proto/lib"]
 
   defp escript do
     [main_module: Shop.CLI]

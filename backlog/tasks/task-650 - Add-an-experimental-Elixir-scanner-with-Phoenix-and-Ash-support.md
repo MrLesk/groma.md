@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-11T22:51:00Z'
-updated_date: '2026-11-11T23:50:00Z'
+updated_date: '2026-11-12T00:07:00Z'
 labels: []
 dependencies: []
 references:
@@ -93,6 +93,8 @@ modified_files:
   - docs/scanners/discovery.md
   - docs/scanners/evidence.md
   - docs/scanners/creating-a-plugin.md
+  - test/fixtures/elixir-mix/apps/shop/proto/mix.exs
+  - test/fixtures/elixir-mix/apps/shop/proto/lib/wire.ex
 type: feature
 ordinal: 706000
 ---
@@ -218,4 +220,6 @@ Milestone 1 (language evidence): package skeleton, bundled tree-sitter-elixir 0.
 Milestone 2 (Phoenix): router recognition (use Phoenix.Router, or use Web, :router proven through the web module's router/0), scope, verbs, match, resources, forward, live and live_session, path reading, blockers and registration order. The phoenix fixture scan returns 18 endpoints in registration order; with the built JavaScript scanner core derives the two proven rows and none for a route registered after a blocker. Checks: elixir-scanner and elixir-phoenix tests (6 pass), typecheck and Biome lint clean.
 
 Milestone 3 (Ash): resource actions as operations, code-interface define entries as bare-name declarations on their host module, AshJsonApi routes of domains and resources mounted under the Phoenix forward of their router, and the ash_authentication_live_session wrapper. Two points decided during implementation and stated in the scanner page: (1) a readable mount is followed by a blocker for the whole mount path at the next position, because the mounted router answers every other request under that path; (2) a relationship route without an action is a blocker at its literal prefix as approved, which covers the resource's whole base path. Checks: elixir-scanner, elixir-phoenix and elixir-ash tests (9 pass), typecheck and Biome lint clean.
+
+Milestone 5 (qualification): twelve application repositories and two framework repositories scanned at exact commits with the built package and the built JavaScript, TypeScript, React, Go, Python and PHP scanners; ten qualify together with another language, five of them use Ash. All Elixir scans repeat identically with reversed input, no file failed to parse, 21,106 function, 182 action and 83,249 call positions match the source, the CLI flow creates nothing on the repeat scan, no file has two owners and sources stay unchanged. Proven frontend rows: noted_ash (axios to a Phoenix controller) and livebook (fetch with a configured base). Reproduced failure fixed in the general rule: a file belongs to every Mix project whose source directories contain it (livebook compiles proto/lib into its application); the elixir-mix test failed before the change. Not scanned together: Rust (the Rust scanner needs rustc 1.99, 1.91.1 is installed), Svelte (no scanner), and React through the CLI on noted_ash, where core fails on the React scanner's unnamed package root (outside this task, unchanged). Details in docs/scanners/elixir/validation.md.
 <!-- SECTION:NOTES:END -->
