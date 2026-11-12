@@ -20,17 +20,20 @@ export interface LayerPainter {
 }
 
 /**
- * The cached camera layer: one promoted element whose CSS transform moves the picture the SVG last drew, so pans and
+ * The camera layer: its CSS transform moves the picture the SVG last drew, so pans and
  * zooms need no redraw. It draws the shown camera into the SVG when the map settles after a scale change, or at once
  * when navigation zooms out, and rebuilds the layer sharp once the compositor has scaled it.
  */
-export function createCameraLayer(painter: LayerPainter) {
+export function createCameraLayer(painter: LayerPainter, userAgent = navigator.userAgent) {
   const element = document.createElement('div')
   element.className = 'camera'
   // showCached's translate assumes the picture scales about the layer's top-left corner.
   element.style.transformOrigin = '0 0'
-  // The cached layer stays promoted at rest: promoting it again when a pan starts makes Safari redraw the whole map.
-  element.style.willChange = 'transform'
+  // Chromium can lose overflowing SVG on hover under a forced camera cache (#185). Let it manage its own layer.
+  // Keep WebKit promoted at rest: releasing and recreating its cache makes Safari stutter when a pan starts.
+  // Chrome/Edge on iOS use WebKit and advertise CriOS/EdgiOS instead of the Chromium Chrome token.
+  const keepPromoted = !/\b(?:Chrome|Chromium)\//.test(userAgent)
+  element.style.willChange = keepPromoted ? 'transform' : 'auto'
   /** The camera shown now, and the one the SVG was last drawn for; between them the cached picture moves. */
   let shown: CameraView | undefined
   let drawn: CameraView | undefined
@@ -59,7 +62,7 @@ export function createCameraLayer(painter: LayerPainter) {
   const showCached = (camera: Camera, from: Camera): void => {
     const ratio = camera.k / from.k
     element.style.transform = `translate(${camera.x - from.x * ratio}px, ${camera.y - from.y * ratio}px) scale(${ratio})`
-    if (ratio !== 1) scaled = true
+    if (keepPromoted && ratio !== 1) scaled = true
   }
 
   /**
