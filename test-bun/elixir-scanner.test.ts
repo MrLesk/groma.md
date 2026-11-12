@@ -14,6 +14,7 @@ import { readCodeStructure } from '../src/viewers/source/structure.ts'
 
 const fixtures = path.resolve(import.meta.dir, '../test/fixtures')
 const orders = 'apps/shop/lib/shop/orders.ex'
+const wire = 'apps/shop/proto/lib/wire.ex'
 
 /** A fresh copy of the fixture as a Git repository with an empty architecture, and the built scanner package. */
 async function setup() {
@@ -34,7 +35,7 @@ test.concurrent('the Elixir scanner reads only the sources Mix compiles and give
   try {
     const sources = [
       'apps/dynamic/src/plugin.ex', 'apps/shop/extra/audit.ex', 'apps/shop/lib/shop/application.ex',
-      'apps/shop/lib/shop/cli.ex', orders, 'apps/tool/lib/tool/cli.ex', 'apps/tool/lib/tool/shape.ex',
+      'apps/shop/lib/shop/cli.ex', orders, wire, 'apps/tool/lib/tool/cli.ex', 'apps/tool/lib/tool/shape.ex',
     ]
     // Selected by the include list but compiled by no project: the umbrella root's lib and a template under priv.
     expect(selected).toEqual(expect.arrayContaining(['lib/stray.ex', 'apps/shop/priv/templates/report.ex']))
@@ -51,6 +52,9 @@ test.concurrent('the Elixir scanner reads only the sources Mix compiles and give
     const rootOf = (file: string) => observation.roots.find(candidate => candidate.file === file)!
     expect(observation.files.find(file => file.file === orders)!.roots).toEqual([rootOf('apps/shop/mix.exs').id])
     expect(rootOf('apps/shop/mix.exs').parent).toBe(rootOf('mix.exs').id)
+    // The shop's source directories reach into the nested proto project, so both projects compile that file.
+    expect(observation.files.find(file => file.file === wire)!.roots)
+      .toEqual([rootOf('apps/shop/mix.exs').id, rootOf('apps/shop/proto/mix.exs').id])
     // Source directories the scanner cannot read keep every file of that project and say so.
     expect(observation.diagnostics.filter(diagnostic => diagnostic.severity === 'warning').map(diagnostic => diagnostic.file))
       .toEqual(['apps/dynamic/mix.exs'])

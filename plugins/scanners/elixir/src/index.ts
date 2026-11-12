@@ -54,8 +54,8 @@ async function readSource(root: string, file: string, entries: readonly string[]
   })
 }
 
-function diagnostics(projects: readonly MixProject[], sources: ReadonlyMap<string, MixProject>): ScanDiagnostic[] {
-  const compiling = new Set(sources.values())
+function diagnostics(projects: readonly MixProject[], sources: ReadonlyMap<string, readonly MixProject[]>): ScanDiagnostic[] {
+  const compiling = new Set([...sources.values()].flat())
   return [
     { severity: 'info', code: 'ELIXIR_SOURCE_SCOPE',
       message: 'Elixir syntax evidence only: call targets stay unresolved, and macros, `use` callbacks and protocols are not expanded. Mix, Phoenix and Ash declarations are read in their documented literal forms without running Mix or the application. Routes the scanner cannot read remain blockers.' },
@@ -87,7 +87,7 @@ export default {
     return createScanObservation({
       scanner: { id: 'elixir', technology: 'elixir', engine: 'tree-sitter-elixir', engineVersion: grammarVersion },
       roots: projectRoots(projects, root),
-      files: parsed.map(source => ({ file: source.file, roots: [sources.get(source.file)!.file], symbols: source.symbols })),
+      files: parsed.map(source => ({ file: source.file, roots: sources.get(source.file)!.map(project => project.file), symbols: source.symbols })),
       entryPoints: projectEntries(projects, sources, root, module => moduleNamed(module)?.file),
       operations: [...parsed.flatMap(source => source.operations), ...ash.flatMap(facts => facts.operations), ...phoenix.operations],
       invocations: parsed.flatMap(source => source.invocations),

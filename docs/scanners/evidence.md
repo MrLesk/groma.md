@@ -82,7 +82,7 @@ The official producers currently recognize these source forms:
 | Kotlin | Top-level `fun main` | The selected `.kt` files under the nearest directory with a Maven or Gradle build declaration |
 | Python | Module execution guard, `__main__.py`, or `project.scripts` | Resolved local imports within the declared project |
 | Ruby | File execution guard, literal gemspec executables, or a `config.ru` run declaration | Selected local requires within the declared project; an explicit Rails launch also supplies its standard Ruby application/configuration inputs and declared library autoload inputs |
-| Elixir | A Mix project's literal application callback (`mod:`), or its escript `main_module:` when it declares no callback | That Mix project's own compiled sources (`elixirc_paths`); no nested project or dependency |
+| Elixir | A Mix project's literal application callback (`mod:`), or its escript `main_module:` when it declares no callback | The sources that Mix project compiles (`elixirc_paths`); no dependency |
 | JavaScript, TypeScript, React, Vue, Angular | Source-backed package commands/bins, HTML script entries, Angular CLI and Nx build targets, and readable Bun browser/compiled build entries | Resolved local modules within the declared package; the polyfills and environment replacements a build target names; framework companion files join their source unit |
 | PHP | Source-backed Composer bins and literal PHP script commands | Explicitly included local sources within that Composer package |
 | Dart | A top-level `main` function with a body | Its physical file and explicit selected library parts; no import or framework closure |

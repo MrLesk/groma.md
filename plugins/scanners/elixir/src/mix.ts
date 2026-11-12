@@ -128,17 +128,27 @@ function nearestProject(projects: readonly MixProject[], file: string, except?: 
     .sort((left, right) => right.directory.length - left.directory.length)[0]
 }
 
+/** Whether Mix compiles `file` for `project`: the file lies in one of the project's source directories. */
+function compiles(project: MixProject, file: string, nearest: MixProject | undefined): boolean {
+  if (!isUnder(file, project.directory)) return false
+  // Unreadable source directories: the project keeps every file that no nested project claims.
+  if (project.sourceRoots === undefined) return project === nearest
+  const local = project.directory === '' ? file : file.slice(project.directory.length + 1)
+  return project.sourceRoots.some(root => isUnder(local, root))
+}
+
 /**
- * The `.ex` files Mix compiles, each with the project that compiles it: a file inside a source root
- * of its nearest project. A project with unreadable source roots compiles all its `.ex` files.
+ * The `.ex` files Mix compiles, each with every project that compiles it. Usually that is one
+ * project. A project whose source directories reach into another project, such as
+ * `elixirc_paths: ["lib", "proto/lib"]` beside `proto/mix.exs`, compiles those files as well.
  */
-export function compiledSources(projects: readonly MixProject[], candidates: readonly string[]): Map<string, MixProject> {
-  const sources = new Map<string, MixProject>()
+export function compiledSources(projects: readonly MixProject[], candidates: readonly string[]): Map<string, MixProject[]> {
+  const sources = new Map<string, MixProject[]>()
   for (const file of [...candidates].sort()) {
-    const project = file.endsWith('.ex') ? nearestProject(projects, file) : undefined
-    if (!project) continue
-    const local = project.directory === '' ? file : file.slice(project.directory.length + 1)
-    if (project.sourceRoots === undefined || project.sourceRoots.some(root => isUnder(local, root))) sources.set(file, project)
+    if (!file.endsWith('.ex')) continue
+    const nearest = nearestProject(projects, file)
+    const compiling = projects.filter(project => compiles(project, file, nearest))
+    if (compiling.length > 0) sources.set(file, compiling)
   }
   return sources
 }
@@ -162,12 +172,12 @@ export function projectRoots(projects: readonly MixProject[], repositoryRoot: st
  * One execution entry per project that declares what launches it. The entry file is the one source
  * of that project declaring the launch module; its source unit is the project's own compiled files.
  */
-export function projectEntries(projects: readonly MixProject[], sources: ReadonlyMap<string, MixProject>,
+export function projectEntries(projects: readonly MixProject[], sources: ReadonlyMap<string, readonly MixProject[]>,
   repositoryRoot: string, declaringFile: (module: string) => string | undefined): ScanEntryPoint[] {
   return projects.flatMap(project => {
     const file = project.entryModule === undefined ? undefined : declaringFile(project.entryModule)
-    if (file === undefined || sources.get(file) !== project) return []
-    const files = [...sources].flatMap(([source, owner]) => owner === project ? [source] : [])
+    if (file === undefined || !sources.get(file)?.includes(project)) return []
+    const files = [...sources].flatMap(([source, compiling]) => compiling.includes(project) ? [source] : [])
     return [{ file, declaration: project.file, name: projectName(project, repositoryRoot), files }]
   })
 }

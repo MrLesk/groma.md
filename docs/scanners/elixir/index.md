@@ -39,11 +39,14 @@ and exclude lists; excluded files are never read.
 
 Every selected `mix.exs` declares a Mix project at its directory. Mix compiles
 only the `.ex` files under a project's `elixirc_paths`, by default `lib`, so a
-file is source when it is a selected `.ex` file inside a source directory of
-its nearest Mix project. Other `.ex` files, such as generator templates under
-`priv/`, are not compiled by Mix and are neither listed nor parsed. `mix.exs`
-supplies metadata, not Code. Other `.exs` scripts (configuration, tests,
-migrations, seeds) are not read.
+file is source when it is a selected `.ex` file inside a source directory of a
+Mix project. Usually one project compiles a file. When a project's source
+directories reach into another project, as `["lib", "proto/lib"]` does beside
+`proto/mix.exs`, both projects compile those files and the file belongs to
+both. Other `.ex` files, such as generator templates under `priv/`, are not
+compiled by Mix and are neither listed nor parsed. `mix.exs` supplies
+metadata, not Code. Other `.exs` scripts (configuration, tests, migrations,
+seeds) are not read.
 
 `elixirc_paths` is read in these forms:
 
@@ -55,9 +58,9 @@ migrations, seeds) are not read.
 The Mix environment that selects a clause is unknown without running Mix, so
 the source directories are the union over all clauses. With the default
 exclusions this drops `test/support` again. When the value is written in any
-other form, every selected `.ex` file of that project is read as source and
-the observation carries an `ELIXIR_SOURCE_ROOTS_UNREADABLE` warning for its
-`mix.exs`. A project with `apps_path` is an umbrella root: it groups its child
+other form, every selected `.ex` file of that project that no nested project
+claims is read as source, and the observation carries an
+`ELIXIR_SOURCE_ROOTS_UNREADABLE` warning for its `mix.exs`. A project with `apps_path` is an umbrella root: it groups its child
 projects and compiles no source of its own. A repository without a Mix project
 is not scanned.
 
@@ -82,7 +85,8 @@ container placement rule:
 An escript starts the same compiled application, so a project that declares
 both has one entry, its application callback. The entry file is the one
 project source that declares the module. The entry's source unit is the
-project's own compiled files: no nested project and no dependency. Each
+files that project compiles: no dependency, and no other project's files
+unless the project's own source directories include them. Each
 umbrella app with its own declaration is its own entry; an app without one
 supplies none and stays under its system. A declaration that is not literal,
 or a module that is not declared by exactly one file of the project, supplies
