@@ -12,6 +12,7 @@ import type { ElementWorkGroup } from '../../../work/pins.ts'
 import type { Zone } from '../../../sheet/types.ts'
 import { findingsForOwner } from '../../../architecture-findings.ts'
 import { removalBlocker } from '../../../removable.ts'
+import { formatTags } from '../../../tags.ts'
 import { flowsThrough } from '../../flows.ts'
 import type { FlowRef } from '../../flows.ts'
 import { kindGlyph, kindLabel } from '../../atoms/kind.ts'
@@ -48,6 +49,7 @@ export interface Inspected {
   kindLabel: string
   origin: Origin
   overview: string
+  tags: string[]
   relationships: RelationshipPairData[]
   flows: FlowRowData[]
   children: InspectedChild[]
@@ -152,6 +154,7 @@ export function inspectDetails(
     kindLabel: kindLabel(element.kind, element.external),
     origin: element.origin,
     overview: element.overview,
+    tags: element.tags ?? [],
     relationships,
     flows: flowsThrough(element.representationId, world).map(flow => ({
       flow: { id: flow.id }, title: flow.title,
@@ -184,9 +187,23 @@ export function inspectUnidentifiedContainer(zone: Zone, world: ArchitectureGrap
     children: world.elements.filter(element => members.has(element.representationId)).map(element => ({
       id: element.representationId, title: element.title, kind: element.kind, external: element.external,
     })),
-    relationships: [], flows: [], technology: '', files: [], findings: [],
+    tags: [], relationships: [], flows: [], technology: '', files: [], findings: [],
     removable: false, matchedGhost: false, movable: false, parent: zone.parent,
   }
+}
+
+/** Short authored labels, such as technology parts or tags, as one wrapping row of chips. */
+function chipList(labels: readonly string[], name: string): HTMLUListElement {
+  const list = document.createElement('ul')
+  list.className = 'chips'
+  list.setAttribute('aria-label', name)
+  for (const label of labels) {
+    const chip = document.createElement('li')
+    chip.className = 'chip'
+    chip.textContent = label
+    list.append(chip)
+  }
+  return list
 }
 
 function marked(
@@ -296,6 +313,11 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
     overview: () => {
       if (change !== undefined) { comparisonOverview(body, change, options.world); return }
       if (inspected.description !== '') body.append(paragraph('description', inspected.description))
+      if (inspected.tags.length > 0) {
+        const tags = chipList(inspected.tags, 'Tags')
+        tags.classList.add('tags')
+        body.append(tags)
+      }
       if (inspected.overview !== '') body.append(paragraph('overview', inspected.overview))
     },
 
@@ -338,16 +360,8 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
     technology: () => {
       if (change !== undefined) { comparisonTechnology(body, change); return }
       if (inspected.technology.length === 0) return
-      body.append(heading('Technology'))
-      const list = document.createElement('ul')
-      list.className = 'chips'
-      for (const part of inspected.technology.split(',').map(part => part.trim()).filter(Boolean)) {
-        const chip = document.createElement('li')
-        chip.className = 'chip'
-        chip.textContent = part
-        list.append(chip)
-      }
-      body.append(list)
+      const parts = inspected.technology.split(',').map(part => part.trim()).filter(Boolean)
+      body.append(heading('Technology'), chipList(parts, 'Technology'))
     },
 
     code: () => {
@@ -381,6 +395,7 @@ function elementFields(inspected: Inspected, options: PaneWrites): EditField[] {
     { name: 'description', label: 'Description', value: inspected.description },
     { name: 'overview', label: 'Overview', value: inspected.overview, multiline: true },
     { name: 'technology', label: 'Technology', value: inspected.technology },
+    { name: 'tags', label: 'Tags', value: formatTags(inspected.tags) },
   ]
   if (inspected.movable) fields.push({
     name: 'parent', label: 'Parent', value: inspected.parent ?? '', options: options.parents ?? [],

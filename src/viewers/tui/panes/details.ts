@@ -38,6 +38,11 @@ function technologyRows(theme: ViewerTheme, element: AnnotatedElement, width: nu
   return [[], heading(theme, 'Technology', width), [plain(theme, technology.join(' · '))]]
 }
 
+function tagRows(theme: ViewerTheme, element: AnnotatedElement, width: number): Line[] {
+  if (element.tags === undefined) return []
+  return [[], heading(theme, 'Tags', width), [plain(theme, element.tags.join(' · '))]]
+}
+
 /** A file's outline rows as the How tab lists them: each declaration, followed by a type's members. */
 export function outlineSymbols(file: CodeFile): CodeSymbol[] {
   return file.declarations.flatMap(declaration => [declaration, ...(declaration.kind === 'type' ? declaration.members : [])])
@@ -180,6 +185,7 @@ function flowChoiceLines(theme: ViewerTheme, title: string, width: number, activ
 
 function whatLines(theme: ViewerTheme, element: AnnotatedElement, world: TerminalViewModel, byId: Elements, width: number, pickedId: string | undefined, actionCursor: string | undefined): PaneLines {
   const lines: Line[] = element.overview ? [[], ...wrap(element.overview, width).map(row => [plain(theme, row)])] : []
+  lines.push(...tagRows(theme, element, width))
   let cursor: number | undefined
   const rows = selectionPairs(world, element.representationId)
   if (rows.length > 0) lines.push([], heading(theme, 'Relationships', width))

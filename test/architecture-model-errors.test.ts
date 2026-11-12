@@ -105,6 +105,19 @@ for (const {
     sourceFilename: 'groma/systems/groma/containers/missing/container.md',
   },
   {
+    name: 'reports tags that are not a list of non-empty strings',
+    documents: [
+      elementDocument({
+        id: 'orders',
+        kind: 'system',
+        sourceFilename: 'groma/systems/orders/system.md',
+        tags: 'payments',
+      }),
+    ],
+    code: 'INVALID_ELEMENT',
+    sourceFilename: 'groma/systems/orders/system.md',
+  },
+  {
     name: 'reports an unresolved relationship link at its source document',
     documents: [
       withRelationships(elementDocument({
