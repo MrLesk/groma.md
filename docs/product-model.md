@@ -87,6 +87,8 @@ operation before opening a map.
    controls, and never reads the repository or a running groma.md server.
    Everything in the output directory is public data. Export reads stored
    architecture without starting a scanner, writes one snapshot, and exits.
+   `--include-filter` and `--exclude-filter` export only the part
+   [selected by tags](viewers/web/index.md#filtered-exports).
    Run it again to publish updated data. Hosting and access control belong to
    the chosen static host, outside groma.md.
 3. `groma scan`: scan this repo. Core folds structural scan evidence into Markdown
