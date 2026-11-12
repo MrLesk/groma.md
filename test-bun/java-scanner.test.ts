@@ -148,6 +148,23 @@ public class Caller {
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('a Java method javac leaves unattributed is still the caller of its body', async () => {
+  const { root, worker } = await fixture()
+  try {
+    await writeFile(path.join(root, 'src/main/java/Caller.java'), `package entry;
+public class Caller extends MissingBase {
+  Caller(Object value) {
+    super(value == null ? null : new Object() {
+      public void callback() { step(); }
+    });
+  }
+  private static void step() {}
+}`)
+    const evidence = calls(await compilerScan(root, worker))
+    expect(evidence.find(call => call.member === 'step')).toMatchObject({ caller: expect.stringContaining('callback') })
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('a modular Java project keeps authored local calls', async () => {
   const { root, worker } = await fixture()
   try {
