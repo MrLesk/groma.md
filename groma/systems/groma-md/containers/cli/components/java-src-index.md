@@ -26,7 +26,6 @@ groma:
       symbol: summarizeMissingTypes
     - scanner: typescript
       file: plugins/scanners/java/src/worker.ts
-  group: Language analysis
 description: Starts the bundled Java worker and returns its scan results
 ---
 

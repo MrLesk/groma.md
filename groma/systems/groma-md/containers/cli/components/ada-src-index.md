@@ -17,7 +17,6 @@ groma:
       symbol: operationEvidence
     - scanner: typescript
       file: plugins/scanners/ada/src/syntax.ts
-  group: Language scanners
   technology: TypeScript, Tree-sitter, WebAssembly
 description: Supplies Ada declarations, package units and bounded procedure-call evidence without GNAT or a project build.
 ---

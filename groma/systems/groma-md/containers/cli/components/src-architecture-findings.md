@@ -12,7 +12,6 @@ groma:
       file: src/architecture-findings.ts
     - scanner: typescript
       file: src/architecture-findings-worker.ts
-  group: Source scanning
 description: Compares operation bodies and reports possible duplicated logic
 ---
 

@@ -5,7 +5,6 @@ status: stable
 groma:
   id: audit-router
   parent: audit
-  group: Core
   code:
     - scanner: typescript
       file: src/identity/audit/router.ts

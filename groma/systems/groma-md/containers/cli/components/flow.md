@@ -14,7 +14,6 @@ groma:
     - scanner: typescript
       file: src/viewers/tui/flow-navigation.ts
       symbol: reduceFlowReading
-  group: Terminal map
 description: Highlights the selected flow step on the terminal map
 ---
 

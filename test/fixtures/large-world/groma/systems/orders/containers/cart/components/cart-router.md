@@ -5,7 +5,6 @@ status: stable
 groma:
   id: cart-router
   parent: cart
-  group: Core
   code:
     - scanner: typescript
       file: src/orders/cart/router.ts

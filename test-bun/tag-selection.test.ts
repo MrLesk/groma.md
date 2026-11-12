@@ -31,7 +31,7 @@ test.concurrent('a tag selects its carriers with everything inside them and keep
 })
 
 test.concurrent('a shared link carries the focused tags and drops a tag the world does not use', () => {
-  const world: ArchitectureGraph = { flows: [], elements, relationships: [] }
+  const world: ArchitectureGraph = { flows: [], groups: [], elements, relationships: [] }
   const url = new URL('https://example.test/')
   const state = { ...readView(url, world, []), focusTags: ['checkout flow', 'payments'] }
   url.search = writeView(state, world, [], url.pathname)

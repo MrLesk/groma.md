@@ -5,7 +5,6 @@ status: stable
 groma:
   id: pricing-validator
   parent: pricing
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/pricing/validator.ts

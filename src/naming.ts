@@ -22,17 +22,7 @@ export function requireText(value: string | undefined, flag: string): string {
   return value
 }
 
-/** A group has no id of its own: it is addressed as <container-id>/<group-kebab>. */
-export function groupAddress(container: string, name: string): string {
-  return `${container}/${kebabCase(name)}`
-}
-
-/** The slash of a group address tells it apart from an element id. */
-export function isGroupAddress(id: string): boolean {
-  return id.includes('/')
-}
-
-/** IDs no element may take: a reserved document name, or a word the CLI reads as a relation or group address. */
+/** IDs no element may take: a reserved document name, or the word the CLI reads as a relation address. */
 export function isReservedId(id: string): boolean {
-  return isReservedDocument(`${id}.md`) || id === 'relation' || id === 'group'
+  return isReservedDocument(`${id}.md`) || id === 'relation'
 }

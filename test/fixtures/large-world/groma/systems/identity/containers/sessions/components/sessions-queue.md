@@ -5,7 +5,6 @@ status: stable
 groma:
   id: sessions-queue
   parent: sessions
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/sessions/queue.ts

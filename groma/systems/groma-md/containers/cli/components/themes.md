@@ -14,7 +14,6 @@ groma:
       file: src/themes/bundled.ts
     - scanner: typescript
       file: src/themes/management.ts
-  group: Plugins
 description: Defines, loads and manages the UI themes a project enables
 ---
 

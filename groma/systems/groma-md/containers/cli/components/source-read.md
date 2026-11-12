@@ -13,7 +13,6 @@ groma:
       symbol: readCodeStructure
     - scanner: typescript
       file: src/viewers/source/highlight.ts
-  group: Shared viewer data
 description: Reads the source files and outlines owned by a selected component
 ---
 

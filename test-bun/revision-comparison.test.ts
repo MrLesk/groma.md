@@ -139,6 +139,17 @@ test.concurrent('comparison details explain owned changes and respect explicit t
   expect(componentReasons(compared.components['receipt-worker'])).toEqual([])
 })
 
+test.concurrent('a removed component keeps the zone of a group the destination no longer has', () => {
+  const unit = { x: 0, y: 0, width: 1, height: 1 }
+  const boxes = (component: string, group?: string) => [
+    box('shop', 'system', unit),
+    box('api', 'container', unit, { parent: 'observed:shop' }),
+    box(component, 'component', unit, { parent: 'observed:api', ...(group === undefined ? {} : { group }) }),
+  ]
+  const compared = compareArchitecture(worldOf(boxes('gone', 'checks')), worldOf(boxes('kept')), {}, {})
+  expect(sheetScene(compared.world).zones.map(zone => zone.members)).toEqual([['observed:gone']])
+})
+
 test.concurrent('prose presentation separates replacements and keeps large rewrites readable', () => {
   expect(textChanges('Writes', 'Packages').parts.map(part => part.value).join('')).toBe('Writes Packages')
   expect(textChanges('This service writes the current order.', 'This service reads the current order.').mode).toBe('words')

@@ -16,7 +16,6 @@ groma:
       file: plugins/scanners/c/src/parser.ts
     - scanner: typescript
       file: plugins/scanners/c/src/source.ts
-  group: Language scanners
   technology: TypeScript, tree-sitter-c, WebAssembly
 description: Supplies C declarations, Code outlines and unresolved call evidence without a compiler or project build.
 ---

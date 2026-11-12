@@ -5,7 +5,6 @@ status: stable
 groma:
   id: import-cache
   parent: import
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/import/cache.ts
