@@ -3,12 +3,13 @@ import path from 'node:path'
 import { createScanObservation, type CodeFile, type ScannerPlugin } from '@groma/scanner'
 import { launchEvidence, rubyEntries } from './entries.ts'
 import { rubyRequests } from './clients.ts'
+import { embeddedRuby } from './erb.ts'
 import { parseRuby, rubyLanguage } from './parser.ts'
 import { projectDeclaration, rubyProjects, type ProjectDeclaration } from './projects.ts'
 import { railsRoutes, resolveRailsRoutes, routeModule } from './routes.ts'
 import { analyzeRuby } from './source.ts'
 
-const isRubyExtension = (file: string) => file.endsWith('.rb') || file.endsWith('.ru')
+const isRubyExtension = (file: string) => file.endsWith('.rb') || file.endsWith('.ru') || file.endsWith('.erb')
 const isCommandPath = (file: string) => /(^|\/)(bin|exe)\/[^/]+$/.test(file)
 
 async function sourceFiles(root: string, candidates: readonly string[]): Promise<string[]> {
@@ -21,9 +22,12 @@ async function sourceFiles(root: string, candidates: readonly string[]): Promise
 }
 
 async function readSource(root: string, file: string, entries: readonly string[] = []) {
-  return parseRuby(file, await readFile(path.join(root, file), 'utf8'), node => {
+  const template = file.endsWith('.erb')
+  const text = await readFile(path.join(root, file), 'utf8')
+  return parseRuby(file, template ? embeddedRuby(file, text) : text, node => {
     const source = analyzeRuby(node, file, entries)
-    return { ...source, launch: launchEvidence(node), requests: rubyRequests(node, source.operations),
+    if (template) source.operations = source.operations.map(({ tokens: _tokens, startLine: _start, endLine: _end, ...operation }) => operation)
+    return { ...source, launch: launchEvidence(template ? undefined : node), requests: rubyRequests(node, source.operations),
       routes: /(^|\/)config\/routes\.rb$/.test(file) ? railsRoutes(node) : [] }
   })
 }

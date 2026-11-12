@@ -28,7 +28,7 @@ as Python. Both leave ordinary dynamic call targets unresolved.
 
 ## Inputs and project membership
 
-The manifest selects `**/*.rb`, `**/*.ru`, `**/bin/*`, `**/exe/*`,
+The manifest selects `**/*.rb`, `**/*.ru`, `**/*.erb`, `**/bin/*`, `**/exe/*`,
 `**/Gemfile` and `**/*.gemspec`. Extensionless commands are Ruby source only
 when their first line is a Ruby shebang. Listing reads that marker without
 parsing or running the command. Other selected bin scripts contribute no Code.
@@ -49,6 +49,16 @@ Projects are transient source groups, not C4 systems or containers. Ordinary
 Markdown and OKF readers retain existing architecture records and Code links.
 Core owns identity, curated source ownership, placement and derived relationships;
 this scanner introduces no new stored metadata or architecture level.
+
+### ERB templates
+
+The scanner selects `.erb` templates, including compound extensions such as `.html.erb`, `.js.erb` and `.yml.erb`. It reads Ruby inside execution tags (`<% ... %>`), output tags (`<%= ... %>`) and whitespace-trimming tags (`<%- ... -%>`). Ruby blocks can span tags. Literal template text, ERB comments (`<%# ... %>`) and escaped tags (`<%% ... %>`) contribute no Ruby declarations.
+
+`src/erb.ts` replaces template text and delimiters with spaces and statement separators before `src/index.ts` sends the embedded code to the existing Ruby parser. It preserves UTF-16 offsets and line breaks, so named Ruby declarations, method calls and Code outlines address the original template. A template containing only markup or expressions still contributes a file reference; expressions do not become named methods.
+
+Templates retain their nearest declared project and join the existing source membership of a proven Rails application under `app/`. A template does not declare a launch entry. The scanner leaves render calls, partial lookup, helper dispatch and route helpers unresolved. It does not infer relationships from HTML links or JavaScript, parse the surrounding language, or evaluate templates. Percent-line shorthand requires an ERB trim-mode setting and is not supported.
+
+Template methods do not supply duplicate-body comparison tokens because literal output affects their behavior and the Ruby projection omits that output. Invalid embedded Ruby and unclosed ERB tags stop the scan with a template-specific error. Tag syntax follows the [Ruby ERB documentation](https://docs.ruby-lang.org/en/master/ERB.html).
 
 ## Execution entries
 
