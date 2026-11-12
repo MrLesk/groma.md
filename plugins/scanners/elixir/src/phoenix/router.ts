@@ -2,7 +2,8 @@ import type { HttpEndpointSegment } from '@groma/scanner'
 import type { Node } from 'web-tree-sitter'
 import { aliasesAfter, moduleName, type Aliases } from '../aliases.ts'
 import { isDefinition, moduleFunctions, moduleUses, type ModuleScope } from '../modules.ts'
-import { atomList, atomLiteral, body, booleanLiteral, callName, options, positional, stringLiteral } from '../syntax.ts'
+import type { ModuleLookup } from '../source.ts'
+import { argumentCount, atomList, atomLiteral, body, booleanLiteral, callName, options, positional, stringLiteral } from '../syntax.ts'
 import { readablePrefix, routeSegments } from './paths.ts'
 
 /*
@@ -29,13 +30,17 @@ export type RouteDeclaration =
 export interface RouterDeclaration {
   file: string
   module: string
-  /**
-   * Set when the module is a router only through `use Web, :router`: the full name of `Web`, which
-   * must be proven to provide `use Phoenix.Router` (see `providesRouter`).
-   */
-  via?: string
   /** Route declarations in the order Phoenix registers them. */
   routes: RouteDeclaration[]
+}
+
+/** A module that declares itself a router; `provenRouters` decides whether it is one. */
+export interface RouterCandidate extends RouterDeclaration {
+  /**
+   * Set when the module is a router only through `use Web, :router`: the full name of `Web`, which
+   * must be proven to provide `use Phoenix.Router`.
+   */
+  via?: string
 }
 
 /** Where a routing statement stands: the path and module prefixes of its scopes, and the lexical aliases. */
@@ -44,9 +49,11 @@ interface RoutingScope {
   /** Module prefix from the enclosing scopes' aliases, such as `ShopWeb.Admin`; empty when none. */
   module: string
   aliases: Aliases
+  /** Block forms that only group their routes and keep their paths, such as `live_session`. */
+  wrappers: ReadonlySet<string>
 }
 
-type Reader = (statement: Node, scope: RoutingScope, wrappers: ReadonlySet<string>) => RouteDeclaration[]
+type Reader = (statement: Node, scope: RoutingScope) => RouteDeclaration[]
 
 const blocker = (path: HttpEndpointSegment[]): RouteDeclaration => ({ kind: 'blocker', path })
 const hasGlob = (path: readonly HttpEndpointSegment[]) => path.some(found => found.kind === 'catch-all')
@@ -104,13 +111,14 @@ const liveRoute: Reader = (statement, scope) => {
   return [module ? { kind: 'route', method: 'GET', path, module, handlers: liveHandlers } : blocker(path)]
 }
 
-/** `forward path, Plug`: the path must be static, and trailing options belong to the plug. */
+/** `forward path, Plug, plug_options`: the path must be static. */
 const forwardRoute: Reader = (statement, scope) => {
-  const [pattern, plug, , routerOptions] = positional(statement)
+  const [pattern, plug] = positional(statement)
   const path = fullPath(scope, pattern)
   if (!path?.every(found => found.kind === 'literal')) return [unreadable(scope, pattern)]
-  // A fourth argument holds router options such as `alias:`, which this reader does not interpret.
-  const module = routerOptions ? undefined : scopedModule(plug, scope)
+  // A fourth argument, bracketed or written as trailing `key: value`, holds router options such as
+  // `alias: false`, which change the mounted module and which this reader does not interpret.
+  const module = argumentCount(statement) > 3 ? undefined : scopedModule(plug, scope)
   return [module ? { kind: 'forward', path, module } : blocker(path)]
 }
 
@@ -125,6 +133,7 @@ const resourceActions: { action: string; methods: string[]; member: boolean; tai
   { action: 'delete', methods: ['DELETE'], member: true },
 ]
 
+/** The options this reader interprets. `do` is the nested block when it is written inline as `, do: ...`. */
 const resourceOptions = new Set(['only', 'except', 'param', 'name', 'as', 'singleton', 'do'])
 const identifier = /^[a-z_][A-Za-z0-9_]*$/
 
@@ -182,7 +191,7 @@ function resourceDefinition(statement: Node, scope: RoutingScope): ResourceDefin
 }
 
 /** `resources path, Controller, options do ... end`: its own routes first, then the nested block under one record. */
-const resourceRoutes: Reader = (statement, scope, wrappers) => {
+const resourceRoutes: Reader = (statement, scope) => {
   const resource = resourceDefinition(statement, scope)
   if (!resource) return [unreadable(scope, positional(statement)[0])]
   const own = resourceActions.filter(route => resource.actions.includes(route.action)).flatMap(route => route.methods.map((method): RouteDeclaration => ({
@@ -190,10 +199,13 @@ const resourceRoutes: Reader = (statement, scope, wrappers) => {
     path: [...(route.member ? resource.record : resource.collection), ...(route.tail ? [{ kind: 'literal' as const, value: route.tail }] : [])],
   })))
   const inner = body(statement)
-  return [...own, ...(inner ? routes(inner, { ...scope, prefix: resource.nested }, wrappers) : [])]
+  return [...own, ...(inner ? routes(inner, { ...scope, prefix: resource.nested }) : [])]
 }
 
-/** Scope options that change neither the path nor the handler module. `host` is absent: it restricts requests by host. */
+/**
+ * Scope options that change neither the path nor the handler module, and `do`, the scope's block
+ * when it is written inline. `host` is absent: it restricts requests by host.
+ */
 const scopeOptions = new Set(['path', 'alias', 'as', 'log', 'private', 'assigns', 'do'])
 
 /** The module prefix inside a scope: `alias: false` clears it, an alias extends it, no alias keeps it. */
@@ -204,7 +216,7 @@ function scopeModule(written: Node | undefined, scope: RoutingScope): string | u
 }
 
 /** `scope path, Alias, options do ... end`, also written `scope path: ..., alias: ... do`. */
-const scopeRoutes: Reader = (statement, scope, wrappers) => {
+const scopeRoutes: Reader = (statement, scope) => {
   const [pattern, alias, ...extra] = positional(statement)
   const config = options(statement)
   const written = pattern ?? config?.get('path')
@@ -214,7 +226,7 @@ const scopeRoutes: Reader = (statement, scope, wrappers) => {
   const supported = [...config?.keys() ?? []].every(key => scopeOptions.has(key))
   // One blocker stands in for every route of a scope whose path, alias or options the scanner cannot read.
   if (!inner || !own || hasGlob(own) || module === undefined || !supported || extra.length > 0) return [unreadable(scope, written)]
-  return routes(inner, { prefix: [...scope.prefix, ...own], module, aliases: scope.aliases }, wrappers)
+  return routes(inner, { ...scope, prefix: [...scope.prefix, ...own], module })
 }
 
 const verbs = ['get', 'post', 'put', 'patch', 'delete', 'options', 'connect', 'trace', 'head']
@@ -227,7 +239,7 @@ const documentedForms = new Map<string, Reader>([
 /** Statements that register no route: pipelines and their plugs run after a route is chosen. */
 const nonRouting = new Set(['pipeline', 'pipe_through', 'plug', 'import', 'alias', 'require', 'use'])
 
-function statementRoutes(statement: Node, scope: RoutingScope, wrappers: ReadonlySet<string>): RouteDeclaration[] {
+function statementRoutes(statement: Node, scope: RoutingScope): RouteDeclaration[] {
   // A bare word such as `admin_routes` is a macro call without arguments.
   if (statement.type === 'identifier') return [blocker(scope.prefix)]
   // Attributes and other expressions register nothing.
@@ -235,18 +247,18 @@ function statementRoutes(statement: Node, scope: RoutingScope, wrappers: Readonl
   const name = callName(statement)
   if (name !== undefined && (nonRouting.has(name) || isDefinition(statement))) return []
   const reader = name === undefined ? undefined : documentedForms.get(name)
-  if (reader) return reader(statement, scope, wrappers)
-  const inner = name !== undefined && wrappers.has(name) ? body(statement) : undefined
+  if (reader) return reader(statement, scope)
+  const inner = name !== undefined && scope.wrappers.has(name) ? body(statement) : undefined
   // A path-preserving wrapper such as `live_session` only groups its routes. Any other call, and a
   // conditional block, may register any route under this scope.
-  return inner ? routes(inner, scope, wrappers) : [blocker(scope.prefix)]
+  return inner ? routes(inner, scope) : [blocker(scope.prefix)]
 }
 
-function routes(statements: readonly Node[], scope: RoutingScope, wrappers: ReadonlySet<string>): RouteDeclaration[] {
+function routes(statements: readonly Node[], scope: RoutingScope): RouteDeclaration[] {
   const found: RouteDeclaration[] = []
   let aliases = scope.aliases
   for (const statement of statements) {
-    found.push(...statementRoutes(statement, { ...scope, aliases }, wrappers))
+    found.push(...statementRoutes(statement, { ...scope, aliases }))
     aliases = aliasesAfter(aliases, statement)
   }
   return found
@@ -268,11 +280,11 @@ const liveSession = 'live_session'
  * The routes of a module that declares itself a Phoenix router; undefined for any other module.
  * `wrappers` names further block forms that are known to keep their child routes' paths.
  */
-export function routerDeclaration(scope: ModuleScope, file: string, wrappers: readonly string[]): RouterDeclaration | undefined {
+export function routerCandidate(scope: ModuleScope, file: string, wrappers: readonly string[]): RouterCandidate | undefined {
   const declared = routerUse(scope)
   if (!declared) return undefined
-  const start: RoutingScope = { prefix: [], module: '', aliases: scope.aliases }
-  return { file, module: scope.name, ...declared, routes: routes(scope.statements, start, new Set([liveSession, ...wrappers])) }
+  const start: RoutingScope = { prefix: [], module: '', aliases: scope.aliases, wrappers: new Set([liveSession, ...wrappers]) }
+  return { file, module: scope.name, ...declared, routes: routes(scope.statements, start) }
 }
 
 function containsRouterUse(node: Node): boolean {
@@ -287,4 +299,15 @@ function containsRouterUse(node: Node): boolean {
 export function providesRouter(scope: ModuleScope): boolean {
   const router = moduleFunctions(scope).find(candidate => candidate.name === 'router' && candidate.arity === 0)
   return router?.clauses.some(containsRouterUse) ?? false
+}
+
+/**
+ * The candidates that are proven Phoenix routers. A module that states `use Phoenix.Router` is one.
+ * A module that states `use Web, :router` is one when `Web` is a provider (see `providesRouter`)
+ * and exactly one selected file declares a module of that name.
+ */
+export function provenRouters(candidates: readonly RouterCandidate[], providers: ReadonlySet<string>,
+  moduleNamed: ModuleLookup): RouterDeclaration[] {
+  return candidates.filter(({ via }) => via === undefined || (providers.has(via) && moduleNamed(via) !== undefined))
+    .map(({ file, module, routes }) => ({ file, module, routes }))
 }

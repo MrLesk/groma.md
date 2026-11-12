@@ -10,6 +10,7 @@ export { ashMounts } from './mount.ts'
 /*
  * Everything the scanner knows about Ash lives in this directory:
  *
+ * - `dsl.ts`: readers for the sections and entities of the DSL that Ash declarations are written in.
  * - `resource.ts`: actions of `use Ash.Resource` modules, as operations.
  * - `domain.ts`: the resources a `use Ash.Domain` module lists.
  * - `code-interface.ts`: `define` entries, as functions of the resource or domain that hosts them.
@@ -26,35 +27,38 @@ export { ashMounts } from './mount.ts'
  */
 export const ashRoutingWrappers = ['ash_authentication_live_session']
 
-/** The Ash declarations of one file. */
+/** The Ash declarations of one file, as plain data that outlives the file's syntax tree. */
 export interface AshFacts {
   resources: AshResource[]
   domains: AshDomain[]
   routers: JsonApiRouter[]
   /** One operation per resource action. */
   operations: ScanOperation[]
-  /** The functions code interfaces generate on the file's modules. */
-  generated: GeneratedFunction[]
 }
 
-/** Read the Ash resources, domains and JSON:API routers among the modules of one file. */
-export function readAsh(scopes: readonly ModuleScope[], file: string): AshFacts {
-  const facts: AshFacts = { resources: [], domains: [], routers: [], operations: [], generated: [] }
+/**
+ * Read the Ash resources, domains and JSON:API routers among the modules of one file. `generated`
+ * lists the functions code interfaces generate on those modules; it holds syntax nodes, so the
+ * caller turns it into declarations before the syntax tree is freed and does not keep it.
+ */
+export function readAsh(scopes: readonly ModuleScope[], file: string): { facts: AshFacts; generated: GeneratedFunction[] } {
+  const facts: AshFacts = { resources: [], domains: [], routers: [], operations: [] }
+  const generated: GeneratedFunction[] = []
   for (const scope of scopes) {
     const used = new Set(moduleUses(scope).map(use => use.module))
     if (used.has('Ash.Resource')) {
-      const { resource, operations, generated } = ashResource(scope, file)
-      facts.resources.push(resource)
-      facts.operations.push(...operations)
-      facts.generated.push(...generated)
+      const resource = ashResource(scope, file)
+      facts.resources.push(resource.resource)
+      facts.operations.push(...resource.operations)
+      generated.push(...resource.generated)
     }
     if (used.has('Ash.Domain')) {
-      const { domain, generated } = ashDomain(scope)
-      facts.domains.push(domain)
-      facts.generated.push(...generated)
+      const domain = ashDomain(scope)
+      facts.domains.push(domain.domain)
+      generated.push(...domain.generated)
     }
     const router = jsonApiRouter(scope)
     if (router) facts.routers.push(router)
   }
-  return facts
+  return { facts, generated }
 }

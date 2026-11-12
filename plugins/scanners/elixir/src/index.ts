@@ -4,9 +4,9 @@ import { createScanObservation, type CodeFile, type ScanDiagnostic, type Scanner
 import { ashMounts, ashRoutingWrappers, readAsh } from './ash/index.ts'
 import { compiledSources, mixProject, projectEntries, projectRoots, type MixProject } from './mix.ts'
 import { moduleScopes } from './modules.ts'
-import { elixirLanguage, grammarVersion, parseElixir } from './parser.ts'
+import { grammarVersion, parseElixir } from './parser.ts'
 import { phoenixEndpoints } from './phoenix/endpoints.ts'
-import { providesRouter, routerDeclaration } from './phoenix/router.ts'
+import { provenRouters, providesRouter, routerCandidate } from './phoenix/router.ts'
 import { elixirSource, moduleIndex } from './source.ts'
 
 /*
@@ -39,15 +39,18 @@ async function selectSources(root: string, files: readonly string[], unparsable:
   return { projects, sources: compiledSources(projects, files) }
 }
 
-/** Everything one source file states; `entries` are the symbol names its Code links mark as entries. */
+/**
+ * Everything one source file states, as plain data: the syntax tree is freed when this returns.
+ * `entries` are the symbol names its Code links mark as entries.
+ */
 async function readSource(root: string, file: string, entries: readonly string[] = []) {
   return parseElixir(file, await readFile(path.join(root, file), 'utf8'), tree => {
     const scopes = moduleScopes(tree)
     const ash = readAsh(scopes, file)
     return {
       ...elixirSource(file, scopes, ash.generated, entries),
-      ash,
-      routers: scopes.flatMap(scope => routerDeclaration(scope, file, ashRoutingWrappers) ?? []),
+      ash: ash.facts,
+      routerCandidates: scopes.flatMap(scope => routerCandidate(scope, file, ashRoutingWrappers) ?? []),
       routerProviders: scopes.filter(providesRouter).map(scope => scope.name),
     }
   })
@@ -68,9 +71,9 @@ export default {
   id: 'elixir',
   listSourceFiles: async (root, _settings, candidates) => [...(await selectSources(root, candidates, 'skip')).sources.keys()],
   async checkReadiness(root, _settings, files) {
+    // Reading the `mix.exs` files also loads the bundled parser, the scanner's only tool.
     const { sources } = await selectSources(root, files, 'fail')
     if (sources.size === 0) throw new Error('elixir: No Mix project (mix.exs) with selected Elixir source files was found.')
-    await elixirLanguage()
   },
   async scan(root, _settings, selected) {
     const { projects, sources } = await selectSources(root, selected, 'fail')
@@ -78,11 +81,11 @@ export default {
     const parsed: Awaited<ReturnType<typeof readSource>>[] = []
     for (const file of sources.keys()) parsed.push(await readSource(root, file))
     const moduleNamed = moduleIndex(parsed)
-    const routerProviders = new Set(parsed.flatMap(source => source.routerProviders))
     const ash = parsed.map(source => source.ash)
     const mounts = ashMounts(ash.flatMap(facts => facts.resources), ash.flatMap(facts => facts.domains), ash.flatMap(facts => facts.routers))
-    const phoenix = phoenixEndpoints(parsed.flatMap(source => source.routers),
-      module => moduleNamed(module) !== undefined && routerProviders.has(module), moduleNamed, mounts)
+    const routers = provenRouters(parsed.flatMap(source => source.routerCandidates),
+      new Set(parsed.flatMap(source => source.routerProviders)), moduleNamed)
+    const phoenix = phoenixEndpoints(routers, moduleNamed, mounts)
     return createScanObservation({
       scanner: { id: 'elixir', technology: 'elixir', engine: 'tree-sitter-elixir', engineVersion: grammarVersion },
       roots: projectRoots(projects, root),

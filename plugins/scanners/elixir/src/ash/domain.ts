@@ -21,7 +21,10 @@ export interface AshDomain {
   servesSchema: boolean
 }
 
-/** Read a module that states `use Ash.Domain`. `resource Ticket do define :open end` defines `open` on the domain. */
+/**
+ * Read a module that states `use Ash.Domain`. `resource Ticket do define :open end` defines `open`
+ * on the domain. `generated` holds syntax nodes and must be used before the file's syntax tree is freed.
+ */
 export function ashDomain(scope: ModuleScope): { domain: AshDomain; generated: GeneratedFunction[] } {
   const entries = section(scope.statements, 'resources').filter(statement => callName(statement) === 'resource')
   const names = entries.map(entry => moduleName(positional(entry)[0], aliasesAt(scope, entry)))

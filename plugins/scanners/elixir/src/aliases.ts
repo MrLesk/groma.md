@@ -99,13 +99,3 @@ export function aliasesAfter(aliases: Aliases, statement: Node): Aliases {
   const first = nested.text.split('.')[0]!
   return withNames(aliases, [[first, `${aliases.module}.${first}`]])
 }
-
-/** The aliases in force where `node` is written inside a module body that starts with `initial`. */
-export function aliasesBefore(initial: Aliases, moduleStatements: readonly Node[], node: Node): Aliases {
-  let aliases = initial
-  for (const statement of moduleStatements) {
-    if (statement.startIndex >= node.startIndex) break
-    aliases = aliasesAfter(aliases, statement)
-  }
-  return aliases
-}

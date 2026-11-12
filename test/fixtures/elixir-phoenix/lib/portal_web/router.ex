@@ -12,8 +12,8 @@ defmodule PortalWeb.Router do
 
     get "/items/:id", ItemController, :show
 
-    resources "/items", ItemController, only: [:index, :create] do
-      resources "/notes", NoteController, only: [:show]
+    resources "/items", ItemController, except: [:edit, :new, :show, :update, :delete], name: "entry", param: "slug" do
+      resources "/notes", NoteController, singleton: true, only: [:show]
     end
 
     get "/v:version/status", ItemController, :status
@@ -49,4 +49,6 @@ defmodule PortalWeb.Router do
   end
 
   match :*, "/fallback", PortalWeb.ItemController, :fallback
+
+  forward "/backoffice", PortalWeb.AdminRouter
 end

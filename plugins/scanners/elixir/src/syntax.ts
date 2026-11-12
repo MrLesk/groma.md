@@ -55,7 +55,7 @@ export function options(node: Node): Map<string, Node> | undefined {
 }
 
 /** The statements of a `do ... end` block, without comments. */
-export function statements(block: Node): Node[] {
+function statements(block: Node): Node[] {
   return block.namedChildren.filter(child => child.type !== 'comment')
 }
 

@@ -7,7 +7,7 @@ defmodule Shop.MixProject do
       version: "0.1.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
-      escript: escript(),
+      escript: [main_module: Shop.CLI],
       deps: []
     ]
   end
@@ -21,8 +21,4 @@ defmodule Shop.MixProject do
 
   defp elixirc_paths(:test), do: elixirc_paths(:dev) ++ ["test/support"]
   defp elixirc_paths(_), do: ["lib", "extra/", "proto/lib"]
-
-  defp escript do
-    [main_module: Shop.CLI]
-  end
 end

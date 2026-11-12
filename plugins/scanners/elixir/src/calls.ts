@@ -1,6 +1,6 @@
 import type { ScanInvocation } from '@groma/scanner'
 import type { Node } from 'web-tree-sitter'
-import { callName, lineOf, options } from './syntax.ts'
+import { body, callName, lineOf } from './syntax.ts'
 
 /*
  * Call evidence: where a named function calls something. Every target stays unresolved, because
@@ -52,9 +52,6 @@ function collect(node: Node, source: string, found: ScanInvocation[]): void {
  */
 export function clauseCalls(clause: Node, source: string): ScanInvocation[] {
   const found: ScanInvocation[] = []
-  const block = clause.namedChildren.find(child => child.type === 'do_block')
-  const inline = block ? undefined : options(clause)?.get('do')
-  if (block) for (const child of block.namedChildren) collect(child, source, found)
-  else if (inline) collect(inline, source, found)
+  for (const statement of body(clause) ?? []) collect(statement, source, found)
   return found
 }

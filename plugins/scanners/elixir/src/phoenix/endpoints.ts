@@ -1,5 +1,5 @@
 import type { HttpEndpointSegment, ScanHttpEndpoint, ScanOperation } from '@groma/scanner'
-import type { ElixirModule } from '../source.ts'
+import type { ModuleLookup } from '../source.ts'
 import { blockerPath } from './paths.ts'
 import type { RouteDeclaration, RouterDeclaration } from './router.ts'
 
@@ -9,27 +9,24 @@ import type { RouteDeclaration, RouterDeclaration } from './router.ts'
  * is not exactly one function in the selected source becomes a blocker, never a guess.
  */
 
-/** One route a mounted plug serves below its mount path; without an operation it is a blocker. */
-export interface MountedRoute {
+/** One route a router serves. Without an operation its handler is unknown, and it is reported as a blocker. */
+export interface ServedRoute {
   method: string
   path: HttpEndpointSegment[]
   operation?: string
 }
 
 /**
- * What a `forward` target serves, supplied by a framework that knows the target's routes: its
- * routes, `'unreadable'` when it is such a router but its routes cannot all be read, or undefined
- * when the module is not one of that framework's routers.
+ * The routes a `forward` target serves below its mount path, supplied by a framework that can read
+ * that target's routes. Undefined when it cannot, or when the module is not one of its routers.
  */
-export type MountLookup = (module: string) => MountedRoute[] | 'unreadable' | undefined
+export type MountLookup = (module: string) => ServedRoute[] | undefined
 
 export interface PhoenixEndpoints {
   endpoints: ScanHttpEndpoint[]
   /** One `(module)` operation per router file that reports a blocker. */
   operations: ScanOperation[]
 }
-
-type ModuleLookup = (name: string) => ElixirModule | undefined
 
 /** The operation a blocker names: the code of the router file itself, which is not a function. */
 const routerCode = (file: string): ScanOperation => ({ id: `${file}:module`, file, name: '(module)' })
@@ -50,29 +47,37 @@ function handlerOperation(route: Extract<RouteDeclaration, { kind: 'route' }>, m
  * router's business, and then everything else under the mount path, which the mounted plug also
  * answers, so no later route of this router can.
  */
-function servedGroups(route: RouteDeclaration, moduleNamed: ModuleLookup, mounted: MountLookup): MountedRoute[][] {
+function servedGroups(route: RouteDeclaration, moduleNamed: ModuleLookup, mounted: MountLookup): ServedRoute[][] {
   if (route.kind === 'blocker') return [[{ method: '*', path: route.path }]]
   if (route.kind === 'route') return [[{ method: route.method, path: route.path, operation: handlerOperation(route, moduleNamed) }]]
-  const everythingBelow: MountedRoute = { method: '*', path: route.path }
+  const everythingBelow: ServedRoute = { method: '*', path: route.path }
   const below = mounted(route.module)
-  // A plug that is not a readable router may answer anything under its mount path.
-  if (below === undefined || below === 'unreadable') return [[everythingBelow]]
+  // A plug whose routes are not readable here may answer anything under its mount path.
+  if (below === undefined) return [[everythingBelow]]
   return [below.map(served => ({ ...served, path: [...route.path, ...served.path] })), [everythingBelow]]
 }
 
 /**
- * The endpoints of every proven router. Phoenix tries routes in the order they are written, so each
- * endpoint carries its position in its router's sequence. `providesRouter` tells whether
- * `use Module, :router` is proven to make a Phoenix router.
+ * The routers that report endpoints under their own paths. A router that another router forwards
+ * to serves under that mount path instead, and the forward's blocker already covers it there, so
+ * it reports nothing. Any other router is assumed to be plugged at the root by its endpoint.
  */
-export function phoenixEndpoints(routers: readonly RouterDeclaration[], providesRouter: (module: string) => boolean,
-  moduleNamed: ModuleLookup, mounted: MountLookup): PhoenixEndpoints {
-  const proven = routers.filter(router => router.via === undefined || providesRouter(router.via))
+function rootRouters(routers: readonly RouterDeclaration[]): RouterDeclaration[] {
+  const mounted = new Set(routers.flatMap(router => router.routes.flatMap(route => route.kind === 'forward' ? [route.module] : [])))
+  return routers.filter(router => !mounted.has(router.module))
+}
+
+/**
+ * The endpoints of the proven Phoenix routers. Phoenix tries routes in the order they are written,
+ * so each endpoint carries its position in its router's sequence.
+ */
+export function phoenixEndpoints(routers: readonly RouterDeclaration[], moduleNamed: ModuleLookup, mounted: MountLookup): PhoenixEndpoints {
+  const reporting = rootRouters(routers)
   const endpoints: ScanHttpEndpoint[] = []
   const blocked = new Set<string>()
-  for (const router of proven) {
+  for (const router of reporting) {
     // Routers that share a file share its registration sequence, whose order across routers is unknown.
-    const shared = proven.filter(other => other.file === router.file).length > 1
+    const shared = reporting.filter(other => other.file === router.file).length > 1
     const groups = router.routes.flatMap(route => servedGroups(route, moduleNamed, mounted))
     groups.forEach((group, index) => {
       const order = { application: router.file, position: shared ? 0 : index }

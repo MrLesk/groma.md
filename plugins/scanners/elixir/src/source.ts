@@ -90,16 +90,19 @@ export function elixirSource(file: string, scopes: readonly ModuleScope[], gener
 }
 
 /**
- * Look a module up by its full name across every scanned file. A name that more than one
- * declaration uses identifies no single module, so it finds nothing.
+ * Index declarations by name. A name that two declarations share identifies neither of them, so it
+ * is left out: a reference to it stays unresolved instead of picking one.
  */
-export function moduleIndex(sources: readonly ElixirSource[]): (name: string) => ElixirModule | undefined {
-  const byName = new Map<string, ElixirModule[]>()
-  for (const module of sources.flatMap(source => source.modules)) {
-    byName.set(module.name, [...byName.get(module.name) ?? [], module])
-  }
-  return name => {
-    const declared = byName.get(name)
-    return declared?.length === 1 ? declared[0] : undefined
-  }
+export function uniquelyNamed<T>(declared: readonly T[], nameOf: (item: T) => string): Map<string, T> {
+  const count = new Map<string, number>()
+  for (const item of declared) count.set(nameOf(item), (count.get(nameOf(item)) ?? 0) + 1)
+  return new Map(declared.filter(item => count.get(nameOf(item)) === 1).map(item => [nameOf(item), item]))
+}
+
+/** Finds the one module with a full name across every scanned file. */
+export type ModuleLookup = (name: string) => ElixirModule | undefined
+
+export function moduleIndex(sources: readonly ElixirSource[]): ModuleLookup {
+  const modules = uniquelyNamed(sources.flatMap(source => source.modules), module => module.name)
+  return name => modules.get(name)
 }

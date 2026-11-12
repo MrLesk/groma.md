@@ -10,15 +10,19 @@ application-specific extractor rules or copied test architecture.
   source selection through `elixirc_paths`, umbrella membership, a source
   directory two projects compile, the unreadable source-directory fallback,
   declarations, visibility, positions, unresolved calls, the single execution
-  entry per project and Code outlines. A template under `priv/` that is not
-  Elixir is never parsed. A further test scans the fixture through core and
+  entry per project (also from an escript that `project/0` reads through a
+  function) and Code outlines. A template under `priv/` that is not Elixir is
+  never parsed. A further test scans the fixture through core and
   checks that a `Module.name/arity` Code symbol is written to architecture
   Markdown, kept by a rescan, read back unchanged and marked as an entry.
 - `test-bun/elixir-phoenix.test.ts` and `test/fixtures/elixir-phoenix/` verify
   scope and resource prefixes, scope and lexical aliases, the order of
-  `resources` routes, mixed and glob segments, LiveView routes inside and
-  outside `live_session`, registration positions and each kind of blocker.
-  Discovery reports Elixir from `mix.exs` and Phoenix from the router file.
+  `resources` routes with `only`, `except`, `param`, `name` and `singleton`,
+  mixed and glob segments, LiveView routes inside and outside `live_session`,
+  registration positions and each kind of blocker. A second Phoenix router
+  that the first one forwards to reports nothing at the root. A separate test
+  checks that discovery reports Elixir from `mix.exs` and Phoenix from the
+  router file.
   With the built JavaScript scanner, core derives the rows from a browser
   client to the controllers that handle its requests, and no row for a route
   registered after a blocker that could take the request first.
@@ -27,8 +31,8 @@ application-specific extractor rules or copied test architecture.
   domain and on a resource, AshJsonApi routes declared on a domain and on a
   resource under the Phoenix `forward` path, the shared mount position, the
   blocker that follows a mount, relationship and document blockers, a router
-  with computed domains, a router nothing forwards to, and routes inside
-  `ash_authentication_live_session`. With the built JavaScript scanner, core
+  with computed domains, a router nothing forwards to, a `forward` with router
+  options, and routes inside `ash_authentication_live_session`. With the built JavaScript scanner, core
   derives the row from a browser client to the resource whose action answers.
 
 Run the package and repository checks:
@@ -44,9 +48,9 @@ The shared fresh-checkout suite uses the `elixir-mix` fixture, with language
 tools absent and network access disabled. It compares repeated observations
 and verifies that source files remain unchanged.
 
-On 12 November 2026 the three Elixir suites pass 9 tests, the fresh-checkout
+On 12 November 2026 the three Elixir suites pass 10 tests, the fresh-checkout
 check for the built package passes, and `bun run check` passes: lint,
-TypeScript, 26 Node tests, and 953 Bun tests with 65 opt-in skips and no
+TypeScript, 26 Node tests, and 954 Bun tests with 65 opt-in skips and no
 failure.
 
 ## Qualification on public repositories
@@ -108,6 +112,13 @@ All positions matched. One reported call is a grammar misreading: in ash,
 `lib/ash/type_resolver.ex:228` writes the range `cycle_start..-1//1`, which
 tree-sitter-elixir 0.3.5 reads as a call of `cycle_start`. It stays an
 unresolved call and derives nothing.
+
+After the review fixes for a Phoenix router reached through `forward` and for
+`forward` with router options, the scanner-interface procedure was repeated
+on all fourteen snapshots. Every Elixir observation is byte-identical to the
+one before the fixes: none of these repositories forwards to a second Phoenix
+router or writes router options on a `forward`. No number or witness on this
+page changed, and the CLI results below stand.
 
 ### CLI flow
 
