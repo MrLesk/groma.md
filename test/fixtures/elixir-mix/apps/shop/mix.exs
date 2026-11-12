@@ -1,6 +1,8 @@
 defmodule Shop.MixProject do
   use Mix.Project
 
+  alias Shop.Application, as: App
+
   def project do
     [
       app: :shop,
@@ -14,7 +16,7 @@ defmodule Shop.MixProject do
 
   def application do
     [
-      mod: {Shop.Application, []},
+      mod: {App, []},
       extra_applications: [:logger]
     ]
   end
