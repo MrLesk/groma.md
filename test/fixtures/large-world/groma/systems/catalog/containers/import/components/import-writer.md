@@ -5,7 +5,6 @@ status: stable
 groma:
   id: import-writer
   parent: import
-  group: Support
   code:
     - scanner: typescript
       file: src/catalog/import/writer.ts

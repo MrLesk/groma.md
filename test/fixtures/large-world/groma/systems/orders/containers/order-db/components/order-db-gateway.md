@@ -5,7 +5,6 @@ status: stable
 groma:
   id: order-db-gateway
   parent: order-db
-  group: Core
   code:
     - scanner: typescript
       file: src/orders/order-db/gateway.ts

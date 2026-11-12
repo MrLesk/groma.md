@@ -20,6 +20,7 @@ function element(id: string, kind: C4Kind, parent: string | null, children: stri
 function world(icons: { container?: IconName; component?: IconName } = {}): ArchitectureGraph {
   return {
     flows: [],
+    groups: [],
     relationships: [],
     elements: [
       element('shop', 'system', null, ['api']),

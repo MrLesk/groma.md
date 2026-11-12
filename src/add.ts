@@ -7,7 +7,7 @@ import {
   renderDraftDocument,
   writeDocument,
 } from './markdown-emitter.ts'
-import { addGroup } from './group.ts'
+import { addGroup, groupContext } from './group.ts'
 import type { StructuralResult } from './curate.ts'
 import { requireText } from './naming.ts'
 import { addRelation } from './relation.ts'
@@ -19,7 +19,7 @@ export interface AddInput {
   name: string
   /** With thing relation: the target id. */
   relation?: string
-  /** With thing group: the member ids. */
+  /** With thing group: the ids of the components it lists. */
   members?: string[]
   overview?: string
   description?: string
@@ -73,7 +73,15 @@ export async function addThing(repositoryRoot: string, input: AddInput): Promise
       technology: input.technology,
     })
   }
-  if (input.thing === 'group') return addGroup(repositoryRoot, { name: input.name, members: input.members ?? [] })
+  if (input.thing === 'group') {
+    const records = await loadArchitecture(repositoryRoot)
+    return addGroup(groupContext(repositoryRoot, records, buildArchitectureModel(records.documents)), {
+      name: input.name,
+      members: input.members ?? [],
+      description: input.description,
+      overview: input.overview,
+    })
+  }
   const name = requireText(input.name, 'name')
   const thing = requireThing(input.thing, name)
   const overview = requireText(input.overview, '--overview')

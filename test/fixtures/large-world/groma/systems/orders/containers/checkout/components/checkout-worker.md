@@ -5,7 +5,6 @@ status: stable
 groma:
   id: checkout-worker
   parent: checkout
-  group: Support
   code:
     - scanner: typescript
       file: src/orders/checkout/worker.ts

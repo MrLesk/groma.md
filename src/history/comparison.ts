@@ -1,4 +1,4 @@
-import type { AnnotatedArchitectureModel, AnnotatedElement, AnnotatedRelationship } from '../types.ts'
+import type { AnnotatedArchitectureModel, AnnotatedElement, AnnotatedGroup, AnnotatedRelationship } from '../types.ts'
 import type { GitRevision } from './revisions.ts'
 import { projectFileDiff, type FileDiff } from '../viewers/source/diff-lines.ts'
 
@@ -90,6 +90,12 @@ function combinedElements(before: AnnotatedArchitectureModel, after: AnnotatedAr
   return [...elements.values()].map(item => ({ ...item, children: children.get(item.representationId) ?? [] }))
 }
 
+/** B's groups, then the groups only A has: a removed component still names the group it was in. */
+function combinedGroups(before: AnnotatedArchitectureModel, after: AnnotatedArchitectureModel): AnnotatedGroup[] {
+  const kept = new Set(after.groups.map(group => group.id))
+  return [...after.groups, ...before.groups.filter(group => !kept.has(group.id))]
+}
+
 /**
  * An id that names a different kind of element in each revision stands for two elements: the destination's keeps the
  * id, and the start's becomes `removed:<id>`, as a removed relationship does, together with every reference to it in
@@ -125,7 +131,7 @@ export function compareArchitecture(start: AnnotatedArchitectureModel, after: An
   }
   const { relationships, changes } = compareRelationships(before, after)
   const world: AnnotatedArchitectureModel = {
-    ...after, elements: combinedElements(before, after, relationships), relationships,
+    ...after, groups: combinedGroups(before, after), elements: combinedElements(before, after, relationships), relationships,
   }
   return { world, components, relationships: changes }
 }

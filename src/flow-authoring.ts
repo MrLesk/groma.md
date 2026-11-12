@@ -1,10 +1,9 @@
-import { parseMarkdown, parseFrontmatter } from 'comark'
 import { renderFrontmatter } from 'comark/render'
 import { buildArchitectureModel, freeId } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { resolveFlows } from './flow-model.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
-import { readDocument, replaceLeadProse, withDescription, withTitle, writeDocument } from './markdown-emitter.ts'
+import { parsedDocument, readDocument, replaceLeadProse, withDescription, withTitle, writeDocument } from './markdown-emitter.ts'
 import { requireText } from './naming.ts'
 import { FLOW_TYPE } from './okf-profile.ts'
 import type { ArchitectureDocument, ArchitectureRecords } from './types.ts'
@@ -18,8 +17,7 @@ export interface FlowChanges {
 }
 
 async function writeFlow(repositoryRoot: string, records: ArchitectureRecords, filename: string, source: string): Promise<void> {
-  const tree = await parseMarkdown(source)
-  const document = { sourceFilename: filename, body: parseFrontmatter(source).content, nodes: tree.nodes, frontmatter: tree.frontmatter } as ArchitectureDocument
+  const document = await parsedDocument(filename, source)
   resolveFlows([...records.flows.filter(flow => flow.sourceFilename !== filename), document], buildArchitectureModel(records.documents))
   await writeDocument(repositoryRoot, filename, source)
 }

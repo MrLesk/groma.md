@@ -1,18 +1,21 @@
-import { parseFrontmatter, parseMarkdown } from 'comark'
+import { parseFrontmatter } from 'comark'
 
 import { architectureElementPath } from './architecture-path.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { buildArchitectureModel, expectedParentKinds } from './architecture-model.ts'
 import { relocated, requireElement } from './curate-rewrites.ts'
 import type { CurationContext, DocumentWrite, Rewrite } from './curate-rewrites.ts'
-import { linkWrites, renamedTarget, withMovedLinks } from './curate-rename.ts'
+import { groupLinkWrites, linkWrites, renamedTarget, withMovedLinks } from './curate-rename.ts'
 import { resolveFlows } from './flow-model.ts'
+import { groupContext, leavingWrites } from './group.ts'
+import { resolveGroups } from './group-model.ts'
 import { storedRelationships } from './relationship-markdown.ts'
 import { withoutRelationshipSections, withStoredRelationships } from './relationship-storage.ts'
 import { moveBlocker } from './movable.ts'
 import { requireGromaMapping } from './okf-profile.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
 import {
+  parsedDocument,
   readDocument,
   removeDocument,
   withGromaCode,
@@ -31,8 +34,6 @@ import type {
 
 export interface CurateInput extends MeaningChanges {
   id: string
-  group?: string
-  ungroup?: boolean
   parent?: string
   combine?: string[]
   /** Source files whose Code references leave the component; the next scan gives them owners. */
@@ -149,32 +150,6 @@ function requireSeparateEdits(input: CurateInput): void {
   }
 }
 
-function validateCurationInput(input: CurateInput): void {
-  if (input.group !== undefined && input.ungroup === true) {
-    throw new Error('--group and --ungroup cannot be used together')
-  }
-  if (input.group !== undefined && input.group.trim() === '') {
-    throw new Error('--group requires non-empty text')
-  }
-  requireSeparateEdits(input)
-}
-
-function groupedSource(
-  target: ArchitectureElement,
-  source: string,
-  input: CurateInput,
-): string {
-  if (input.group === undefined && input.ungroup !== true) return source
-  if (target.kind !== 'component') {
-    throw new Error('--group and --ungroup are only valid on components')
-  }
-  return withGromaField(
-    source,
-    'group',
-    input.ungroup === true ? undefined : input.group?.trim(),
-  )
-}
-
 function detachedSource(
   target: ArchitectureElement,
   source: string,
@@ -187,20 +162,10 @@ function detachedSource(
   return withGromaCode(source, target.code.filter(reference => !detached.has(reference.file)))
 }
 
-async function parsedDocument(sourceFilename: string, source: string): Promise<ArchitectureDocument> {
-  const tree = await parseMarkdown(source)
-  return {
-    sourceFilename,
-    body: parseFrontmatter(source).content,
-    nodes: tree.nodes,
-    frontmatter: tree.frontmatter,
-  } as ArchitectureDocument
-}
-
 /**
- * Relationship rows and flow steps name their endpoints by document, and a flow step needs its
- * relationship, so a detached file, a removed record, or a relocated document can leave the
- * architecture unloadable or a flow unresolvable. The write is refused first.
+ * Relationship rows, flow steps and group members name their endpoints by document, and a flow step
+ * needs its relationship, so a detached file, a removed record, or a relocated document can leave the
+ * architecture unloadable, a flow unresolvable or a group without its member. The write is refused first.
  */
 async function requireLoadableResult(
   context: CurationContext,
@@ -210,24 +175,20 @@ async function requireLoadableResult(
 ): Promise<void> {
   const written = new Map(rewrites.map(rewrite => [rewrite.sourceFilename, rewrite]))
   const gone = new Set(removals)
-  const documents: ArchitectureDocument[] = []
-  for (const document of context.records.documents) {
-    if (gone.has(document.sourceFilename)) continue
-    const rewrite = written.get(document.sourceFilename)
-    documents.push(rewrite === undefined
-      ? document
-      : await parsedDocument(rewrite.destinationFilename, rewrite.source))
-  }
+  const afterWrite = (stored: readonly ArchitectureDocument[]): Promise<ArchitectureDocument[]> => Promise.all(stored
+    .filter(document => !gone.has(document.sourceFilename))
+    .map(document => {
+      const rewrite = written.get(document.sourceFilename)
+      return rewrite === undefined ? document : parsedDocument(rewrite.destinationFilename, rewrite.source)
+    }))
   let model: ArchitectureModel
   try {
-    model = buildArchitectureModel(documents)
+    model = buildArchitectureModel(await afterWrite(context.records.documents))
+    resolveGroups(await afterWrite(context.records.groups), model)
   } catch (error) {
     throw new Error(`cannot change "${target.id}": ${error instanceof Error ? error.message : String(error)}`)
   }
-  const flows = await Promise.all(context.records.flows.map(async flow => {
-    const rewrite = written.get(flow.sourceFilename)
-    return rewrite === undefined ? flow : await parsedDocument(rewrite.destinationFilename, rewrite.source)
-  }))
+  const flows = await afterWrite(context.records.flows)
   const broken = flows
     .filter(flow => {
       try {
@@ -303,8 +264,12 @@ function requireCombinableSources(
     if (source.external !== target.external) {
       throw new Error('an external system and an internal system cannot combine')
     }
-    if (source.group !== undefined || source.technology !== undefined || source.tags !== undefined || source.color !== undefined || source.icon !== undefined) {
+    if (source.technology !== undefined || source.tags !== undefined || source.color !== undefined || source.icon !== undefined) {
       throw new Error(`cannot combine "${source.id}" because it has authored metadata`)
+    }
+    const group = context.groups.find(candidate => candidate.memberIds.includes(source.id))
+    if (group !== undefined) {
+      throw new Error(`cannot combine "${source.id}" while group ${group.id} lists it`)
     }
   }
   return sources
@@ -350,21 +315,39 @@ async function combineElements(
   }
 }
 
-/** Structural curation of one element: group, detach files, move, rename, or fold empty scan records into it; each element keeps its own status. */
+/**
+ * The group records an edit without a rename has to rewrite. A group lists components of one container, so:
+ * - a component whose document moves to another container leaves its group;
+ * - components that move with their system or container keep their group, and its links follow them.
+ * An edit that moves no document returns nothing.
+ */
+async function groupWritesForMoves(
+  context: CurationContext,
+  target: ArchitectureElement,
+  rewrites: readonly Rewrite[],
+): Promise<DocumentWrite[]> {
+  if (target.kind !== 'component') return groupLinkWrites(context, rewrites)
+  const changesContainer = rewrites.some(rewrite => rewrite.sourceFilename === target.sourceFilename
+    && rewrite.destinationFilename !== target.sourceFilename)
+  if (!changesContainer) return []
+  const left = await leavingWrites(context, [target.id])
+  return left.map(write => ({ ...write, destinationFilename: write.sourceFilename }))
+}
+
+/** Structural curation of one element: detach files, move, rename, or fold empty scan records into it; each element keeps its own status. */
 export async function curateElement(
   repositoryRoot: string,
   records: ArchitectureRecords,
   model: ArchitectureModel,
   input: CurateInput,
 ): Promise<StructuralResult> {
-  validateCurationInput(input)
+  requireSeparateEdits(input)
   const byId = new Map(model.elements.map(element => [element.id, element]))
   const filesystem = GromaFileSystem.open(repositoryRoot)
-  const context = { filesystem, repositoryRoot, records, model, byId }
+  const context = { ...groupContext(repositoryRoot, records, model), filesystem, byId }
   const target = requireElement(byId, input.id)
   const originalSource = await readDocument(repositoryRoot, target.sourceFilename)
-  const grouped = groupedSource(target, originalSource, input)
-  const detached = detachedSource(target, grouped, input.detach)
+  const detached = detachedSource(target, originalSource, input.detach)
   const moved = movedTarget(context, target, detached, input.parent)
   const combined = await combineElements(context, target, moved.source, input.combine)
   const renamed = renamedTarget(context, target, combined.targetSource, moved.destination, input.newId)
@@ -378,10 +361,14 @@ export async function curateElement(
     ...combined.rewrites,
     ...await movedDescendants(context, target, renamed.destination, renamed.id),
   ]
-  // Only a rename repoints links; requireLoadableResult refuses a move or combine that would break one.
+  // Only a rename repoints every link. Otherwise group records alone follow, and requireLoadableResult
+  // refuses a move or combine that would break any other link.
   const writes: DocumentWrite[] = input.newId === undefined
-    ? rewrites.map(rewrite => ({ ...rewrite, source: withMovedLinks(rewrite.source,
-      rewrite.sourceFilename, new Map(), rewrite.destinationFilename) }))
+    ? [
+      ...rewrites.map(rewrite => ({ ...rewrite, source: withMovedLinks(rewrite.source,
+        rewrite.sourceFilename, new Map(), rewrite.destinationFilename) })),
+      ...await groupWritesForMoves(context, target, rewrites),
+    ]
     : await linkWrites(context, rewrites)
   validateDestinations(filesystem, writes)
   const removals = combined.removals.map(element => element.sourceFilename)
@@ -408,7 +395,7 @@ export async function completeContainerPlacement(
   const model = buildArchitectureModel(records.documents)
   const byId = new Map(model.elements.map(element => [element.id, element]))
   const filesystem = GromaFileSystem.open(repositoryRoot)
-  const context = { repositoryRoot, records, model, byId, filesystem }
+  const context = { ...groupContext(repositoryRoot, records, model), filesystem, byId }
   const rewrites: Rewrite[] = []
   for (const [id, parentId] of parents) {
     const element = requireElement(byId, id), parent = requireElement(byId, parentId)

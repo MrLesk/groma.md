@@ -11,7 +11,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/typescript/src/source-operations.ts
       symbol: sourceOperations
-  group: Language analysis
 description: Reads TypeScript operations and their tokens for copy comparison
 ---
 

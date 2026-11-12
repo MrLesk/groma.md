@@ -16,6 +16,7 @@ function relationship(source: string, target: string): AnnotatedRelationship {
 /** Two containers: api is tagged payments and holds a legacy component; web holds one untagged component. */
 const world: AnnotatedArchitectureModel = {
   drafts: [],
+  groups: [],
   elements: [
     element('shop', 'system', null, ['api', 'web']),
     element('api', 'container', 'shop', ['billing', 'orders'], ['payments']),

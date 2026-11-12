@@ -9,7 +9,6 @@ groma:
     - scanner: typescript
       file: src/architecture-watch.ts
       symbol: watchArchitecture
-  group: Architecture records
 description: Notifies open viewers when architecture files change
 ---
 

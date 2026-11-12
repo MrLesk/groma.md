@@ -5,7 +5,6 @@ status: stable
 groma:
   id: pricing-queue
   parent: pricing
-  group: Support
   code:
     - scanner: typescript
       file: src/catalog/pricing/queue.ts

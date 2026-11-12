@@ -30,7 +30,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/ruby/src/tokens.ts
       symbol: comparedMethod
-  group: Language scanners
   technology: TypeScript, tree-sitter-ruby, WebAssembly
 description: Supplies Ruby declarations, Rails handlers and HTTP evidence without running project code.
 ---

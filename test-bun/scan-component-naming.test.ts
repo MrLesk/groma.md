@@ -183,16 +183,16 @@ test.concurrent('authored titles do not force identity qualifiers into new displ
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-test.concurrent('scanned IDs never take a word the CLI reads as an address, and later scans keep them', async () => {
-  expect([...names(['src/group.ts', 'src/relation.ts']).values()].map(value => value.id)).toEqual(['src-group', 'src-relation'])
+test.concurrent('scanned IDs never take the word the CLI reads as a relation address, and later scans keep them', async () => {
+  expect([...names(['src/relation.ts']).values()].map(value => value.id)).toEqual(['src-relation'])
 
   const root = await repository()
-  const scan = observation(['src/group.ts'])
+  const scan = observation(['src/relation.ts'])
   try {
     expect((await reconcileScanObservations(root, [scan])).created).toBe(2)
     const ids = (await loadArchitecture(root)).documents
       .map(document => (document.frontmatter.groma as { id?: string } | undefined)?.id)
-    expect(ids).not.toContain('group')
+    expect(ids).not.toContain('relation')
     expect((await reconcileScanObservations(root, [scan])).created).toBe(0)
   } finally { await rm(root, { recursive: true, force: true }) }
 })

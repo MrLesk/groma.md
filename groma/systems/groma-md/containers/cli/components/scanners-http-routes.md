@@ -32,7 +32,6 @@ groma:
       file: plugins/scanners/http-values.ts
     - scanner: typescript
       file: plugins/scanners/http-forwarding.ts
-  group: Scanner support
 description: Resolves HTTP clients, routers and endpoints for TypeScript-based scanners
 ---
 

@@ -192,8 +192,7 @@ test.concurrent('a taken or reserved id is refused and nothing is written', asyn
     const before = await loadAnnotatedArchitecture(root)
     await expect(editArchitecture(root, { id: 'a', newId: 'b' })).rejects.toThrow('already exists')
     await expect(editArchitecture(root, { id: 'a', newId: 'index' })).rejects.toThrow('is reserved')
-    // The CLI reads these words as a relation or group address, so it could not reach an element named so.
-    await expect(editArchitecture(root, { id: 'a', newId: 'group' })).rejects.toThrow('is reserved')
+    // The CLI reads this word as a relation address, so it could not reach an element named so.
     await expect(editArchitecture(root, { id: 'a', newId: 'Relation' })).rejects.toThrow('is reserved')
     await expect(editArchitecture(root, { id: 'a', newId: 'later', combine: ['b'] })).rejects.toThrow('separate edit')
     expect((await loadAnnotatedArchitecture(root)).elements).toEqual(before.elements)

@@ -10,7 +10,6 @@ groma:
       file: src/viewers/web/chrome/c4-filter.ts
     - scanner: typescript
       file: src/viewers/web/chrome/tag-focus.ts
-  group: Browser controls
 description: Shows or hides element kinds and relationships on the browser map
 ---
 

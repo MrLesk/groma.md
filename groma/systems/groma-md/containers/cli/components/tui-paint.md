@@ -42,7 +42,6 @@ groma:
       symbol: drawWorkCorner
     - scanner: typescript
       file: src/viewers/tui/atoms/lines.ts
-  group: Terminal map
 description: Draws the terminal plan with box-drawing lines, names, arrows and pulses
 ---
 

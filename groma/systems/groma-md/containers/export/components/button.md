@@ -29,7 +29,6 @@ groma:
       file: src/viewers/web/atoms/text.ts
     - scanner: typescript
       file: src/viewers/web/icons/glyph-element.ts
-  group: Browser controls
 description: Shared buttons, dialogs, menus and text styles for browser panels
 ---
 

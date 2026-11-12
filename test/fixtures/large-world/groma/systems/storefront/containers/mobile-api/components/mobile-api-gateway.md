@@ -5,7 +5,6 @@ status: stable
 groma:
   id: mobile-api-gateway
   parent: mobile-api
-  group: Core
   code:
     - scanner: typescript
       file: src/storefront/mobile-api/gateway.ts

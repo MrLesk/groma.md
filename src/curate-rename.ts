@@ -1,7 +1,6 @@
-import path from 'node:path'
 import { parseFrontmatter } from 'comark'
 
-import { relationshipTargetFilename } from './architecture-markdown.ts'
+import { markdownHref, relationshipTargetFilename } from './architecture-markdown.ts'
 import { freeId } from './architecture-model.ts'
 import { architectureElementPath } from './architecture-path.ts'
 import { readDocument, withGromaField } from './markdown-emitter.ts'
@@ -48,16 +47,13 @@ export function withMovedLinks(
   moves: ReadonlyMap<string, string>,
   destinationFilename = sourceFilename,
 ): string {
-  const from = path.posix.dirname(destinationFilename)
   const moved = (href: string): string | undefined => {
     const resolved = relationshipTargetFilename(sourceFilename, href)
     if (resolved === null) return undefined
     const destination = moves.get(resolved) ?? (sourceFilename !== destinationFilename ? resolved : undefined)
     const fragment = href.includes('#') ? href.slice(href.indexOf('#')) : ''
     if (destination === undefined) return undefined
-    const relative = path.posix.relative(from, destination).split('/').map(encodeURIComponent).join('/')
-      .replaceAll('(', '%28').replaceAll(')', '%29')
-    return `${relative}${fragment}`
+    return `${markdownHref(destinationFilename, destination)}${fragment}`
   }
   return rewriteProse(source, prose => prose
     .replace(inlineLink, (match, href: string, title: string) => {
@@ -70,28 +66,51 @@ export function withMovedLinks(
     }))
 }
 
+/** Each document that changes path, from its current path to its new one. */
+function movesOf(rewrites: readonly DocumentWrite[]): Map<string, string> {
+  return new Map(rewrites
+    .filter(rewrite => rewrite.destinationFilename !== rewrite.sourceFilename)
+    .map(rewrite => [rewrite.sourceFilename, rewrite.destinationFilename]))
+}
+
+/** The stored documents among these whose links name a moved document, rewritten to its new path. */
+async function repointed(
+  context: CurationContext,
+  sourceFilenames: readonly string[],
+  moves: ReadonlyMap<string, string>,
+): Promise<DocumentWrite[]> {
+  const writes: DocumentWrite[] = []
+  for (const sourceFilename of sourceFilenames) {
+    const stored = await readDocument(context.repositoryRoot, sourceFilename)
+    const source = withMovedLinks(stored, sourceFilename, moves)
+    if (source !== stored) writes.push({ sourceFilename, destinationFilename: sourceFilename, source })
+  }
+  return writes
+}
+
 /** Rebase outgoing links and repoint incoming links, preserving the same Markdown destinations. */
 export async function linkWrites(
   context: CurationContext,
   rewrites: readonly DocumentWrite[],
 ): Promise<DocumentWrite[]> {
-  const moves = new Map(rewrites
-    .filter(rewrite => rewrite.destinationFilename !== rewrite.sourceFilename)
-    .map(rewrite => [rewrite.sourceFilename, rewrite.destinationFilename]))
-  const linked = [...context.records.documents, ...context.records.flows, ...context.records.drafts]
-    .map(document => document.sourceFilename)
+  const moves = movesOf(rewrites)
+  const { documents, flows, drafts, groups } = context.records
+  const linked = [...documents, ...flows, ...drafts, ...groups].map(document => document.sourceFilename)
   linked.push(context.filesystem.sourceFilename('project.md'))
   const written = new Set(rewrites.map(rewrite => rewrite.sourceFilename))
-  const writes: DocumentWrite[] = rewrites.map(rewrite => ({ ...rewrite,
-    source: withMovedLinks(rewrite.source, rewrite.sourceFilename, moves, rewrite.destinationFilename) }))
-  for (const sourceFilename of linked) {
-    if (written.has(sourceFilename)) continue
-    const stored = await readDocument(context.repositoryRoot, sourceFilename)
-    const source = withMovedLinks(stored, sourceFilename, moves)
-    if (source === stored) continue
-    writes.push({ sourceFilename, destinationFilename: sourceFilename, source })
-  }
-  return writes
+  return [
+    ...rewrites.map(rewrite => ({ ...rewrite,
+      source: withMovedLinks(rewrite.source, rewrite.sourceFilename, moves, rewrite.destinationFilename) })),
+    ...await repointed(context, linked.filter(sourceFilename => !written.has(sourceFilename)), moves),
+  ]
+}
+
+/** Group records name their members by link, so those links follow every member that moves. */
+export function groupLinkWrites(
+  context: CurationContext,
+  rewrites: readonly DocumentWrite[],
+): Promise<DocumentWrite[]> {
+  return repointed(context, context.records.groups.map(document => document.sourceFilename), movesOf(rewrites))
 }
 
 /** A renamed record keeps its meaning, Code and children, and its document moves to the path of the new id. */
