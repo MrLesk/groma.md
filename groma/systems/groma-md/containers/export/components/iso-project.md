@@ -7,7 +7,6 @@ tags:
 groma:
   id: iso-project
   parent: export
-  group: Map drawing
   code:
     - scanner: typescript
       file: src/viewers/web/iso/projection/project.ts

@@ -10,7 +10,6 @@ groma:
   code:
     - scanner: typescript
       file: plugins/scanners/swift/src/index.ts
-  group: Language analysis
 description: Starts the Swift worker and converts its result into scan evidence
 ---
 

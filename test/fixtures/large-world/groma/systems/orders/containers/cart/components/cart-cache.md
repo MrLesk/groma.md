@@ -5,7 +5,6 @@ status: stable
 groma:
   id: cart-cache
   parent: cart
-  group: Core
   code:
     - scanner: typescript
       file: src/orders/cart/cache.ts

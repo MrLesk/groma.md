@@ -10,7 +10,6 @@ groma:
   code:
     - scanner: typescript
       file: plugins/scanners/typescript-outline.ts
-  group: Scanner support
 description: Reads TypeScript declarations for language and framework scanners
 ---
 

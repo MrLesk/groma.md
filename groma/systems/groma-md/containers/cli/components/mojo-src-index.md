@@ -14,7 +14,6 @@ groma:
       file: plugins/scanners/mojo/src/parser.ts
     - scanner: typescript
       file: plugins/scanners/mojo/src/source.ts
-  group: Language scanners
   technology: TypeScript, tree-sitter-mojo, WebAssembly
 description: Supplies Mojo source inventory, Code outlines, named operations and unresolved call evidence without Mojo.
 ---

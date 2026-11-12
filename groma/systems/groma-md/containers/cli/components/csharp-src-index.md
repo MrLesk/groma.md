@@ -17,7 +17,6 @@ groma:
       file: plugins/scanners/csharp/src/adapter.ts
     - scanner: typescript
       file: plugins/scanners/csharp/src/process.ts
-  group: Language analysis
 description: Starts the C# worker and converts its result into scan evidence
 ---
 

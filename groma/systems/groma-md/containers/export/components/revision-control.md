@@ -11,7 +11,6 @@ groma:
       symbol: createRevisionControl
     - scanner: typescript
       file: src/viewers/web/revision/view.ts
-  group: Architecture panels
 description: Lists Git architecture revisions and opens a snapshot
 ---
 

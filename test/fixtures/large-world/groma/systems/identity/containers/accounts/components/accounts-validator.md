@@ -5,7 +5,6 @@ status: stable
 groma:
   id: accounts-validator
   parent: accounts
-  group: Core
   code:
     - scanner: typescript
       file: src/identity/accounts/validator.ts

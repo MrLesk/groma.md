@@ -5,7 +5,6 @@ status: stable
 groma:
   id: catalog-api-gateway
   parent: catalog-api
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/catalog-api/gateway.ts

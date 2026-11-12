@@ -57,7 +57,7 @@ function invalidElement(sourceFilename: string, message: string): never {
 
 function validateGromaFields(groma: Record<string, unknown>, sourceFilename: string): void {
   const unknownFields = Object.keys(groma).filter(field => {
-    return !['id', 'parent', 'group', 'technology', 'color', 'icon', 'code', 'draft'].includes(field)
+    return !['id', 'parent', 'technology', 'color', 'icon', 'code', 'draft'].includes(field)
   })
   if (unknownFields.length > 0) {
     invalidElement(sourceFilename, `unsupported groma field(s): ${unknownFields.join(', ')}`)
@@ -66,7 +66,7 @@ function validateGromaFields(groma: Record<string, unknown>, sourceFilename: str
 
 function optionalText(
   value: unknown,
-  field: 'description' | 'parent' | 'group' | 'technology' | 'draft',
+  field: 'description' | 'parent' | 'technology' | 'draft',
   sourceFilename: string,
 ): string | undefined {
   if (value === undefined) return undefined
@@ -158,7 +158,6 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     invalidElement(sourceFilename, `only a system can live under externals/, but "${id}" is a ${kind}`)
   }
   const parent = optionalText(groma.parent, 'parent', sourceFilename)
-  const group = optionalText(groma.group, 'group', sourceFilename)
   const technology = optionalText(groma.technology, 'technology', sourceFilename)
   const tags = tagsOf(document.frontmatter.tags, sourceFilename)
   const color = colorOf(groma.color, sourceFilename)
@@ -175,7 +174,6 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     }),
     parentId: parent ?? null,
     external,
-    ...(group === undefined ? {} : { group }),
     ...(technology === undefined ? {} : { technology }),
     ...(tags === undefined ? {} : { tags }),
     ...(color === undefined ? {} : { color }),
@@ -343,17 +341,26 @@ export function requireDraftRecord(records: ArchitectureRecords, draft: string):
   return draft
 }
 
-/** The kebab id a new name gets, provided no element or draft record holds it and it is not reserved. */
+/** Flows, groups and draft records share the id space of elements: each of their ids, with the kind of record that holds it. */
+export function otherRecordIds(records: ArchitectureRecords): Map<string, 'flow' | 'group' | 'draft'> {
+  const holders = new Map<string, 'flow' | 'group' | 'draft'>()
+  const kinds = [['flow', records.flows], ['group', records.groups], ['draft', records.drafts]] as const
+  for (const [kind, documents] of kinds) {
+    for (const document of documents) {
+      const id = requireGromaMapping(document.frontmatter, document.sourceFilename).id
+      if (typeof id === 'string') holders.set(id, kind)
+    }
+  }
+  return holders
+}
+
+/** The kebab id a new name gets, provided no element, flow, group or draft record holds it and it is not reserved. */
 export function freeId(records: ArchitectureRecords, model: ArchitectureModel, name: string): string {
   const id = kebabCase(name)
   if (id === '') throw new Error('name must contain a letter or a digit')
   if (model.elements.some(element => element.id === id)) throw new Error(`id "${id}" already exists`)
-  if (records.flows.some(document => requireGromaMapping(document.frontmatter, document.sourceFilename).id === id)) {
-    throw new Error(`id "${id}" already names a flow`)
-  }
-  if (records.drafts.some(document => draftRecordOf(document).id === id)) {
-    throw new Error(`id "${id}" already names a draft`)
-  }
+  const holder = otherRecordIds(records).get(id)
+  if (holder !== undefined) throw new Error(`id "${id}" already names a ${holder}`)
   if (isReservedId(id)) throw new Error(`"${id}" is reserved for a Groma document or command`)
   return id
 }

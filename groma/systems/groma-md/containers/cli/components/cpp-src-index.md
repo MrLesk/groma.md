@@ -18,7 +18,6 @@ groma:
       file: plugins/scanners/cpp/src/syntax.ts
     - scanner: typescript
       file: plugins/scanners/cpp/src/outline.ts
-  group: Language scanners
   technology: TypeScript, tree-sitter-cpp, WebAssembly
 description: Supplies C++ declarations, Code outlines and unresolved call evidence without a compiler or build system.
 ---

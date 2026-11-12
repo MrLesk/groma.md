@@ -10,7 +10,6 @@ groma:
   code:
     - scanner: typescript
       file: src/scanner/registry.ts
-  group: Source scanning
 description: Loads selected scanner plugins and collects their results
 ---
 

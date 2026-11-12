@@ -16,7 +16,6 @@ groma:
       file: src/viewers/web/work/selection.ts
     - scanner: typescript
       file: src/viewers/web/work/summary.ts
-  group: Project work
 description: Shows task counts and work lists beside the browser map
 ---
 

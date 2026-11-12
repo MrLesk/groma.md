@@ -5,7 +5,6 @@ status: stable
 groma:
   id: audit-mapper
   parent: audit
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/audit/mapper.ts

@@ -5,7 +5,6 @@ status: stable
 groma:
   id: mobile-api-cache
   parent: mobile-api
-  group: Core
   code:
     - scanner: typescript
       file: src/storefront/mobile-api/cache.ts

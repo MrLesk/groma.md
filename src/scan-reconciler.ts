@@ -3,7 +3,7 @@ import path from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 
 import { prepareArchitectureFindings, rememberArchitectureFindings } from './architecture-findings.ts'
-import { buildArchitectureModel } from './architecture-model.ts'
+import { buildArchitectureModel, otherRecordIds } from './architecture-model.ts'
 import { storedConnections } from './relationship-markdown.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { architectureElementPath, isExternalPath } from './architecture-path.ts'
@@ -56,6 +56,8 @@ export interface WorldRecord {
 export interface World {
   byId: Map<string, WorldRecord>
   byCodeFile: Map<string, WorldRecord>
+  /** Ids held by flows, groups and draft records: taken, although no scan record carries them. */
+  otherIds: Set<string>
 }
 
 function worldRecord(document: ArchitectureDocument): WorldRecord | undefined {
@@ -77,7 +79,7 @@ function worldRecord(document: ArchitectureDocument): WorldRecord | undefined {
 }
 
 function indexWorld(records: ArchitectureRecords): World {
-  const world: World = { byId: new Map(), byCodeFile: new Map() }
+  const world: World = { byId: new Map(), byCodeFile: new Map(), otherIds: new Set(otherRecordIds(records).keys()) }
   for (const document of records.documents) {
     const record = worldRecord(document)
     if (record === undefined) continue
@@ -98,7 +100,7 @@ function candidateId(name: string, parent: WorldRecord | undefined, index: numbe
 }
 
 function isFree(world: World, id: string): boolean {
-  return !world.byId.has(id) && !isReservedId(id)
+  return !world.byId.has(id) && !world.otherIds.has(id) && !isReservedId(id)
 }
 
 /** The first candidate ID no record holds. */
@@ -375,7 +377,7 @@ async function reconcileFiles(
   }
   const names = componentNames(unowned.map(candidate => ({
     file: candidate.file, parent: candidate.parent.id,
-  })), new Set([...world.byId.values()].flatMap(record => [record.id, kebabCase(record.title)])))
+  })), new Set([...world.otherIds, ...[...world.byId.values()].flatMap(record => [record.id, kebabCase(record.title)])]))
   return unowned.map(candidate => reserveRecord(repositoryRoot, world, {
     kind: 'component', ...names.get(candidate.file)!, parent: candidate.parent,
     code: candidate.references.sort((a, b) => a.scanner.localeCompare(b.scanner)),

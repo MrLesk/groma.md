@@ -77,6 +77,8 @@ export function subsetByTags(world: AnnotatedArchitectureModel, filter: TagFilte
   const relationshipIds = new Set(relationships.map(item => item.id))
   return {
     flows: world.flows.filter(flow => flow.steps.every(step => relationshipIds.has(step.relationshipId))),
+    // A group whose members are all left out draws no zone, so every group passes through.
+    groups: world.groups,
     drafts: world.drafts,
     elements: world.elements.filter(element => kept.has(element.representationId))
       .map(element => ({ ...element, children: element.children.filter(child => kept.has(child)) })),

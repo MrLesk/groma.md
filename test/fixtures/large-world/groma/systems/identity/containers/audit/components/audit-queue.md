@@ -5,7 +5,6 @@ status: stable
 groma:
   id: audit-queue
   parent: audit
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/audit/queue.ts

@@ -24,7 +24,6 @@ groma:
       symbol: Templates
     - scanner: typescript
       file: plugins/scanners/angular/src/directives.ts
-  group: Language analysis
 description: Analyses Angular components, templates and HTTP bindings
 ---
 

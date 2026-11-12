@@ -11,7 +11,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/typescript-operations.ts
       symbol: typeScriptOperations
-  group: Scanner support
 description: Tokenises TypeScript operation bodies for duplication comparison
 ---
 

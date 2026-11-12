@@ -5,7 +5,6 @@ status: stable
 groma:
   id: import-router
   parent: import
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/import/router.ts
