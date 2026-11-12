@@ -36,7 +36,12 @@ export interface GromaConfig {
   useGitignore?: boolean
   /** Check for npm scanner updates in the background; true unless set to false. */
   automaticUpdates?: boolean
+  /** The host name or address `groma web` listens on; `defaultWebHost` unless set. */
+  webHost?: string
 }
+
+/** Where `groma web` listens when config.json sets no `webHost`: this computer only. */
+export const defaultWebHost = '127.0.0.1'
 
 const pluginId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
@@ -160,6 +165,14 @@ function configuredBoolean(value: unknown, filename: string, field: string): boo
   return value
 }
 
+/** An empty host would make the server listen on every address of this computer, so it is not accepted. */
+function configuredWebHost(value: unknown, filename: string): string | undefined {
+  if (value !== undefined && (typeof value !== 'string' || value.trim() === '')) {
+    throw new Error(`${filename} webHost must be a host name or address`)
+  }
+  return value
+}
+
 function parseGromaConfig(
   source: string,
   sourceFilename: string,
@@ -169,14 +182,15 @@ function parseGromaConfig(
     throw new Error(`${sourceFilename} must be an object`)
   }
   const config = value as Record<string, unknown>
-  if (Object.keys(config).some(key => !['scanners', 'workSources', 'exclude', 'useGitignore', 'automaticUpdates'].includes(key)) || !Array.isArray(config.scanners)) {
-    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, an exclude array, useGitignore and automaticUpdates`)
+  if (Object.keys(config).some(key => !['scanners', 'workSources', 'exclude', 'useGitignore', 'automaticUpdates', 'webHost'].includes(key)) || !Array.isArray(config.scanners)) {
+    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, an exclude array, useGitignore, automaticUpdates and webHost`)
   }
   if (config.exclude !== undefined && !stringArray(config.exclude)) {
     throw new Error(`${sourceFilename} exclude must be an array of strings`)
   }
   const useGitignore = configuredBoolean(config.useGitignore, sourceFilename, 'useGitignore')
   const automaticUpdates = configuredBoolean(config.automaticUpdates, sourceFilename, 'automaticUpdates')
+  const webHost = configuredWebHost(config.webHost, sourceFilename)
   const workSources = configuredWorkSources(config.workSources, sourceFilename)
   const scanners = configuredScanners(config.scanners, sourceFilename)
   requireUniqueIds([...scanners, ...workSources], sourceFilename)
@@ -186,6 +200,7 @@ function parseGromaConfig(
     ...(config.exclude === undefined ? {} : { exclude: config.exclude as string[] }),
     ...(useGitignore === undefined ? {} : { useGitignore }),
     ...(automaticUpdates === undefined ? {} : { automaticUpdates }),
+    ...(webHost === undefined ? {} : { webHost }),
   }
 }
 
@@ -221,6 +236,7 @@ export async function writeGromaConfig(
     ...(config.exclude === undefined ? {} : { exclude: config.exclude }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
     ...(config.automaticUpdates === undefined ? {} : { automaticUpdates: config.automaticUpdates }),
+    ...(config.webHost === undefined ? {} : { webHost: config.webHost }),
   }, null, 2)}\n`
   parseGromaConfig(text, filesystem.sourceFilename('config.json'))
   await filesystem.write('config.json', text)
@@ -237,4 +253,12 @@ export async function updateGromaConfig(
     await writeGromaConfig(repositoryRoot, next)
     return true
   })
+}
+
+/**
+ * Writes the default `webHost` into config.json so that the setting is visible there. A value the file already sets
+ * is kept.
+ */
+export async function recordDefaultWebHost(repositoryRoot: string): Promise<void> {
+  await updateGromaConfig(repositoryRoot, config => ({ webHost: defaultWebHost, ...config }))
 }

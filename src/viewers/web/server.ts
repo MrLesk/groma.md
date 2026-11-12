@@ -1,6 +1,7 @@
 import path from 'node:path'
 import type { WorkSource } from '@groma/work-source'
 
+import { defaultWebHost, readGromaConfig } from '../../config.ts'
 import {
   backlogOffer,
   initializeRepository,
@@ -19,9 +20,64 @@ import { restoreRows, type RestoreRow } from './startup/restore.ts'
 
 type MapSession = Awaited<ReturnType<typeof createWebMapSession>>
 
+/** What a started server tells its caller, which prints it. */
+export interface WebListening {
+  /** The address that opens the map from this computer. */
+  url: string
+  /** Present when config.json's `webHost` lets other computers use the server; printed at every start. */
+  networkWarning?: string
+}
+
 /**
- * One local server owns setup and the ready map; the map starts only after initialization. When a plugin config.json
+ * The host config.json sets for this server, else this computer only. A project that is not initialized yet, or whose
+ * config.json cannot be read, is also served to this computer only: the startup page is what reports that state, so
+ * the server must still start.
+ */
+async function listeningHost(repositoryRoot: string): Promise<string> {
+  try {
+    return (await readGromaConfig(repositoryRoot)).webHost ?? defaultWebHost
+  } catch {
+    return defaultWebHost
+  }
+}
+
+/** Whether this computer can listen on the host at all, tried on a port the system picks. */
+async function canListenOn(host: string): Promise<boolean> {
+  try {
+    await Bun.serve({ hostname: host, port: 0, fetch: () => new Response(null) }).stop(true)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Whether the server on this host serves this computer only. Only these exact spellings count. Every other value,
+ * even another loopback address, is treated as serving the network, so that `groma web` warns about it.
+ */
+export function isLoopbackWebHost(host: string): boolean {
+  return ['127.0.0.1', 'localhost', '::1'].includes(host)
+}
+
+/** The server has no sign-in, so a host that other computers can reach is announced at every start. */
+function networkWarning(host: string): string | undefined {
+  if (isLoopbackWebHost(host)) return undefined
+  return [
+    "Warning: any computer that can reach this server can read this project's source and use its editing and plugin controls, without signing in.",
+    `The cause is webHost ${JSON.stringify(host)} in config.json. Remove it or set it to ${JSON.stringify(defaultWebHost)} to serve this computer only.`,
+  ].join('\n')
+}
+
+/**
+ * The two hosts that listen on every network interface are not addresses a browser can open. Each is printed as the
+ * loopback address it certainly includes.
+ */
+const everyInterfaceHosts = new Map([['0.0.0.0', '127.0.0.1'], ['::', '[::1]']])
+
+/**
+ * One server owns setup and the ready map; the map starts only after initialization. When a plugin config.json
  * lists is missing on this computer, the server first asks whether to restore it, or opens the map read-only.
+ * It listens on this computer only unless config.json sets `webHost`.
  */
 export async function startWebViewer(
   repositoryRoot: string,
@@ -29,7 +85,7 @@ export async function startWebViewer(
     port?: number
     workSource?: WorkSource
     scan?: boolean
-    onListening?: (url: string) => void
+    onListening?: (listening: WebListening) => void
     initDependencies?: Partial<RepositoryInitDependencies>
   } = {},
 ): Promise<{ url: string; close: () => Promise<void> }> {
@@ -186,7 +242,15 @@ export async function startWebViewer(
     'POST /proceed': proceedWithoutPlugins,
   }
 
+  const host = await listeningHost(repositoryRoot)
+  // Bun reports every failure to listen as an occupied port, so for a host this computer cannot listen on the command
+  // would offer another port. The default host is not probed: a project that sets no webHost must never be told that
+  // its webHost is wrong.
+  if (host !== defaultWebHost && !await canListenOn(host)) {
+    throw new Error(`Cannot listen on webHost ${JSON.stringify(host)} from config.json. Remove webHost, set it to ${JSON.stringify(defaultWebHost)}, or use an address this computer has.`)
+  }
   const server = Bun.serve({
+    hostname: host,
     port: options.port ?? 4747,
     // The map's live event stream must stay open between changes.
     idleTimeout: 0,
@@ -203,8 +267,12 @@ export async function startWebViewer(
     },
   })
 
-  const url = `http://localhost:${server.port}`
-  options.onListening?.(url)
+  // The printed address is one the server listens on: the host itself, or for a host that listens on every interface
+  // the loopback address it includes. `localhost` is not printed for those: the system decides which address it
+  // means, and another program can hold the same port there.
+  const loopback = everyInterfaceHosts.get(host)
+  const url = loopback === undefined ? server.url.origin : `http://${loopback}:${server.port}`
+  options.onListening?.({ url, networkWarning: networkWarning(host) })
   if (initial.initialized) {
     try {
       const missing = (await pluginPresence(repositoryRoot)).filter(plugin => !plugin.present)
