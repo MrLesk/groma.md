@@ -126,7 +126,8 @@ operation before opening a map.
      or absorbed record takes every document stored under it to its new path.
      `--id <new-id>` renames an element: its document and the documents under it
      move to the paths of the new ID, children name the new parent, and
-     concept-addressed relationship rows and flow steps are repointed. Scans
+     concept-addressed relationship rows, flow steps and group members are
+     repointed. Scans
      match elements through owned files, so a renamed ID survives them. These
      operations validate the whole change before writing.
      `--detach <file...>` removes those files from the component's Code.
@@ -134,13 +135,14 @@ operation before opening a map.
      document. The next scan transfers them to the new source owner and returns
      them to the map. Scan before removing an empty component that still holds
      waiting rows. Combining components carries their outgoing rows together.
-   - A group is a name on each sibling component and is addressed as
-     `<container-id>/<group-kebab>`: `groma add group <name> <ids...>` names
-     it, `groma edit group <address> --title <text>` renames every member,
-     `groma remove group <address> [ids...]` takes members out or dissolves
-     it. In the web map a multi-selection of components offers Group as and
-     Combine into (the person picks the survivor), and a pressed zone opens
-     Rename and Dissolve.
+   - A [group](component-markdown.md#groups) is its own record that lists
+     components of one container: `groma add group <name> <ids...>` creates it
+     and prints its ID, `groma edit <group-id>` changes its title, description
+     and overview, `groma edit <component-id> --group <group-id>` or
+     `--ungroup` changes one membership, and `groma remove <group-id>` deletes
+     the record and leaves its members in place. In the web map a
+     multi-selection of components offers Group as and Combine into (the person
+     picks the survivor).
    - An interaction is authored with `groma add relation <source-file>
      <target-file> --description <prose> --technology <text>`. Exact source
      files identify code endpoints; actor and external-system declarations

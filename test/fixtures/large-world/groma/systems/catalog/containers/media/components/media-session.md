@@ -5,7 +5,6 @@ status: stable
 groma:
   id: media-session
   parent: media
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/media/session.ts

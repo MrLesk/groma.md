@@ -5,7 +5,6 @@ status: stable
 groma:
   id: directory-validator
   parent: directory
-  group: Core
   code:
     - scanner: typescript
       file: src/identity/directory/validator.ts

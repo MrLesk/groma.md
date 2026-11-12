@@ -4,6 +4,7 @@ import { parseMarkdown, parseFrontmatter } from 'comark'
 
 import {
   FLOW_TYPE,
+  GROUP_TYPE,
   c4Kind,
   requireBundleIndex,
   requireConceptType,
@@ -146,7 +147,7 @@ async function requireGromaPackage(
   requireProjectOverview(project.nodes, project.body, project.sourceFilename)
 }
 
-/** Reads the one architecture tree: element documents wherever they sit, draft records under drafts/. */
+/** Reads the one architecture tree: element, flow and group documents by their type, draft records under drafts/. */
 export async function loadArchitecture(
   repositoryRoot: string,
   options: { onFilesystemAccess?: FilesystemAccessHandler } = {},
@@ -163,6 +164,7 @@ async function readArchitecture(
   const documents: ArchitectureDocument[] = []
   const drafts: ArchitectureDocument[] = []
   const flows: ArchitectureDocument[] = []
+  const groups: ArchitectureDocument[] = []
 
   const filenames = (await listMarkdownFiles(filesystem, '', onFilesystemAccess))
     .filter(filename => !rootDocuments.has(filename) && !isReservedDocument(filename))
@@ -177,8 +179,9 @@ async function readArchitecture(
     }
     const type = requireConceptType(document.frontmatter, document.sourceFilename)
     if (type === FLOW_TYPE) flows.push(document)
+    if (type === GROUP_TYPE) groups.push(document)
     if (c4Kind(type) !== undefined) documents.push(document)
   }
 
-  return deepFreeze({ documents, drafts, flows })
+  return deepFreeze({ documents, drafts, flows, groups })
 }

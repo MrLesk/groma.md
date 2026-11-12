@@ -8,10 +8,15 @@ import { parseTags } from './tags.ts'
 import { DRAFT_TYPE, c4Type, requireGromaMapping } from './okf-profile.ts'
 import type { ArchitectureDocument, C4Kind, CodeReference, ElementStatus } from './types.ts'
 
+/** The document the reader would produce from this text, for validating a write before it reaches the file. */
+export async function parsedDocument(sourceFilename: string, source: string): Promise<ArchitectureDocument> {
+  const tree = await parseMarkdown(source)
+  return { sourceFilename, body: parseFrontmatter(source).content, nodes: tree.nodes, frontmatter: tree.frontmatter } as ArchitectureDocument
+}
+
 /** Save must pass the same semantic validation as the next read before changing the file. */
 export async function validateElementSource(documents: ArchitectureDocument[], sourceFilename: string, source: string): Promise<void> {
-  const tree = await parseMarkdown(source)
-  const document = { sourceFilename, body: parseFrontmatter(source).content, nodes: tree.nodes, frontmatter: tree.frontmatter } as ArchitectureDocument
+  const document = await parsedDocument(sourceFilename, source)
   buildArchitectureModel([...documents.filter(item => item.sourceFilename !== sourceFilename), document])
 }
 
@@ -85,7 +90,7 @@ export function withGromaCode(source: string, code: CodeReference[]): string {
 
 export function withGromaField(
   source: string,
-  field: 'id' | 'group' | 'parent' | 'draft' | 'technology' | 'color' | 'icon',
+  field: 'id' | 'parent' | 'draft' | 'technology' | 'color' | 'icon',
   value: string | undefined,
 ): string {
   return withGromaChange(source, groma => {

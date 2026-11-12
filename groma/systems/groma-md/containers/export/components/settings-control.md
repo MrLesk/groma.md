@@ -17,7 +17,6 @@ groma:
       file: src/viewers/web/atoms/theme.ts
     - scanner: typescript
       file: src/viewers/web/chrome/motion.ts
-  group: Browser controls
 description: Theme, settings menu and plugin attention in the browser
 ---
 

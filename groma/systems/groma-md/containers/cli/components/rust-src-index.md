@@ -12,7 +12,6 @@ groma:
       file: plugins/scanners/rust/src/index.ts
     - scanner: typescript
       file: plugins/scanners/rust/src/project.ts
-  group: Language analysis
 description: Starts the Rust worker and converts its result into scan evidence
 ---
 

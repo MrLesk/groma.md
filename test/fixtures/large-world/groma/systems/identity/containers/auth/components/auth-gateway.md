@@ -5,7 +5,6 @@ status: stable
 groma:
   id: auth-gateway
   parent: auth
-  group: Core
   code:
     - scanner: typescript
       file: src/identity/auth/gateway.ts

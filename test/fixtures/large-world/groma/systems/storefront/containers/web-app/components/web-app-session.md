@@ -5,7 +5,6 @@ status: stable
 groma:
   id: web-app-session
   parent: web-app
-  group: Core
   code:
     - scanner: typescript
       file: src/storefront/web-app/session.ts

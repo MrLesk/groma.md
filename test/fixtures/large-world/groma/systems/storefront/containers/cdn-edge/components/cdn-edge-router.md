@@ -5,7 +5,6 @@ status: stable
 groma:
   id: cdn-edge-router
   parent: cdn-edge
-  group: Core
   code:
     - scanner: typescript
       file: src/storefront/cdn-edge/router.ts

@@ -8,7 +8,6 @@ groma:
   code:
     - scanner: typescript
       file: src/viewers/web/chrome/map-debug.ts
-  group: Browser controls
 description: Shows frame rate and layout measurements for map development
 ---
 

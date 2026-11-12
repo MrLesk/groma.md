@@ -10,7 +10,6 @@ groma:
       file: src/viewers/source/diff.ts
     - scanner: typescript
       file: src/viewers/source/diff-lines.ts
-  group: Shared viewer data
 description: Reads the file differences attached to a selected task
 ---
 

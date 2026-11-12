@@ -14,7 +14,6 @@ groma:
     - scanner: typescript
       file: src/scanner/watch-patterns.ts
       symbol: compileWatchPatterns
-  group: Source scanning
 description: Re-runs affected scanners when project source files change
 ---
 

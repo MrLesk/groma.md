@@ -5,7 +5,6 @@ status: stable
 groma:
   id: checkout-cache
   parent: checkout
-  group: Core
   code:
     - scanner: typescript
       file: src/orders/checkout/cache.ts

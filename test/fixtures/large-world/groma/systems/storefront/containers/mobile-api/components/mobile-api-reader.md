@@ -5,7 +5,6 @@ status: stable
 groma:
   id: mobile-api-reader
   parent: mobile-api
-  group: Support
   code:
     - scanner: typescript
       file: src/storefront/mobile-api/reader.ts

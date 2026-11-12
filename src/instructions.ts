@@ -55,7 +55,7 @@ Say what must be true, not how to build it. Do not specify frameworks, file layo
 - Map icon of an element: groma edit <id> --icon <name>; groma edit --help lists the names. Pass an empty value to remove it.
 - Current long overview: groma edit <id> --overview <markdown>. Pass an empty value to clear it.
 - Optional concise description: groma edit <id> --description <text>. Pass an empty value to remove it.
-- Group sibling components: groma add group <name> <ids...>. A group is addressed as <container-id>/<group-kebab>: groma edit group <address> --title <text> renames it, groma remove group <address> [ids...] takes the named members out or dissolves it. One component: groma edit <id> --group <name> or --ungroup.
+- Group components of one container: groma add group <name> <ids...> creates a group record and prints its id; a name the container already uses adds the components to that group. groma edit <group-id> --title, --description or --overview changes what the group says, and groma remove <group-id> deletes the record and leaves its members. One component: groma edit <id> --group <group-id> or --ungroup.
 - Move an empty scanned component to another container, or a container with its components to another system: groma edit <id> --parent <container-id|system-id>
 - Combine empty scanned systems, containers, or components into one: groma edit <target-id> --combine <source-id...>
 - Current collaboration: groma add relation <source-file> <target-file> --description <prose> --technology <text>. One authored row per ordered file pair, stored in the source element document. Actor and external-system declarations may use concept IDs.

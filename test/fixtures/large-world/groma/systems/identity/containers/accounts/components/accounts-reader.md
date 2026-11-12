@@ -5,7 +5,6 @@ status: stable
 groma:
   id: accounts-reader
   parent: accounts
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/accounts/reader.ts

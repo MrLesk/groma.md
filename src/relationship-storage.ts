@@ -1,5 +1,5 @@
-import path from 'node:path'
 import { parseMarkdown, parseFrontmatter } from 'comark'
+import { markdownHref } from './architecture-markdown.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { sourceIndex } from './source-index.ts'
 import { readDocument, writeDocument } from './markdown-emitter.ts'
@@ -74,8 +74,7 @@ export function withStoredRelationships(
   rows: readonly StoredRelationship[],
   concepts: ReadonlyMap<string, string>,
 ): string {
-  const href = (endpoint: string) => path.posix.relative(path.posix.dirname(filename), concepts.get(endpoint) ?? endpoint)
-    .split('/').map(encodeURIComponent).join('/').replaceAll('(', '%28').replaceAll(')', '%29')
+  const href = (endpoint: string) => markdownHref(filename, concepts.get(endpoint) ?? endpoint)
   const sections = new Map<string, string[]>()
   for (const row of rows) {
     const heading = row.authored ? (row.status === 'draft' ? '## Draft relationships' : '## Relationships') : '## Derived relationships'

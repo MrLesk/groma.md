@@ -6,6 +6,7 @@ import { buildArchitectureModel, draftRecordOf } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { moveBlocker } from './movable.ts'
 import { resolveFlows } from './flow-model.ts'
+import { resolveGroups } from './group-model.ts'
 import type {
   AnnotatedArchitectureModel,
   AnnotatedElement,
@@ -68,6 +69,8 @@ export function annotateArchitecture(
   const byId = new Map(model.elements.map(element => [element.id, element]))
   const documents = new Map(records.documents.map(document => [document.sourceFilename, document]))
   const flows = resolveFlows(records.flows, model)
+  const groups = resolveGroups(records.groups, model)
+  const groupOfMember = new Map(groups.flatMap(group => group.memberIds.map(memberId => [memberId, group.id] as const)))
   const elements = model.elements.map<AnnotatedElement>(element => ({
     representationId: element.id,
     id: element.id,
@@ -78,7 +81,7 @@ export function annotateArchitecture(
     parent: element.parentId,
     children: [],
     external: element.external,
-    ...(element.group === undefined ? {} : { group: element.group }),
+    ...(groupOfMember.has(element.id) ? { group: groupOfMember.get(element.id) } : {}),
     ...(element.technology === undefined ? {} : { technology: element.technology }),
     ...(element.tags === undefined ? {} : { tags: element.tags }),
     ...(element.color === undefined ? {} : { color: element.color }),
@@ -93,6 +96,9 @@ export function annotateArchitecture(
 
   return {
     flows,
+    groups: groups.map(({ id, title, description, overview }) => ({
+      id, title, ...(description === undefined ? {} : { description }), overview,
+    })),
     drafts: records.drafts.map(document => draftRecordOf(document).id).sort(),
     elements: withDirectChildren(elements),
     relationships: model.relationships.map((relationship, index) => {

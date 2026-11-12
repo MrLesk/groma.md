@@ -5,7 +5,6 @@ status: stable
 groma:
   id: events-validator
   parent: events
-  group: Core
   code:
     - scanner: typescript
       file: src/orders/events/validator.ts

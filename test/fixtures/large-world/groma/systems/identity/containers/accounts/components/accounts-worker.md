@@ -5,7 +5,6 @@ status: stable
 groma:
   id: accounts-worker
   parent: accounts
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/accounts/worker.ts

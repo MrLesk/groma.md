@@ -5,7 +5,6 @@ status: stable
 groma:
   id: directory-reader
   parent: directory
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/directory/reader.ts

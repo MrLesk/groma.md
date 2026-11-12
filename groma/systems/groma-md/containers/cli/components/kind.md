@@ -10,7 +10,6 @@ groma:
       file: src/viewers/atoms/kind.ts
     - scanner: typescript
       file: src/brand.ts
-  group: Shared viewer data
 description: Supplies shared element symbols and Groma accent colours
 ---
 

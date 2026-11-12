@@ -26,7 +26,6 @@ groma:
       symbol: packageManagerCertificates
     - scanner: typescript
       file: src/certificate-trust.ts
-  group: Plugins
 description: Reads config.json, owns the plugins it lists and restores them by kind
 ---
 

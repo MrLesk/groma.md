@@ -1,7 +1,8 @@
 import { architectureElementPath } from './architecture-path.ts'
 import type { GromaFileSystem } from './groma-filesystem.ts'
 import { readDocument, withGromaField } from './markdown-emitter.ts'
-import type { ArchitectureElement, ArchitectureModel, ArchitectureRecords } from './types.ts'
+import type { GroupContext } from './group.ts'
+import type { ArchitectureElement } from './types.ts'
 
 /** One architecture document a curation writes, at its current or its new path. */
 export interface DocumentWrite {
@@ -15,11 +16,9 @@ export interface Rewrite extends DocumentWrite {
   id: string
 }
 
-export interface CurationContext {
+/** What a structural edit reads: the stored architecture with its groups, and where documents are written. */
+export interface CurationContext extends GroupContext {
   filesystem: GromaFileSystem
-  repositoryRoot: string
-  records: ArchitectureRecords
-  model: ArchitectureModel
   byId: Map<string, ArchitectureElement>
 }
 

@@ -16,7 +16,6 @@ groma:
       symbol: controllerEndpoints
     - scanner: typescript
       file: plugins/scanners/typescript/src/native-checker.ts
-  group: Language analysis
 description: Finds TypeScript HTTP clients and endpoints from compiler symbols
 ---
 

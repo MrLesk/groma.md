@@ -5,7 +5,6 @@ status: stable
 groma:
   id: media-validator
   parent: media
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/media/validator.ts

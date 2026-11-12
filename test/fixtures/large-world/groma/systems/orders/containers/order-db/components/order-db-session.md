@@ -5,7 +5,6 @@ status: stable
 groma:
   id: order-db-session
   parent: order-db
-  group: Core
   code:
     - scanner: typescript
       file: src/orders/order-db/session.ts

@@ -14,7 +14,6 @@ groma:
       file: src/viewers/web/task-diff/view.ts
     - scanner: typescript
       file: src/viewers/web/task-diff/updates.ts
-  group: Project work
 description: Shows a selected task and the source lines it changed
 ---
 

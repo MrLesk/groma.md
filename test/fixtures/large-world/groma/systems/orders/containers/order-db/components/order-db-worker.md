@@ -5,7 +5,6 @@ status: stable
 groma:
   id: order-db-worker
   parent: order-db
-  group: Support
   code:
     - scanner: typescript
       file: src/orders/order-db/worker.ts

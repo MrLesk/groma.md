@@ -22,7 +22,6 @@ groma:
       file: src/removable.ts
     - scanner: typescript
       file: src/authoring-conflict.ts
-  group: Architecture records
 description: Validates and applies explicit architecture write commands
 ---
 

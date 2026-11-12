@@ -5,7 +5,6 @@ status: stable
 groma:
   id: checkout-queue
   parent: checkout
-  group: Support
   code:
     - scanner: typescript
       file: src/orders/checkout/queue.ts

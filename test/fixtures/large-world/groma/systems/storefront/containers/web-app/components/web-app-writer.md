@@ -5,7 +5,6 @@ status: stable
 groma:
   id: web-app-writer
   parent: web-app
-  group: Support
   code:
     - scanner: typescript
       file: src/storefront/web-app/writer.ts

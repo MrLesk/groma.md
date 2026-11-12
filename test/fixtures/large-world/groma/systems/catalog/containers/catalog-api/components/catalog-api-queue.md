@@ -5,7 +5,6 @@ status: stable
 groma:
   id: catalog-api-queue
   parent: catalog-api
-  group: Support
   code:
     - scanner: typescript
       file: src/catalog/catalog-api/queue.ts

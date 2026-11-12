@@ -5,7 +5,6 @@ status: stable
 groma:
   id: orders
   parent: api
-  group: Commerce
   code:
     - scanner: typescript
       file: src/core.ts

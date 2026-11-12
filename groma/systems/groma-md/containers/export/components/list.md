@@ -15,7 +15,6 @@ groma:
       file: src/viewers/web/flow/row.ts
     - scanner: typescript
       file: src/viewers/web/flow/state.ts
-  group: Architecture panels
 description: Lists authored flows and highlights the selected steps
 ---
 

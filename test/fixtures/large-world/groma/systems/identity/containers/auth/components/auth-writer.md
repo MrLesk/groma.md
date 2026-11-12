@@ -5,7 +5,6 @@ status: stable
 groma:
   id: auth-writer
   parent: auth
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/auth/writer.ts

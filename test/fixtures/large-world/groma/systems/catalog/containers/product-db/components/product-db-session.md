@@ -5,7 +5,6 @@ status: stable
 groma:
   id: product-db-session
   parent: product-db
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/product-db/session.ts

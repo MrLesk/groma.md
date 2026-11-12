@@ -5,7 +5,6 @@ status: stable
 groma:
   id: cart-writer
   parent: cart
-  group: Support
   code:
     - scanner: typescript
       file: src/orders/cart/writer.ts

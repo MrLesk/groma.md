@@ -30,7 +30,7 @@ function flowWorld(): ArchitectureWorld {
   return {
     flows: [],
     bounds: unit,
-    groups: [],
+    groups: [{ id: 'Work', title: 'Work', overview: '' }],
     relationships,
     elements: [
       box('architect', 'actor', unit),

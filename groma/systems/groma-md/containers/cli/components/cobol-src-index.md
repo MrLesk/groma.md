@@ -10,7 +10,6 @@ groma:
   code:
     - scanner: typescript
       file: plugins/scanners/cobol/src/index.ts
-  group: Language scanners
   technology: TypeScript, Java, Eclipse COBOL
 description: Reads IBM fixed-format source with local data copybooks.
 ---

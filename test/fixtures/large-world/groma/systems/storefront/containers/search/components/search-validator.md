@@ -5,7 +5,6 @@ status: stable
 groma:
   id: search-validator
   parent: search
-  group: Core
   code:
     - scanner: typescript
       file: src/storefront/search/validator.ts

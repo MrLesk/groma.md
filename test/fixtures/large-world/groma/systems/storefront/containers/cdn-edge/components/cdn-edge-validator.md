@@ -5,7 +5,6 @@ status: stable
 groma:
   id: cdn-edge-validator
   parent: cdn-edge
-  group: Core
   code:
     - scanner: typescript
       file: src/storefront/cdn-edge/validator.ts

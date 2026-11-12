@@ -5,7 +5,6 @@ status: stable
 groma:
   id: media-queue
   parent: media
-  group: Support
   code:
     - scanner: typescript
       file: src/catalog/media/queue.ts

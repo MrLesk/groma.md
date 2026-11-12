@@ -5,7 +5,6 @@ status: stable
 groma:
   id: accounts-cache
   parent: accounts
-  group: Core
   code:
     - scanner: typescript
       file: src/identity/accounts/cache.ts

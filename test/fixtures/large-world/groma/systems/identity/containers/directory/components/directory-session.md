@@ -5,7 +5,6 @@ status: stable
 groma:
   id: directory-session
   parent: directory
-  group: Core
   code:
     - scanner: typescript
       file: src/identity/directory/session.ts

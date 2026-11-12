@@ -5,7 +5,6 @@ status: stable
 groma:
   id: order-service-writer
   parent: order-service
-  group: Support
   code:
     - scanner: typescript
       file: src/orders/order-service/writer.ts

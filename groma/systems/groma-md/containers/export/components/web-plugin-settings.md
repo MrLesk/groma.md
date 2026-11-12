@@ -11,7 +11,6 @@ groma:
       symbol: scannerName
     - scanner: typescript
       file: src/viewers/web/settings/plugins.ts
-  group: Browser controls
 description: Browser panel for project plugin installation, updates and readiness
 ---
 
