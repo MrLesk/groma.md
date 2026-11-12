@@ -1,7 +1,7 @@
 import type { ScanOperation } from '@groma/scanner'
 import type { Node } from 'web-tree-sitter'
 import type { ModuleScope } from '../modules.ts'
-import type { DeclaredFunction } from '../source.ts'
+import type { GeneratedFunction } from '../source.ts'
 import { atomLiteral, callName, declarationId, keywordPairs, listItems, positional } from '../syntax.ts'
 import { interfaceFunctions } from './code-interface.ts'
 import { section } from './dsl.ts'
@@ -49,7 +49,7 @@ function declaredActions(scope: ModuleScope): DeclaredAction[] {
 }
 
 /** Read a module that states `use Ash.Resource`. A name declared by two actions identifies no single action. */
-export function ashResource(scope: ModuleScope, file: string): { resource: AshResource; operations: ScanOperation[]; declared: DeclaredFunction[] } {
+export function ashResource(scope: ModuleScope, file: string): { resource: AshResource; operations: ScanOperation[]; generated: GeneratedFunction[] } {
   const actions = declaredActions(scope)
   const operations = actions.map(action => ({
     id: declarationId(file, action.node), file, name: `${scope.name}.${action.name} (action)`, position: action.node.startIndex,
@@ -59,6 +59,6 @@ export function ashResource(scope: ModuleScope, file: string): { resource: AshRe
   return {
     resource: { module: scope.name, actions: new Map(once), routes: jsonApiRoutes(scope, scope.name) },
     operations,
-    declared: interfaceFunctions(section(scope.statements, 'code_interface'), scope.name),
+    generated: interfaceFunctions(section(scope.statements, 'code_interface'), scope.name),
   }
 }

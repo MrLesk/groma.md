@@ -3,7 +3,7 @@ import type { ScanEntryPoint, ScanRoot } from '@groma/scanner'
 import type { Node } from 'web-tree-sitter'
 import { isUnder } from '../../projects.ts'
 import { moduleName, type Aliases } from './aliases.ts'
-import { moduleFunctions, moduleScopes, type FunctionDeclaration } from './modules.ts'
+import { moduleFunctions, moduleScopes, moduleUses, type FunctionDeclaration } from './modules.ts'
 import { atomLiteral, body, callName, keywordPairs, listItems, operator, positional, stringList } from './syntax.ts'
 
 /*
@@ -102,12 +102,10 @@ function entryModule(project: Map<string, Node>, functions: Functions, aliases: 
   return moduleName(declaredKeywords(project.get('escript'), functions)?.get('main_module'), aliases)
 }
 
-const isMixProjectUse = (statement: Node) => callName(statement) === 'use' && positional(statement)[0]?.text === 'Mix.Project'
-
 /** Read one parsed `mix.exs`. A file whose `project/0` is not a literal keyword list keeps only its location. */
 export function mixProject(root: Node, file: string): MixProject {
   const directory = path.posix.dirname(file) === '.' ? '' : path.posix.dirname(file)
-  const scope = moduleScopes(root).find(candidate => candidate.statements.some(isMixProjectUse))
+  const scope = moduleScopes(root).find(candidate => moduleUses(candidate).some(use => use.module === 'Mix.Project'))
   const functions = scope ? moduleFunctions(scope) : []
   const returned = results(functions, 'project', 0)
   const project = returned.length === 1 ? keywordList(returned[0]) : undefined
@@ -170,7 +168,7 @@ export function projectRoots(projects: readonly MixProject[], repositoryRoot: st
 
 /**
  * One execution entry per project that declares what launches it. The entry file is the one source
- * of that project declaring the launch module; its source unit is the project's own compiled files.
+ * of that project declaring the launch module; its source unit is every file the project compiles.
  */
 export function projectEntries(projects: readonly MixProject[], sources: ReadonlyMap<string, readonly MixProject[]>,
   repositoryRoot: string, declaringFile: (module: string) => string | undefined): ScanEntryPoint[] {

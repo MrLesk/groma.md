@@ -1,6 +1,6 @@
 import type { ScanOperation } from '@groma/scanner'
 import { moduleUses, type ModuleScope } from '../modules.ts'
-import type { DeclaredFunction } from '../source.ts'
+import type { GeneratedFunction } from '../source.ts'
 import { ashDomain, type AshDomain } from './domain.ts'
 import { jsonApiRouter, type JsonApiRouter } from './json-api.ts'
 import { ashResource, type AshResource } from './resource.ts'
@@ -34,24 +34,24 @@ export interface AshFacts {
   /** One operation per resource action. */
   operations: ScanOperation[]
   /** The functions code interfaces generate on the file's modules. */
-  declared: DeclaredFunction[]
+  generated: GeneratedFunction[]
 }
 
 /** Read the Ash resources, domains and JSON:API routers among the modules of one file. */
 export function readAsh(scopes: readonly ModuleScope[], file: string): AshFacts {
-  const facts: AshFacts = { resources: [], domains: [], routers: [], operations: [], declared: [] }
+  const facts: AshFacts = { resources: [], domains: [], routers: [], operations: [], generated: [] }
   for (const scope of scopes) {
     const used = new Set(moduleUses(scope).map(use => use.module))
     if (used.has('Ash.Resource')) {
-      const { resource, operations, declared } = ashResource(scope, file)
+      const { resource, operations, generated } = ashResource(scope, file)
       facts.resources.push(resource)
       facts.operations.push(...operations)
-      facts.declared.push(...declared)
+      facts.generated.push(...generated)
     }
     if (used.has('Ash.Domain')) {
-      const { domain, declared } = ashDomain(scope)
+      const { domain, generated } = ashDomain(scope)
       facts.domains.push(domain)
-      facts.declared.push(...declared)
+      facts.generated.push(...generated)
     }
     const router = jsonApiRouter(scope)
     if (router) facts.routers.push(router)

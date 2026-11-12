@@ -1,7 +1,7 @@
 import type { CodeVisibility } from '@groma/scanner'
 import type { Node } from 'web-tree-sitter'
 import { aliasesAfter, aliasesBefore, fileAliases, insideModule, moduleName, type Aliases } from './aliases.ts'
-import { body, callName, operator, options, positional } from './syntax.ts'
+import { argumentCount, body, callName, operator, options, positional } from './syntax.ts'
 
 /*
  * The modules a file declares and the named functions each module declares. Everything in Elixir
@@ -120,10 +120,10 @@ export function moduleUses(scope: ModuleScope): { module: string; statement: Nod
 function functionHead(definition: Node): { name: string; arity: number } | undefined {
   const first = positional(definition)[0]
   const head = first && operator(first) === 'when' ? first.childForFieldName('left') : first
-  if (head?.type === 'identifier') return { name: head.text, arity: 0 }
-  const name = head ? callName(head) : undefined
-  return name === undefined || name === 'unquote' ? undefined : { name, arity: head!.namedChildren.find(child => child.type === 'arguments')
-    ?.namedChildren.filter(child => child.type !== 'comment').length ?? 0 }
+  if (!head) return undefined
+  if (head.type === 'identifier') return { name: head.text, arity: 0 }
+  const name = callName(head)
+  return name === undefined || name === 'unquote' ? undefined : { name, arity: argumentCount(head) }
 }
 
 /** The named functions and macros a module declares directly in its body, in source order. */

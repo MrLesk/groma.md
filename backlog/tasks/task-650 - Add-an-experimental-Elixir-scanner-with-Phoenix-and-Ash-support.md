@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-11T22:51:00Z'
-updated_date: '2026-11-12T00:07:00Z'
+updated_date: '2026-11-12T00:16:00Z'
 labels: []
 dependencies: []
 references:
@@ -16,6 +16,7 @@ references:
   - docs/scanners/ruby/validation.md
   - src/scanner/modules/official-catalog.ts
   - scripts/scanner-release.ts
+  - elixir-src-index
 modified_files:
   - plugins/scanners/elixir/package.json
   - bun.lock
@@ -95,6 +96,7 @@ modified_files:
   - docs/scanners/creating-a-plugin.md
   - test/fixtures/elixir-mix/apps/shop/proto/mix.exs
   - test/fixtures/elixir-mix/apps/shop/proto/lib/wire.ex
+  - groma/systems/groma-md/containers/cli/components/elixir-src-index.md
 type: feature
 ordinal: 706000
 ---
@@ -132,7 +134,7 @@ The scope follows the existing scanners as an educated guess Alex asked for. Its
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-Status: decisions in section 4 were confirmed by Alex on 2026-11-12, and acceptance criteria 3, 4, 6 and 7 were amended to match. Implementation follows this plan.
+Status: implemented. Decisions in section 4 were confirmed by Alex on 2026-11-12, and acceptance criteria 3, 4, 6 and 7 were amended to match. Sections 1 to 6 describe the final approach, including the two points settled during implementation and qualification, which are marked as such.
 
 ## 1. Result and flow
 
@@ -143,10 +145,10 @@ Flow, entry to result:
 1. `src/index.ts` (the `ScannerPlugin`): `listSourceFiles`, `checkReadiness`, `scan`, `readCodeStructure`. Orchestration only.
 2. `src/mix.ts`: reads each selected `mix.exs` (app name, `elixirc_paths`, `apps_path`, application `mod:`, escript `main_module:`), builds project roots with parent links, decides which `.ex` files are source, and builds the one execution entry per project.
 3. `src/parser.ts` and `src/syntax.ts`: load the bundled grammar, fail on invalid syntax with file, line and column, and give small readers for calls, do-blocks, keyword options and literals.
-4. `src/modules.ts`: module scopes (`defmodule`, `defprotocol`, `defimpl`) and the `def` family; symbols, outline declarations and operations for one file. `src/calls.ts`: unresolved call evidence inside named function bodies.
+4. `src/modules.ts`: module scopes (`defmodule`, `defprotocol`, `defimpl`) and the `def` family. `src/source.ts`: symbols, outline declarations and operations for one file. `src/calls.ts`: unresolved call evidence inside named function bodies.
 5. `src/aliases.ts`: the lexical alias environment, used only where Phoenix handler resolution and Ash module references need a full module name.
-6. `src/phoenix/`: everything Phoenix. Router recognition, `scope`, verbs, `match`, `resources`, `forward`, `live`, `live_session`, path reading, blockers, registration order, handler resolution.
-7. `src/ash/`: everything Ash. Resource actions, code-interface `define` on resources and domains, AshJsonApi routes on resources and domains, AshJsonApi routers and their mount under a Phoenix `forward`, and the AshAuthentication `ash_authentication_live_session` wrapper name.
+6. `src/phoenix/`: everything Phoenix. `router.ts` reads router modules (`scope`, verbs, `match`, `resources`, `forward`, `live`, `live_session`, blockers) into route declarations in registration order, `paths.ts` reads path patterns, `endpoints.ts` binds each route to its handler.
+7. `src/ash/`: everything Ash. `resource.ts` (actions), `code-interface.ts` (`define`), `domain.ts`, `json-api.ts` (AshJsonApi routes and routers), `mount.ts` (what a router serves under a Phoenix `forward`), and `index.ts` with the AshAuthentication `ash_authentication_live_session` wrapper name.
 8. `index.ts` assembles one `createScanObservation` call: roots, one file record per physical file, entry points, operations, invocations, HTTP endpoints, diagnostics.
 
 Each file stays under 500 lines and each function at or below cognitive complexity 15. A framework reader receives a module scope (name, body statements, aliases) and returns plain records; resolution across files happens after every file is parsed, because syntax nodes do not outlive their parse. Phoenix knows nothing about Ash: `index.ts` hands the Phoenix endpoint builder a mount lookup and the extra wrapper names that the Ash module provides.
@@ -171,7 +173,7 @@ Commit and push after each.
 
 ## 4. Decisions
 
-A. Sources. Include `**/*.ex` and `**/mix.exs`; exclude `deps/`, `_build/`, `test/`. Mix compiles only `.ex` files under `elixirc_paths` (default `lib`), so a source is a selected `.ex` file inside a source root of its nearest Mix project. `mix.exs` is metadata without Code. Other `.exs` scripts are not read. `elixirc_paths` is read when it is a list of strings, lists joined with `++`, or a call to a function of the same `mix.exs` module whose clauses are such lists; the roots are the union over all clauses, because the Mix environment is not known without running Mix. An unreadable value makes every selected `.ex` file of that project a source and adds a warning diagnostic. A project with a literal `apps_path` is an umbrella root and compiles no source of its own. A repository without a Mix project is not scanned.
+A. Sources. Include `**/*.ex` and `**/mix.exs`; exclude `deps/`, `_build/`, `test/`. Mix compiles only `.ex` files under `elixirc_paths` (default `lib`), so a source is a selected `.ex` file inside a source root of a Mix project. Settled during qualification: a file belongs to every project whose source roots contain it, because a project's roots can reach into another project (`["lib", "proto/lib"]` beside `proto/mix.exs`). `mix.exs` is metadata without Code. Other `.exs` scripts are not read. `elixirc_paths` is read when it is a list of strings, lists joined with `++`, or a call to a function of the same `mix.exs` module whose clauses are such lists; the roots are the union over all clauses, because the Mix environment is not known without running Mix. An unreadable value makes every selected `.ex` file of that project that no nested project claims a source and adds a warning diagnostic. A project with a literal `apps_path` is an umbrella root and compiles no source of its own. A repository without a Mix project is not scanned.
 
 B. Projects. Every selected `mix.exs` is a root of kind `project`, named by its literal `app:` atom, else its directory. Parent is the nearest enclosing Mix project, which covers umbrella apps.
 
@@ -179,7 +181,7 @@ C. Outlines, symbols, operations. A module is a `type` named by its full name; n
 
 D. Calls. Calls inside named function bodies are reported with unresolved targets only, as the Ruby and Python scanners do: remote calls with their member name, local calls without one. `fn`, `&` captures and `quote` are not entered; Kernel special forms are syntax, not calls. No target resolution and no function index for calls: core derives no row from ordinary resolved calls. `defdelegate` is a declaration and an operation without a resolved call.
 
-E. Execution entries. One entry per Mix project: its literal application callback `mod: {Module, args}`, else its literal escript `main_module:`. `file` is the one selected file declaring that module, `declaration` the `mix.exs`, `name` the app name, `files` the project's own sources (no nested project, no dependency). Unreadable or unresolved declarations give no entry.
+E. Execution entries. One entry per Mix project: its literal application callback `mod: {Module, args}`, else its literal escript `main_module:`. `file` is the one selected file declaring that module, `declaration` the `mix.exs`, `name` the app name, `files` every source the project compiles (no dependency). Unreadable or unresolved declarations give no entry.
 
 F. Phoenix. A router is a module with a literal `use Phoenix.Router`, or `use Web, :router` where the one selected module `Web` declares `router/0` containing `use Phoenix.Router`.
 1. Prefixes: every `scope` path (positional or `path:`), nested scopes, the `resources` path and its nested member prefix `/:name_param`, and the `forward` path of a mounted AshJsonApi router. A scope with a non-literal path or alias, a `host:` option or an unsupported option is one blocker in place of its routes.
@@ -192,7 +194,7 @@ F. Phoenix. A router is a module with a literal `use Phoenix.Router`, or `use We
 G. Ash. A resource is a module with a literal `use Ash.Resource`, a domain one with `use Ash.Domain`.
 - Actions: each `create`, `read`, `update`, `destroy` or `action` with a literal name inside `actions do`, and each name in a literal `defaults` list, is one operation in the resource file. Actions are not outline rows.
 - Code interfaces: `define :name` inside a resource's `code_interface` or a domain's `resources do resource R do ... end end` contributes a symbol and an outline member on that module, shown by its bare name because its arities are not provable without expansion. No operation and no call. Omitted: `define_calculation`, names ending in `?`, and a `functions:`, `namespace` or `define?` option.
-- AshJsonApi: routes inside `json_api do routes do ... end end` of a resource (`base`) or a domain (`base_route`, nested, or with the resource as first argument). A module with a literal `use AshJsonApi.Router, domains: [...]` serves the routes of its domains and of the resources those domains list. The routes become endpoints only where a Phoenix router forwards to that module: path is scope prefix, forward path, base, route; method follows the route kind; the operation is the resource action the route names. All routes of one mount share the forward's position. Blockers: relationship routes without an action, the router's `open_api` and `json_schema` documents, a domain's schema route, and the whole mount when any part of it is unreadable. A router no Phoenix router forwards to reports nothing.
+- AshJsonApi: routes inside `json_api do routes do ... end end` of a resource (`base`) or a domain (`base_route`, nested, or with the resource as first argument). A module with a literal `use AshJsonApi.Router, domains: [...]` serves the routes of its domains and of the resources those domains list. The routes become endpoints only where a Phoenix router forwards to that module: path is scope prefix, forward path, base, route; method follows the route kind; the operation is the resource action the route names. All routes of one mount share the forward's position. Settled during implementation: the mounted router answers every other request under its path as well, so the next position holds one blocker for the whole mount path, and a later Phoenix route under that path derives nothing. Blockers inside a mount: relationship routes without an action, a route whose action the resource does not declare exactly once, the router's `open_api` and `json_schema` documents and a domain's schema route. As for any unknown handler, such a blocker covers its literal prefix, which for a relationship route is the resource's whole base path. The whole mount is one blocker when any part of it is unreadable. A router no Phoenix router forwards to reports nothing.
 
 H. Discovery, without a core or contract change. A `text` rule reports Elixir from `**/mix.exs` with its `elixir:` requirement as version. A `file` rule reports Phoenix from the generator's router location `**/lib/*_web/router.ex`, which covers the single-application layout (`lib/app_web/router.ex`) and the umbrella layout (`apps/app_web/lib/app_web/router.ex`) of the current `phx.new` templates. `ash` stays in `technologies` without a rule; the scanner page documents that gap.
 
@@ -200,16 +202,26 @@ H. Discovery, without a core or contract change. A `text` rule reports Elixir fr
 
 All tests build the package, use `test.concurrent`, own their temporary directories, and load only `test/fixtures/`. No existing test covers Elixir.
 
-1. `test-bun/elixir-scanner.test.ts` with `test/fixtures/elixir-mix/` (an umbrella with an application app and an escript app). Rules and authority: AC 1 to 4 and 7, the listing, outline and observation contracts, and Alex's round-trip condition. Wrong results it detects: a `.ex` file outside the source roots or an `.exs` script listed or parsed (the fixture holds an unparsable template under `priv/`); a file assigned to the umbrella root instead of its app; two operations for a two-clause function; a call reported with a target; a `defp` shown public; an entry that includes another app's files, or a second entry for an escript beside an application callback; output that changes when the input order is reversed; invalid source that does not fail with its file and line; a `Module.name/arity` Code symbol that core drops, rewrites or fails to mark as entry after a scan.
+1. `test-bun/elixir-scanner.test.ts` with `test/fixtures/elixir-mix/` (an umbrella with an application app, an escript app, a project with computed source directories and a nested project whose `lib` the application also compiles). Rules and authority: AC 1 to 4 and 7, the listing, outline and observation contracts, and Alex's round-trip condition. Wrong results it detects: a `.ex` file outside the source roots or an `.exs` script listed or parsed (the fixture holds an unparsable template under `priv/`); a file assigned to the umbrella root instead of its app; a file two projects compile assigned to one of them only (reproduced on livebook, the test failed before the fix); two operations for a two-clause function; a call reported with a target; a `defp` shown public; an entry that includes another app's files, or a second entry for an escript beside an application callback; output that changes when the input order is reversed; invalid source that does not fail with its file and line; a `Module.name/arity` Code symbol that core drops, rewrites or fails to mark as entry after a scan.
 2. `test-bun/elixir-phoenix.test.ts` with `test/fixtures/elixir-phoenix/`. Authority: AC 5 and 7 and the producer checklist. Wrong results: a path missing a scope or resource prefix; a handler bound without the scope alias; `resources` routes in the wrong order; a `live` route reported as a root blocker or without its `GET` handler; an unknown macro, conditional block, unknown forward or unresolved handler that leaves no blocker; Phoenix not discovered from the router file. With the built JavaScript scanner on a small client file and core's `httpRelationships`: the proven row exists, and no row is derived for a route registered after a blocker.
-3. `test-bun/elixir-ash.test.ts` with `test/fixtures/elixir-ash/`. Authority: AC 6. Wrong results: an action from `defaults` missing; a `define` on a domain attributed to the resource, given an operation, or missing from the outline; an AshJsonApi path without the Phoenix forward prefix or base; a route bound to the wrong action; a relationship route without a blocker; endpoints reported for a router nothing forwards to; routes inside `ash_authentication_live_session` lost or blocked. One core row from the JavaScript client to the resource file.
+3. `test-bun/elixir-ash.test.ts` with `test/fixtures/elixir-ash/`. Authority: AC 6. Wrong results: an action from `defaults` missing; a `define` on a domain attributed to the resource, given an operation, or missing from the outline; an AshJsonApi path without the Phoenix forward prefix or base; a route bound to the wrong action; a relationship route without a blocker; endpoints reported for a router nothing forwards to; a Phoenix route registered after a mount, under its path, that still derives a row; routes inside `ash_authentication_live_session` lost or blocked. One core row from the JavaScript client to the resource file.
 4. `test-bun/scanner-fresh-checkout.test.ts`: add `elixir: 'elixir-mix'` to the shared table and `elixir` to the list of scanners whose calls stay unresolved.
 
 Fixtures are minimal generic worlds, not copies of real projects. No test asserts documentation text, diagnostics wording or decorative detail.
 
+Shared helper for tests 2 and 3: `test-bun/elixir-fixture.ts` copies a fixture, builds the scanner packages and scans the copy.
+
 ## 6. Limits stated in the scanner page
 
 Separate Ash scanner; outgoing HTTP clients; compared-operation tokens; call targets; HEEx and EEx, LiveView and component source units, channels and sockets, AshGraphql, AshPhoenix forms, Ecto schemas, process and message relationships; expansion of other macros, `use` callbacks, protocol dispatch, `apply/3`; aliases injected by `use`; scanner settings; Plug.Router applications; forwarding to a second Phoenix router; other libraries' routing macros; Ash fragments; Mix tasks and releases as entries; Ash in discovery.
+
+## 7. Verification
+
+- `bun test test-bun/elixir-scanner.test.ts test-bun/elixir-phoenix.test.ts test-bun/elixir-ash.test.ts`: 9 pass.
+- Fresh-checkout suite for the built package (`--test-name-pattern '^elixir package'`): 1 pass.
+- `bun run check`: lint, TypeScript, 26 Node tests, 953 Bun tests with 65 opt-in skips, no failure.
+- Qualification: `docs/scanners/elixir/validation.md` (ten repositories with another scanned language, five using Ash; two more Ash repositories and two framework repositories as recorded limits and parser checks).
+- Architecture: the scanner's 18 source files are one component, `elixir-src-index` (Elixir source scanner), in the CLI container beside the other language scanners.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -222,4 +234,8 @@ Milestone 2 (Phoenix): router recognition (use Phoenix.Router, or use Web, :rout
 Milestone 3 (Ash): resource actions as operations, code-interface define entries as bare-name declarations on their host module, AshJsonApi routes of domains and resources mounted under the Phoenix forward of their router, and the ash_authentication_live_session wrapper. Two points decided during implementation and stated in the scanner page: (1) a readable mount is followed by a blocker for the whole mount path at the next position, because the mounted router answers every other request under that path; (2) a relationship route without an action is a blocker at its literal prefix as approved, which covers the resource's whole base path. Checks: elixir-scanner, elixir-phoenix and elixir-ash tests (9 pass), typecheck and Biome lint clean.
 
 Milestone 5 (qualification): twelve application repositories and two framework repositories scanned at exact commits with the built package and the built JavaScript, TypeScript, React, Go, Python and PHP scanners; ten qualify together with another language, five of them use Ash. All Elixir scans repeat identically with reversed input, no file failed to parse, 21,106 function, 182 action and 83,249 call positions match the source, the CLI flow creates nothing on the repeat scan, no file has two owners and sources stay unchanged. Proven frontend rows: noted_ash (axios to a Phoenix controller) and livebook (fetch with a configured base). Reproduced failure fixed in the general rule: a file belongs to every Mix project whose source directories contain it (livebook compiles proto/lib into its application); the elixir-mix test failed before the change. Not scanned together: Rust (the Rust scanner needs rustc 1.99, 1.91.1 is installed), Svelte (no scanner), and React through the CLI on noted_ash, where core fails on the React scanner's unnamed package root (outside this task, unchanged). Details in docs/scanners/elixir/validation.md.
+
+Quality and specification review (own): split the resources reader into a definition and its routes, simplified function head reading, renamed the framework-generated function type to GeneratedFunction so it is not confused with FunctionDeclaration, replaced object lookups by Maps so a call named like an Object.prototype member cannot match a form, and reused moduleUses in the Mix reader. All 14 validation observations are byte-identical before and after these refactors. The repository's own scan created 18 stand-alone components for the scanner sources; they were moved to the cli container and combined into elixir-src-index (Elixir source scanner, group Language scanners), which a rescan leaves unchanged. Final checks on 2026-11-12: bun run check exit 0 (Biome lint with 2 warnings and 2 infos in files this task does not touch, TypeScript, 26 Node tests pass, 953 Bun tests pass, 65 skipped, 0 failed); Elixir suites 9 pass; fresh-checkout elixir package 1 pass.
+
+Open points for Alex, not changed here: (1) a relationship route without an action is a blocker at its literal prefix as approved, which is the resource's whole base path, so such a resource derives no row; (2) compile-time conditional blocks at the router root are the most frequent blocker in the qualification (plausible, sequin and chironium lose every row to one), a candidate for a narrower rule; (3) resources built through a base module (use MyApp.BaseResource wrapping use Ash.Resource) are not recognized, 35 of chironium's resources; (4) core fails with name.toLowerCase on the React scanner's package root when assets/package.json states no name (noted_ash), outside this task; (5) the tree-sitter loader in parser.ts repeats the ada, mojo, mql5 and ruby copies, which groma lint reports; a shared helper would touch other scanners.
 <!-- SECTION:NOTES:END -->
