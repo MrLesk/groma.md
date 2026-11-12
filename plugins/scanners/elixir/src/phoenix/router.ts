@@ -150,28 +150,47 @@ function identifierOption(config: Map<string, Node>, key: string, otherwise: str
   return value !== undefined && identifier.test(value) ? value : undefined
 }
 
-/** `resources path, Controller, options do ... end`: its own routes first, then the nested block under one record. */
-const resourceRoutes: Reader = (statement, scope, wrappers) => {
+/** What one `resources` call declares, once every part of it is read. */
+interface ResourceDefinition {
+  /** Full name of the controller module. */
+  module: string
+  /** The actions it keeps, in Phoenix's order. */
+  actions: string[]
+  /** Path of the collection, such as `/users`. */
+  collection: HttpEndpointSegment[]
+  /** Path of one record in the resource's own routes, such as `/users/:id`. */
+  record: HttpEndpointSegment[]
+  /** Path prefix of the nested block, which names the parent record `:name_param`, such as `/users/:user_id`. */
+  nested: HttpEndpointSegment[]
+}
+
+function resourceDefinition(statement: Node, scope: RoutingScope): ResourceDefinition | undefined {
   const [pattern, controller, ...extra] = positional(statement)
   const config = options(statement)
   const collection = fullPath(scope, pattern)
   const lexical = moduleName(controller, scope.aliases)
-  const singleton = config?.has('singleton') ? booleanLiteral(config.get('singleton')) : false
-  const kept = config && singleton !== undefined ? keptActions(config, singleton) : undefined
-  const param = config && identifierOption(config, 'param', 'id')
-  const name = config && lexical !== undefined ? identifierOption(config, 'name', resourceName(lexical)) : undefined
-  const supported = [...config?.keys() ?? []].every(key => resourceOptions.has(key))
-  if (!collection || hasGlob(collection) || !kept || !param || !name || !supported || extra.length > 0) return [unreadable(scope, pattern)]
-  const module = scopedModule(controller, scope)!
-  const record: HttpEndpointSegment[] = singleton ? collection : [...collection, { kind: 'parameter', name: param }]
-  const own = resourceActions.filter(route => kept.includes(route.action)).flatMap(route => route.methods.map(method => ({
-    kind: 'route' as const, method, module, handlers: [{ name: route.action, arity: 2 }],
-    path: [...(route.member ? record : collection), ...(route.tail ? [{ kind: 'literal' as const, value: route.tail }] : [])],
+  if (!config || !collection || hasGlob(collection) || lexical === undefined || extra.length > 0) return undefined
+  if ([...config.keys()].some(key => !resourceOptions.has(key))) return undefined
+  const singleton = config.has('singleton') ? booleanLiteral(config.get('singleton')) : false
+  const actions = singleton === undefined ? undefined : keptActions(config, singleton)
+  const param = identifierOption(config, 'param', 'id')
+  const name = identifierOption(config, 'name', resourceName(lexical))
+  if (!actions || !param || !name) return undefined
+  // A singleton resource has one record and addresses it without a parameter.
+  const oneRecord = (parameter: string): HttpEndpointSegment[] => singleton ? collection : [...collection, { kind: 'parameter', name: parameter }]
+  return { module: scopedModule(controller, scope)!, actions, collection, record: oneRecord(param), nested: oneRecord(`${name}_${param}`) }
+}
+
+/** `resources path, Controller, options do ... end`: its own routes first, then the nested block under one record. */
+const resourceRoutes: Reader = (statement, scope, wrappers) => {
+  const resource = resourceDefinition(statement, scope)
+  if (!resource) return [unreadable(scope, positional(statement)[0])]
+  const own = resourceActions.filter(route => resource.actions.includes(route.action)).flatMap(route => route.methods.map((method): RouteDeclaration => ({
+    kind: 'route', method, module: resource.module, handlers: [{ name: route.action, arity: 2 }],
+    path: [...(route.member ? resource.record : resource.collection), ...(route.tail ? [{ kind: 'literal' as const, value: route.tail }] : [])],
   })))
   const inner = body(statement)
-  // Nested routes address the parent record by `:name_param`, such as `/users/:user_id/posts`.
-  const nested: HttpEndpointSegment[] = singleton ? collection : [...collection, { kind: 'parameter', name: `${name}_${param}` }]
-  return [...own, ...(inner ? routes(inner, { ...scope, prefix: nested }, wrappers) : [])]
+  return [...own, ...(inner ? routes(inner, { ...scope, prefix: resource.nested }, wrappers) : [])]
 }
 
 /** Scope options that change neither the path nor the handler module. `host` is absent: it restricts requests by host. */

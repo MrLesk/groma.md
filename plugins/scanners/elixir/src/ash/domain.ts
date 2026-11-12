@@ -1,6 +1,6 @@
 import { moduleName } from '../aliases.ts'
 import { aliasesAt, type ModuleScope } from '../modules.ts'
-import type { DeclaredFunction } from '../source.ts'
+import type { GeneratedFunction } from '../source.ts'
 import { body, callName, positional } from '../syntax.ts'
 import { interfaceFunctions } from './code-interface.ts'
 import { section } from './dsl.ts'
@@ -22,7 +22,7 @@ export interface AshDomain {
 }
 
 /** Read a module that states `use Ash.Domain`. `resource Ticket do define :open end` defines `open` on the domain. */
-export function ashDomain(scope: ModuleScope): { domain: AshDomain; declared: DeclaredFunction[] } {
+export function ashDomain(scope: ModuleScope): { domain: AshDomain; generated: GeneratedFunction[] } {
   const entries = section(scope.statements, 'resources').filter(statement => callName(statement) === 'resource')
   const names = entries.map(entry => moduleName(positional(entry)[0], aliasesAt(scope, entry)))
   return {
@@ -32,6 +32,6 @@ export function ashDomain(scope: ModuleScope): { domain: AshDomain; declared: De
       routes: jsonApiRoutes(scope),
       servesSchema: servesSchema(scope),
     },
-    declared: entries.flatMap(entry => interfaceFunctions(body(entry) ?? [], scope.name)),
+    generated: entries.flatMap(entry => interfaceFunctions(body(entry) ?? [], scope.name)),
   }
 }

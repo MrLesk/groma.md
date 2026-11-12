@@ -19,6 +19,11 @@ function argumentNodes(node: Node): Node[] {
   return list?.namedChildren.filter(child => child.type !== 'comment') ?? []
 }
 
+/** How many arguments a call is written with; trailing `key: value` options are one argument. */
+export function argumentCount(node: Node): number {
+  return argumentNodes(node).length
+}
+
 /** The arguments written before any trailing `key: value` options. */
 export function positional(node: Node): Node[] {
   return argumentNodes(node).filter(argument => argument.type !== 'keywords')

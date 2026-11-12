@@ -1,5 +1,5 @@
 import type { Node } from 'web-tree-sitter'
-import type { DeclaredFunction } from '../source.ts'
+import type { GeneratedFunction } from '../source.ts'
 import { atomLiteral, callName, positional } from '../syntax.ts'
 import { entityOption } from './dsl.ts'
 
@@ -27,7 +27,7 @@ function interfaceName(entity: Node): string | undefined {
  * The interface functions that the `define` entities among `statements` generate on `host`.
  * A block that redirects its definitions is not interpreted.
  */
-export function interfaceFunctions(statements: readonly Node[], host: string): DeclaredFunction[] {
+export function interfaceFunctions(statements: readonly Node[], host: string): GeneratedFunction[] {
   if (statements.some(statement => blockSwitches.has(callName(statement) ?? ''))) return []
   return statements.flatMap(entity => {
     const name = interfaceName(entity)

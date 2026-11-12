@@ -14,7 +14,6 @@ import { elixirSource, moduleIndex } from './source.ts'
  *
  * 1. `mix.ts` reads every `mix.exs` and decides which `.ex` files Mix compiles.
  * 2. Each compiled file is parsed once. `modules.ts`, `source.ts` and `calls.ts` describe its modules
- *    and functions.
  *    and functions, `phoenix/router.ts` reads the routes of router modules, and `ash/` reads Ash
  *    resources, domains and JSON:API routers.
  * 3. Facts that need several files are resolved after all files are read: execution entries, and in
@@ -46,7 +45,7 @@ async function readSource(root: string, file: string, entries: readonly string[]
     const scopes = moduleScopes(tree)
     const ash = readAsh(scopes, file)
     return {
-      ...elixirSource(file, scopes, ash.declared, entries),
+      ...elixirSource(file, scopes, ash.generated, entries),
       ash,
       routers: scopes.flatMap(scope => routerDeclaration(scope, file, ashRoutingWrappers) ?? []),
       routerProviders: scopes.filter(providesRouter).map(scope => scope.name),
@@ -61,7 +60,7 @@ function diagnostics(projects: readonly MixProject[], sources: ReadonlyMap<strin
       message: 'Elixir syntax evidence only: call targets stay unresolved, and macros, `use` callbacks and protocols are not expanded. Mix, Phoenix and Ash declarations are read in their documented literal forms without running Mix or the application. Routes the scanner cannot read remain blockers.' },
     ...projects.filter(project => project.sourceRoots === undefined && compiling.has(project)).map(project => ({
       severity: 'warning', code: 'ELIXIR_SOURCE_ROOTS_UNREADABLE', file: project.file,
-      message: 'The compiled source directories (elixirc_paths) are not written as literal lists, so every selected .ex file of this Mix project is read as source.' })),
+      message: 'The compiled source directories (elixirc_paths) are not written as literal lists, so every selected .ex file of this Mix project that no nested project claims is read as source.' })),
   ]
 }
 

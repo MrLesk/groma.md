@@ -7,11 +7,11 @@ import { declarationId, lineOf, positional } from './syntax.ts'
 /*
  * The language evidence of one file: a symbol and an outline type per module, a symbol and an
  * outline member per named function, an operation per executable function, and the calls each
- * operation makes. Framework readers add the functions their DSL declares through `DeclaredFunction`.
+ * operation makes. Framework readers add the functions their DSL generates through `GeneratedFunction`.
  */
 
 /** A public function that a framework declaration generates on a module, such as an Ash code interface. */
-export interface DeclaredFunction {
+export interface GeneratedFunction {
   /** The module the function is defined on. */
   module: string
   name: string
@@ -62,24 +62,24 @@ function addFunction(scope: ModuleScope, declared: FunctionDeclaration, source: 
     ...(declared.executable ? { operation: id } : {}) }
 }
 
-function addDeclaredFunction(declared: DeclaredFunction, source: ElixirSource, members: CodeSymbol[], entries: readonly string[]): void {
-  const name = `${declared.module}.${declared.name}`
-  source.symbols.push({ id: declarationId(source.file, declared.node), name, kind: 'function' })
-  members.push({ name: declared.name, line: nameLine(declared.node), visibility: 'public', entry: entries.includes(name) })
+function addGeneratedFunction(generated: GeneratedFunction, source: ElixirSource, members: CodeSymbol[], entries: readonly string[]): void {
+  const name = `${generated.module}.${generated.name}`
+  source.symbols.push({ id: declarationId(source.file, generated.node), name, kind: 'function' })
+  members.push({ name: generated.name, line: nameLine(generated.node), visibility: 'public', entry: entries.includes(name) })
 }
 
 /**
- * Describe the modules of one file. `declared` holds the functions framework DSLs generate on these
+ * Describe the modules of one file. `generated` holds the functions framework DSLs generate on these
  * modules, and `entries` the symbol names the file's Code links state, which mark outline entries.
  */
-export function elixirSource(file: string, scopes: readonly ModuleScope[], declared: readonly DeclaredFunction[] = [],
+export function elixirSource(file: string, scopes: readonly ModuleScope[], generated: readonly GeneratedFunction[] = [],
   entries: readonly string[] = []): ElixirSource {
   const source: ElixirSource = { file, modules: [], symbols: [], declarations: [], operations: [], invocations: [] }
   for (const scope of scopes) {
     const members: CodeSymbol[] = []
     const functions = moduleFunctions(scope).map(found => addFunction(scope, found, source, members, entries))
-    for (const generated of declared) {
-      if (generated.module === scope.name) addDeclaredFunction(generated, source, members, entries)
+    for (const added of generated) {
+      if (added.module === scope.name) addGeneratedFunction(added, source, members, entries)
     }
     source.symbols.push({ id: declarationId(file, scope.node), name: scope.name, kind: scope.kind })
     source.declarations.push({ kind: 'type', name: scope.name, line: nameLine(scope.node), visibility: 'public',

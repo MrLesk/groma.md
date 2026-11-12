@@ -31,6 +31,14 @@ groma scan
 After publication, install with `groma plugin add @groma/scanner-elixir`.
 The scanner has no settings.
 
+[Discovery](../discovery.md) recommends the scanner for a repository with a
+`mix.exs` and shows the project's literal `elixir:` requirement. It reports
+Phoenix from a router at the generator's location, `lib/*_web/router.ex`,
+which covers single applications and umbrella apps. Ash has no discovery clue:
+the existing rule types cannot tell a `mix.exs` that depends on Ash from one
+that does not, so `ash` is listed as a supported technology without a rule.
+Ash support is part of this scanner and needs no separate installation.
+
 ## Inputs and Mix projects
 
 The manifest selects `**/*.ex` and `**/mix.exs`. Default exclusions omit
