@@ -1,5 +1,5 @@
 import { compareSemanticElements } from '../element-order.ts'
-import type { AnnotatedElement, AnnotatedRelationship, ArchitectureGraph } from '../types.ts'
+import type { AnnotatedElement, AnnotatedGroup, AnnotatedRelationship, ArchitectureGraph } from '../types.ts'
 import { composePlacement } from './compose.ts'
 import { GAP, ISLAND_GAP, NESTED_CONTENT_PAD } from './forces.ts'
 import { MARGIN, PAD, shadeOf, translate, unionRects } from './grid.ts'
@@ -225,25 +225,32 @@ function centredIsland(node: Node): Node {
   }
 }
 
-/** Siblings in hierarchy order, with each group's members folded into one zone node where its first member sat. */
+function groupTitle(groups: readonly AnnotatedGroup[], id: string): string {
+  const group = groups.find(candidate => candidate.id === id)
+  if (group === undefined) throw new Error(`a component names the unknown group "${id}"`)
+  return group.title
+}
+
+/** A container's components in hierarchy order, with each group's members folded into one zone node where its first member sat. */
 function withZones(
-  parentKey: string,
-  siblings: readonly Node[],
-  elements: readonly AnnotatedElement[],
+  container: AnnotatedElement,
+  components: readonly AnnotatedElement[],
+  buildings: readonly Node[],
+  groups: readonly AnnotatedGroup[],
   relationships: readonly Pick<AnnotatedRelationship, 'source' | 'target'>[],
 ): Node[] {
-  const groupOf = new Map(elements.map(element => [element.representationId, element.group]))
+  const groupOf = new Map(components.map(component => [component.representationId, component.group]))
   const buckets = new Map<string, { group: string | undefined; nodes: Node[] }>()
-  for (const node of siblings) {
+  for (const node of buildings) {
     const group = groupOf.get(node.key)
-    const key = group === undefined ? node.key : `group:${parentKey}:${group}`
+    const key = group === undefined ? node.key : `group:${container.representationId}:${group}`
     const bucket = buckets.get(key) ?? { group, nodes: [] }
     bucket.nodes.push(node)
     buckets.set(key, bucket)
   }
   return [...buckets].map(([key, { group, nodes }]) => group === undefined
     ? nodes[0]!
-    : packed(key, nodes, { kind: 'zone', name: group, members: nodes.map(member => member.key) }, relationships))
+    : packed(key, nodes, { kind: 'zone', name: groupTitle(groups, group), members: nodes.map(member => member.key) }, relationships))
 }
 
 export function placeWorld(world: ArchitectureGraph): Placement {
@@ -260,7 +267,7 @@ export function placeWorld(world: ArchitectureGraph): Placement {
     const components = childrenOf(container.representationId).filter(child => child.kind === 'component')
     return packed(
       container.representationId,
-      withZones(container.representationId, components.map(building), components, relationships),
+      withZones(container, components, components.map(building), world.groups, relationships),
       { kind: 'slab', element: container },
       relationships,
     )
@@ -269,7 +276,7 @@ export function placeWorld(world: ArchitectureGraph): Placement {
     const children = childrenOf(system.representationId)
     const containers = children.filter(child => child.kind === 'container')
     const components = children.filter(child => child.kind === 'component')
-    const surfaces = withZones(system.representationId, containers.map(slab), containers, relationships)
+    const surfaces = containers.map(slab)
     if (components.length > 0) {
       surfaces.push(packed(`unidentified:${system.representationId}`, components.map(building), {
         kind: 'zone', name: 'Unidentified container', unidentifiedContainer: true,

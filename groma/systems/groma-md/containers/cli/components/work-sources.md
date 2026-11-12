@@ -7,7 +7,6 @@ tags:
 groma:
   id: work-sources
   parent: cli
-  group: Project work
   code:
     - scanner: typescript
       file: src/work/sources.ts

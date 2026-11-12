@@ -163,7 +163,6 @@ groma.md-only fields live together under `groma`:
 | `id` | yes | Stable lowercase kebab-case ID, unique in the tree. |
 | `parent` | for containers and components | ID of the containing system or container. |
 | `draft` | no | ID of the draft record this concept belongs to or that touches it. |
-| `group` | no | Readable name of a hand-authored sibling cluster. |
 | `technology` | no | Free text naming implementation technology, comma-separated. |
 | `color` | no | One named map color: `red`, `orange`, `yellow`, `blue`, `violet`, or `pink`. |
 | `icon` | no | One named map icon, such as `database`; see [Icons](#icons). |
@@ -185,9 +184,8 @@ unowned fields during supported edits. It remains strict about its own nested
 fields, C4 containment, and relationships. This preservation makes a groma.md
 package usable by OKF tooling; it is not a generic OKF import contract.
 
-A group is a narrative overlay on one hierarchy level. It never becomes a
-parent and owns no relationships. Scanners never derive groups. `groma edit
---group` and `--ungroup` are the supported writers. `groma edit --combine`
+A [group](#groups) of components is stored in its own record, not in a field
+of its members. `groma edit --combine`
 folds unique Code references from empty scan records into one component, and
 `groma edit --parent` moves an empty scanned component without changing its
 identity. Scanning can also complete a component's unidentified placement: positive
@@ -206,8 +204,8 @@ container ID and stem. Collisions add source parent directories, nearest
 first, before the container ID and stem. For example, repeated build files
 under a `scanner` container can become `vue-scanner-build` and
 `react-scanner-build`. Remaining collisions climb further source parents.
-Reserved document names and the command words `group` and `relation`, which the
-CLI reads as addresses, follow the same qualification rule.
+Reserved document names and the command word `relation`, which the CLI reads
+as an address, follow the same qualification rule.
 
 If all readable context still collides after lowercase kebab normalization,
 core appends the first eight hexadecimal digits of SHA-256 of the exact
@@ -319,8 +317,7 @@ flows. [`src/colors.ts`](../src/colors.ts) holds the list.
 system, container, or component, and an empty value removes it. The web details
 pane offers the same names as a row of swatches that applies at once. Nothing is
 colored automatically, a color is not inherited by what the element contains,
-and scans keep it. Groups cannot carry a color: a group is a name on its members
-and has no document.
+and scans keep it. A [group](#groups) record carries no color.
 
 ### Icons
 
@@ -352,9 +349,8 @@ parts and people, never a vendor or a programming language:
 database` sets the icon of an actor, system, external system, container, or
 component, and an empty value removes it. The web details pane offers the same
 names as a grid that applies at once. No icon is assigned automatically, an
-icon is not inherited by what the element contains, and scans keep it. A group
-has no icon: an icon says what an element is, and a group is a name on its
-members, not an element.
+icon is not inherited by what the element contains, and scans keep it. A
+[group](#groups) record carries no icon.
 
 The [web map](viewers/web/index.md) draws each name twice: as a small object
 standing beside the element's name in the tilted views, and as a flat glyph in
@@ -562,6 +558,81 @@ accepts `--title`, `--description`, `--overview`, and `--steps`;
 `groma remove <flow-id>` removes it. A referenced relationship or endpoint
 cannot be removed while a flow still uses it. Live, historical, and static
 viewers all read these same records.
+
+## Groups
+
+A group names components that belong together inside one container, such as
+`Map painting` or `Scan lifecycle`. People and agents create groups; scanners
+never do, and scans keep them. A group is an OKF concept with type
+`Groma Group`, stored at `<groma-root>/groups/<id>.md`. It is not a C4 element
+and not another containment level: it never becomes a parent, owns no Code
+references, and is never a relationship end. The maps draw it as a zone around
+its members.
+
+```markdown
+---
+type: Groma Group
+title: Order checks
+description: What runs before an order is placed.
+groma:
+  id: api-order-checks
+---
+
+Both checks must pass before Ordering records an order.
+
+## Members
+
+- [stock](../systems/shop/containers/api/components/stock.md)
+- [fraud-check](../systems/shop/containers/api/components/fraud-check.md)
+```
+
+`title` and a unique stable `groma.id` are required. `description` and the
+overview prose are optional. The Members section holds one bullet list and
+nothing else, and each bullet is one normal Markdown link to a component
+document. An ordinary Markdown or OKF reader sees a titled page that links to
+its members. groma.md reads those links as membership and applies these rules:
+
+| Rule | Reason |
+| --- | --- |
+| Every member is a component: never an actor, a system, a container, or another group. | A zone is drawn around buildings on a container. |
+| All members have the same container. A component whose container is unidentified cannot be a member. | One group draws one zone. |
+| At most one group lists a component. | Zones do not overlap. |
+
+A group that breaks a rule, or links to a document that does not exist, stops
+the architecture from loading with an error that names the group file. A group
+without members is valid and draws no zone.
+
+The record is the only place that stores membership; a component document says
+nothing about its group. Core resolves the links
+([`resolveGroups`](../src/group-model.ts)) and gives every view the groups
+and, on each member, the ID of its group: a view finds a group's members among
+the elements whose `group` is that ID, as it finds children by `parent`.
+
+`groma add group <name> <component-id...>` creates a record and prints its ID:
+the container's ID followed by the kebab-case name, so two containers can each
+have a group of the same name. `--description` and `--overview` add its
+meaning. When the container already has a group with exactly this title, the
+components join that group instead, which is how Group as in the web map adds
+to an existing group. `groma edit <group-id>` accepts `--title`, `--description`, and
+`--overview`. `groma edit <component-id> --group <group-id>` puts a component
+in an existing group and takes it out of the group it was in; `--ungroup` only
+takes it out. `groma remove <group-id>` deletes the record and leaves its
+members in place. `groma view <group-id>` prints the record.
+
+Other commands keep every group loadable:
+
+| Command | Effect on groups |
+| --- | --- |
+| `groma remove <component-id>` | The component leaves its group. |
+| `groma edit <id> --id <new-id>` | Member links follow the renamed component or container. |
+| `groma edit <container-id> --parent <system-id>` | Member links follow the components that move with their container. |
+| `groma edit <component-id> --parent <container-id>` | The component leaves its group, which stays in its container. |
+| `groma edit <id> --combine <component-id>` | Refused while a group lists the absorbed component. |
+
+The group commands live in [`src/group.ts`](../src/group.ts). The effects in
+the table live where each command is implemented: `leavingWrites` in that file
+serves removal and moves, and `groupWritesForMoves` in
+[`src/curate.ts`](../src/curate.ts) decides between leaving and following.
 
 ## Component example
 

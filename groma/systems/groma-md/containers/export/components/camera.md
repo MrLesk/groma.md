@@ -7,7 +7,6 @@ tags:
 groma:
   id: camera
   parent: export
-  group: Map drawing
   code:
     - scanner: typescript
       file: src/viewers/web/iso/camera/camera.ts

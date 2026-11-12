@@ -16,7 +16,6 @@ groma:
       file: src/relation.ts
     - scanner: typescript
       file: src/relationship-storage.ts
-  group: Architecture records
 description: Stores directed interactions and resolves them to component owners
 ---
 

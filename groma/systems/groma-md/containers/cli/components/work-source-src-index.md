@@ -10,7 +10,6 @@ groma:
   code:
     - scanner: typescript
       file: packages/work-source/src/index.ts
-  group: Project work
 description: Defines the plugin contract for reading project tasks
 ---
 

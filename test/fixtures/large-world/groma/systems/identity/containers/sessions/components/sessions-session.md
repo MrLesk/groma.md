@@ -5,7 +5,6 @@ status: stable
 groma:
   id: sessions-session
   parent: sessions
-  group: Core
   code:
     - scanner: typescript
       file: src/identity/sessions/session.ts

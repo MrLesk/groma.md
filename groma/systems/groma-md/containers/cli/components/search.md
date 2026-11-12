@@ -8,7 +8,6 @@ groma:
   code:
     - scanner: typescript
       file: src/search.ts
-  group: Shared viewer data
 description: Indexes architecture elements for viewer search
 ---
 

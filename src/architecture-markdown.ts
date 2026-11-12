@@ -73,3 +73,9 @@ export function relationshipTargetFilename(sourceFilename: string, href: unknown
   ) return null
   return path.posix.normalize(path.posix.join(path.posix.dirname(sourceFilename), decodedHref))
 }
+
+/** The relative link target that leads from one document to another, escaped for a Markdown link. */
+export function markdownHref(fromFilename: string, toFilename: string): string {
+  return path.posix.relative(path.posix.dirname(fromFilename), toFilename)
+    .split('/').map(encodeURIComponent).join('/').replaceAll('(', '%28').replaceAll(')', '%29')
+}

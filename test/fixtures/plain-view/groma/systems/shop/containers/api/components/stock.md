@@ -5,7 +5,6 @@ status: stable
 groma:
   id: stock
   parent: api
-  group: Fulfilment
   draft: next
   code:
     - scanner: typescript

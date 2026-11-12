@@ -5,7 +5,6 @@ status: stable
 groma:
   id: auth-cache
   parent: auth
-  group: Core
   code:
     - scanner: typescript
       file: src/identity/auth/cache.ts

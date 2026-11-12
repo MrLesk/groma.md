@@ -5,7 +5,6 @@ status: stable
 groma:
   id: cdn-edge-session
   parent: cdn-edge
-  group: Core
   code:
     - scanner: typescript
       file: src/storefront/cdn-edge/session.ts

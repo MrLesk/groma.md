@@ -22,7 +22,6 @@ groma:
     - scanner: typescript
       file: src/cli-lifecycle.ts
       symbol: stopOnSignal
-  group: Project commands
 description: Reads CLI commands and starts the requested Groma action
 ---
 

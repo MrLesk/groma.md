@@ -5,7 +5,6 @@ status: stable
 groma:
   id: auth-mapper
   parent: auth
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/auth/mapper.ts

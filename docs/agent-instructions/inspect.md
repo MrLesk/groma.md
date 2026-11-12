@@ -28,8 +28,9 @@ a trailing `| draft` on a draft relationship. The overview lifts each end to
 its actor or system; a drill-down names the stored endpoints, which can sit
 below the listed children.
 
-`groma view <target>` accepts only the targets above. `project`, `relation`,
-and group addresses are `groma edit` targets, not `groma view` targets.
+`groma view <target>` accepts the targets above and a group ID, which prints
+the group's record. `project` and `relation` are `groma edit` targets, not
+`groma view` targets.
 
 A target with no record exits non-zero and prints one reason, which separates a
 mistyped name from a coverage gap:

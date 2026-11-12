@@ -11,7 +11,6 @@ groma:
     - scanner: typescript
       file: src/repository-listing.ts
       symbol: repositoryListing
-  group: Source scanning
 description: Lists tracked, unignored project files through Git
 ---
 

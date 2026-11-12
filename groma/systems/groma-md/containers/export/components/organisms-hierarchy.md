@@ -11,7 +11,6 @@ groma:
       symbol: createHierarchy
     - scanner: typescript
       file: src/viewers/web/organisms/sidebar-row.ts
-  group: Architecture panels
 description: Shows the architecture tree and follows the current selection
 ---
 

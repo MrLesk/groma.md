@@ -5,7 +5,6 @@ status: stable
 groma:
   id: mobile-api-worker
   parent: mobile-api
-  group: Support
   code:
     - scanner: typescript
       file: src/storefront/mobile-api/worker.ts

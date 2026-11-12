@@ -29,7 +29,6 @@ groma:
       symbol: addComparedOperations
     - scanner: typescript
       file: plugins/scanners/vue/src/sfc.ts
-  group: Language analysis
 description: Analyses Vue source, templates and HTTP bindings
 ---
 

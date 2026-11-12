@@ -33,24 +33,26 @@ the scanner cannot see.
 | `groma edit <container> --parent <system>` | a scanned container ID and a system ID |
 | `groma edit <id> --id <new-id>` | a system, container, or component ID and the kebab-case ID it should keep |
 | `groma edit <component> --detach <file...>` | a component ID and exact repository-relative files it owns |
-| `groma edit <component> --group <name>` or `--ungroup` | a component ID; the group name is free text |
-| `groma add group <name> <component...>` | sibling component IDs |
-| `groma edit group <address> --title <text>` | a group address |
-| `groma remove group <address> [component...]` | a group address, and the IDs of the members that leave; without members the group dissolves |
+| `groma add group <name> <component...>` | component IDs of one container; prints the group ID. A name the container already uses adds the components to that group. `--description` and `--overview` are optional on a new group |
+| `groma edit <group-id> --title <text>` | a group ID; `--description` and `--overview` work the same way |
+| `groma edit <component> --group <group-id>` or `--ungroup` | a component ID and the ID of an existing group in its container |
+| `groma remove <group-id>` | a group ID; the record is deleted and its members stay |
 | `groma add actor <name> --overview <markdown>` | the name of a new person |
 | `groma add external <name> --overview <markdown>` | the name of a new outside system; `--technology` is optional |
 | `groma draft <system\|container\|component> <name> --overview <markdown>` | a new name; containers and components also require `--parent <id>`, which a system refuses |
 | `groma accept <id>` | a ghost element ID; scans first when no scan has matched it yet |
 | `groma remove <id>` | an actor, external system, ghost, unused draft, component without Code references, or empty system/container |
 
-A group address is `<container-id>/<group-kebab>`; it is not an element ID. A
+A group ID is the container's ID followed by the kebab-case group name, such as
+`api-order-checks`. `groma view --plain <component>` shows it as
+`group:<group-id>`, and `groma view <group-id>` prints the group's record. A
 ghost is written at the path it will keep. To remove a scanned component,
 delete its source files and run `groma scan` first. Removal refuses while
 flows, incoming relationships, or children depend on the element.
 
 These commands validate the complete change before writing. Do not edit
 architecture Markdown with generic file tools. Combine, detach, move, group,
-ungroup, and group add, rename, or removal are structural commands: they print the paths
+ungroup, and group add are structural commands: they print the paths
 and IDs they changed, which `groma agent-instructions backlog` explains how to
 record.
 
@@ -97,7 +99,7 @@ combine instead collects the absorbed components' Code references on the
 surviving component.
 
 Combined records must have the same kind and parent. Absorbed records cannot
-have body content, concept-addressed relationships, a group, or technology.
+have body content, concept-addressed relationships, a group that lists them, or technology.
 The children a combine absorbs directly cannot have body content either, so a
 system combine refuses a described container while a described component two
 levels down relocates with it. A component move requires an empty body; a
@@ -127,8 +129,9 @@ nothing else needs editing. An external system renames the same way, into
 `externals/<new-id>.md`.
 
 The value is normalized to kebab-case, so the ID the result prints is the
-authoritative one. A taken ID, a reserved document name, a command word
-(`group`, `relation`), and an actor or flow ID are refused, and the rename is
+authoritative one. A taken ID (an element's, a flow's, a group's or a
+draft's), a reserved document name, and the command word `relation` are
+refused, and the rename is
 its own edit, separate from a combine, move or detach. The result prints
 `replaced: <old-id> -> <new-id>`; record it in the Backlog task as
 `groma agent-instructions backlog` explains.
@@ -212,10 +215,12 @@ responsibility, and a large file may still be only one part of a component.
 
 ## Groups
 
-A group is a named domain containing independently meaningful sibling
-components. Use a group when the components share one parent and belong to one
-area of the product, but each still deserves its own name, responsibility, and
-Code list. A skyscraper may also be a member of a group.
+A group is a named domain containing independently meaningful components of
+one container. Use a group when the components belong to one area of the
+product, but each still deserves its own name, responsibility, and Code list.
+A skyscraper may also be a member of a group. A component belongs to one group
+at most, and a group has its own record with a title, a description and an
+overview: say there what the area does.
 
 Good groups explain the map, such as `Map painting`, `Navigation`, or `Scan
 lifecycle`. Do not create a group merely because files share a directory. Do

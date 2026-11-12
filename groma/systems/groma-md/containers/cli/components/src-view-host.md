@@ -16,7 +16,6 @@ groma:
     - scanner: typescript
       file: src/viewers/tui/model.ts
       symbol: TerminalViewModel
-  group: Terminal map
 description: Runs the terminal viewer and connects it to live architecture updates
 ---
 

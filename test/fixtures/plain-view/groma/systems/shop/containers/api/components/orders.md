@@ -7,7 +7,6 @@ tags: [fulfilment]
 groma:
   id: orders
   parent: api
-  group: Fulfilment
   technology: TypeScript
   code:
     - scanner: typescript

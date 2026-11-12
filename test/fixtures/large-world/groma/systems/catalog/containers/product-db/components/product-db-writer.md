@@ -5,7 +5,6 @@ status: stable
 groma:
   id: product-db-writer
   parent: product-db
-  group: Support
   code:
     - scanner: typescript
       file: src/catalog/product-db/writer.ts

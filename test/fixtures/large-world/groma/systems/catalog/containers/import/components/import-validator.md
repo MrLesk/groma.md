@@ -5,7 +5,6 @@ status: stable
 groma:
   id: import-validator
   parent: import
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/import/validator.ts

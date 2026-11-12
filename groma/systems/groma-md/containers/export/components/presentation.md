@@ -7,7 +7,6 @@ tags:
 groma:
   id: presentation
   parent: export
-  group: Map drawing
   code:
     - scanner: typescript
       file: src/viewers/web/iso/view-motion/presentation.ts

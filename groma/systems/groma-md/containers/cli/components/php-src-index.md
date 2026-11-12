@@ -41,7 +41,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/php/src/entries.ts
       symbol: phpEntries
-  group: Language analysis
 description: Analyses PHP declarations, calls and HTTP evidence
 ---
 

@@ -33,7 +33,6 @@ interface ElementDocumentFixture {
   status?: unknown
   parent?: string | null
   draft?: unknown
-  group?: unknown
   technology?: unknown
   /** The top-level OKF tags value, valid or not. */
   tags?: unknown
@@ -51,7 +50,6 @@ export function elementDocument({
   status = 'stable',
   parent,
   draft,
-  group,
   technology,
   tags,
   code,
@@ -70,9 +68,6 @@ export function elementDocument({
     groma.parent = parent
   }
   if (draft !== undefined) groma.draft = draft
-  if (group !== undefined) {
-    groma.group = group
-  }
   if (technology !== undefined) groma.technology = technology
   if (code !== undefined) groma.code = code
 

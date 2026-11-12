@@ -30,7 +30,6 @@ groma:
       file: src/colors.ts
     - scanner: typescript
       file: src/icons.ts
-  group: Architecture records
 description: Builds the in-memory C4 model from stored Markdown records
 ---
 

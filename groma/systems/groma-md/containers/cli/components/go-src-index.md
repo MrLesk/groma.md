@@ -14,7 +14,6 @@ groma:
       file: plugins/scanners/go/src/adapter.ts
     - scanner: typescript
       file: plugins/scanners/go/src/sources.ts
-  group: Language analysis
 description: Starts the Go worker and converts its result into scan evidence
 ---
 

@@ -5,7 +5,6 @@ status: stable
 groma:
   id: session-store-queue
   parent: session-store
-  group: Support
   code:
     - scanner: typescript
       file: src/storefront/session-store/queue.ts

@@ -5,7 +5,6 @@ status: stable
 groma:
   id: search-router
   parent: search
-  group: Core
   code:
     - scanner: typescript
       file: src/storefront/search/router.ts

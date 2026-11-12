@@ -12,7 +12,6 @@ groma:
       file: plugins/scanners/kotlin/src/index.ts
     - scanner: typescript
       file: plugins/scanners/kotlin/src/adapter.ts
-  group: Language scanners
   technology: TypeScript, Kotlin, Kotlin compiler
 description: Reads selected Kotlin declarations, outlines and uncertain call evidence.
 ---

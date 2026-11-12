@@ -24,7 +24,6 @@ groma:
       symbol: Evidence
     - scanner: typescript
       file: plugins/scanners/react/src/project.ts
-  group: Language analysis
 description: Analyses React source, JSX and HTTP bindings
 ---
 

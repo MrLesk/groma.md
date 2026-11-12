@@ -16,6 +16,7 @@ function element(id: string, kind: C4Kind, parent: string | null, children: stri
 function world(color?: ColorName): ArchitectureGraph {
   return {
     flows: [],
+    groups: [],
     relationships: [],
     elements: [
       element('shop', 'system', null, ['api']),

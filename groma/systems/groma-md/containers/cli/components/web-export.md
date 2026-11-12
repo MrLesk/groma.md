@@ -10,7 +10,6 @@ groma:
   code:
     - scanner: typescript
       file: src/viewers/web/export.ts
-  group: Browser delivery
 description: Writes a static browser map that runs without a Groma server
 ---
 

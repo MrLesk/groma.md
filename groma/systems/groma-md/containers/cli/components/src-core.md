@@ -16,7 +16,6 @@ groma:
     - scanner: typescript
       file: src/source-coverage.ts
       symbol: missingOwnerReason
-  group: Architecture records
 description: Prepares element details and display order for the viewers
 ---
 

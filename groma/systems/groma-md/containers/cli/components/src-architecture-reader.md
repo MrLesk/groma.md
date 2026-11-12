@@ -14,7 +14,6 @@ groma:
       file: src/markdown-emitter.ts
     - scanner: typescript
       file: src/groma-filesystem.ts
-  group: Architecture records
 description: Reads and writes architecture Markdown in the project Groma folder
 ---
 

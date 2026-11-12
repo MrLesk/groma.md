@@ -5,7 +5,6 @@ import type { AddInput, RemoveInput } from './authoring.ts'
 import { COLOR_NAMES } from './colors.ts'
 import { ICON_NAMES } from './icons.ts'
 import type { StructuralResult } from './curate.ts'
-import { isGroupAddress } from './naming.ts'
 import { scanRepository } from './scanner.ts'
 
 function printWriteResult(result: string | StructuralResult): void {
@@ -21,7 +20,7 @@ function printWriteResult(result: string | StructuralResult): void {
   }
 }
 
-/** `<verb> relation <a> <b>` names a relationship and `<verb> group <address> [ids...]` a group; every other id stands alone. Only remove reads the members. */
+/** `<verb> relation <a> <b>` names a relationship; every other id stands alone. */
 function addressed(id: string, ids: string[]): RemoveInput {
   if (id === 'relation') {
     const [source, target] = ids
@@ -29,13 +28,6 @@ function addressed(id: string, ids: string[]): RemoveInput {
       throw new Error('relation takes a source endpoint and a target endpoint')
     }
     return { id: source, relation: target }
-  }
-  if (id === 'group') {
-    const [address, ...members] = ids
-    if (address === undefined || !isGroupAddress(address)) {
-      throw new Error('group takes an address <container-id>/<group-kebab>')
-    }
-    return { id: address, members }
   }
   if (ids.length > 0) throw new Error(`${id} takes no further id`)
   return { id }
@@ -90,7 +82,7 @@ export function registerWriteCommands(program: Command): void {
     .description('Declare an actor, external system, draft, flow, relation, or group')
     .argument('<thing>', 'actor, external, draft, flow, relation, or group')
     .argument('<name>', 'name, or the source file or concept ID of a relation')
-    .argument('[ids...]', 'target file or concept ID of a relation, or the member IDs of a group')
+    .argument('[ids...]', 'target file or concept ID of a relation, or the component IDs a group lists')
     .option('--overview <markdown>', 'full Markdown explanation, or the outcome of a draft')
     .option('--steps <markdown>', 'flow Steps table: From | To | Action, with Markdown endpoint links')
     .option('--description <text>', 'optional short summary, or how the source uses the target')
@@ -117,8 +109,8 @@ export function registerWriteCommands(program: Command): void {
   program
     .command('remove')
     .description('Remove a person, external, ghost, component without Code, empty system/container, unused draft, relation, or group')
-    .argument('<id>', 'element id, draft id, flow id, relation, or group')
-    .argument('[ids...]', 'with relation: the source and target endpoints; with group: the address and the members leaving')
+    .argument('<id>', 'element id, draft id, flow id, group id, or relation')
+    .argument('[ids...]', 'with relation: the source and target endpoints')
     .action(async (id: string, ids: string[]) => {
       try {
         const removed = await writes.remove(process.cwd(), addressed(id, ids))
@@ -132,9 +124,9 @@ export function registerWriteCommands(program: Command): void {
   program
     .command('edit')
     .description('Update authored meaning')
-    .argument('<id>', 'element id, draft id, flow id, project, relation, or group')
-    .argument('[ids...]', 'with relation: the source and target endpoints; with group: the address')
-    .option('--title <text>', 'new title; the id stays, or the new name of a group')
+    .argument('<id>', 'element id, draft id, flow id, group id, project, or relation')
+    .argument('[ids...]', 'with relation: the source and target endpoints')
+    .option('--title <text>', 'new title; the id stays')
     .option('--overview <markdown>', 'full Markdown explanation, or the outcome of a draft')
     .option('--steps <markdown>', 'flow Steps table: From | To | Action, with Markdown endpoint links')
     .option('--description <text>', 'optional short summary (empty removes it), or how a relation works')
@@ -143,8 +135,8 @@ export function registerWriteCommands(program: Command): void {
     .option('--color <name>', `color of an element on the map: ${COLOR_NAMES.join(', ')} (empty removes it)`)
     .option('--icon <name>', `icon of an element on the map: ${ICON_NAMES.join(', ')} (empty removes it)`)
     .option('--draft <draft-id>', 'link this element to the draft that touches it')
-    .option('--group <name>', 'assign this component to a sibling group')
-    .option('--ungroup', 'remove this component from its group')
+    .option('--group <group-id>', 'put this component in a group of its container; it leaves the group it was in')
+    .option('--ungroup', 'take this component out of its group')
     .option('--parent <id>', 'move an empty scanned component to this container, or a container to this system')
     .option('--combine <ids...>', 'combine empty sibling systems, containers or components into this one; their containers, components or files move to it')
     .option('--detach <files...>', 'detach these source files from the component')

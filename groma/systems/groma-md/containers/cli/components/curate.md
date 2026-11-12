@@ -17,7 +17,9 @@ groma:
     - scanner: typescript
       file: src/movable.ts
       symbol: moveBlocker
-  group: Architecture records
+    - scanner: typescript
+      file: src/group-model.ts
+      symbol: resolveGroups
 description: Moves, combines and groups elements without changing their meaning
 ---
 

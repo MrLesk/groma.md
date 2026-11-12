@@ -10,7 +10,6 @@ groma:
   code:
     - scanner: typescript
       file: src/viewers/web/atoms/fonts/index.ts
-  group: Map drawing
 description: Embeds the fonts used by the live map and generated cover images
 ---
 

@@ -6,6 +6,7 @@ import { test } from 'bun:test'
 import { parseFrontmatter } from 'comark'
 import { writes } from '../src/authoring.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
+import type { StructuralResult } from '../src/curate.ts'
 import { scanRepository } from '../src/scanner.ts'
 import { creationParent, enclosed, gestureBounds } from '../src/viewers/web/editing/intent.ts'
 import { repositoryRoot } from './helpers.ts'
@@ -171,11 +172,11 @@ test.concurrent('drop intent chooses ancestry and grouping keeps world ownership
     assert.equal(creationParent(world.elements, 'system', undefined), undefined)
     assert.throws(() => creationParent(world.elements, 'component', undefined))
     const id = await writes.draft(root, { kind: 'component', name: 'Planned check', parent: 'api', overview: '' })
-    await writes.add(root, { thing: 'group', name: 'Checks', members: ['stock', id] })
-    await writes.edit(root, { id, group: 'Checks', title: 'Inventory check', technology: 'Bun' })
+    const group = await writes.add(root, { thing: 'group', name: 'Checks', members: ['stock', id] }) as StructuralResult
+    await writes.edit(root, { id, title: 'Inventory check', technology: 'Bun' })
     const selected = (await loadAnnotatedArchitecture(root)).elements.filter(element => ['stock', id].includes(element.id))
     assert.equal(selected.length, 2)
-    assert.ok(selected.every(element => element.parent === 'api' && element.group === 'Checks'))
+    assert.ok(selected.every(element => element.parent === 'api' && element.group === group.id))
     const created = selected.find(element => element.id === id)!
     assert.equal(created.origin, 'draft')
     const bounds = gestureBounds({ x: 100, y: 100 }, { x: 0, y: 0 })

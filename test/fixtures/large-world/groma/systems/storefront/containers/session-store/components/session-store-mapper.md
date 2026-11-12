@@ -5,7 +5,6 @@ status: stable
 groma:
   id: session-store-mapper
   parent: session-store
-  group: Support
   code:
     - scanner: typescript
       file: src/storefront/session-store/mapper.ts

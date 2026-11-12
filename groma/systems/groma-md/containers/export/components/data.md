@@ -10,7 +10,6 @@ groma:
       file: src/viewers/web/data.ts
     - scanner: typescript
       file: src/viewers/web/authoring.ts
-  group: Browser session
 description: Loads live or exported architecture data into the browser
 ---
 

@@ -5,7 +5,6 @@ status: stable
 groma:
   id: cdn-edge-reader
   parent: cdn-edge
-  group: Support
   code:
     - scanner: typescript
       file: src/storefront/cdn-edge/reader.ts

@@ -24,7 +24,6 @@ groma:
       file: src/viewers/tui/panes/hierarchy.ts
     - scanner: typescript
       file: src/viewers/tui/panes/text.ts
-  group: Terminal map
 description: Shows the terminal tree, details and source beside the map
 ---
 

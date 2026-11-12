@@ -23,7 +23,6 @@ groma:
       file: src/viewers/tui/projection-motion.ts
     - scanner: typescript
       file: src/viewers/tui/projection-spacing.ts
-  group: Terminal map
 description: Lays out the shared sheet as a terminal plan for one zoom depth
 ---
 

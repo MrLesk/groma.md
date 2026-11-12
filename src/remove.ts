@@ -7,9 +7,8 @@ import {
   withGromaField,
   writeDocument,
 } from './markdown-emitter.ts'
-import { removeGroup } from './group.ts'
+import { groupContext, leavingWrites, removeGroup, writeGroups } from './group.ts'
 import type { StructuralResult } from './curate.ts'
-import { isGroupAddress } from './naming.ts'
 import { storedRelationships } from './relationship-markdown.ts'
 import { removeRelation } from './relation.ts'
 import { draftRemovalBlocker, removalBlocker } from './removable.ts'
@@ -18,17 +17,15 @@ export interface RemoveInput {
   id: string
   /** The target id of the relationship from id to remove instead of the element itself. */
   relation?: string
-  /** With a group address: the members leaving; none dissolves the group. */
-  members?: string[]
 }
 
 /** Removes eligible records; scanned components must have no remaining Code references. */
-export async function removeThing(repositoryRoot: string, { id, relation, members }: RemoveInput): Promise<string | StructuralResult> {
+export async function removeThing(repositoryRoot: string, { id, relation }: RemoveInput): Promise<string | StructuralResult> {
   if (relation !== undefined) return removeRelation(repositoryRoot, { source: id, target: relation })
-  if (isGroupAddress(id)) return removeGroup(repositoryRoot, { address: id, members })
   const records = await loadArchitecture(repositoryRoot)
   const graph = annotateArchitecture(records)
   const model = buildArchitectureModel(records.documents)
+  const context = groupContext(repositoryRoot, records, model)
   const flow = graph.flows.find(candidate => candidate.id === id)
   if (flow !== undefined) {
     await removeDocument(repositoryRoot, flow.sourceFilename)
@@ -45,9 +42,13 @@ export async function removeThing(repositoryRoot: string, { id, relation, member
     if (rows.some(row => row.source !== element.id && !element.code.some(reference => reference.file === row.source))) {
       throw new Error(`cannot remove ${id}: detached source relationships are waiting here; run groma scan first`)
     }
+    // The group's link goes first: a failure between the two writes leaves an ungrouped component, never a dangling link.
+    await writeGroups(context, await leavingWrites(context, [element.id]))
     await removeDocument(repositoryRoot, element.sourceFilename)
     return id
   }
+  const group = context.groups.find(candidate => candidate.id === id)
+  if (group !== undefined) return removeGroup(context, group)
 
   const record = records.drafts.map(draftRecordOf).find(candidate => candidate.id === id)
   if (record === undefined) throw new Error(`unknown id "${id}"`)

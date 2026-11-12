@@ -5,7 +5,6 @@ status: stable
 groma:
   id: search-worker
   parent: search
-  group: Support
   code:
     - scanner: typescript
       file: src/storefront/search/worker.ts

@@ -14,7 +14,6 @@ groma:
       file: plugins/scanners/scala/src/adapter.ts
     - scanner: typescript
       file: plugins/scanners/jvm-worker.ts
-  group: Language scanners
   technology: TypeScript, Scala, Scalameta
 description: Reads selected Scala 3 declarations, outlines and uncertain call evidence.
 ---

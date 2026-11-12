@@ -15,7 +15,6 @@ groma:
       file: src/viewers/web/duplicates/model.ts
     - scanner: typescript
       file: src/viewers/web/duplicates/view.ts
-  group: Architecture panels
 description: Shows possible duplicate operations and their source comparison
 ---
 

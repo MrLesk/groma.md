@@ -1,7 +1,8 @@
 {
   "before": {
-    "drafts": [],
     "flows": [],
+    "groups": [],
+    "drafts": [],
     "elements": [
       {
         "id": "shop",
@@ -120,8 +121,9 @@
     ]
   },
   "after": {
-    "drafts": [],
     "flows": [],
+    "groups": [],
+    "drafts": [],
     "elements": [
       {
         "id": "shop",

@@ -5,7 +5,6 @@ status: stable
 groma:
   id: events-cache
   parent: events
-  group: Core
   code:
     - scanner: typescript
       file: src/orders/events/cache.ts

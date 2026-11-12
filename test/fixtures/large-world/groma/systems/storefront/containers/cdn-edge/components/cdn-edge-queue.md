@@ -5,7 +5,6 @@ status: stable
 groma:
   id: cdn-edge-queue
   parent: cdn-edge
-  group: Support
   code:
     - scanner: typescript
       file: src/storefront/cdn-edge/queue.ts

@@ -8,7 +8,6 @@ groma:
   code:
     - scanner: typescript
       file: src/viewers/web/startup/progress.ts
-  group: Browser session
 description: Reports browser startup phases while the map is preparing
 ---
 

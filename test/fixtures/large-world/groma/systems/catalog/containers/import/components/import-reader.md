@@ -5,7 +5,6 @@ status: stable
 groma:
   id: import-reader
   parent: import
-  group: Support
   code:
     - scanner: typescript
       file: src/catalog/import/reader.ts

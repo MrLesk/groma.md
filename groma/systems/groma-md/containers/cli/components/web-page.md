@@ -15,7 +15,6 @@ groma:
       file: src/viewers/web/runtime.ts
     - scanner: typescript
       file: src/viewers/web/payload.ts
-  group: Browser delivery
 description: Builds the browser page, script and initial architecture payload
 ---
 

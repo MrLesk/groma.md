@@ -10,6 +10,5 @@ groma:
   code:
     - scanner: typescript
       file: plugins/scanners/workspace-packages.ts
-  group: Scanner support
 description: Maps workspace package names and build output back to source for TypeScript-family scanners
 ---

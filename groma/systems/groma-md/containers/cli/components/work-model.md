@@ -16,7 +16,6 @@ groma:
     - scanner: typescript
       file: src/viewers/tui/work/rows.ts
       symbol: taskRows
-  group: Terminal map
 description: Lists tasks by status and component in the terminal
 ---
 

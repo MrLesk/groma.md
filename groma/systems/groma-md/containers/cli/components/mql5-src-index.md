@@ -19,7 +19,6 @@ groma:
       file: plugins/scanners/mql5/src/syntax.ts
     - scanner: typescript
       file: plugins/scanners/mql5/src/preprocessing.ts
-  group: Language scanners
   technology: TypeScript, Tree-sitter, WebAssembly
 description: Supplies MQL5 declarations, Code outlines and unresolved call evidence without MetaTrader or a compiler.
 ---

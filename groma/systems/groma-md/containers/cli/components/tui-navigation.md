@@ -26,7 +26,6 @@ groma:
       file: src/viewers/tui/tree.ts
     - scanner: typescript
       file: src/viewers/tui/keys.ts
-  group: Terminal map
 description: Handles keyboard and pointer selection in the terminal map
 ---
 

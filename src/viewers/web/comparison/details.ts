@@ -135,7 +135,8 @@ export function comparisonOverview(body: Element, change: ComponentChange, world
   const parentName = (id: string | null) => world.elements.find(item => item.id === id)?.title ?? id ?? ''
   changedField(body, 'Name', before.title, after.title)
   changedField(body, 'Parent', parentName(before.parent), parentName(after.parent))
-  changedField(body, 'Group', before.group, after.group)
+  const groupName = (id: string | undefined) => world.groups.find(item => item.id === id)?.title
+  changedField(body, 'Group', groupName(before.group), groupName(after.group))
   changedField(body, 'Tags', formatTags(before.tags), formatTags(after.tags))
   changedField(body, 'Color', before.color, after.color)
   changedField(body, 'Icon', before.icon, after.icon)
