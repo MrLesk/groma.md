@@ -5,7 +5,8 @@ import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
 import type { Plane, ProjectionView } from '../projection/project.ts'
-import { COLOR_EDGE, COLOR_STRENGTH, FACADE_MARK, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
+import { DETAIL_OPACITY_CSS, GLYPH_STROKE_CSS, LANDMARK_ZOOM_CSS, OBJECT_STROKE_CSS, ROOF_ICON_OPACITY_CSS } from './icon-camera.ts'
+import { COLOR_EDGE, COLOR_STRENGTH, FACADE_MARK, ICON_INK, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
 import type { Level } from './scale.ts'
 import { mark, node, type SvgNode } from './svg.ts'
 
@@ -131,9 +132,62 @@ function authoredColours(palette?: Palette): string {
     ${face}.right { fill: ${mixColour(palette.paper, color, share(SIDE.right))}; }
     ${face}.left { fill: ${mixColour(palette.paper, color, share(SIDE.left))}; }
     ${face}.${top}, ${face}.face { stroke: ${mixColour(palette.line, color, COLOR_EDGE)}; }
+    ${iconColour(element, palette, mixColour(palette.paper, color, share(0)), mixColour(palette.paper, color, share(SIDE.right)), mixColour(palette.line, color, COLOR_EDGE))}
     ${element}.ghost${own}.${top}, ${element}.ghost${own}.face { fill: none; }`
   })).join('\n  ')
 }
+
+/** Icon lines are darker than outlines, so a small object reads as a drawing: this much ink over the outline colour. */
+function iconLine(palette: Palette, outline: string): string {
+  return mixColour(outline, palette.ink, ICON_INK)
+}
+
+/** A cover's rules for the icon of one colored element: its two walls and its lines take the element's color. */
+function iconColour(element: string, palette: Palette, lightWall: string, darkWall: string, outline: string): string {
+  const line = iconLine(palette, outline)
+  return `${element} > .icon .icon-right { fill: ${lightWall}; }
+    ${element} > .icon .icon-left { fill: ${darkWall}; }
+    ${element} > .icon .icon-part { stroke: ${line}; }
+    ${element} > .icon .icon-solid { fill: ${line}; }`
+}
+
+/**
+ * An icon's parts have their own classes, so no rule for a building, slab or island reaches them. The object is
+ * one step lighter than a building: a paper top and screen, a lighter wall with a building's roof tint and a
+ * darker wall with a building's lighter wall tint. In the browser the walls and lines read the same --tint-*
+ * variables as the surfaces, so the object takes its element's authored color. The glyph is ink lines.
+ */
+function iconCss(palette?: Palette): string {
+  const depth = SURFACE_DEPTH.building
+  const paper = palette?.paper ?? 'var(--paper)'
+  const wall = (side: 'top' | 'right', share: number) => palette === undefined
+    ? `var(--tint-${side}, ${paintTint(share)})` : paintTint(share, palette)
+  const line = palette === undefined
+    ? `color-mix(in srgb, var(--ink) ${ICON_INK * 100}%, var(--tint-edge, var(--map-line)))`
+    : iconLine(palette, palette.line)
+  return `#map .icon-part, #map .icon-glyph path {
+    stroke: ${line}; stroke-linejoin: round; stroke-linecap: round;
+    ${palette === undefined ? 'stroke-width: var(--icon-stroke);' : ''}
+  }
+  #map .icon-top, #map .icon-screen { fill: ${paper}; }
+  #map .icon-right { fill: ${wall('top', tintAt(depth))}; }
+  #map .icon-left { fill: ${wall('right', tintAt(depth + SIDE.right))}; }
+  #map .icon-line { fill: none; }
+  #map .icon-solid { fill: ${line}; }
+  #map .icon-glyph path { fill: none; stroke: ${palette?.ink ?? 'var(--ink)'}; }`
+}
+
+/**
+ * How live icons follow the camera; icon-camera.ts holds each rule beside the function a still image uses.
+ * --icon-zoom is a landmark's enlargement and 1 for every other icon.
+ */
+const iconCameraCss = `
+  #map .icon { --icon-zoom: 1; --icon-stroke: ${OBJECT_STROKE_CSS}; opacity: ${ROOF_ICON_OPACITY_CSS}; }
+  #map .icon.landmark { --icon-zoom: ${LANDMARK_ZOOM_CSS}; opacity: 1; }
+  #map .icon.landmark > g { transform: scale(var(--icon-zoom)); }
+  #map .icon-glyph { --icon-stroke: ${GLYPH_STROKE_CSS}; }
+  #map .icon-line, #map .icon-solid { opacity: ${DETAIL_OPACITY_CSS}; }
+`
 
 /** The camera attributes that stop facade and surface patterns below readable size at zoom `k`; the map and its covers set the same ones. */
 export function patternAttributes(k: number): Record<string, boolean> {
@@ -204,6 +258,7 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
     ? `#map .actor .top { fill: var(--tint-top, ${paper}); } #map .actor .right { fill: var(--tint-right, ${paper}); } #map .actor .left { fill: var(--tint-left, ${paper}); }`
     : `#map .actor .face { fill: ${paper}; }`}
   ${authoredColours(palette)}
+  ${iconCss(palette)}
   #map .zone .ground { fill: url(#hatch-ground); }
   #map .pattern { stroke: none; pointer-events: none; }
   #map .island.actors .pattern { fill: url(#dots); }
@@ -263,6 +318,7 @@ export const mapCss = `
   #map > .map-surface:active, #map .drag-cover { cursor: grabbing; }
   #map .drag-cover { position: absolute; inset: 0; }
   ${mapDrawingCss()}
+  ${iconCameraCss}
   #map .route.hovered, #map .route.endpoint, #map .route.touched { --emphasis: ${emphasis(1)}; }
   #map .route.hovered .line { stroke: var(--map-line); opacity: 1; }
   #map .route.hovered .arrow { fill: var(--map-line); opacity: 1; }
@@ -300,6 +356,8 @@ export const mapCss = `
   }
   #map :is(.island, .slab, .zone):is(.selected, .touched, .lit, .context) > .surface-label .text { fill: var(--highlight); }
   #map :is(.island, .slab, .zone):is(.selected, .touched, .lit, .context) > .surface-label .label-leader { stroke: var(--highlight); }
+  #map :is(.island, .slab, .building):is(.selected, .touched, .lit, .context) > .icon :is(.icon-part, .icon-glyph path) { stroke: var(--highlight); }
+  #map :is(.island, .slab, .building):is(.selected, .touched, .lit, .context) > .icon .icon-solid { fill: var(--highlight); }
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) { --emphasis: ${emphasis(0.5)}; }
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) .face { stroke: color-mix(in srgb, var(--highlight) 45%, var(--map-line)); }
   body:not([data-comparison]) #map .camera:has(.component-focus) .building.component:not(.component-focus):not(.neighbor) { opacity: 0.3; }

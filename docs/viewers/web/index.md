@@ -192,6 +192,27 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   color into the element's surfaces and outline; selection, lit flows, task marks
   and drafts keep their own look over it, and a comparison switches authored
   colors off because color means change there.
+- **Icons:** The same pane shows an **Icon** grid: no icon, then each
+  [named icon](../../component-markdown.md#icons). A click applies it at once,
+  and the element's name makes room for it, so the map lays itself out again.
+  - In the Iso and Layers views the icon is a small object standing before the
+    name: on the roof of an actor, external system or component, and on the
+    ground before the title of a system or container. Objects are built from
+    the map's own boxes and cylinders, so they turn with the map, take the
+    element's authored color and follow selection.
+  - In the 2D view the object gives way to the icon's flat glyph, which also
+    marks the element's row in the hierarchy and its title in the details.
+  - The icon before a system's or container's title is a landmark: it never
+    gets smaller than a readable size on screen, so a zoomed-out map still
+    shows what its large parts are. An icon on a roof shrinks with the map
+    and fades out when it would be a smudge; its inner lines fade out first.
+  - [`icons/objects.ts`](../../../src/viewers/web/icons/objects.ts) holds the
+    objects, [`icons/glyphs.ts`](../../../src/viewers/web/icons/glyphs.ts) the
+    glyphs, and [`iso/painting/icons.ts`](../../../src/viewers/web/iso/painting/icons.ts)
+    draws both; [`iso/painting/icon-camera.ts`](../../../src/viewers/web/iso/painting/icon-camera.ts)
+    holds the rules by which an icon follows the camera. Adding an icon means
+    adding its name to [`src/icons.ts`](../../../src/icons.ts), one object, one
+    glyph, and its name in the [contract's table](../../component-markdown.md#icons).
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
   IDs and titles from the configured work source. `Up`/`Down` preview matches;
   `Enter` opens the selected element or task; `Escape` restores the prior selection

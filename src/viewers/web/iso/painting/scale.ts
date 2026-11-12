@@ -53,6 +53,9 @@ export function facadeDetailsVisible(k: number): boolean {
   return k * FACADE_MARK >= 1
 }
 
+/** Share of ink in an icon's lines; the rest is the outline colour of what it stands on. */
+export const ICON_INK = 0.6
+
 /** Island dots and crosses and the group hatching repeat this many world pixels apart; slab grain is coarser. */
 export const SURFACE_TILE = 8
 

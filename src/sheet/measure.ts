@@ -19,6 +19,17 @@ export const ISLAND_SPACING = 0.14
 export const CONTAINER_FONT = 36
 export const GROUP_FONT = 28
 
+/** An icon stands in a square slot before its element's name: this many font sizes wide on a roof. */
+const ROOF_ICON_RATIO = 2.25
+/** The smallest roof slot in plane pixels, so an actor's small name still gets a readable icon. */
+const MIN_ROOF_ICON = 30
+/** The slot before a surface's title in its front band, in font sizes; the band's depth caps it at the largest titles. */
+export const TITLE_ICON_RATIO = 2
+/** The gap between a slot and the name, in font sizes. */
+const ICON_GAP_RATIO = 0.4
+/** Font sizes a title's icon slot and its gap take before the title. */
+export const TITLE_ICON_LEAD = TITLE_ICON_RATIO + ICON_GAP_RATIO
+
 /** A roof line wider than this wraps, when the name has a space to wrap at. */
 const MAX_LINE_CELLS = 4
 const MIN_SIDE = 2
@@ -51,6 +62,17 @@ export function buildingFont(element: Pick<AnnotatedElement, 'kind' | 'external'
   return element.kind === 'component' ? COMPONENT_FONT : ROOF_FONT
 }
 
+/**
+ * The icon slot on a roof whose name has this font size, in plane pixels: where the square lies from the name
+ * block's north corner, its side, and how far the name moves along +gx to leave it free. roofBlock sizes the
+ * block with it and the painter draws with it, so the two always agree.
+ */
+export function roofIconSlot(size: number): { x: number; y: number; side: number; lead: number } {
+  const padding = textPadding(size)
+  const side = Math.max(MIN_ROOF_ICON, ROOF_ICON_RATIO * size)
+  return { x: padding, y: padding / 2, side, lead: side + Math.ceil(size * ICON_GAP_RATIO) }
+}
+
 /** Roof insets and line spacing grow with the title size. */
 export function textPadding(size: number): number {
   return Math.ceil(size * ROOF_PAD / ROOF_FONT)
@@ -70,9 +92,10 @@ export function labelBand(size: number): number {
   return Math.ceil(labelHeight(size * 3) / PLANE)
 }
 
-/** Cells a surface needs along +gx so its own name fits in its front band. */
-export function nameCells(name: string, size: number, spacing = 0): number {
-  return Math.ceil((textWidth(name, size, spacing) + 2 * SURFACE_PAD) / PLANE)
+/** Cells a surface needs along +gx so its own name, and its icon when it has one, fit in its front band. */
+export function nameCells(name: string, size: number, spacing = 0, icon = false): number {
+  const lead = icon ? TITLE_ICON_LEAD * size : 0
+  return Math.ceil((textWidth(name, size, spacing) + lead + 2 * SURFACE_PAD) / PLANE)
 }
 
 /** The name as roof lines: one line, or two split at the space nearest the middle when one line would exceed four cells. */
@@ -222,12 +245,16 @@ export function areaUnitsOf(
 /** An actor's round building or an external system's pill: one curved tier. */
 export const curved = (shape: Shape): boolean => shape.kind === 'round' || shape.kind === 'pill'
 
-/** The name's block on a roof in plane pixels: the longest line with ROOF_PAD around it, one ROOF_LINE_HEIGHT per line. */
-export function roofBlock(lines: readonly string[], size = ROOF_FONT): { w: number; d: number } {
-  return {
-    w: Math.max(...lines.map(line => textWidth(line, size))) + 2 * textPadding(size),
-    d: 2 * textPadding(size) + lines.length * textLineHeight(size),
-  }
+/**
+ * The name's block on a roof in plane pixels: the longest line with ROOF_PAD around it, one ROOF_LINE_HEIGHT per line.
+ * With an icon the block starts with the icon's slot and is at least deep enough to hold it.
+ */
+export function roofBlock(lines: readonly string[], size = ROOF_FONT, icon = false): { w: number; d: number } {
+  const padding = textPadding(size)
+  const text = { w: Math.max(...lines.map(line => textWidth(line, size))), d: lines.length * textLineHeight(size) }
+  if (!icon) return { w: text.w + 2 * padding, d: text.d + 2 * padding }
+  const slot = roofIconSlot(size)
+  return { w: slot.lead + text.w + 2 * padding, d: Math.max(text.d + 2 * padding, 2 * slot.y + slot.side) }
 }
 
 /** The roof holds its name and every wall has room for the building's connection ports. */
@@ -236,8 +263,9 @@ export function footprintOf(
   shape: Shape,
   degree: number,
   size = ROOF_FONT,
+  icon = false,
 ): { w: number; d: number } {
-  const block = roofBlock(lines, size)
+  const block = roofBlock(lines, size, icon)
   const portSide = Math.ceil(portSideCells(degree))
   if (shape.kind === 'round') {
     const side = Math.max(MIN_SIDE, portSide, Math.ceil(Math.hypot(block.w, block.d) / PLANE))

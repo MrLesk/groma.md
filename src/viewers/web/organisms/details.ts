@@ -22,6 +22,9 @@ import type { CodeFile } from '../../source/structure.ts'
 import { paintElementWork } from '../work/component-tasks.ts'
 import { codeList } from './code-lists.ts'
 import { colorSwatches } from './color-swatches.ts'
+import { iconPicker } from './icon-picker.ts'
+import { glyphElement } from '../icons/glyph-element.ts'
+import type { IconName } from '../../../icons.ts'
 import { heading, paragraph } from '../atoms/text.ts'
 import { tagChips } from '../chrome/tag-focus.ts'
 import { editButton, isEditing, type EditField } from './editable.ts'
@@ -54,6 +57,8 @@ export interface Inspected {
   tags: string[]
   /** The authored color name, or '' when the element has none. */
   color: string
+  /** The authored icon name, or '' when the element has none. */
+  icon: '' | IconName
   relationships: RelationshipPairData[]
   flows: FlowRowData[]
   children: InspectedChild[]
@@ -160,6 +165,7 @@ export function inspectDetails(
     overview: element.overview,
     tags: element.tags ?? [],
     color: element.color ?? '',
+    icon: element.icon ?? '',
     relationships,
     flows: flowsThrough(element.representationId, world).map(flow => ({
       flow: { id: flow.id }, title: flow.title,
@@ -192,7 +198,7 @@ export function inspectUnidentifiedContainer(zone: Zone, world: ArchitectureGrap
     children: world.elements.filter(element => members.has(element.representationId)).map(element => ({
       id: element.representationId, title: element.title, kind: element.kind, external: element.external,
     })),
-    tags: [], color: '', relationships: [], flows: [], technology: '', files: [], findings: [],
+    tags: [], color: '', icon: '', relationships: [], flows: [], technology: '', files: [], findings: [],
     removable: false, matchedGhost: false, movable: false, parent: zone.parent,
   }
 }
@@ -302,8 +308,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   const meta = host.querySelector('.meta')!
   const tabsHost = host.querySelector<HTMLElement>('.tabs')!
   const body = host.querySelector('.body')!
-  title.replaceChildren()
-  title.textContent = inspected.title
+  title.replaceChildren(...(inspected.icon === '' ? [] : [glyphElement(inspected.icon, 20)]), inspected.title)
   meta.textContent = `${inspected.kindLabel} · ${inspected.origin}`
 
   const change = options.comparison?.components[inspected.id]
@@ -326,6 +331,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
       }
       if (inspected.overview !== '') body.append(paragraph('overview', inspected.overview))
       if (options.onColor !== undefined) body.append(colorSwatches(inspected.color, options.onColor))
+      if (options.onIcon !== undefined) body.append(iconPicker(inspected.icon, options.onIcon))
     },
 
     relationships: () => {

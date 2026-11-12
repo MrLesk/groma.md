@@ -166,6 +166,7 @@ groma.md-only fields live together under `groma`:
 | `group` | no | Readable name of a hand-authored sibling cluster. |
 | `technology` | no | Free text naming implementation technology, comma-separated. |
 | `color` | no | One named map color: `red`, `orange`, `yellow`, `blue`, `violet`, or `pink`. |
+| `icon` | no | One named map icon, such as `database`; see [Icons](#icons). |
 | `code` | no | Scanner-produced source evidence. |
 
 Architecture IDs use lowercase Unicode words separated by hyphens. Each word
@@ -320,6 +321,44 @@ pane offers the same names as a row of swatches that applies at once. Nothing is
 colored automatically, a color is not inherited by what the element contains,
 and scans keep it. Groups cannot carry a color: a group is a name on its members
 and has no document.
+
+### Icons
+
+`groma.icon` gives a concept one named icon that says what kind of thing it is,
+so a reader finds "the database" or "the web app" on the map without reading
+names. Like a color it is Groma presentation metadata: it adds no C4 element,
+parent, or relationship, and an ordinary Markdown or OKF reader still has the
+title, description, body and links.
+
+```yaml
+groma:
+  id: order-store
+  parent: shop
+  icon: database
+```
+
+The document stores only the name. The names are generic kinds of software
+parts and people, never a vendor or a programming language:
+
+| | Names |
+| --- | --- |
+| People | `person`, `agent` |
+| Applications | `browser`, `mobile`, `desktop`, `terminal` |
+| Running parts | `service`, `worker`, `gateway`, `scheduler` |
+| Data | `database`, `cache`, `queue`, `storage`, `document`, `search` |
+| Other | `repository`, `package`, `cloud`, `lock`, `mail`, `chart`, `board` |
+
+[`src/icons.ts`](../src/icons.ts) holds the list. `groma edit <id> --icon
+database` sets the icon of an actor, system, external system, container, or
+component, and an empty value removes it. The web details pane offers the same
+names as a grid that applies at once. No icon is assigned automatically, an
+icon is not inherited by what the element contains, and scans keep it. A group
+has no icon: an icon says what an element is, and a group is a name on its
+members, not an element.
+
+The [web map](viewers/web/index.md) draws each name twice: as a small object
+standing beside the element's name in the tilted views, and as a flat glyph in
+the 2D view, the hierarchy and the details. Plain terminal output prints the name.
 
 ### Code references
 

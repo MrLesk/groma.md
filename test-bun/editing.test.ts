@@ -126,6 +126,22 @@ test.concurrent('color edits set and clear the name, refuse an unknown one, and 
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('icon edits set and clear the name, refuse an unknown one and the project record, and other edits and scans keep it', async () => {
+  const root = await fixture()
+  try {
+    const read = async () => (await loadAnnotatedArchitecture(root)).elements.find(element => element.id === 'api')!
+    await writes.edit(root, { id: 'api', icon: 'database' })
+    await writes.edit(root, { id: 'api', title: 'Order API' })
+    await scanRepository(root)
+    assert.equal((await read()).icon, 'database')
+    await assert.rejects(writes.edit(root, { id: 'api', icon: 'postgres' }))
+    await assert.rejects(writes.edit(root, { id: 'project', title: 'Shop', icon: 'database' }))
+    assert.equal((await read()).icon, 'database')
+    await writes.edit(root, { id: 'api', icon: '' })
+    assert.equal((await read()).icon, undefined)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('draft relationships survive edits and scans and require explicit acceptance', async () => {
   const root = await fixture()
   try {
