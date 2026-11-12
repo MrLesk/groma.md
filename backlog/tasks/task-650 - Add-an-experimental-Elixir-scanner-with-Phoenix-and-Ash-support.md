@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-11T22:51:00Z'
-updated_date: '2026-11-12T00:16:00Z'
+updated_date: '2026-11-12T00:17:00Z'
 labels: []
 dependencies: []
 references:
@@ -113,22 +113,22 @@ The scope follows the existing scanners as an educated guess Alex asked for. Its
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A packaged elixir scanner scans a Mix project from a fresh checkout without Elixir, Erlang, Mix, Hex dependencies, a project build or application execution, and a repeat scan is identical.
-- [ ] #2 Elixir source listing, Mix project membership including umbrella apps, declarations, visibility and Code outlines follow the existing scanner contract; Mix projects stay source groups and never become C4 boundaries.
-- [ ] #3 A Mix project supplies one execution entry from its application callback, or from its escript main module when it declares no callback, with its own compiled source through the existing placement contract.
-- [ ] #4 Named functions supply operations and call evidence; call targets stay unresolved, as in the Ruby and Python scanners.
-- [ ] #5 Phoenix router declarations supply HTTP endpoints with their complete declared path and the local controller action that handles them, answering the eight producer decisions; routes the scanner cannot read remain blockers.
-- [ ] #6 Ash resources and domains supply what their DSL declares and plain Elixir parsing cannot see: resource actions as operations, code-interface functions as declarations, and AshJsonApi routes as HTTP endpoints under the prefix where the Phoenix router mounts them.
-- [ ] #7 Discovery reports Elixir from Mix declarations and Phoenix from its router file through the existing rule types, Ash is documented as supported without a discovery clue, and the scanner is integrated with the official catalog, release staging and CI like the other tree-sitter scanners.
-- [ ] #8 Scanner documentation states inputs, supported constructs and limits, and the validation record covers at least eight open source repositories at exact commits that also contain other languages, at least three of them using Ash, scanned together with the official scanners for those languages: source witnesses for outlines, entries, endpoints and frontend-to-backend rows or their explicit uncertainty, identical repeat scans and unchanged source.
+- [x] #1 A packaged elixir scanner scans a Mix project from a fresh checkout without Elixir, Erlang, Mix, Hex dependencies, a project build or application execution, and a repeat scan is identical.
+- [x] #2 Elixir source listing, Mix project membership including umbrella apps, declarations, visibility and Code outlines follow the existing scanner contract; Mix projects stay source groups and never become C4 boundaries.
+- [x] #3 A Mix project supplies one execution entry from its application callback, or from its escript main module when it declares no callback, with its own compiled source through the existing placement contract.
+- [x] #4 Named functions supply operations and call evidence; call targets stay unresolved, as in the Ruby and Python scanners.
+- [x] #5 Phoenix router declarations supply HTTP endpoints with their complete declared path and the local controller action that handles them, answering the eight producer decisions; routes the scanner cannot read remain blockers.
+- [x] #6 Ash resources and domains supply what their DSL declares and plain Elixir parsing cannot see: resource actions as operations, code-interface functions as declarations, and AshJsonApi routes as HTTP endpoints under the prefix where the Phoenix router mounts them.
+- [x] #7 Discovery reports Elixir from Mix declarations and Phoenix from its router file through the existing rule types, Ash is documented as supported without a discovery clue, and the scanner is integrated with the official catalog, release staging and CI like the other tree-sitter scanners.
+- [x] #8 Scanner documentation states inputs, supported constructs and limits, and the validation record covers at least eight open source repositories at exact commits that also contain other languages, at least three of them using Ash, scanned together with the official scanners for those languages: source witnesses for outlines, entries, endpoints and frontend-to-backend rows or their explicit uncertainty, identical repeat scans and unchanged source.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -239,3 +239,13 @@ Quality and specification review (own): split the resources reader into a defini
 
 Open points for Alex, not changed here: (1) a relationship route without an action is a blocker at its literal prefix as approved, which is the resource's whole base path, so such a resource derives no row; (2) compile-time conditional blocks at the router root are the most frequent blocker in the qualification (plausible, sequin and chironium lose every row to one), a candidate for a narrower rule; (3) resources built through a base module (use MyApp.BaseResource wrapping use Ash.Resource) are not recognized, 35 of chironium's resources; (4) core fails with name.toLowerCase on the React scanner's package root when assets/package.json states no name (noted_ash), outside this task; (5) the tree-sitter loader in parser.ts repeats the ada, mojo, mql5 and ruby copies, which groma lint reports; a shared helper would touch other scanners.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Added the experimental Elixir scanner package (plugins/scanners/elixir, @groma/scanner-elixir 0.1.0) with Phoenix and Ash support inside it. It bundles tree-sitter-elixir 0.3.5 and reads source only: Mix projects and the files they compile, one execution entry per project, modules as outline types with name/arity members, operations and unresolved calls, Phoenix routes as ordered endpoints bound to controller actions and LiveView callbacks, Ash actions as operations, code-interface functions as declarations, and AshJsonApi routes as endpoints under the Phoenix forward that mounts their router. Routes it cannot read are blockers. The scanner is in the official catalog, release staging, CI and the fresh-checkout suite, and documented in docs/scanners/elixir with the shared pages updated.
+
+Evidence: (1) fresh-checkout package test passes with no language tools and no network, and repeats identically; (2) elixir-scanner tests cover listing through elixirc_paths, umbrella and shared membership, outlines and visibility, and CLI flows on ten repositories create containers only from entries; (3) one entry per project, also where an escript sits beside an application callback (fixture and livebook); (4) operations with unresolved calls, 21,106 function and 83,249 call positions verified on real repositories; (5) elixir-phoenix tests assert 18 endpoints with prefixes, handlers, order and blockers, and core derives rows only where proven; (6) elixir-ash tests cover actions, code interfaces and mounted AshJsonApi routes with a core row; (7) discovery reports Elixir from mix.exs and Phoenix from the router file, Ash is documented without a clue; (8) the validation record covers ten repositories with another scanned language, five using Ash, at exact commits. bun run check passes.
+
+Decided during the work and stated in the scanner page: a file belongs to every Mix project that compiles it (reproduced on livebook); a readable AshJsonApi mount is followed by a blocker for the rest of its path. Pending: the cold simplicity review and the full-context complexity review, which the coordinator runs. Follow-up candidates are listed in the Implementation Notes.
+<!-- SECTION:FINAL_SUMMARY:END -->
