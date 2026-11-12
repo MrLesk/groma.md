@@ -2,8 +2,8 @@ export function loadItems() {
   return fetch('/api/items')
 }
 
-export function loadNote(item, note) {
-  return fetch(`/api/items/${item}/notes/${note}`)
+export function loadNotes(item) {
+  return fetch(`/api/items/${item}/notes`)
 }
 
 export function loadLate() {

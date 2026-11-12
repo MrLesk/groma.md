@@ -4,16 +4,18 @@ import { buildPackage as buildJavaScript } from '../plugins/scanners/javascript/
 import { httpRelationships } from '../src/http-relationships.ts'
 import { discoverScanners } from '../src/scanner/modules/discovery.ts'
 import { officialScannerCatalog } from '../src/scanner/modules/official-catalog.ts'
-import { blocked, endpointRows, scanFixture } from './elixir-fixture.ts'
+import { blocked, endpointRows, observe, withFixture } from './elixir-fixture.ts'
 
 test.concurrent('Phoenix routes become endpoints with their scope prefixes, handlers and registration order', async () => {
-  await scanFixture('elixir-phoenix', { elixir: buildElixir }, async ({ elixir }, root) => {
-    expect(endpointRows(elixir!.observation)).toEqual([
+  await withFixture('elixir-phoenix', { elixir: buildElixir }, async (root, { elixir }) => {
+    const observation = await observe(root, elixir)
+    expect(endpointRows(observation)).toEqual([
       [0, 'GET', '/api/items/:id', 'PortalWeb.ItemController.show/2'],
-      // `resources` registers its own routes before its nested block; the nested path names the parent record.
+      // `except` keeps index and create. `resources` registers its own routes before its nested block.
       [1, 'GET', '/api/items', 'PortalWeb.ItemController.index/2'],
       [2, 'POST', '/api/items', 'PortalWeb.ItemController.create/2'],
-      [3, 'GET', '/api/items/:item_id/notes/:id', 'PortalWeb.NoteController.show/2'],
+      // The nested path names the parent record by `name` and `param`; a singleton has no `:id`.
+      [3, 'GET', '/api/items/:entry_slug/notes', 'PortalWeb.NoteController.show/2'],
       [4, 'GET', '/api/:version!/status', 'PortalWeb.ItemController.status/2'],
       [5, 'GET', '/api/files/*path?', 'PortalWeb.ItemController.download/2'],
       // `alias: false` leaves the scope's module prefix off; the lexical alias still applies.
@@ -32,9 +34,15 @@ test.concurrent('Phoenix routes become endpoints with their scope prefixes, hand
       [15, '*', blocked('/tenant'), '(module)'],
       [16, '*', blocked(''), '(module)'],
       [17, '*', '/fallback', 'PortalWeb.ItemController.fallback/2'],
+      // A second Phoenix router serves under the path that forwards to it, so its own routes are not reported at the root.
+      [18, '*', blocked('/backoffice'), '(module)'],
     ])
-    expect(elixir!.observation.httpEndpoints!.every(endpoint => endpoint.order!.application === 'lib/portal_web/router.ex')).toBeTrue()
+    expect(observation.httpEndpoints!.every(endpoint => endpoint.order!.application === 'lib/portal_web/router.ex')).toBeTrue()
+  })
+}, 60000)
 
+test.concurrent('discovery reports Elixir from the Mix project and Phoenix from its router file', async () => {
+  await withFixture('elixir-phoenix', {}, async root => {
     const discovery = await discoverScanners(root, {}, officialScannerCatalog.filter(item => item.id === 'elixir'))
     expect(discovery.findings.map(finding => [finding.technology, finding.file, finding.version])).toEqual([
       ['phoenix', 'lib/portal_web/router.ex', undefined], ['elixir', 'mix.exs', '~> 1.17'],
@@ -43,8 +51,8 @@ test.concurrent('Phoenix routes become endpoints with their scope prefixes, hand
 }, 60000)
 
 test.concurrent('a browser request derives a row to its Phoenix handler, and none past an earlier blocker', async () => {
-  await scanFixture('elixir-phoenix', { elixir: buildElixir, javascript: buildJavaScript }, async scans => {
-    const combined = Object.values(scans).map(scan => scan.observation)
+  await withFixture('elixir-phoenix', { elixir: buildElixir, javascript: buildJavaScript }, async (root, scanners) => {
+    const combined = [await observe(root, scanners.elixir), await observe(root, scanners.javascript)]
     const owners = new Map(combined.flatMap(observation => observation.files.map(file => [file.file, file.file])))
     const rows = httpRelationships(combined, owners).map(row => [row.source, row.target])
     // `/admin/late` is registered after another library's routes under `/admin`, so its row stays unproven.

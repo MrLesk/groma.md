@@ -6,35 +6,44 @@ import { pathToFileURL } from 'node:url'
 import type { HttpEndpointSegment, ScanObservation, ScannerPlugin } from '@groma/scanner'
 import { scannerFiles } from '../src/scanner/modules/selection.ts'
 
-/** A built scanner package and what it observed in the fixture copy. */
-export interface FixtureScan {
+const fixtures = path.resolve(import.meta.dir, '../test/fixtures')
+
+/** One scanner package built for a test, and the fixture files Groma would hand it. */
+export interface BuiltScanner {
+  artifact: string
   scanner: ScannerPlugin
-  observation: ScanObservation
+  selected: string[]
 }
 
 /**
- * Copy one fixture into a fresh Git repository, build each scanner package beside it, and scan the
- * copy with each package, as a repository that configures those scanners together would. Each call
- * owns its temporary directory.
+ * Run `use` on a fresh copy of one fixture: a Git repository with an empty architecture, and each
+ * scanner package built beside it, as a repository that configures those scanners together would
+ * have them. Each call owns its temporary directory and removes it afterwards.
  */
-export async function scanFixture(fixture: string, builds: Record<string, (destination: string) => Promise<void>>,
-  inspect: (scans: Record<string, FixtureScan>, root: string) => Promise<void>): Promise<void> {
+export async function withFixture<Id extends string>(fixture: string, builds: Record<Id, (destination: string) => Promise<void>>,
+  use: (root: string, scanners: Record<Id, BuiltScanner>) => Promise<void>): Promise<void> {
   const temporary = await mkdtemp(path.join(os.tmpdir(), `groma-${fixture}-`))
   try {
     const root = path.join(temporary, 'project')
-    await cp(path.resolve(import.meta.dir, '../test/fixtures', fixture), root, { recursive: true })
+    await cp(path.join(fixtures, 'empty-project'), root, { recursive: true })
+    await cp(path.join(fixtures, fixture), root, { recursive: true })
     const git = Bun.spawn(['git', 'init', '--quiet', root], { stdout: 'ignore', stderr: 'pipe' })
     expect(await git.exited, await new Response(git.stderr).text()).toBe(0)
-    const scans: Record<string, FixtureScan> = {}
-    for (const [id, build] of Object.entries(builds)) {
+    const scanners = {} as Record<Id, BuiltScanner>
+    for (const id of Object.keys(builds) as Id[]) {
       const artifact = path.join(temporary, id)
-      await build(artifact)
+      await builds[id](artifact)
       const manifest = JSON.parse(await readFile(path.join(artifact, 'package.json'), 'utf8'))
       const scanner = (await import(pathToFileURL(path.join(artifact, manifest.groma.scanner.entry)).href)).default as ScannerPlugin
-      scans[id] = { scanner, observation: (await scanner.scan(root, {}, await scannerFiles(root, manifest.groma.scanner)))! }
+      scanners[id] = { artifact, scanner, selected: await scannerFiles(root, manifest.groma.scanner) }
     }
-    await inspect(scans, root)
+    await use(root, scanners)
   } finally { await rm(temporary, { recursive: true, force: true }) }
+}
+
+/** What one built scanner observes in the fixture copy. */
+export async function observe(root: string, built: BuiltScanner): Promise<ScanObservation> {
+  return (await built.scanner.scan(root, {}, built.selected))!
 }
 
 /** `!` marks a constrained segment and `?` an optional one, as in the relationship rule's own examples. */

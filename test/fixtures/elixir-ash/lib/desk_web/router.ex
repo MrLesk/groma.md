@@ -16,4 +16,8 @@ defmodule DeskWeb.Router do
   scope "/internal" do
     forward "/api", DeskWeb.DynamicRouter
   end
+
+  scope "/scoped", DeskWeb do
+    forward "/api", JsonApiRouter, [], alias: false
+  end
 end

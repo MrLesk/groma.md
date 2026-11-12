@@ -6,7 +6,7 @@ export const grammarVersion = '0.3.5'
 
 let language: Promise<Language> | undefined
 
-export function elixirLanguage(): Promise<Language> {
+function elixirLanguage(): Promise<Language> {
   language ??= (async () => {
     await Parser.init({ wasmBinary: await readFile(new URL('../dist/web-tree-sitter.wasm', import.meta.url)) })
     return Language.load(await readFile(new URL('../dist/tree-sitter-elixir.wasm', import.meta.url)))

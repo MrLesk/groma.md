@@ -68,9 +68,9 @@ the source directories are the union over all clauses. With the default
 exclusions this drops `test/support` again. When the value is written in any
 other form, every selected `.ex` file of that project that no nested project
 claims is read as source, and the observation carries an
-`ELIXIR_SOURCE_ROOTS_UNREADABLE` warning for its `mix.exs`. A project with `apps_path` is an umbrella root: it groups its child
-projects and compiles no source of its own. A repository without a Mix project
-is not scanned.
+`ELIXIR_SOURCE_ROOTS_UNREADABLE` warning for its `mix.exs`. A project with
+`apps_path` is an umbrella root: it groups its child projects and compiles no
+source of its own. A repository without a Mix project is not scanned.
 
 Each project is a source group named by its literal `app:` atom, or by its
 directory. A project inside another project's directory, such as an umbrella
@@ -174,6 +174,12 @@ the module declares the public function `action/2`. A `live` route is handled
 by the first of `mount/3`, `handle_params/3` and `render/1` that the LiveView
 module declares, the callbacks LiveView runs for the page's HTTP request.
 
+Wherever a Phoenix or Ash declaration names a module, the scanner reads a
+literal alias such as `PageController`, `__MODULE__`, `__MODULE__.Name`, and
+`Module.concat` of string literals such as `Module.concat(["Desk.Support"])`,
+the spelling generators write to avoid a compile-time dependency. Any other
+expression names no module.
+
 The shared HTTP producer decisions are:
 
 1. **Prefixes:** every `scope` path, nested scopes, the `resources` path and
@@ -208,10 +214,19 @@ The shared HTTP producer decisions are:
    scope's path. The scanner encodes no other library's routes or default
    paths. Core derives no relationship to a blocker or past an earlier one.
 
-`resources` with an `alias:`, `private:` or `assigns:` option and a `forward`
-with router options stay blockers, as does a `forward` to a second Phoenix
-router or to a `Plug.Router` module. Routes declared in a `Plug.Router` module
-are not read.
+`resources` with an `alias:`, `private:` or `assigns:` option stays a
+blocker. So does a `forward` that carries router options as a fourth argument,
+bracketed or written as trailing `key: value` pairs: an option such as
+`alias: false` changes which module is mounted. Trailing options after two
+arguments belong to the plug and are fine.
+
+A `forward` to a second Phoenix router, or to a `Plug.Router` module, is a
+blocker for its mount path. A Phoenix router that another Phoenix router
+forwards to serves under that mount path, so it reports no endpoints of its
+own: the blocker already stands for everything it answers there. Every other
+router reports its routes from the root, on the assumption that the
+application's endpoint plugs it there; the endpoint module is not read. Routes
+declared in a `Plug.Router` module are not read.
 
 ## Ash
 
@@ -254,8 +269,8 @@ resource as an entity's first argument:
 
 A literal `route:` option replaces the default path. A module that states
 `use AshJsonApi.Router, domains: [...]` serves the routes of its domains and of
-every resource those domains list. Domains are literal modules, also in the
-`Module.concat(["Desk.Support"])` form the installer writes.
+every resource those domains list. Domains are literal modules, as described
+for [Phoenix handlers](#phoenix-endpoints).
 
 These routes become endpoints only where a Phoenix router forwards to that
 router module. The path is the Phoenix scope prefix, the `forward` path, the

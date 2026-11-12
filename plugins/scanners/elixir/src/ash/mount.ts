@@ -1,5 +1,6 @@
 import type { HttpEndpointSegment } from '@groma/scanner'
-import type { MountedRoute, MountLookup } from '../phoenix/endpoints.ts'
+import type { MountLookup, ServedRoute } from '../phoenix/endpoints.ts'
+import { uniquelyNamed } from '../source.ts'
 import type { AshDomain } from './domain.ts'
 import type { JsonApiRoute, JsonApiRouter } from './json-api.ts'
 import type { AshResource } from './resource.ts'
@@ -9,12 +10,6 @@ import type { AshResource } from './resource.ts'
  * its domains and of every resource those domains list. The Phoenix endpoint builder asks for this
  * through `MountLookup` and places the routes under its `forward` path.
  */
-
-/** The one declaration with each module name; a name declared twice identifies none. */
-function byModule<T extends { module: string }>(declared: readonly T[]): Map<string, T> {
-  const count = (module: string) => declared.filter(candidate => candidate.module === module).length
-  return new Map(declared.filter(candidate => count(candidate.module) === 1).map(candidate => [candidate.module, candidate]))
-}
 
 const literal = (value: string): HttpEndpointSegment => ({ kind: 'literal', value })
 
@@ -36,9 +31,9 @@ function domainRoutes(domain: AshDomain | undefined, resources: ReadonlyMap<stri
  * without an operation, which the caller reports as a blocker.
  */
 function routerRoutes(router: JsonApiRouter, domains: ReadonlyMap<string, AshDomain>,
-  resources: ReadonlyMap<string, AshResource>): MountedRoute[] | undefined {
+  resources: ReadonlyMap<string, AshResource>): ServedRoute[] | undefined {
   if (!router.domains || !router.documents) return undefined
-  const served: MountedRoute[] = router.documents.map(path => ({ method: '*', path }))
+  const served: ServedRoute[] = router.documents.map(path => ({ method: '*', path }))
   for (const name of router.domains) {
     const domain = domains.get(name)
     const routes = domainRoutes(domain, resources)
@@ -52,13 +47,17 @@ function routerRoutes(router: JsonApiRouter, domains: ReadonlyMap<string, AshDom
   return served
 }
 
-/** The mount lookup over every Ash declaration of a scan. */
+/**
+ * The mount lookup over every Ash declaration of a scan: what the router module with a given name
+ * serves, or undefined when no single router has that name or its routes cannot all be read.
+ */
 export function ashMounts(resources: readonly AshResource[], domains: readonly AshDomain[], routers: readonly JsonApiRouter[]): MountLookup {
-  const routerNamed = byModule(routers)
-  const domainNamed = byModule(domains)
-  const resourceNamed = byModule(resources)
+  const moduleOf = (declared: { module: string }) => declared.module
+  const routerNamed = uniquelyNamed(routers, moduleOf)
+  const domainNamed = uniquelyNamed(domains, moduleOf)
+  const resourceNamed = uniquelyNamed(resources, moduleOf)
   return module => {
     const router = routerNamed.get(module)
-    return router && (routerRoutes(router, domainNamed, resourceNamed) ?? 'unreadable')
+    return router && routerRoutes(router, domainNamed, resourceNamed)
   }
 }

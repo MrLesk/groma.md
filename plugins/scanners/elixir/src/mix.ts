@@ -159,8 +159,7 @@ function projectName(project: MixProject, repositoryRoot: string): string {
 /** One source group per project, identified by its `mix.exs` path; a nested project names its enclosing one as parent. */
 export function projectRoots(projects: readonly MixProject[], repositoryRoot: string): ScanRoot[] {
   return projects.map(project => {
-    // A project in the repository root has nothing around it; any other directory may sit inside another project.
-    const parent = project.directory === '' ? undefined : nearestProject(projects, `${project.directory}/`, project)
+    const parent = nearestProject(projects, project.file, project)
     return { id: project.file, kind: 'project', name: projectName(project, repositoryRoot), file: project.file,
       ...(parent ? { parent: parent.file } : {}) }
   })

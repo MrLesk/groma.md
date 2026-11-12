@@ -1,6 +1,6 @@
 import type { CodeVisibility } from '@groma/scanner'
 import type { Node } from 'web-tree-sitter'
-import { aliasesAfter, aliasesBefore, fileAliases, insideModule, moduleName, type Aliases } from './aliases.ts'
+import { aliasesAfter, fileAliases, insideModule, moduleName, type Aliases } from './aliases.ts'
 import { argumentCount, body, callName, operator, options, positional } from './syntax.ts'
 
 /*
@@ -100,9 +100,14 @@ export function moduleScopes(root: Node): ModuleScope[] {
   return found
 }
 
-/** The lexical aliases in force where `node` is written inside the module body. */
+/** The lexical aliases in force where `node` is written inside the module body: those of the statements before it. */
 export function aliasesAt(scope: ModuleScope, node: Node): Aliases {
-  return aliasesBefore(scope.aliases, scope.statements, node)
+  let aliases = scope.aliases
+  for (const statement of scope.statements) {
+    if (statement.startIndex >= node.startIndex) break
+    aliases = aliasesAfter(aliases, statement)
+  }
+  return aliases
 }
 
 /** The `use Module, ...` statements of a module body, each with the full name of the module it uses. */
