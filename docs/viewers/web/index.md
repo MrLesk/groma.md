@@ -43,6 +43,10 @@ owns temporary startup state and streams updates through `/startup-events`;
 [`startup/progress.ts`](../../../src/viewers/web/startup/progress.ts) present the
 forms and live progress.
 
+The server listens on this computer only. A project can set another host with
+[`webHost` in `config.json`](../../config.md#web-host); `groma web` then warns at
+every start that the map is served without sign-in.
+
 If startup reports an occupied port, an interactive terminal asks whether to try
 the next available port above the requested port (`4748`, `4749`, and onward for
 the default `4747`). Without an interactive terminal, it exits with an instruction

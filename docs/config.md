@@ -13,7 +13,8 @@ colleagues who pull the project get the same selected plugins and project settin
   ],
   "exclude": ["/test/"],
   "useGitignore": true,
-  "automaticUpdates": true
+  "automaticUpdates": true,
+  "webHost": "127.0.0.1"
 }
 ```
 
@@ -73,6 +74,25 @@ so another plugin change or settings edit is preserved. If the same scanner's
 selection changed during a manual update, Groma reports the conflict.
 
 Missing packages still need the normal plugin installation or restoration flow.
+
+## Web host
+
+`webHost` is the host name or address `groma web` listens on. It defaults to
+`127.0.0.1`, which serves this computer only. Initialization writes that value
+into a new project's `config.json`; a file without `webHost` means the same.
+
+Any other host can serve the map over the network. The server has no sign-in:
+a computer that can reach it can read the project's source and use the editing
+and plugin controls. `groma web` prints a warning on standard error at every
+start unless `webHost` is exactly `127.0.0.1`, `localhost` or `::1`.
+
+`config.json` is shared, so the host applies to everyone who pulls the project.
+A specific address works only on the computer that has it.
+
+`groma web` prints an address it listens on: `http://127.0.0.1:<port>` by
+default, and the configured host otherwise. `0.0.0.0` and `::` listen on every
+network interface and are printed as their loopback address,
+`http://127.0.0.1:<port>` and `http://[::1]:<port>`.
 
 ## Restoring plugins on another computer
 

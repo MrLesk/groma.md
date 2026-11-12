@@ -64,7 +64,7 @@ Backlog.md provides the tasks shown on the map; groma.md works without it. To ru
 
 ```sh
 cd your-repo
-groma web     # scans and opens the browser map on http://localhost:4747
+groma web     # scans and opens the browser map on http://127.0.0.1:4747
 ```
 
 `groma web` scans your repository automatically at startup and opens the map. On a new project, it first walks you through project setup and scanner selection in your browser.

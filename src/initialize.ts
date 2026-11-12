@@ -1,4 +1,5 @@
 import { initializeAgentInstructions } from './agent-instructions.ts'
+import { recordDefaultWebHost } from './config.ts'
 import {
   GromaFileSystem,
   type GromaDirectory,
@@ -99,6 +100,7 @@ export async function initializeGroma(
     const status = current === undefined ? 'initialized' : current.title === projectName ? 'unchanged' : 'updated'
     if (current === undefined) {
       await filesystem.write('project.md', await renderProjectProfile({ title: projectName, overview: `Architecture for ${projectName}.` }))
+      await recordDefaultWebHost(repositoryRoot)
     } else if (status === 'updated') {
       await saveProjectProfile(repositoryRoot, { ...current, title: projectName })
     }
