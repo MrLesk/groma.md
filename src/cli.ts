@@ -22,6 +22,7 @@ import { formatScanReport, scanRepository, watchScan } from './scanner.ts'
 import { startBackgroundScannerUpdates } from './scanner/background-updates.ts'
 import { renderPlainWelcome, startWelcome } from './welcome.ts'
 import { registerWriteCommands } from './write-commands.ts'
+import type { WebListening } from './viewers/web/server.ts'
 import type { WelcomeActionId, WelcomeScreen } from './welcome.ts'
 
 const program = new Command()
@@ -30,11 +31,20 @@ function interactiveTerminal(): boolean {
   return process.stdin.isTTY === true && process.stdout.isTTY === true
 }
 
-async function startWebOnNextPort(port: number, scan: boolean, onListening: (url: string) => void) {
+/**
+ * Every start of `groma web` prints through here: the address, then on standard error the warning the server gives
+ * when config.json's webHost lets other computers use it.
+ */
+function announceWeb({ url, networkWarning }: WebListening): void {
+  console.log(`groma web at ${url}`)
+  if (networkWarning !== undefined) console.error(networkWarning)
+}
+
+async function startWebOnNextPort(port: number, scan: boolean) {
   const { startWebViewer } = await import('./viewers/web/server.ts')
   while (true) {
     try {
-      return await startWebViewer(process.cwd(), { port: ++port, scan, onListening })
+      return await startWebViewer(process.cwd(), { port: ++port, scan, onListening: announceWeb })
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw error
     }
@@ -44,10 +54,9 @@ async function startWebOnNextPort(port: number, scan: boolean, onListening: (url
 async function openWeb(port?: number, scan = true): Promise<void> {
   try {
     const { startWebViewer } = await import('./viewers/web/server.ts')
-    const onListening = (url: string) => console.log(`groma web at ${url}`)
     let viewer: { close: () => Promise<void> }
     try {
-      viewer = await startWebViewer(process.cwd(), { port, scan, onListening })
+      viewer = await startWebViewer(process.cwd(), { port, scan, onListening: announceWeb })
     } catch (error) {
       if (port === 0 || (error as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw error
       const message = error instanceof Error ? error.message : String(error)
@@ -57,7 +66,7 @@ async function openWeb(port?: number, scan = true): Promise<void> {
         initialValue: false,
       })
       if (accepted !== true) return
-      viewer = await startWebOnNextPort(port ?? 4747, scan, onListening)
+      viewer = await startWebOnNextPort(port ?? 4747, scan)
     }
     stopOnSignal(() => viewer.close())
   } catch (error) {

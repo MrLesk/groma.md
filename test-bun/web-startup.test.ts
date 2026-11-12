@@ -3,8 +3,8 @@ import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT, type WorkSource } from '@groma/work-source'
-import { writeGromaConfig } from '../src/config.ts'
-import { startWebViewer } from '../src/viewers/web/server.ts'
+import { readGromaConfig, writeGromaConfig } from '../src/config.ts'
+import { isLoopbackWebHost, startWebViewer } from '../src/viewers/web/server.ts'
 import { loadProjectProfile } from '../src/project-profile.ts'
 import { createScannerSession } from '../src/scanner/session.ts'
 
@@ -142,7 +142,7 @@ for (const findsComponents of [true, false]) {
       await writeGromaConfig(root, { scanners: [
         { id: 'fixture', source: './plugin', include: ['**/*.fixture'] }, { id: 'companion', source: './companion', include: ['**/*.companion'] },
       ], workSources: [] })
-      opening = startWebViewer(root, { port: 0, scan: true, workSource: emptyWorkSource(), onListening: listening.resolve })
+      opening = startWebViewer(root, { port: 0, scan: true, workSource: emptyWorkSource(), onListening: ({ url }) => listening.resolve(url) })
       const url = await listening.promise
       await Promise.all([scanning.promise, companionScanning.promise])
       progress = await startupEvents(url)
@@ -249,6 +249,7 @@ test.concurrent('setup reports its real work, waits for initialization before pl
     expect((await waiting).status).toBe(204)
     await progress.waitFor('finding-scanners')
     expect((await loadProjectProfile(root))?.title).toBe('Example')
+    expect((await readGromaConfig(root)).webHost).toBe('127.0.0.1')
     expect(await (await fetch(viewer.url)).text()).toContain('<h2>Tasks</h2>')
     const choice = new FormData()
     choice.set('workSource', 'backlog')
@@ -375,4 +376,66 @@ test.concurrent('a missing plugin opens the restore view, and proceeding without
     await viewer?.close()
     await rm(root, { recursive: true, force: true })
   }
+})
+
+/** An address other computers use for this one. A server that listens on loopback only cannot be reached through it. */
+const networkAddress = Object.values(os.networkInterfaces()).flat()
+  .find(address => address?.family === 'IPv4' && !address.internal)?.address
+
+/**
+ * Starts the map for a project and reports who it serves: the host of the address it gives, whether that address opens
+ * it, and whether the network address does.
+ */
+async function served(root: string): Promise<{ host: string; opens: boolean; throughNetwork: boolean; warned: boolean }> {
+  let warning: string | undefined
+  const viewer = await startWebViewer(root, {
+    port: 0, workSource: emptyWorkSource(), onListening: listening => { warning = listening.networkWarning },
+  })
+  try {
+    const answers = (origin: string) => fetch(`${origin}/ready`).then(response => response.ok, () => false)
+    return {
+      host: new URL(viewer.url).hostname,
+      opens: await answers(viewer.url),
+      throughNetwork: await answers(`http://${networkAddress}:${new URL(viewer.url).port}`),
+      warned: warning !== undefined,
+    }
+  } finally {
+    await viewer.close()
+  }
+}
+
+// Without a network address there is no second way in to try.
+test.skipIf(networkAddress === undefined).concurrent('the map is served to this computer only until config.json sets a network webHost, which starts with a warning', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-web-host-'))
+  try {
+    await cp(path.resolve(import.meta.dir, '../test/fixtures/empty-project'), root, { recursive: true })
+    expect(await served(root)).toEqual({ host: '127.0.0.1', opens: true, throughNetwork: false, warned: false })
+    await writeGromaConfig(root, { scanners: [], workSources: [], webHost: '0.0.0.0' })
+    expect(await served(root)).toEqual({ host: '127.0.0.1', opens: true, throughNetwork: true, warned: true })
+    const address = networkAddress!
+    await writeGromaConfig(root, { scanners: [], workSources: [], webHost: address })
+    expect(await served(root)).toEqual({ host: address, opens: true, throughNetwork: true, warned: true })
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test.concurrent('a webHost this computer cannot listen on is reported as the host, not as an occupied port', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-web-host-'))
+  try {
+    await cp(path.resolve(import.meta.dir, '../test/fixtures/empty-project'), root, { recursive: true })
+    // An address reserved for documentation, which no computer has.
+    await writeGromaConfig(root, { scanners: [], workSources: [], webHost: '203.0.113.7' })
+    const failure = await startWebViewer(root, { port: 0, workSource: emptyWorkSource() })
+      .then(viewer => viewer.close(), (error: NodeJS.ErrnoException) => error)
+    expect(failure?.message).toContain('webHost')
+    expect(failure?.code).not.toBe('EADDRINUSE')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test.concurrent('only the exact loopback names count as serving this computer only', () => {
+  const hosts = ['127.0.0.1', 'localhost', '::1', '0.0.0.0', '::', '127.0.0.2', 'localhost.example.com', '192.168.0.10']
+  expect(hosts.filter(host => isLoopbackWebHost(host))).toEqual(['127.0.0.1', 'localhost', '::1'])
 })
