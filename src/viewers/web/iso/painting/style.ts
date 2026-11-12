@@ -252,6 +252,16 @@ export const mapCss = `
   body[data-comparison] #map .building:not([data-change]):not(.selected):not(.component-focus):not(.neighbor),
   body[data-comparison] #map .route:not([data-change]):not(.route-base):not(.selected):not(.endpoint):not(.lit) { opacity: .4; }
   body[data-comparison] #map .route-base { opacity: .4; }
+  /*
+   * Tag focus: what the focused tags do not match recedes. Selected, lit and task-marked bodies stay readable.
+   * A zone is drawn inside its slab or beside its island, and recedes on its own only where that surface stays.
+   * Neutral routes share one batched stroke, so that stroke recedes and a matching route draws its own line.
+   */
+  #map .camera[data-tag-focus] :is(.building, .slab, .island.system):not(.tag-match):not(.selected):not(.touched):not(.lit):not(.neighbor),
+  #map .camera[data-tag-focus] :is(.islands, .slab.tag-match) > .zone:not(.tag-match) { opacity: 0.3; }
+  #map .camera[data-tag-focus] .route-base { opacity: 0.2; }
+  #map .camera[data-tag-focus] .route:not(.tag-match):not(.selected):not(.endpoint):not(.lit):not(.touched):not(.hovered):not([data-change]) .arrow { opacity: 0.2; }
+  #map .camera[data-tag-focus] .route.tag-match:not(.selected):not(.endpoint):not(.lit):not(.touched) .line { opacity: 0.9; }
   #map .building, #map .route { transition: opacity var(--chrome-motion) var(--chrome-ease); }
   @media (prefers-reduced-motion: reduce) { #map .building, #map .route { transition: none; } }
   #map [data-change="added"] { --change: var(--diff-added); }

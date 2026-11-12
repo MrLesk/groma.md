@@ -2,6 +2,8 @@
 type: C4 Component
 title: JavaScript analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: javascript-src-index
   parent: cli

@@ -2,6 +2,8 @@
 type: C4 Component
 title: Scanner execution
 status: stable
+tags:
+  - scanning
 groma:
   id: scanner-registry
   parent: cli

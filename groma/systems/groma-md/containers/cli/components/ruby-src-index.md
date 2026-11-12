@@ -2,6 +2,8 @@
 type: C4 Component
 title: Ruby source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: ruby-src-index
   parent: cli

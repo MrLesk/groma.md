@@ -2,6 +2,8 @@
 type: C4 Component
 title: Operation body analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: scanners-typescript-operations
   parent: cli

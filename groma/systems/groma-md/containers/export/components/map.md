@@ -2,6 +2,8 @@
 type: C4 Component
 title: Map painting
 status: stable
+tags:
+  - map
 groma:
   id: map
   parent: export

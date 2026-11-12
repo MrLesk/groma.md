@@ -2,6 +2,8 @@
 type: C4 Component
 title: Rust scanner adapter
 status: stable
+tags:
+  - scanning
 groma:
   id: rust-src-index
   parent: cli

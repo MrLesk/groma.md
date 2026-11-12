@@ -2,6 +2,8 @@
 type: C4 Component
 title: Workspace packages
 status: stable
+tags:
+  - scanning
 groma:
   id: workspace-packages
   parent: cli

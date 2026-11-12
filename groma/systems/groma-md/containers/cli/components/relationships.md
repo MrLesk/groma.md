@@ -2,6 +2,8 @@
 type: C4 Component
 title: Map connections
 status: stable
+tags:
+  - map
 groma:
   id: relationships
   parent: cli

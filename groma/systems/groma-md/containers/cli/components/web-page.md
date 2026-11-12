@@ -2,6 +2,8 @@
 type: C4 Component
 title: Web page builder
 status: stable
+tags:
+  - web
 groma:
   id: web-page
   parent: cli

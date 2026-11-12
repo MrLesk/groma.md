@@ -2,6 +2,8 @@
 type: C4 Component
 title: Angular analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: angular-src-index
   parent: cli

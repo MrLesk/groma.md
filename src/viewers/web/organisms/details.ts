@@ -22,6 +22,7 @@ import type { CodeFile } from '../../source/structure.ts'
 import { paintElementWork } from '../work/component-tasks.ts'
 import { codeList } from './code-lists.ts'
 import { heading, paragraph } from '../atoms/text.ts'
+import { tagChips } from '../chrome/tag-focus.ts'
 import { editButton, isEditing, type EditField } from './editable.ts'
 import type { PaneWrites } from './writes.ts'
 import {
@@ -192,7 +193,7 @@ export function inspectUnidentifiedContainer(zone: Zone, world: ArchitectureGrap
   }
 }
 
-/** Short authored labels, such as technology parts or tags, as one wrapping row of chips. */
+/** Short authored labels, such as technology parts, as one wrapping row of chips. */
 function chipList(labels: readonly string[], name: string): HTMLUListElement {
   const list = document.createElement('ul')
   list.className = 'chips'
@@ -229,6 +230,9 @@ export interface DetailsOptions extends PaneWrites {
   onSelect: (id: string, additive: boolean) => void,
   onToggleFlow: (flow: FlowRef) => void,
   activeFlows: readonly FlowRef[]
+  /** The tags the map is focused on, and the toggle a tag chip calls. */
+  focusTags: readonly string[]
+  onToggleTag: (tag: string) => void
   tab: DetailsTab
   onTab: (tab: DetailsTab) => void,
   code: readonly CodeFile[]
@@ -314,9 +318,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
       if (change !== undefined) { comparisonOverview(body, change, options.world); return }
       if (inspected.description !== '') body.append(paragraph('description', inspected.description))
       if (inspected.tags.length > 0) {
-        const tags = chipList(inspected.tags, 'Tags')
-        tags.classList.add('tags')
-        body.append(tags)
+        body.append(tagChips(inspected.tags.map(tag => ({ tag })), options.focusTags, options.onToggleTag))
       }
       if (inspected.overview !== '') body.append(paragraph('overview', inspected.overview))
     },

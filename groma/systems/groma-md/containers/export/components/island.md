@@ -2,6 +2,8 @@
 type: C4 Component
 title: Task panels
 status: stable
+tags:
+  - work
 groma:
   id: island
   parent: export

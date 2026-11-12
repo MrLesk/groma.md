@@ -2,6 +2,8 @@
 type: C4 Component
 title: Map highlighting
 status: stable
+tags:
+  - map
 groma:
   id: map-highlights
   parent: export

@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal plugin settings
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: tui-plugin-settings
   parent: cli

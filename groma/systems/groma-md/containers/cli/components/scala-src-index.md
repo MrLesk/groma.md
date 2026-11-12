@@ -2,6 +2,8 @@
 type: C4 Component
 title: Scala source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: scala-src-index
   parent: cli

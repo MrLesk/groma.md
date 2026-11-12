@@ -2,6 +2,8 @@
 type: C4 Component
 title: Map projection
 status: stable
+tags:
+  - map
 groma:
   id: iso-project
   parent: export

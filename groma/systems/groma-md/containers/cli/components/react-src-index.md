@@ -2,6 +2,8 @@
 type: C4 Component
 title: React analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: react-src-index
   parent: cli

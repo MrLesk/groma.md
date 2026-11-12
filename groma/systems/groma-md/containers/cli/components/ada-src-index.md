@@ -2,6 +2,8 @@
 type: C4 Component
 title: Ada source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: ada-src-index
   parent: cli

@@ -2,6 +2,8 @@
 type: C4 Component
 title: Repository inventory
 status: stable
+tags:
+  - scanning
 groma:
   id: repository-listing
   parent: cli

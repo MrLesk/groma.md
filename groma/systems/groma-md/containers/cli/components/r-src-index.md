@@ -2,6 +2,8 @@
 type: C4 Component
 title: R source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: r-src-index
   parent: cli

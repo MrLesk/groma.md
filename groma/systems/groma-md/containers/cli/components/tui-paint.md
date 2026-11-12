@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal drawing
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: tui-paint
   parent: cli

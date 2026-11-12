@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal navigation
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: tui-navigation
   parent: cli

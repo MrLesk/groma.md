@@ -2,6 +2,8 @@
 type: C4 Component
 title: Work source loading
 status: stable
+tags:
+  - work
 groma:
   id: work-sources
   parent: cli
