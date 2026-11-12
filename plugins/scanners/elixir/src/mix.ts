@@ -2,8 +2,8 @@ import path from 'node:path'
 import type { ScanEntryPoint, ScanRoot } from '@groma/scanner'
 import type { Node } from 'web-tree-sitter'
 import { isUnder } from '../../projects.ts'
-import { moduleName, type Aliases } from './aliases.ts'
-import { moduleFunctions, moduleScopes, moduleUses, type FunctionDeclaration } from './modules.ts'
+import { moduleName } from './aliases.ts'
+import { aliasesAt, moduleFunctions, moduleScopes, moduleUses, type FunctionDeclaration, type ModuleScope } from './modules.ts'
 import { atomLiteral, body, callName, keywordPairs, listItems, operator, positional, stringList } from './syntax.ts'
 
 /*
@@ -84,8 +84,13 @@ function sourceRoots(paths: string[] | undefined): string[] | undefined {
   return roots && [...new Set(roots)].sort()
 }
 
+/** The module a `mix.exs` declaration names, read with the aliases in force where it is written. */
+function namedModule(written: Node | undefined, scope: ModuleScope): string | undefined {
+  return written && moduleName(written, aliasesAt(scope, written))
+}
+
 /** `mod: {Module, args}` in `application/0`: the application callback module. */
-function applicationCallback(functions: Functions, aliases: Aliases): { declared: boolean; module?: string } {
+function applicationCallback(functions: Functions, scope: ModuleScope): { declared: boolean; module?: string } {
   const returned = results(functions, 'application', 0)
   if (returned.length === 0) return { declared: false }
   const settings = returned.length === 1 ? keywordList(returned[0]) : undefined
@@ -93,13 +98,13 @@ function applicationCallback(functions: Functions, aliases: Aliases): { declared
   if (!settings) return { declared: true }
   const callback = settings.get('mod')
   if (!callback) return { declared: false }
-  return { declared: true, module: callback.type === 'tuple' ? moduleName(callback.namedChildren[0], aliases) : undefined }
+  return { declared: true, module: callback.type === 'tuple' ? namedModule(callback.namedChildren[0], scope) : undefined }
 }
 
-function entryModule(project: Map<string, Node>, functions: Functions, aliases: Aliases): string | undefined {
-  const callback = applicationCallback(functions, aliases)
+function entryModule(project: Map<string, Node>, functions: Functions, scope: ModuleScope): string | undefined {
+  const callback = applicationCallback(functions, scope)
   if (callback.declared) return callback.module
-  return moduleName(declaredKeywords(project.get('escript'), functions)?.get('main_module'), aliases)
+  return namedModule(declaredKeywords(project.get('escript'), functions)?.get('main_module'), scope)
 }
 
 /** Read one parsed `mix.exs`. A file whose `project/0` is not a literal keyword list keeps only its location. */
@@ -116,7 +121,7 @@ export function mixProject(root: Node, file: string): MixProject {
     app: atomLiteral(project.get('app')),
     // An umbrella root (`apps_path`) only groups its child projects; Mix compiles no source for it.
     sourceRoots: project.has('apps_path') ? [] : sourceRoots(paths ? sourcePaths(paths, functions, new Set()) : ['lib']),
-    entryModule: entryModule(project, functions, scope.aliases),
+    entryModule: entryModule(project, functions, scope),
   }
 }
 
