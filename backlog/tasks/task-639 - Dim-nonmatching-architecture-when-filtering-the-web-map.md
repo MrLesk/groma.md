@@ -1,11 +1,11 @@
 ---
 id: TASK-639
 title: Dim nonmatching architecture when filtering the web map
-status: Done
+status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T22:21:00Z'
+updated_date: '2026-11-15T23:17:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -69,50 +69,10 @@ modified_files:
   - groma/systems/groma-md/containers/cli/components/scanner-src-index.md
   - groma/systems/groma-md/containers/cli/components/scanners-http-routes.md
   - groma/systems/groma-md/containers/cli/components/scanners-projects.md
-  - >-
-    groma/systems/groma-md/containers/cli/components/scanners-typescript-operations.md
-  - >-
-    groma/systems/groma-md/containers/cli/components/scanners-typescript-outline.md
-  - groma/systems/groma-md/containers/cli/components/scene.md
-  - groma/systems/groma-md/containers/cli/components/screen.md
-  - groma/systems/groma-md/containers/cli/components/source-operations.md
-  - >-
-    groma/systems/groma-md/containers/cli/components/src-architecture-findings.md
-  - groma/systems/groma-md/containers/cli/components/src-architecture-model.md
-  - groma/systems/groma-md/containers/cli/components/src-http-endpoints.md
-  - groma/systems/groma-md/containers/cli/components/src-index.md
-  - groma/systems/groma-md/containers/cli/components/src-scanner.md
-  - groma/systems/groma-md/containers/cli/components/src-structure.md
-  - groma/systems/groma-md/containers/cli/components/src-view-host.md
-  - groma/systems/groma-md/containers/cli/components/src-work-pins.md
-  - groma/systems/groma-md/containers/cli/components/swift-src-index.md
-  - groma/systems/groma-md/containers/cli/components/tui-navigation.md
-  - groma/systems/groma-md/containers/cli/components/tui-paint.md
-  - groma/systems/groma-md/containers/cli/components/tui-plugin-settings.md
-  - groma/systems/groma-md/containers/cli/components/typescript-src-index.md
-  - groma/systems/groma-md/containers/cli/components/vue-src-index.md
-  - groma/systems/groma-md/containers/cli/components/web-export.md
-  - groma/systems/groma-md/containers/cli/components/web-page.md
-  - groma/systems/groma-md/containers/cli/components/web-server.md
-  - groma/systems/groma-md/containers/cli/components/work-model.md
-  - groma/systems/groma-md/containers/cli/components/work-source-src-index.md
-  - groma/systems/groma-md/containers/cli/components/work-sources.md
-  - groma/systems/groma-md/containers/cli/components/workspace-packages.md
-  - groma/systems/groma-md/containers/csharp-worker/container.md
-  - groma/systems/groma-md/containers/export/components/c4-filter.md
-  - groma/systems/groma-md/containers/export/components/camera.md
-  - groma/systems/groma-md/containers/export/components/fonts-index.md
-  - groma/systems/groma-md/containers/export/components/grid.md
-  - groma/systems/groma-md/containers/export/components/island.md
-  - groma/systems/groma-md/containers/export/components/iso-project.md
-  - groma/systems/groma-md/containers/export/components/map-highlights.md
-  - groma/systems/groma-md/containers/export/components/map.md
-  - groma/systems/groma-md/containers/export/components/presentation.md
-  - groma/systems/groma-md/containers/export/components/task-diff-control.md
-  - groma/systems/groma-md/containers/export/components/web-work-pins.md
-  - groma/systems/groma-md/containers/export/container.md
-  - groma/systems/groma-md/containers/go-worker/container.md
-  - groma/systems/groma-md/containers/rust-worker/container.md
+  - '>-'
+  - src/viewers/web/organisms/hierarchy.ts
+  - src/viewers/web/organisms/tag-row.ts
+  - src/viewers/web/work/pins.ts
 type: feature
 ordinal: 703000
 ---
@@ -134,6 +94,9 @@ Before implementation, agree one tagged-map example that shows matching children
 - [x] #3 Clearing the focus restores the ordinary appearance.
 - [x] #4 One documented example defines tag matching and the treatment of parents, groups, and relationships, using rules shared with filtered exports.
 - [x] #5 A link carries the focused tags and reopens the same focus; a tag the architecture does not use is ignored.
+- [ ] #6 A focus shows its tags in a bar over the map; a click there ends one tag's focus, also while both panes are closed
+- [ ] #7 Focusing a tag, or opening a link that carries focused tags, frames the camera on everything the tags select; releasing the last tag frames the selection again
+- [ ] #8 Hierarchy rows and task pins of what the tags do not select recede with their buildings
 <!-- AC:END -->
 
 ## Definition of Done
@@ -157,6 +120,8 @@ Tests (authority: acceptance criteria 1, 2 and 4).
 - selectByTags on a minimal world: a tagged container takes its components and keeps its system as context; an untagged sibling is neither; two tags select the union. Wrong result caught: children of a match dimmed, or parents dimmed. Gap: no tag rule exists.
 - URL: a view with focused tags round-trips through writeView and readView, and a tag the world does not use is dropped. Wrong result caught: a shared link opens without its focus, or focuses a tag that dims the whole map. Extends the existing URL coverage.
 No tests for chip styling or opacity values.
+
+Added scope, 2026-11-16 (Alex asked for a product and design pass on tag focus). Observed on groma's own map: a link with tag=map opened at fit zoom as a uniformly pale map, the 17 matches were specks, task pins of unrelated work were the loudest thing on screen, nothing but a chip at the bottom of the hierarchy pane said the map was focused, and with both panes closed the focus could not be seen or ended. Changes: (1) chrome/tag-focus.ts also paints a bar under the view switch with the focused tags as pressed chips; (2) render.ts focusOpened frames everything the focused tags select, on a toggle and when a view opens, and falls back to the selection when no tag is focused; (3) hierarchy.ts recedes rows outside the selection of the focus, work/pins.ts recedes pins standing on such elements unless their task is active; (4) the details pane's Tags row from TASK-638 presses and toggles its chips. No new test: the added code is DOM wiring and styling over selectByTags, which test-bun/tag-selection.test.ts already covers, and this repository has no DOM test harness; each behavior is verified on the live map.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
