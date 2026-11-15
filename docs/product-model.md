@@ -113,8 +113,9 @@ operation before opening a map.
      part or a draft record while its id and file stay; `--technology` sets or
      clears an element's technology, and `--tags` replaces or clears its
      [OKF tags](component-markdown.md#tags). In the web map the details pane
-     edits title, description, overview, technology and tags in place and links
-     the element to a draft; every field posts the input `groma edit` takes.
+     edits title, description, overview and technology in place and links the
+     element to a draft, and its Tags row adds or removes one tag at a time;
+     every change posts the input `groma edit` takes.
    - Atomic scan evidence is curated with `groma edit`: combine empty scan
      records, including two systems into one product, move an empty scanned
      component to another container or a container to another system, detach

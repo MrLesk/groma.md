@@ -1,11 +1,11 @@
 ---
 id: TASK-638
 title: Tag architecture using standard OKF tags
-status: Done
+status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T22:08:00Z'
+updated_date: '2026-11-15T23:10:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -47,6 +47,9 @@ modified_files:
   - src/viewers/web/page.ts
   - groma/systems/groma-md/containers/cli/components/src-architecture-model.md
   - src/welcome/model.ts
+  - src/viewers/web/organisms/tag-row.ts
+  - src/viewers/web/authoring.ts
+  - groma/systems/groma-md/containers/export/components/organisms-details.md
 type: feature
 ordinal: 702000
 ---
@@ -67,6 +70,7 @@ The OKF field is already established by the specification; implementation should
 - [x] #2 An author can add, replace, and remove tags through a documented Groma authoring action.
 - [x] #3 Tags survive supported edits, reloads, and scans without being duplicated under groma or changing architecture containment.
 - [x] #4 The Markdown contract documents one tagged architecture example and identifies the standard OKF field separately from Groma's filtering behavior.
+- [ ] #5 In the web map an author adds and removes an element's tags one at a time from a Tags row in the details pane; each change is stored at once and the tags already in use are offered while typing
 <!-- AC:END -->
 
 ## Definition of Done
@@ -91,6 +95,8 @@ Tests (authority: acceptance criteria 1 to 3).
 - Editing: set, replace and clear through the shared edit write; a title edit and a scan keep them; nothing is written under groma. Wrong result caught: tags lost or duplicated by another supported edit. Extends the existing editing coverage.
 - Parser: comma text to list and back, including blanks and duplicates. Wrong result caught: empty or repeated tags stored.
 No tests for chip styling or wording.
+
+6. Added scope, 2026-11-16 (Alex asked for a product and design pass on tagging): the comma-separated Tags text field hidden in the Edit form becomes a Tags row in the details pane (src/viewers/web/organisms/tag-row.ts), placed after the overview. Enter adds the typed tag, the tags in use are suggestions, the x on a chip removes it, and each change goes at once through the shared edit write with the list the row showed as the conflict check. The Edit form loses its Tags field, so there is one way to tag in the web map. No DOM test harness exists in this repository; the row is verified on the live map.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
