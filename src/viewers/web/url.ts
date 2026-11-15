@@ -4,7 +4,7 @@ import type { Comparison } from '../../history/comparison.ts'
 import type { GitRevision } from '../../history/revisions.ts'
 import type { AnnotatedElement, AnnotatedRelationship, ArchitectureGraph, C4Kind, WorkItem } from '../../types.ts'
 import type { FlowRef } from '../flows.ts'
-import { isThemeMode, type WebThemeMode } from './atoms/theme.ts'
+import { isThemeMode, linkPaletteValue, readLinkPalette, type LinkPalette, type WebThemeMode } from './atoms/theme.ts'
 import { mapControlEntries, readMapControls, type MapControls } from './chrome/map-view.ts'
 import type { DetailsTab } from './organisms/details.ts'
 import { noSelection, selectTask } from './selection.ts'
@@ -22,6 +22,8 @@ export interface ViewState extends MapControls {
   theme: WebThemeMode
   hudVisible: boolean
   inset?: number
+  /** An embedding page's own colours, drawn over the theme. */
+  palette?: LinkPalette
 }
 
 /** A selected element is named by its kind: `actor=<id>`, `system=<id>`, `container=<id>` or `component=<id>`. */
@@ -130,7 +132,8 @@ function appendTab(pairs: [string, string][], state: ViewState, change: Componen
  * `relationship=<source id>/<target id>` entries) or `task=<id>`,
  * checked flows (repeated `flow=<id>`) and the last flow's one-based `step=<number>`,
  * `tab=how|tasks`, `view=iso|2d|layers`, `hide=<comma-separated filters>`,
- * `theme=auto|light|dark|blueprint` and `hud=off`. A query theme overrides
+ * `theme=auto|light|dark|blueprint`, `hud=off`, and an embedding page's `inset=<pixels>` and
+ * `palette=<name>:<hex>,...`. A query theme overrides
  * the publication path theme, then the saved default. Ids are the authored ids; anything the world
  * or the work does not know is ignored, a kind naming an element of another kind included.
  */
@@ -145,6 +148,7 @@ export function readView(
 ): ViewState {
   const params = new URLSearchParams(url.search)
   const inset = Number(params.get('inset'))
+  const palette = readLinkPalette(params)
   const revision = revisions.find(candidate => candidate.id === params.get('revision'))?.id
   const byId = new Map(world.elements.map(element => [element.id, element]))
   const architecture = architectureSelection(params, byId, world)
@@ -163,6 +167,7 @@ export function readView(
     ...readMapControls(params, defaultControls),
     ...(revision === undefined ? {} : { revision }),
     ...(Number.isInteger(inset) && inset > 0 ? { inset } : {}),
+    ...(Object.keys(palette).length > 0 ? { palette } : {}),
     ...source,
     selection,
     flows,
@@ -231,5 +236,6 @@ export function writeView(state: ViewState, world: ArchitectureGraph, work: read
   if (state.theme !== (pathTheme(pathname) ?? 'auto')) pairs.push(['theme', state.theme])
   if (!state.hudVisible) pairs.push(['hud', 'off'])
   if (state.inset !== undefined) pairs.push(['inset', String(state.inset)])
+  if (state.palette !== undefined) pairs.push(['palette', linkPaletteValue(state.palette)])
   return pairs.length === 0 ? '' : `?${pairs.map(([key, value]) => `${key}=${value}`).join('&')}`
 }
