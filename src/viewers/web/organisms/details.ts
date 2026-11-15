@@ -12,7 +12,7 @@ import type { ElementWorkGroup } from '../../../work/pins.ts'
 import type { Zone } from '../../../sheet/types.ts'
 import { findingsForOwner } from '../../../architecture-findings.ts'
 import { removalBlocker } from '../../../removable.ts'
-import { formatTags } from '../../../tags.ts'
+import { knownTags } from '../../../tags.ts'
 import { flowsThrough } from '../../flows.ts'
 import type { FlowRef } from '../../flows.ts'
 import { kindGlyph, kindLabel } from '../../atoms/kind.ts'
@@ -23,6 +23,7 @@ import { paintElementWork } from '../work/component-tasks.ts'
 import { codeList } from './code-lists.ts'
 import { heading, paragraph } from '../atoms/text.ts'
 import { editButton, isEditing, type EditField } from './editable.ts'
+import { tagRow, typedTag } from './tag-row.ts'
 import type { PaneWrites } from './writes.ts'
 import {
   paintAcceptControl,
@@ -192,7 +193,7 @@ export function inspectUnidentifiedContainer(zone: Zone, world: ArchitectureGrap
   }
 }
 
-/** Short authored labels, such as technology parts or tags, as one wrapping row of chips. */
+/** Short authored labels, such as technology parts, as one wrapping row of chips. */
 function chipList(labels: readonly string[], name: string): HTMLUListElement {
   const list = document.createElement('ul')
   list.className = 'chips'
@@ -308,17 +309,18 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   const shownTab = availableTabs.includes(tab) ? tab : 'what'
   paintTabs(tabsHost, availableTabs, shownTab, onTab)
 
+  const typing = typedTag(host, inspected.id)
   body.replaceChildren()
   const sections: Record<Section, () => void> = {
     overview: () => {
       if (change !== undefined) { comparisonOverview(body, change, options.world); return }
       if (inspected.description !== '') body.append(paragraph('description', inspected.description))
-      if (inspected.tags.length > 0) {
-        const tags = chipList(inspected.tags, 'Tags')
-        tags.classList.add('tags')
-        body.append(tags)
-      }
       if (inspected.overview !== '') body.append(paragraph('overview', inspected.overview))
+      if (inspected.tags.length > 0 || options.onTags !== undefined) {
+        body.append(tagRow(inspected.tags, {
+          elementId: inspected.id, known: knownTags(options.world.elements), onTags: options.onTags, typing,
+        }))
+      }
     },
 
     relationships: () => {
@@ -395,7 +397,6 @@ function elementFields(inspected: Inspected, options: PaneWrites): EditField[] {
     { name: 'description', label: 'Description', value: inspected.description },
     { name: 'overview', label: 'Overview', value: inspected.overview, multiline: true },
     { name: 'technology', label: 'Technology', value: inspected.technology },
-    { name: 'tags', label: 'Tags', value: formatTags(inspected.tags) },
   ]
   if (inspected.movable) fields.push({
     name: 'parent', label: 'Parent', value: inspected.parent ?? '', options: options.parents ?? [],
