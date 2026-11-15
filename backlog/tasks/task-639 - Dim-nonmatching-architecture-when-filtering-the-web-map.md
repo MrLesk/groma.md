@@ -1,11 +1,11 @@
 ---
 id: TASK-639
 title: Dim nonmatching architecture when filtering the web map
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-15T23:17:00Z'
+updated_date: '2026-11-15T23:19:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -94,9 +94,9 @@ Before implementation, agree one tagged-map example that shows matching children
 - [x] #3 Clearing the focus restores the ordinary appearance.
 - [x] #4 One documented example defines tag matching and the treatment of parents, groups, and relationships, using rules shared with filtered exports.
 - [x] #5 A link carries the focused tags and reopens the same focus; a tag the architecture does not use is ignored.
-- [ ] #6 A focus shows its tags in a bar over the map; a click there ends one tag's focus, also while both panes are closed
-- [ ] #7 Focusing a tag, or opening a link that carries focused tags, frames the camera on everything the tags select; releasing the last tag frames the selection again
-- [ ] #8 Hierarchy rows and task pins of what the tags do not select recede with their buildings
+- [x] #6 A focus shows its tags in a bar over the map; a click there ends one tag's focus, also while both panes are closed
+- [x] #7 Focusing a tag, or opening a link that carries focused tags, frames the camera on everything the tags select; releasing the last tag frames the selection again
+- [x] #8 Hierarchy rows and task pins of what the tags do not select recede with their buildings
 <!-- AC:END -->
 
 ## Definition of Done
@@ -132,6 +132,8 @@ Decisions: the focused tags are part of the shared link (repeated tag=) and are 
 Dogfooding: groma.md own architecture now carries five tags (scanning, map, web, terminal, work) on 74 elements, assigned from the existing groups through groma edit --tags. Verification: bun run check passed (28 Node tests, 1011 Bun tests, 64 environment-dependent skips, 0 failures) before the last change, which keeps an unchanged chip list in place; after it typecheck, lint of the changed files and the focused tests pass. On the exported groma.md map (Iso and 2D, Light and Dark): tag=scanning leaves the scanner groups and the three workers full and recedes the rest; clicking chips in the Tags block and in the details pane toggles the same focus, updates the URL, and the toggled chip keeps keyboard focus; clearing the last tag removes every focus mark.
 
 Cold simplicity review (one round), applied: map names are tag-specific (IsoMap.focusTags, the tag-match class, data-tag-focus, TagSelection.parents) because focus, focused and context already mean camera framing, a flow step and the surface under a selection; dropping a tag the world stopped using is an explicit tagFocus.retain step in applyWorld beside retainFlows and retainSelection, so painting is read-only and its order no longer matters; tagsInUse is the one rule both the URL reader and retain use; groups drawn beside a system island now recede; a hovered or compared route keeps its arrow; the Markdown contract says the map, not selectByTags, decides groups and routes. Removed: the extra state that kept an unchanged chip list in place, so the earlier note about keyboard focus no longer holds; like the flow rows, the Tags block is rebuilt on each paint. The test file is named tag-selection after what it tests.
+
+Added scope 2026-11-16, verified on the live map of this repository in light and dark themes. A link with tag=map alone opens at 229 percent framed on the three zones the tag selects, with a map chip in the bar under the view switch, where it opened at 100 percent as a pale map before. Clicking the bar chip ends the focus, hides the bar and frames the selection again (90 percent); terminal alone frames its zone, terminal and web together frame both. With component=scene and tag=map in one link the camera frames all matches and the selected component stays highlighted. Hierarchy rows outside the focus recede (external systems and non-matching components) and matches and their parents keep full ink. 212 of 233 task pins recede; pins on matched elements keep full strength. bun run check passes on this branch (28 Node tests, 947 Bun tests, 0 failures, the 2 lint warnings are older and in other files). Not done, by choice: tagging several elements at once in the web map, which tags on groups will cover; an add or remove form of --tags on the command line.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
