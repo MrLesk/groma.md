@@ -46,23 +46,23 @@ This is presentation of the page only. It adds no OKF concept and no C4 element,
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. atoms/theme.ts owns the link colours beside the palette: which palette entries a link may name, reading them from a query, the CSS that draws them over a theme, and the entries that write them back. The grid mix moves into one helper that the theme blocks and the link colours share.
+1. atoms/theme.ts owns the link palette beside the theme palette: which palette colours a link may set, reading them from the one palette setting (palette=<name>:<hex>,...), the CSS that draws them over a theme, and the value that writes them back. The grid mix moves into one helper that the theme blocks and the link palette share.
 2. page.ts writes that CSS as the root element's style, the way it writes the embedding inset on the body. The root is where each theme sets its palette, so an inline style there wins over the selected theme.
-3. url.ts carries the colours in the view state: readView reads them, writeView writes them back, and render.ts passes the opened colours when it synchronizes the link, as it does for inset.
+3. url.ts carries the palette in the view state: readView reads it, writeView writes it back, and render.ts passes the opened palette when it synchronizes the link, as it does for inset.
 4. docs/viewers/web/index.md: one paragraph after the inset paragraph.
 
-Tests (authority: acceptance criteria 1 to 3), in test-bun/web-page-colours.test.ts beside the inset test.
-- A link with colours renders the root style, grid included, and keeps the colours through readView and writeView. Wrong result caught: colours lost when the view is synchronized and reloaded.
-- Invalid values and unknown names render the page exactly as without colours, and write nothing back. Wrong result caught: text from a link reaching the page's style.
+Tests (authority: acceptance criteria 1 to 3), in test-bun/web-page-palette.test.ts beside the inset test.
+- A link with a palette renders the root style, grid included, and keeps the palette through readView and writeView. Wrong result caught: colours lost when the view is synchronized and reloaded.
+- Invalid values and unknown names render the page exactly as without a palette, and write nothing back. Wrong result caught: text from a link reaching the page's style.
 No tests of how the colours look.
 <!-- SECTION:PLAN:END -->
 
