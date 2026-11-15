@@ -13,6 +13,7 @@ import { DEFAULT_PROJECTION } from '../projection/project.ts'
 import { weightAt } from './scale.ts'
 import { HOVERABLE, mapDefs, patternAttributes } from './style.ts'
 import { node, patch, svg } from './svg.ts'
+import type { LinkPalette } from '../../atoms/theme.ts'
 import { appearanceCss } from './appearance.ts'
 import { surfaceLabelStep } from './text.ts'
 
@@ -90,8 +91,11 @@ function highlightInputs(scene: LayeredScene) {
   }
 }
 
-/** One fixed grid and one shared camera across ground, routes and foreground paint surfaces. */
-export function createMap(host: HTMLElement): IsoMap {
+/**
+ * One fixed grid and one shared camera across ground, routes and foreground paint surfaces. `linkPalette` is an
+ * embedding page's own colours: authored element colours are mixed into its paper instead of the theme's.
+ */
+export function createMap(host: HTMLElement, linkPalette: LinkPalette = {}): IsoMap {
   const root = document.createElement('div')
   root.className = 'map-surface'
   root.setAttribute('role', 'img')
@@ -171,7 +175,7 @@ export function createMap(host: HTMLElement): IsoMap {
 
   /** Draws the scene at one zoom's title step; only values that changed are written. Reports whether elements were created or removed. */
   const draw = (scene: LayeredScene, zoom: number): boolean => [
-    patch(definitions, [node('style', {}, '', appearanceCss(scene)), ...mapDefs(scene.view), ...facadeDefs(scene)]),
+    patch(definitions, [node('style', {}, '', appearanceCss(scene, undefined, linkPalette)), ...mapDefs(scene.view), ...facadeDefs(scene)]),
     patch(layers.sheet, [...layerPlanesSvg(scene), ...sheetSvg(scene)]),
     drawSurfaces(scene, zoom),
     patch(layers.items, buildingsSvg(scene)),

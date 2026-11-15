@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-15T10:43:00Z'
-updated_date: '2026-11-15T10:50:00Z'
+updated_date: '2026-11-15T12:09:00Z'
 labels: []
 dependencies: []
 references:
@@ -22,6 +22,8 @@ modified_files:
   - src/viewers/web/render.ts
   - test-bun/web-page-palette.test.ts
   - docs/viewers/web/index.md
+  - src/viewers/web/iso/painting/appearance.ts
+  - src/viewers/web/iso/painting/map.ts
 type: feature
 ordinal: 702000
 ---
@@ -72,6 +74,10 @@ No tests of how the colours look.
 Decisions: one namespaced link setting, palette=<name>:<hex>,..., instead of one setting per colour, because a colour named line would collide with the source line setting. The colours are written by the server as the root element's inline style, like the embedding inset on the body: the root is where each theme sets its palette, so no browser code is needed and the selected theme, Auto included, stays the base. Hover is left out because it is the one palette value that is not a hex colour. The grid mix moved into gridCss, shared by the theme blocks and the link palette.
 
 Verification: bun run check passed (Biome, scrollbar lint, typecheck, 26 Node tests, 950 Bun tests, 64 environment-dependent skips, 0 failures). test-bun/web-page-palette.test.ts covers the root style with the grid, the round trip through readView and writeView, a grid that needs both paper and line, and ignored names and values including markup in a value. In a browser: the stage build with this change, serving the Cafe Compute demo project inside the deck's slide, answered palette=paper:FFEEDB,ink:2E180F,line:9B674A with those root variables and drew the map, header and grid in them, in the light and dark base themes.
+
+Correction after the first stage run (Alex, 2026-11-15): authored element colours stayed on white. The browser's appearance rules mix each authored colour into every theme's own paper as explicit values, so a link's paper did not reach them. The rules now start from the theme's palette with the link palette over it (withLinkPalette in atoms/theme.ts); createMap takes the link palette from the opened view and passes it to appearanceCss. Covers are unchanged: they have no link.
+
+Verification of the correction: bun run check passed (26 Node tests, 951 Bun tests, 64 environment-dependent skips, 0 failures; one earlier run failed only on two scanner tests whose downloads from nasm.us and Maven Central dropped). A new test asserts that with a link paper every theme's rule mixes the authored colour into that one paper. In a browser, on the stage build with this change and the Cafe Compute demo project, the system rule for #5B9A7C read --item-top: #faebd8 with paper FFEEDB (it was a white mix before), and the system and container planes drew in the deck's cream and espresso papers.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

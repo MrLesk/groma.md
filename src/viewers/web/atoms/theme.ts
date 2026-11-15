@@ -212,3 +212,11 @@ export function linkPaletteCss(palette: LinkPalette): string {
   if (palette.paper !== undefined && palette.line !== undefined) rules.push(gridCss(palette.paper, palette.line))
   return rules.join('; ')
 }
+
+/**
+ * A theme's palette as the page shows it under a link's palette. Colours the browser computes itself, such as an
+ * authored element colour mixed into the paper, must start from this palette, not from the theme's own.
+ */
+export function withLinkPalette(palette: Palette, link: LinkPalette): Palette {
+  return { ...palette, ...link }
+}

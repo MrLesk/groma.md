@@ -1,4 +1,4 @@
-import { mixColour, palettes, type Palette } from '../../atoms/theme.ts'
+import { mixColour, palettes, withLinkPalette, type LinkPalette, type Palette } from '../../atoms/theme.ts'
 import type { ProjectedScene } from '../projection/project.ts'
 import { SIDE, depthOf, tintAt } from './scale.ts'
 
@@ -60,10 +60,10 @@ function selectorOf({ kind, color }: Appearance): string {
   return `#map .${kind}[data-color="${color}"]`
 }
 
-function browserRules(entry: Appearance): string {
+function browserRules(entry: Appearance, link: LinkPalette): string {
   const selector = selectorOf(entry)
   return Object.entries(palettes).map(([theme, palette]) => {
-    const paint = appearancePaint(entry.color, appearanceDepth(entry.kind), palette)
+    const paint = appearancePaint(entry.color, appearanceDepth(entry.kind), withLinkPalette(palette, link))
     const scope = theme === 'light' ? selector : `[data-theme="${theme}"] ${selector}`
     return `${scope} { --item-top: ${paint.top}; --item-right: ${paint.right}; --item-left: ${paint.left}; --item-accent: ${paint.accent}; }`
   }).join('\n')
@@ -86,7 +86,10 @@ ${selector} > .label .architecture-icon { color: ${paint.accent}; }
 ${hollow} { fill: none; }`
 }
 
-/** Palette-free browser CSS switches with the existing theme attribute; covers ask for one resolved palette. */
-export function appearanceCss(scene: ProjectedScene, palette?: Palette): string {
-  return appearances(scene).map(entry => palette === undefined ? browserRules(entry) : staticRules(entry, palette)).join('\n')
+/**
+ * Palette-free browser CSS switches with the existing theme attribute, with an embedding page's link palette over
+ * every theme; covers ask for one resolved palette.
+ */
+export function appearanceCss(scene: ProjectedScene, palette?: Palette, link: LinkPalette = {}): string {
+  return appearances(scene).map(entry => palette === undefined ? browserRules(entry, link) : staticRules(entry, palette)).join('\n')
 }

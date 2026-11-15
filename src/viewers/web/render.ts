@@ -73,7 +73,7 @@ let scene = projectedScene()
 const hosts = pageHosts()
 const { host, treeHost, flowsHost, statsHost, revisionBox, searchRoot, detailsHost, zoomHost, hierarchyContent, hierarchyToggle } = hosts
 const paintFlows = createFlowList()
-const map = createMap(host)
+const map = createMap(host, opened.palette)
 const highlights = createMapHighlights(map)
 const edit = data.edit
 const projectEditor = edit === undefined ? undefined : createProjectEditor(input => edit({ id: 'project', ...input }))
