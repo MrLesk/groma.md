@@ -1,4 +1,5 @@
 import { animateRow } from '../chrome/motion.ts'
+import type { TagSelection } from '../../../tag-selection.ts'
 import type { Comparison } from '../../../history/comparison.ts'
 import { chromeButton } from '../atoms/button.ts'
 import { comparisonTree, changeStatuses, changeMarks, changeLabels, isChange, type ChangeCounts, type VisibleStatus } from '../comparison/tree.ts'
@@ -136,6 +137,14 @@ function paintHierarchy(
   replaceComparisonTree(host, heading, list, comparison !== undefined)
 }
 
+/** Rows the focused tags do not select recede, as their buildings do on the map. */
+function recedeRows(host: HTMLElement, focus: TagSelection | undefined): void {
+  for (const row of host.querySelectorAll<HTMLElement>('.row[data-id]')) {
+    const id = row.dataset.id!
+    row.classList.toggle('receded', focus !== undefined && !focus.matched.has(id) && !focus.parents.has(id))
+  }
+}
+
 /** The architecture tree beside the map; it keeps the branches a person opened or closed across repaints. */
 export function createHierarchy(host: HTMLElement, onSelect: (id: string, additive: boolean) => void) {
   let tree = initialTree()
@@ -147,20 +156,22 @@ export function createHierarchy(host: HTMLElement, onSelect: (id: string, additi
   const buttons = [chromeButton('Changes'), chromeButton('All')]
   modes.append(...buttons)
   document.getElementById('hierarchy-title')!.insertBefore(modes, document.getElementById('hierarchy-toggle'))
-  const paint = (world: ArchitectureGraph, selectedIds: readonly string[], comparison?: Comparison, enabled?: ReadonlySet<VisibleStatus>): void => {
+  /** `focus` is what the focused tags select; undefined while no tag is focused. */
+  const paint = (world: ArchitectureGraph, selectedIds: readonly string[], comparison?: Comparison, enabled?: ReadonlySet<VisibleStatus>, focus?: TagSelection): void => {
     modes.hidden = comparison === undefined
     document.getElementById('flows')!.hidden = comparison !== undefined && changesOnly
     const changes = comparison === undefined ? undefined : comparisonTree(world, comparison, enabled)
     buttons.forEach((button, index) => {
       button.setAttribute('aria-pressed', String(changesOnly === (index === 0)))
-      button.onclick = () => { changesOnly = index === 0; paint(world, selectedIds, comparison, enabled) }
+      button.onclick = () => { changesOnly = index === 0; paint(world, selectedIds, comparison, enabled, focus) }
     })
     const rows = changes !== undefined && changesOnly ? semanticTreeRows(changes.world, selectedIds, { expanded: new Set(changes.world.elements.map(element => element.representationId)), collapsed: tree.collapsed })
       : semanticTreeRows(world, selectedIds, tree).filter(row => row.kind !== 'actor')
     paintHierarchy(host, rows, new Set(selectedIds), onSelect, row => {
       tree = toggleExpansion(tree, row)
-      paint(world, selectedIds, comparison, enabled)
+      paint(world, selectedIds, comparison, enabled, focus)
     }, comparison, changesOnly ? changes : changes === undefined ? undefined : { ...changes, relationships: [] })
+    recedeRows(host, focus)
     const selected = selectedIds.at(-1) ?? ''
     if (selected !== lastSelection) {
       host.querySelector<HTMLElement>('.row.selected[data-id]')?.scrollIntoView({ block: 'nearest' })

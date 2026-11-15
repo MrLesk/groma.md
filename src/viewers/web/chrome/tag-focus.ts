@@ -28,10 +28,12 @@ export function tagChips(
 }
 
 /**
- * The tags the map is focused on. This control owns that list: the Tags block in the
- * hierarchy pane, the tag chips in the details pane and the URL all read and toggle it here.
+ * The tags the map is focused on. This control owns that list: the Tags block in the hierarchy pane,
+ * the bar over the map, the tag chips in the details pane and the URL all read and toggle it here.
+ * `bar` shows the focused tags over the map, so a focus stays visible, and can be ended, while the
+ * panes are closed or in a view someone opened from a link.
  */
-export function bindTagFocus(host: HTMLElement, initial: readonly string[], onChange: () => void) {
+export function bindTagFocus(host: HTMLElement, bar: HTMLElement, initial: readonly string[], onChange: () => void) {
   let focused = [...initial]
   function toggle(tag: string): void {
     focused = focused.includes(tag) ? focused.filter(item => item !== tag) : [...focused, tag]
@@ -56,6 +58,8 @@ export function bindTagFocus(host: HTMLElement, initial: readonly string[], onCh
       title.className = 'title'
       title.textContent = 'Tags'
       host.replaceChildren(title, tagChips(inUse, focused, toggle))
+      bar.hidden = focused.length === 0
+      bar.replaceChildren(tagChips(focused.map(tag => ({ tag })), focused, toggle))
     },
   }
 }
@@ -72,5 +76,14 @@ export const tagFocusCss = `
   .tag-chip:hover { border-color: var(--ink); }
   .tag-chip[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
   .tag-chip .count { font-size: 10px; opacity: 0.6; }
-  @media (prefers-reduced-motion: reduce) { .tag-chip { transition: none; } }
+  /* Under the view switch, placed between the panes by the same rule in page.ts. */
+  #tag-focus { position: absolute; top: 128px; z-index: 7; width: fit-content; margin: 0 auto; padding: 6px 8px; animation: tag-focus-in 200ms ease; }
+  #tag-focus[hidden] { display: none; }
+  #tag-focus .tag-chips { flex-wrap: nowrap; overflow: auto; }
+  #tag-focus .tag-chip::after { content: '×'; opacity: 0.6; }
+  @keyframes tag-focus-in { from { opacity: 0; transform: translateY(-4px); } }
+  /* The hierarchy recedes the rows the focused tags do not select, as the map does with their buildings. */
+  #tree .row { transition: opacity 200ms ease; }
+  #tree .row.receded { opacity: 0.4; }
+  @media (prefers-reduced-motion: reduce) { .tag-chip, #tree .row { transition: none; } #tag-focus { animation: none; } }
 `

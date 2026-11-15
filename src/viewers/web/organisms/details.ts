@@ -323,7 +323,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
       if (change !== undefined) { comparisonOverview(body, change, options.world); return }
       if (inspected.description !== '') body.append(paragraph('description', inspected.description))
       if (inspected.overview !== '') body.append(paragraph('overview', inspected.overview))
-      if (inspected.tags.length > 0) body.append(tagRow(inspected.tags))
+      if (inspected.tags.length > 0) body.append(tagRow(inspected.tags, options.focusTags, options.onToggleTag))
     },
 
     relationships: () => {

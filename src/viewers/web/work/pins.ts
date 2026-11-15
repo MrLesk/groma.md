@@ -40,6 +40,9 @@ export const pinsCss = `
     will-change: translate;
   }
   .pin.active { filter: none; }
+  .pin .head, .pin .stem, .pin .foot { transition: opacity 200ms ease; }
+  .pin.receded:not(.active) :is(.head, .stem, .foot) { opacity: 0.2; }
+  .pin.receded:not(.active) .head:hover { opacity: 1; }
   .pin.arriving { animation: pin-arrive 700ms ease-out; }
   @keyframes pin-arrive {
     0% { transform: translateY(0); filter: grayscale(0); }
@@ -84,6 +87,8 @@ export interface PinLayer {
   show(statuses: readonly string[]): void
   /** Colours the pins of the active tasks, greyscale otherwise, and marks those of the selected task, which is always one of the active ones. */
   activate(active: readonly string[], selected: string | undefined): void
+  /** Recedes the pins that stand on elements outside `focused`, what the focused tags select; undefined ends it. */
+  recede(focused: ReadonlySet<string> | undefined): void
 }
 
 /** The work pins over the map; clicking a pin's head toggles its task. */
@@ -205,6 +210,11 @@ export function createPins(host: HTMLElement, anchorOf: (id: string) => Point | 
     show(statuses) {
       enabledStatuses = statuses
       fanOut()
+    },
+    recede(focused) {
+      for (const pin of pins) {
+        pinned.get(pin.key)?.node.classList.toggle('receded', focused !== undefined && !focused.has(pin.elementId))
+      }
     },
     activate(active, selected) {
       for (const pin of pins) {
