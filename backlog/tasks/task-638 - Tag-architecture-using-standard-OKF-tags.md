@@ -1,11 +1,11 @@
 ---
 id: TASK-638
 title: Tag architecture using standard OKF tags
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-15T23:10:00Z'
+updated_date: '2026-11-15T23:17:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -70,7 +70,7 @@ The OKF field is already established by the specification; implementation should
 - [x] #2 An author can add, replace, and remove tags through a documented Groma authoring action.
 - [x] #3 Tags survive supported edits, reloads, and scans without being duplicated under groma or changing architecture containment.
 - [x] #4 The Markdown contract documents one tagged architecture example and identifies the standard OKF field separately from Groma's filtering behavior.
-- [ ] #5 In the web map an author adds and removes an element's tags one at a time from a Tags row in the details pane; each change is stored at once and the tags already in use are offered while typing
+- [x] #5 In the web map an author adds and removes an element's tags one at a time from a Tags row in the details pane; each change is stored at once and the tags already in use are offered while typing
 <!-- AC:END -->
 
 ## Definition of Done
@@ -107,6 +107,8 @@ Decisions: tags are read on every C4 element, actors and external systems includ
 Verification: bun run check passed on Bun 1.4.4 (28 Node tests, 1009 Bun tests, 64 environment-dependent skips, 0 failures; the 2 lint warnings are in files this task does not touch). On a copy of test/fixtures/edit: groma edit stock --tags wrote the top-level list ahead of groma and groma view stock --plain printed it; --tags on the project was refused; an empty value removed the field. In groma web the details pane showed the chips, and saving the Tags field in the Edit form replaced them live. In groma view (tui-test, 150x36) the details pane of the tagged container showed the Tags rows.
 
 Cold simplicity review (one round), applied: the edit conflict check now compares tags as the writer saves them, so a form that proposes already-applied tags in another spelling is accepted (reproduced before the fix, covered by the editing test); the project-refusal assertion now sends a title so only the tags guard can reject it; the Tags section of the Markdown contract moved next to Code references without a Groups heading; --draft help and the instructions say link instead of tag; writing tags keeps every other frontmatter field in place. Not applied, existing pattern outside this task: edit.ts lists each meaning field by hand in several places.
+
+Added scope 2026-11-16, Tags row. Verified on the live map of this repository (bun src/cli.ts web from this branch): typing map and pressing Enter stores the tag and repaints the row with the caret still in the field; typing layout, terminal adds both; the x on layout removes it; component documents hold the resulting list. Two defects found and fixed while testing: the remove button's class collided with the pane's Remove control (#details .remove), so the row's parts use tag-name, tag-remove and tag-add; disabling the row during a write blurred the field, so the pane now reads what is being typed before a repaint (typedTag) and hands it to the new row. bun run check passes on this branch (28 Node tests, 945 Bun tests, 0 failures).
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

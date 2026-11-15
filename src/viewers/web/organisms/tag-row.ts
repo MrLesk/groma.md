@@ -125,7 +125,7 @@ export const tagRowCss = `
   }
   #details .tag-remove:hover, #details .tag-remove:focus-visible { opacity: 1; }
   #details .tag-add {
-    width: 11ch; padding: 2px 8px; border: 1px dashed var(--hairline); border-radius: 10px;
+    width: 13ch; padding: 2px 8px; border: 1px dashed var(--hairline); border-radius: 10px;
     background: transparent; color: var(--ink); font: inherit; font-size: 11px; line-height: 16px;
     transition: width 160ms ease, border-color 160ms ease;
   }
