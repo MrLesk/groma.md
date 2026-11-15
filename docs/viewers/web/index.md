@@ -184,9 +184,17 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
 - **Tags:** While any element carries [OKF tags](../../component-markdown.md#tags),
   the hierarchy pane lists every tag in use above the kind legend, with the number
   of elements that carry it. Clicking a tag focuses the map on it, and the same
-  chip in the details pane does the same. Several tags can be focused together.
-  The map keeps every element in place and recedes what the focused tags do not
-  select, by the [matching rule](../../component-markdown.md#focusing-on-tags).
+  chip in the Tags row of the details pane does the same. Several tags can be
+  focused together. The map keeps every element in place and recedes what the
+  focused tags do not select, by the
+  [matching rule](../../component-markdown.md#focusing-on-tags). A focus:
+  - shows its tags in a bar under the view switch, where a click on one ends
+    that tag's focus, also while both panes are closed;
+  - moves the camera to frame everything the tags select, and back to the
+    selection when the last tag is released;
+  - recedes the hierarchy rows and the task pins of what the tags do not
+    select, as it recedes their buildings.
+
   [`chrome/tag-focus.ts`](../../../src/viewers/web/chrome/tag-focus.ts) owns the
   focused tags.
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
@@ -293,9 +301,10 @@ The URL query string tracks the current view so any state can be shared by link:
   restore selections.
 - `tab=how|tasks`, `file=<path>`, and `line=<number>` open the corresponding
   details tab and source location.
-- `tag=<tag>`, repeated for several tags, focuses the map on those tags. A tag
-  the architecture does not use is ignored. The focus is part of the link and is
-  not saved as a browser preference, because tags belong to one project.
+- `tag=<tag>`, repeated for several tags, focuses the map on those tags, and
+  the view opens framed on what they select. A tag the architecture does not
+  use is ignored. The focus is part of the link and is not saved as a browser
+  preference, because tags belong to one project.
 - `view=iso|2d|layers`, `hide=...`, `theme=auto|light|dark|blueprint`, `hud=off`,
   and `inset=<pixels>` configure projection and chrome.
 

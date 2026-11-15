@@ -85,7 +85,7 @@ const tip = createTip(host)
 const pins = createPins(host, id => map.anchorOf(id), id => toggleTask(id, false), tip)
 const island = createWorkIsland(host, id => toggleTask(id), pins.show, tip)
 const hierarchy = createHierarchy(treeHost, select)
-const tagFocus = bindTagFocus(document.getElementById('tags')!, opened.focusTags, () => paintViewState())
+const tagFocus = bindTagFocus(document.getElementById('tags')!, document.getElementById('tag-focus')!, opened.focusTags, () => { paintViewState(); focusOpened(selection.kind) })
 const themeControl = bindThemeControl(document.getElementById('theme') as HTMLDetailsElement, opened.theme, syncUrl)
 let hudVisible = opened.hudVisible
 shell.setHud(hudVisible)
@@ -176,6 +176,7 @@ function paintMapState(): void {
   const task = selection.kind === 'task' ? workItem(selection.id) : undefined
   map.changes(changes.marks())
   map.focusTags(tagFocus.matches(world))
+  pins.recede(tagFocus.matches(world)?.matched)
   highlights.paint(selection, world, activeFlows, activeTaskIds.map(id => workItem(id)).filter((item): item is WorkItem => item !== undefined))
   pins.activate(activeTaskIds, task?.id)
   island.activate(activeTaskIds, task?.id)
@@ -186,7 +187,7 @@ function paintViewState(commitUrl = true): void {
   const task = selection.kind === 'task' ? workItem(selection.id) : undefined
   changes.update(world, revisionControl.comparison, revisionControl.selected, primarySelection(selection))
   paintMapState()
-  hierarchy.paint(world, selectedArchitecture(selection), revisionControl.comparison, changes.enabled)
+  hierarchy.paint(world, selectedArchitecture(selection), revisionControl.comparison, changes.enabled, tagFocus.matches(world))
   tagFocus.paint(world)
   paintFlows(flowsHost, world, activeFlows, toggleFlow, {
     title: 'Actors', selectedIds: selectedArchitecture(selection), onSelectActor: select,
@@ -358,9 +359,11 @@ function toggleHud(): void {
   syncUrl()
 }
 
-/** Frames what a view opened: its task, flow step or selection, or the whole sheet when it names none. */
+/** Frames what a view shows: all that its focused tags select; without tags its task, flow step or selection, or the whole sheet when it names none. */
 function focusOpened(kind: Selection['kind']): void {
-  if (kind === 'task') focusActiveTasks()
+  const tagged = tagFocus.matches(world)?.matched
+  if (tagged !== undefined) focusArchitecture([...tagged])
+  else if (kind === 'task') focusActiveTasks()
   else if (kind === 'architecture') focusArchitecture(selectedArchitecture(selection))
   else if (kind === 'flow') focusArchitecture(flowFocus(activeFlows, world))
   else camera.refit()
