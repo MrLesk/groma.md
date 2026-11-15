@@ -981,6 +981,15 @@ switch, filters, work island and first-scan notice, then stays that far inside
 every window edge, while the map still fills the window and the camera fits
 selections into the space the chrome leaves. The value is a positive whole
 number of pixels; anything else keeps the usual layout.
+An embedding page with its own colours opens the map with
+`palette=<name>:<hex>,...`, such as `palette=paper:FFEEDB,ink:2E180F`. The
+colours are drawn over the selected theme. The names are entries of the theme
+palette in `web/atoms/theme.ts`: `paper`, `ink`, `muted`, `accentText`,
+`highlight`, `highlightText`, `hairline`, `line` and `hatch`. The grid follows
+when the link sets both `paper` and `line`. A colour is six hex digits without
+`#`; an unknown name or any other value is ignored. Icons and colors assigned
+to elements and groups stay as authored. The map keeps `palette` in the links
+it writes.
 A watched TypeScript change folds and rebuilds the map without a
 browser refresh. An architecture Markdown change does the same
 without scanning. Selection stays if that box still exists, else the

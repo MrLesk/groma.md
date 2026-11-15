@@ -15,7 +15,7 @@ import { chromeCss } from './atoms/chrome.ts'
 import { escaped } from './atoms/escape.ts'
 import { anchoredPopoverCss } from './atoms/popover.ts'
 import { kindGlyph, kindLabel } from '../atoms/kind.ts'
-import { cssBlock, palettes, themeLabel, themeModes, webFontFamily, type WebThemeMode } from './atoms/theme.ts'
+import { cssBlock, linkPaletteCss, palettes, readLinkPalette, themeLabel, themeModes, webFontFamily, type WebThemeMode } from './atoms/theme.ts'
 import { addDialogCss } from './chrome/add.ts'
 import { iconLibraryCss } from './chrome/icon-library.ts'
 import { iconCatalogCss } from './organisms/icon-catalog.ts'
@@ -455,12 +455,21 @@ function chromeInset(url: URL | undefined): string {
   return Number.isInteger(inset) && inset > 0 ? ` style="--chrome-inset:${inset}px"` : ''
 }
 
+/**
+ * A page that embeds the map sets its own colours in the link, such as `palette=paper:FFEEDB`. They are written on
+ * the root element, where each theme sets its palette, so they are drawn over whichever theme is selected.
+ */
+function linkPalette(url: URL | undefined): string {
+  const css = url === undefined ? '' : linkPaletteCss(readLinkPalette(url.searchParams))
+  return css === '' ? '' : ` style="${css}"`
+}
+
 export function renderPage(payload: WebBootPayload, url?: URL): string {
   const json = JSON.stringify(payload).replace(/</g, '\\u003c')
   const writable = payload.delivery.kind === 'live' && !payload.delivery.readOnly
   const readOnly = payload.delivery.kind === 'live' && payload.delivery.readOnly
     ? '<span id="read-only" title="Run groma web again to restore the missing plugins.">Read-only: plugins missing</span>' : ''
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${escaped(payload.project?.title ?? 'Groma')}</title>`
+  return `<!doctype html><html${linkPalette(url)}><head><meta charset="utf-8"><title>${escaped(payload.project?.title ?? 'Groma')}</title>`
     + sharingMetadata(payload.project, url)
     + `<style>${style}</style></head><body data-delivery="${payload.delivery.kind}"${chromeInset(url)}>`
     + `<header id="header"><div class="header-context">${lockup}<span id="stats"></span>${readOnly}${revisionControl(payload, { history: historyIcon, loader: revisionLoader })}</div>`

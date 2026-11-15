@@ -154,7 +154,61 @@ export function cssBlock(palette: Palette): string {
   --diff-added: ${palette.diffAdded};
   --diff-modified: ${palette.diffModified};
   --diff-removed: ${palette.diffRemoved};
-  --map-grid: ${mixColour(palette.paper, palette.line, 0.12)};
-  --map-grid-major: ${mixColour(palette.paper, palette.line, 0.2)};
+  ${gridCss(palette.paper, palette.line)};
 `
+}
+
+/** The graph paper's fine and major lines, mixed from the paper and the geometry line drawn on it. */
+function gridCss(paper: string, line: string): string {
+  return `--map-grid: ${mixColour(paper, line, 0.12)}; --map-grid-major: ${mixColour(paper, line, 0.2)}`
+}
+
+/** The palette colours an embedding page may set from the map's link, each with the CSS variable it sets. */
+const linkPaletteVariables = {
+  paper: '--paper',
+  ink: '--ink',
+  muted: '--muted',
+  accentText: '--accent-text',
+  highlight: '--highlight',
+  highlightText: '--highlight-text',
+  hairline: '--hairline',
+  line: '--map-line',
+  hatch: '--map-hatch',
+} as const satisfies Partial<Record<keyof Palette, string>>
+
+type LinkPaletteColour = keyof typeof linkPaletteVariables
+
+/** The palette colours a link sets, each as `#RRGGBB`. */
+export type LinkPalette = Partial<Record<LinkPaletteColour, string>>
+
+/**
+ * A page that shows the map in an iframe, such as a slide deck, sets palette colours in the map's link:
+ * `palette=paper:FFEEDB,ink:2E180F`. A colour is six hex digits without the `#`, which a query string would have
+ * to escape. An unknown name or any other value is ignored, so text from a link never reaches the page's style
+ * and a link always opens.
+ */
+export function readLinkPalette(params: URLSearchParams): LinkPalette {
+  const palette: LinkPalette = {}
+  for (const entry of (params.get('palette') ?? '').split(',')) {
+    const [name, value] = entry.split(':')
+    if (name !== undefined && name in linkPaletteVariables && value !== undefined && /^[0-9a-fA-F]{6}$/.test(value)) {
+      palette[name as LinkPaletteColour] = `#${value.toUpperCase()}`
+    }
+  }
+  return palette
+}
+
+/** The `palette` value that sets the same colours again in a link the map writes. */
+export function linkPaletteValue(palette: LinkPalette): string {
+  return Object.entries(palette).map(([name, value]) => `${name}:${value.slice(1)}`).join(',')
+}
+
+/**
+ * The CSS that draws a link's palette over the selected theme; empty without one. The grid is mixed from paper and
+ * line, as in every theme, so it follows only a link that sets both.
+ */
+export function linkPaletteCss(palette: LinkPalette): string {
+  const rules = (Object.entries(palette) as [LinkPaletteColour, string][]).map(([name, value]) => `${linkPaletteVariables[name]}: ${value}`)
+  if (palette.paper !== undefined && palette.line !== undefined) rules.push(gridCss(palette.paper, palette.line))
+  return rules.join('; ')
 }

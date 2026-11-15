@@ -160,6 +160,7 @@ function syncUrl(): void {
     theme: themeControl.mode,
     hudVisible,
     ...(opened.inset === undefined ? {} : { inset: opened.inset }),
+    ...(opened.palette === undefined ? {} : { palette: opened.palette }),
   }, world, work.items, location.pathname, revisionControl.comparison)
   history.replaceState(null, '', `${location.pathname}${query}`)
 }
