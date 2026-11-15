@@ -9,6 +9,11 @@ export function parseTags(text: string): string[] {
   return [...new Set(tags)]
 }
 
+/** Every tag these elements carry, once each, in alphabetical order. */
+export function knownTags(elements: readonly { tags?: readonly string[] }[]): string[] {
+  return [...new Set(elements.flatMap(element => element.tags ?? []))].sort((left, right) => left.localeCompare(right))
+}
+
 /** The comma-separated text a command or form shows for a list of tags. */
 export function formatTags(tags: readonly string[] | undefined): string {
   return (tags ?? []).join(', ')

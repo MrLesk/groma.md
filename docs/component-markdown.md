@@ -242,9 +242,12 @@ tag adds no C4 element, parent, or relationship, and it is unrelated to the
 `groma.tags` field and no separate tag catalog.
 
 `groma edit <id> --tags payments,legacy` replaces the concept's list, and an
-empty value removes the field. The web Edit form has the same Tags field. Groma
-writes tags without commas, blanks, or repeats, and reads any list of non-empty
-strings that another OKF tool wrote.
+empty value removes the field. In the web map the details pane has a Tags row
+([`tagRow`](../src/viewers/web/organisms/tag-row.ts)): typing a name and
+pressing Enter adds a tag, with the tags already in use offered as suggestions,
+and the × on a tag removes it. Each change is stored at once through the same
+edit. Groma writes tags without commas, blanks, or repeats, and reads any list
+of non-empty strings that another OKF tool wrote.
 
 ### Code references
 

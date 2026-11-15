@@ -28,6 +28,7 @@ import { detailsPanelCss } from './chrome/shell.ts'
 import { flowRowCss } from './flow/row.ts'
 import { mapCss } from './iso/painting/style.ts'
 import { editableCss } from './organisms/editable.ts'
+import { tagRowCss } from './organisms/tag-row.ts'
 import { removeCss } from './organisms/remove.ts'
 import { relationshipCardCss } from './organisms/relationship-card.ts'
 import { tipCss } from './organisms/tip.ts'
@@ -127,7 +128,7 @@ const style = `
   body.hud-hidden #pins { display: none; }
   button { font: inherit; color: inherit; background: transparent; cursor: pointer; }
   button:focus-visible { outline: 2px solid var(--highlight); outline-offset: -1px; }
-  #legend span, #details .meta, #details .section, #hierarchy .section, #tree .group, #zoom, #details .chip, #stats, .pane-label {
+  #legend span, #details .meta, #details .section, #details .tag-row .title, #hierarchy .section, #tree .group, #zoom, #details .chip, #stats, .pane-label {
     font-size: 10px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -310,9 +311,6 @@ const style = `
   #details .tabs.controls button + button { margin-left: 0; border-left: 1px solid var(--hairline); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   #details .chip { border: 1px solid var(--hairline); padding: 2px 8px; margin: 0; }
-  /* People type a tag again in commands, so its chip keeps the authored spelling. */
-  #details .chips.tags { margin-bottom: 12px; }
-  #details .chips.tags .chip { border-radius: 10px; font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--ink); }
   .controls { display: flex; }
   .controls button {
     padding: 6px 14px;
@@ -389,7 +387,7 @@ const style = `
 ${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
 ${emptyStateCss}
 ${addDialogCss}${editorCss}
-${relationshipCardCss}${removeCss}${editableCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}`
+${relationshipCardCss}${removeCss}${editableCss}${tagRowCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}`
 
 function legend(): string {
   return legendKinds.map(line => {
