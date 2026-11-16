@@ -1,4 +1,5 @@
 import { changedEdit, type EditValues } from '../../../authoring-conflict.ts'
+import { choiceField, type Choice } from './choice-field.ts'
 import { tagsField } from './tags-field.ts'
 
 export const editableCss = `
@@ -35,6 +36,8 @@ export interface EditField {
   options?: readonly { id: string; title: string }[]
   /** Makes this a tags field: the tags already in use, offered while a tag is typed. */
   suggestions?: readonly string[]
+  /** Makes this a choice field: the fixed set its value is picked from. */
+  choices?: readonly Choice[]
 }
 
 /** A repaint of the same selection keeps its unsaved form. Another selection replaces it. */
@@ -106,6 +109,7 @@ export function editButton(
 
 function editField(field: EditField): HTMLElement {
   if (field.suggestions !== undefined) return tagsField(field.name, field.label, field.value, field.suggestions)
+  if (field.choices !== undefined) return choiceField(field.name, field.label, field.value, field.choices)
   const label = document.createElement('label')
   label.textContent = field.label
   const input = field.options !== undefined ? document.createElement('select')

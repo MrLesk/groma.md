@@ -121,6 +121,9 @@ test.concurrent('color edits set and clear the name, refuse an unknown one, and 
     assert.equal((await read()).color, 'violet')
     await assert.rejects(writes.edit(root, { id: 'api', color: 'teal' }))
     assert.equal((await read()).color, 'violet')
+    // A form opened while the element had no color proposes blue: the color stored meanwhile is not overwritten.
+    await assert.rejects(writes.edit(root, { id: 'api', color: 'blue', original: { color: '' } }), { code: 'edit_conflict' })
+    assert.equal((await read()).color, 'violet')
     await writes.edit(root, { id: 'api', color: '' })
     assert.equal((await read()).color, undefined)
   } finally { await rm(root, { recursive: true, force: true }) }

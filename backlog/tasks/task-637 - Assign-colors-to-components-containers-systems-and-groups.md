@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-10T08:12:00Z'
+updated_date: '2026-11-16T07:45:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -64,6 +64,9 @@ modified_files:
   - groma/systems/groma-md/containers/export/container.md
   - groma/systems/groma-md/containers/go-worker/container.md
   - groma/systems/groma-md/containers/rust-worker/container.md
+  - src/viewers/web/organisms/choice-field.ts
+  - src/viewers/web/organisms/editable.ts
+  - src/authoring-conflict.ts
 type: feature
 ordinal: 701000
 ---
@@ -84,6 +87,7 @@ Group colors are not part of this task: a group is a name on its members and has
 - [x] #2 The web map displays the authored color on the corresponding element in every UI theme, and the theme defines the value of each name.
 - [x] #3 Assignments survive reloads and scans and are unchanged by switching UI themes.
 - [x] #4 Selection, lit flows, task marks, drafts and comparison keep their own signals over an authored color.
+- [x] #5 In the web map the color is the Color field of the element's Edit form: Save stores it with the form's other fields under the same conflict check, and the reading pane has no color control
 <!-- AC:END -->
 
 ## Definition of Done
@@ -107,6 +111,8 @@ Tests (authority: acceptance criteria 1 to 4).
 - Model and editing: a name loads, an unknown name fails, edit sets and clears it and a scan keeps it. Wrong result caught: a color lost by another edit, or an arbitrary value stored. Extends the model and editing tests.
 - Map: a colored container reaches the drawn slab as data-color, and the cover stylesheet holds an explicit fill for it. Wrong result caught: the authored color never reaches the map or the exported cover. Extends the iso map coverage.
 No tests of exact color values.
+
+Revision 2026-11-16 (owner direction: no editing outside the Edit form). The Color row that stored on click is withdrawn. The Edit form gets a Color field: organisms/choice-field.ts is a radio group form control (a value picked from a fixed set, reused by icons), and color-swatches.ts supplies its choices. EditValues and MeaningEdit include color, so Save sends it with its original value. onColor is deleted from the pane hooks. Test (authority: the documented conflict check of the edit forms, now that color is a form field): the existing color edit test also asserts that a Save whose original color no longer matches is refused and writes nothing; wrong result caught: a stale form overwrites a color stored meanwhile; gap: no conflict assertion covered color.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -119,10 +125,14 @@ Verification: bun run check passed (28 Node tests, 1017 Bun tests, 64 environmen
 Cold simplicity review (one round), applied: on covers the color rules reach only the element own faces, so a group hatch inside a colored container is no longer painted over; group zones reset the tint variables, so a color stays on its element in the browser as on covers and the docs sentence about inheritance is true; the cap that gave both sides of a colored building one fill is gone and the strength is 2, which keeps the side shading; a colored actor shades its sides in the browser as on its cover; a hovered colored element keeps its outline color; the per-element variables are named --tint-* so they do not read as the theme --color-<name> values; one depth table feeds both the neutral and the colored surface rules; the two model tests that repeated the editing test are removed. The planned cover stylesheet assertion was not written: it would freeze selector text, and the theme type already requires a value for every name. Kept on purpose: the swatch row writes at once without the Edit form conflict check, because applying a color is a single field overwrite like the CLI.
 
 2026-11-10: removed the colors I had set on groma's own five containers. The architecture comparison job builds each pull request's comparison with the released groma.md, and 0.7.8 rejects the new groma.color field, so the job failed on this branch and on every branch above it. The own map gets its colors back after the release that knows the field.
+
+2026-11-16 revision: the Color row that stored on click was withdrawn after the owner asked that no editing happens outside the Edit form. Verified on the live map of this repository: the reading pane has no swatch and no input; the Edit form shows Color after Tags with No color checked; picking blue and Save colors the building blue and reopening the form shows blue checked; picking No color and Save removes the field from the element file. Full check: 953 Bun tests and the Node suite pass, 0 failures.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
 Elements can carry one of six named colors. groma.color stores the name, groma edit --color and a swatch row in the web details pane set or clear it, and the choice applies at once. Each UI theme defines what every name looks like; the map mixes that value into the element surfaces and outline, in the browser and on exported covers. Selection, lit flows, task marks and drafts keep their own look, and comparison switches authored colors off. groma.md own containers are colored. Group colors are not included and need a storage decision.
+
+Revision 2026-11-16: in the web map the color is the Color field of the element's Edit form (a radio group from organisms/choice-field.ts), stored by Save under the conflict check; the reading pane has no color control and the pane has no onColor hook.
 <!-- SECTION:FINAL_SUMMARY:END -->

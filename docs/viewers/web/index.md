@@ -174,12 +174,13 @@ takes what the pane reads and the write hooks
 and hands the hooks only to the controls that write.
 
 - **Element fields:** `title`, `description`, `overview`, `technology`, `parent`
-  (where the component can move), and `tags`. Empty optional values clear the
-  field. The Tags field is one box that holds the pending tags as chips and the
-  text being typed: Enter or a comma turns the typed text into a chip, Backspace
-  in the empty text takes the last chip off, and the × on a chip takes that one
-  off. The tags already in use are offered under the box, narrowed by what is
-  typed.
+  (where the component can move), `tags`, and `color`. Empty optional values
+  clear the field. The Tags field is one box that holds the pending tags as
+  chips and the text being typed: Enter or a comma turns the typed text into a
+  chip, Backspace in the empty text takes the last chip off, and the × on a chip
+  takes that one off. The tags already in use are offered under the box,
+  narrowed by what is typed. The Color field offers no color and each named
+  color.
 - **Relationship fields:** `description` and `technology`.
 - **Draft acceptance and removal:** A matched draft element or a draft relationship
   exposes **Accept** (`groma accept`). **Remove** appears only where `groma remove`
@@ -222,12 +223,11 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
 
   [`chrome/tag-focus.ts`](../../../src/viewers/web/chrome/tag-focus.ts) owns the
   focused tags.
-- **Colors:** On a live current map the details pane of an element shows a
-  **Color** row: no color, then each [named color](../../component-markdown.md#colors)
-  in the current theme's values. A click applies it at once. The map mixes the
-  color into the element's surfaces and outline; selection, lit flows, task marks
-  and drafts keep their own look over it, and a comparison switches authored
-  colors off because color means change there.
+- **Colors:** The Edit form of an element has a **Color** field: no color, then
+  each [named color](../../component-markdown.md#colors) in the current theme's
+  values. The map mixes the saved color into the element's surfaces and outline;
+  selection, lit flows, task marks and drafts keep their own look over it, and a
+  comparison switches authored colors off because color means change there.
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
   IDs and titles from the configured work source. `Up`/`Down` preview matches;
   `Enter` opens the selected element or task; `Escape` restores the prior selection
