@@ -228,9 +228,10 @@ is necessary to prevent misunderstanding or error, and never use it to restate t
 Reading never writes. A pane writes only from a write view the person opens, and every write view is approved the
 same way: what the write needs, then Cancel and the verb of the write. Before designing or changing a control that
 writes from the web map, read [Reading and editing](docs/viewers/web/index.md#reading-and-editing) and place the write
-by that rule. Describe a new write as data in `src/viewers/web/organisms/commands.ts`; do not build controls, a
-confirmation step, or a button that writes for it. Do not add a control that stores a change from a reading view, and
-do not give reading code a write hook.
+by that rule. Describe a new pane write as data in `src/viewers/web/organisms/commands.ts`; do not build controls, a
+confirmation step, or a button that writes for it. A dialog that writes ends with the shared approval bar
+(`src/viewers/web/atoms/approval-bar.ts`) and builds no Cancel or verb button of its own. Do not add a control that
+stores a change from a reading view, and do not give reading code a write hook.
 
 ## Product-first scope
 

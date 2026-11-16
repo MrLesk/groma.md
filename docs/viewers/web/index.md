@@ -168,7 +168,9 @@ One rule decides where a write lives in the web map:
   once, and returns the pane to reading; Enter in a field presses it. Cancel
   and Escape return to reading and leave the stored data alone. While the write
   is in flight the view waits, and a failed write leaves the view as it was
-  with its message. No write has a layout or an approval step of its own.
+  with its message in the bar. No write has a layout or an approval step of its
+  own. The dialogs that write (Add, a draft or a group drawn on the map, a
+  drafted relationship, the project editor) end with the same approval bar.
 - **A record has one write entry, Edit.** It opens the Edit view of the
   selected element or relationship: every field a person can set on the
   record, and nowhere else can they change. Picking and typing store nothing.
@@ -197,7 +199,11 @@ the writer it calls.
 [`organisms/write-view.ts`](../../../src/viewers/web/organisms/write-view.ts)
 paints every one of them, so a new write cannot bring its own controls: it is
 one more function in `commands.ts`, added to the entries of the pane or of the
-Edit view that offers it. A new editable field is one entry in the Edit view's
+Edit view that offers it. The approval bar is one atom,
+[`atoms/approval-bar.ts`](../../../src/viewers/web/atoms/approval-bar.ts): it
+builds Cancel and the verb, runs one write at a time, and shows a failed
+write's message. Every form that writes, in a pane or a dialog, ends with it
+and builds no approval buttons of its own. A new editable field is one entry in the Edit view's
 field list (`elementFields` in
 [`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts)). The
 code that paints what a person reads receives no write hook: `paintDetails`
