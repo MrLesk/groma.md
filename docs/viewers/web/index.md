@@ -234,7 +234,8 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   ([`editing/appearance-preview.ts`](../../../src/viewers/web/editing/appearance-preview.ts)).
 - **Icons:** The Edit form of an element has an **Icon** field: no icon, then
   each [named icon](../../component-markdown.md#icons). The element's name makes
-  room for the saved icon, so the map lays itself out again.
+  room for the saved icon, so the map lays itself out again. While the form is
+  open the map shows the picked icon in the room the element has now.
   - In the Iso and Layers views the icon is a small object standing before the
     name: on the roof of an actor, external system or component, and on the
     ground before the title of a system or container. Objects are built from
