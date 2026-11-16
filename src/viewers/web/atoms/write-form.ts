@@ -1,13 +1,29 @@
 /*
- * The approval bar: the one way a write is approved in the web map. Every form that writes, in a pane or
- * in a dialog, ends with it and has no other button that writes. From top to bottom it holds the message
- * of a failed write, then Cancel and the button that approves the write.
+ * The write form: how every form that writes looks and is approved in the web map, in a pane or in a
+ * dialog. Such a form carries the class `write-form`, which gives its fields one look, and ends with the
+ * approval bar built here. It has no other button that writes.
  *
- * The approving button says Save. It says something else only where another word tells better what
- * happens: Add, Accept, Remove, Combine, Create group.
+ * From top to bottom the approval bar holds the message of a failed write, then Cancel and the button
+ * that approves the write. The approving button says Save. It says something else only where another
+ * word tells better what happens: Add, Accept, Remove, Combine, Create group.
  */
 
-export const approvalBarCss = `
+export const writeFormCss = `
+  /* A field: a small label over its control. A field that is not a plain label gives its title the class field-title. */
+  .write-form label { display: grid; gap: 6px; }
+  .write-form label[hidden] { display: none; }
+  .write-form label, .write-form .field-title {
+    color: var(--muted); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .write-form :is(input, select, textarea) {
+    box-sizing: border-box; width: 100%; border: 1px solid var(--hairline); border-radius: 6px; padding: 9px 10px;
+    color: var(--ink); background: color-mix(in srgb, var(--paper) 72%, transparent);
+    font: 12px/1.5 'SF Mono', ui-monospace, Menlo, monospace; letter-spacing: normal; text-transform: none;
+    resize: none;
+  }
+  .write-form textarea { height: 120px; }
+  .write-form :is(input, select, textarea):focus { outline: 2px solid var(--highlight); outline-offset: -1px; }
+
   .approval-bar { display: grid; gap: 10px; }
   .approval-bar .error { margin: 0; color: var(--highlight-text); overflow-wrap: anywhere; }
   .approval-bar .error:empty { display: none; }
@@ -20,10 +36,10 @@ export const approvalBarCss = `
   .approval-bar button[type="submit"] { border-color: var(--accent); color: var(--accent-text); }
   .approval-bar button:disabled { opacity: 0.5; cursor: default; }
   /* While the write is in flight the form waits: nothing in it can be pressed or typed. */
-  form:has(> .approval-bar) > * { transition: opacity 160ms ease; }
-  form:has(> .approval-bar)[inert] > * { opacity: 0.5; }
+  .write-form > * { transition: opacity 160ms ease; }
+  .write-form[inert] > * { opacity: 0.5; }
   @media (prefers-reduced-motion: reduce) {
-    .approval-bar button, form:has(> .approval-bar) > * { transition: none; }
+    .approval-bar button, .write-form > * { transition: none; }
   }
 `
 

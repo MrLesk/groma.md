@@ -2,7 +2,7 @@ import { createHtmlRenderer } from '@comark/html'
 import security from 'comark/plugins/security'
 
 import type { ProjectProfile } from '../../../project-profile.ts'
-import { approvalBar } from '../atoms/approval-bar.ts'
+import { approvalBar } from '../atoms/write-form.ts'
 import { changedEdit, type EditValues } from '../../../authoring-conflict.ts'
 
 const renderMarkdown = createHtmlRenderer({
@@ -38,23 +38,11 @@ export const projectEditorCss = `
     transform-origin: left center; pointer-events: none;
   }
   #project-editor h1 { margin: 0; font-size: 18px; line-height: 1.3; }
-  #project-editor label { display: grid; gap: 6px; color: var(--muted); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
   #project-editor .markdown-field { display: grid; gap: 6px; }
   #project-editor .markdown-head { display: flex; align-items: end; justify-content: space-between; }
-  #project-editor .markdown-label { color: var(--muted); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
   #project-editor .markdown-modes { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--hairline); border-radius: 6px; }
   #project-editor .markdown-modes button { border: 0; border-radius: 6px; padding: 4px 8px; color: var(--muted); font-size: 10px; }
   #project-editor .markdown-modes button[aria-selected="true"] { color: var(--paper); background: color-mix(in srgb, var(--ink) 85%, transparent); }
-  #project-editor input, #project-editor textarea {
-    width: 100%;
-    border: 1px solid var(--hairline);
-    border-radius: 6px;
-    padding: 9px 10px;
-    color: var(--ink);
-    background: color-mix(in srgb, var(--paper) 72%, transparent);
-    font: 12px/1.5 'SF Mono', ui-monospace, Menlo, monospace;
-    resize: none;
-  }
   #project-editor textarea { height: clamp(180px, 28vh, 280px); overflow: auto; }
   #project-editor .markdown-preview {
     height: clamp(180px, 28vh, 280px); overflow: auto;
@@ -72,7 +60,6 @@ export const projectEditorCss = `
   #project-editor .markdown-preview blockquote { padding-left: 0.75em; border-left: 2px solid var(--hairline); color: var(--muted); }
   #project-editor .markdown-preview code { padding: 1px 4px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
   #project-editor .markdown-preview a { color: var(--highlight-text); text-underline-offset: 2px; }
-  #project-editor input:focus, #project-editor textarea:focus { outline: 2px solid var(--highlight); outline-offset: -1px; }
   @media (max-width: 640px) {
     #project-editor { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); }
     #project-editor form { gap: 10px; max-height: calc(100dvh - 24px); padding: 16px; }
@@ -121,7 +108,7 @@ export function createProjectEditor(
 ) {
   const dialog = document.createElement('dialog')
   dialog.id = 'project-editor'
-  dialog.innerHTML = '<span class="anchor-line" aria-hidden="true"></span><form><h1></h1><label>Title<input name="title" required></label><label>Description<input name="description"></label><div class="markdown-field"><div class="markdown-head"><span class="markdown-label">Overview</span><div class="markdown-modes" role="tablist"><button type="button" role="tab" data-mode="write" aria-selected="true">Write</button><button type="button" role="tab" data-mode="preview" aria-selected="false">Preview</button></div></div><textarea name="overview" required aria-label="Overview Markdown"></textarea><div class="markdown-preview" role="tabpanel" hidden></div></div></form>'
+  dialog.innerHTML = '<span class="anchor-line" aria-hidden="true"></span><form class="write-form"><h1></h1><label>Title<input name="title" required></label><label>Description<input name="description"></label><div class="markdown-field"><div class="markdown-head"><span class="field-title">Overview</span><div class="markdown-modes" role="tablist"><button type="button" role="tab" data-mode="write" aria-selected="true">Write</button><button type="button" role="tab" data-mode="preview" aria-selected="false">Preview</button></div></div><textarea name="overview" required aria-label="Overview Markdown"></textarea><div class="markdown-preview" role="tabpanel" hidden></div></div></form>'
   document.body.append(dialog)
 
   const line = dialog.querySelector<HTMLElement>('.anchor-line')!

@@ -1,5 +1,5 @@
 import type { AddInput } from '../../../authoring.ts'
-import { approvalBar } from '../atoms/approval-bar.ts'
+import { approvalBar } from '../atoms/write-form.ts'
 
 export const addDialogCss = `
   /* Hidden while creation controls are unfinished. */
@@ -24,20 +24,6 @@ export const addDialogCss = `
   .verb-dialog::backdrop { background: color-mix(in srgb, var(--ink) 8%, transparent); }
   .verb-dialog form { display: grid; gap: 12px; padding: 20px; }
   .verb-dialog h1 { margin: 0; font-size: 18px; line-height: 1.3; }
-  .verb-dialog label { display: grid; gap: 6px; color: var(--muted); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
-  .verb-dialog label[hidden] { display: none; }
-  .verb-dialog input, .verb-dialog select, .verb-dialog textarea {
-    width: 100%;
-    border: 1px solid var(--hairline);
-    border-radius: 6px;
-    padding: 9px 10px;
-    color: var(--ink);
-    background: color-mix(in srgb, var(--paper) 72%, transparent);
-    font: 12px/1.5 'SF Mono', ui-monospace, Menlo, monospace;
-    resize: none;
-  }
-  .verb-dialog textarea { height: 120px; }
-  .verb-dialog input:focus, .verb-dialog select:focus, .verb-dialog textarea:focus { outline: 2px solid var(--highlight); outline-offset: -1px; }
 `
 
 /** The plus button of the hierarchy pane: one dialog declares a person, an external system, or a draft. */
@@ -45,7 +31,7 @@ export function createAddControl(button: HTMLElement, add: (input: AddInput) => 
   const dialog = document.createElement('dialog')
   dialog.id = 'add-dialog'
   dialog.className = 'verb-dialog'
-  dialog.innerHTML = '<form><h1>Add</h1>'
+  dialog.innerHTML = '<form class="write-form"><h1>Add</h1>'
     + '<label>What<select name="thing"><option value="actor">Person</option><option value="external">External system</option><option value="draft">Draft</option></select></label>'
     + '<label>Name<input name="name" required></label>'
     + '<label class="technology" hidden>Technology<input name="technology"></label>'
