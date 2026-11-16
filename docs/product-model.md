@@ -141,8 +141,8 @@ operation before opening a map.
      and prints its ID, `groma edit <group-id>` changes its title, description
      and overview, `groma edit <component-id> --group <group-id>` or
      `--ungroup` changes one membership, and `groma remove <group-id>` deletes
-     the record and leaves its members in place. In the web map a
-     multi-selection of components offers Group as and Combine into (the person
+     the record and leaves its members in place. In the web map the
+     pane of several selected components offers Group and Combine (the person
      picks the survivor).
    - An interaction is authored with `groma add relation <source-file>
      <target-file> --description <prose> --technology <text>`. Exact source
