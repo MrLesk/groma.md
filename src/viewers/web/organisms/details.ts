@@ -420,5 +420,6 @@ function elementFields(inspected: Inspected, parents: readonly ParentOption[], t
     ...(inspected.movable ? [{ name: 'parent' as const, label: 'Parent', value: inspected.parent ?? '', options: parents }] : []),
     { name: 'tags', label: 'Tags', value: formatTags(inspected.tags), suggestions: tagsInUse },
     { name: 'color', label: 'Color', value: inspected.color, choices: colorChoices() },
+    { name: 'icon', label: 'Icon', value: inspected.icon, choices: iconChoices() },
   ]
 }
