@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-16T07:38:00Z'
+updated_date: '2026-11-16T18:12:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -77,6 +77,7 @@ The OKF field is already established by the specification; implementation should
 - [x] #4 The Markdown contract documents one tagged architecture example and identifies the standard OKF field separately from Groma's filtering behavior.
 - [x] #5 In the web map an author changes an element's tags in the Tags field of its Edit form, where the tags already in use are offered while typing; Save stores them with the form's other fields, and the reading pane shows the tags without a write control
 - [x] #6 The web viewer documentation states one rule for where a write lives in the web map (reading never writes, a record's fields change only in its Edit form), and the code that paints what a person reads receives no write hook
+- [x] #7 The Tags field of the Edit form is one box that holds the pending tags as chips and the text being typed: Enter or a comma adds the typed tag, Backspace in the empty text removes the last one, and the tags already in use are offered under the box, narrowed by what is typed
 <!-- AC:END -->
 
 ## Definition of Done
@@ -119,10 +120,14 @@ Cold simplicity review (one round), applied: the edit conflict check now compare
 Added scope 2026-11-16, Tags row. Verified on the live map of this repository (bun src/cli.ts web from this branch): typing map and pressing Enter stores the tag and repaints the row with the caret still in the field; typing layout, terminal adds both; the x on layout removes it; component documents hold the resulting list. Two defects found and fixed while testing: the remove button's class collided with the pane's Remove control (#details .remove), so the row's parts use tag-name, tag-remove and tag-add; disabling the row during a write blurred the field, so the pane now reads what is being typed before a repaint (typedTag) and hands it to the new row. bun run check passes on this branch (28 Node tests, 945 Bun tests, 0 failures).
 
 2026-11-16 revision: the Tags row that stored on click was withdrawn after the owner asked that no editing happens outside the Edit form. Verified on the live map of this repository: the Edit form shows a Tags field after Technology; typing 'map, terminal' and Enter makes two chips, a third tag typed without Enter is kept by Save; the element file then lists the three tags; Cancel after taking a chip off leaves the stored list; taking all chips off and saving removes the field; the reading pane shows the chips with no input and no remove button. Full check: 945 Bun tests and the Node suite pass, 0 failures, no new lint findings.
+
+2026-11-16, after Alex tried the form ("the tag editing and adding input seems from few years ago"): the Tags field was a row of chips above a separate text input with a native datalist. It is now one token box (tags-field.ts only; the hidden control and the form contract are unchanged). Checked on the live map at the top of the stack: open shows the saved tag and the unused tags in use; typing narrows the offers; a click on an offer, Enter, a comma and a pasted comma list each add chips; Backspace in the empty text and the × remove; text typed without Enter still reaches Save through the hidden control.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
 Elements carry the standard OKF tags list; groma edit --tags replaces or clears it, and the terminal, plain view and comparison show it. In the web map the tags are a field of the Edit form (pending chips, suggestions from the tags in use, stored by Save with the other fields and covered by the conflict check), and the reading pane shows them as chips. The web viewer doc now states the rule for writes (reading never writes; a record's fields change only in its Edit form; other writes are named commands), AGENTS.md points to it, and paintDetails gives its reading sections no write hook.
+
+Later the same day the Tags field became one token box: chips and the typed text share one input-like box, Enter or a comma adds, Backspace removes the last chip, and the tags in use are offered under it.
 <!-- SECTION:FINAL_SUMMARY:END -->
