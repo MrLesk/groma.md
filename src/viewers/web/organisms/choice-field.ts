@@ -18,6 +18,7 @@ export function choiceField(name: string, label: string, value: string, choices:
   field.setAttribute('role', 'radiogroup')
   field.setAttribute('aria-label', label)
   const title = document.createElement('span')
+  title.className = 'field-title'
   title.textContent = label
   const row = document.createElement('div')
   row.className = 'choices'
@@ -40,7 +41,7 @@ export function choiceField(name: string, label: string, value: string, choices:
 }
 
 export const choiceFieldCss = `
-  #details .choice-field { display: grid; gap: 5px; font-size: 12px; }
+  #details .choice-field { display: grid; gap: 6px; font-size: 12px; }
   #details .choice-field .choices { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
   #details .choice-field .choices label { position: relative; display: grid; place-items: center; cursor: pointer; }
   /* The radio button stays focusable but unseen: its label shows the choice. */

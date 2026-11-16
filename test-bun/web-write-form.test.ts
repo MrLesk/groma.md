@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 
 import { test } from 'bun:test'
 
-import { oneWriteAtATime } from '../src/viewers/web/atoms/approval-bar.ts'
+import { oneWriteAtATime } from '../src/viewers/web/atoms/write-form.ts'
 
 test.concurrent('a second write of an approval bar does not start while the first is in flight', async () => {
   const states: boolean[] = []

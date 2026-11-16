@@ -33,7 +33,7 @@ import { motionCss } from './chrome/motion.ts'
 import { detailsPanelCss } from './chrome/shell.ts'
 import { flowRowCss } from './flow/row.ts'
 import { mapCss } from './iso/painting/style.ts'
-import { approvalBarCss } from './atoms/approval-bar.ts'
+import { writeFormCss } from './atoms/write-form.ts'
 import { writeViewCss } from './organisms/write-view.ts'
 import { tagRowCss } from './organisms/tag-row.ts'
 import { tagsFieldCss } from './organisms/tags-field.ts'
@@ -385,7 +385,7 @@ const style = `
 ${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
 ${emptyStateCss}
 ${addDialogCss}${editorCss}
-${relationshipCardCss}${selectionDetailsCss}${approvalBarCss}${writeViewCss}${tagRowCss}${tagsFieldCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}${tagFocusCss}${choiceFieldCss}${colorSwatchesCss}${iconPickerCss}${glyphCss}`
+${relationshipCardCss}${selectionDetailsCss}${writeFormCss}${writeViewCss}${tagRowCss}${tagsFieldCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}${tagFocusCss}${choiceFieldCss}${colorSwatchesCss}${iconPickerCss}${glyphCss}`
 
 function legend(): string {
   return legendKinds.map(line => {

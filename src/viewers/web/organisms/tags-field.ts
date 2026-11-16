@@ -16,6 +16,7 @@ export function tagsField(name: string, label: string, value: string, suggestion
   field.setAttribute('role', 'group')
   field.setAttribute('aria-label', label)
   const title = document.createElement('span')
+  title.className = 'field-title'
   title.textContent = label
   const box = document.createElement('div')
   box.className = 'tag-box'
@@ -115,14 +116,14 @@ export function tagsField(name: string, label: string, value: string, suggestion
 }
 
 export const tagsFieldCss = `
-  #details .tags-field { display: grid; gap: 5px; font-size: 12px; }
+  #details .tags-field { display: grid; gap: 6px; font-size: 12px; }
   /* The chips and the text being typed share one box that reads as a single input. */
   #details .tags-field .tag-box {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 5px; box-sizing: border-box; min-height: 32px;
-    border: 1px solid var(--hairline); border-radius: 4px; padding: 4px 6px; cursor: text;
-    background: color-mix(in srgb, var(--paper) 35%, transparent);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 5px; box-sizing: border-box; min-height: 38px;
+    border: 1px solid var(--hairline); border-radius: 6px; padding: 7px 8px; cursor: text;
+    background: color-mix(in srgb, var(--paper) 72%, transparent);
   }
-  #details .tags-field .tag-box:focus-within { outline: 2px solid var(--highlight); }
+  #details .tags-field .tag-box:focus-within { outline: 2px solid var(--highlight); outline-offset: -1px; }
   /* People type a tag again in commands, so its chip keeps the authored spelling. */
   #details .tags-field .tag {
     display: inline-flex; align-items: center; border-radius: 10px; padding-left: 8px; cursor: default;

@@ -1,5 +1,5 @@
 import type { DraftInput } from '../../../authoring.ts'
-import { approvalBar } from '../atoms/approval-bar.ts'
+import { approvalBar } from '../atoms/write-form.ts'
 
 export interface RelateDialogEnds {
   sourceTitle: string
@@ -13,7 +13,7 @@ export function createRelateDialog(add: (input: DraftInput) => Promise<void>) {
   const dialog = document.createElement('dialog')
   dialog.id = 'relate-dialog'
   dialog.className = 'verb-dialog'
-  dialog.innerHTML = '<form><h1></h1>'
+  dialog.innerHTML = '<form class="write-form"><h1></h1>'
     + '<label>Source file<select name="source" required></select></label>'
     + '<label>Target file<select name="target" required></select></label>'
     + '<label>Description<input name="description" required></label>'
