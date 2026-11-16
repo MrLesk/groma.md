@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-16T07:45:00Z'
+updated_date: '2026-11-16T18:16:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -67,6 +67,10 @@ modified_files:
   - src/viewers/web/organisms/choice-field.ts
   - src/viewers/web/organisms/editable.ts
   - src/authoring-conflict.ts
+  - src/viewers/web/editing/appearance-preview.ts
+  - test-bun/web-appearance-preview.test.ts
+  - src/viewers/web/render.ts
+  - groma/systems/groma-md/containers/export/components/create.md
 type: feature
 ordinal: 701000
 ---
@@ -88,6 +92,7 @@ Group colors are not part of this task: a group is a name on its members and has
 - [x] #3 Assignments survive reloads and scans and are unchanged by switching UI themes.
 - [x] #4 Selection, lit flows, task marks, drafts and comparison keep their own signals over an authored color.
 - [x] #5 In the web map the color is the Color field of the element's Edit form: Save stores it with the form's other fields under the same conflict check, and the reading pane has no color control
+- [x] #6 While the Edit form of an element is open, the map shows the picked color on that element without storing it; Cancel, Escape and selecting something else show the saved color again
 <!-- AC:END -->
 
 ## Definition of Done
@@ -127,6 +132,8 @@ Cold simplicity review (one round), applied: on covers the color rules reach onl
 2026-11-10: removed the colors I had set on groma's own five containers. The architecture comparison job builds each pull request's comparison with the released groma.md, and 0.7.8 rejects the new groma.color field, so the job failed on this branch and on every branch above it. The own map gets its colors back after the release that knows the field.
 
 2026-11-16 revision: the Color row that stored on click was withdrawn after the owner asked that no editing happens outside the Edit form. Verified on the live map of this repository: the reading pane has no swatch and no input; the Edit form shows Color after Tags with No color checked; picking blue and Save colors the building blue and reopening the form shows blue checked; picking No color and Save removes the field from the element file. Full check: 953 Bun tests and the Node suite pass, 0 failures.
+
+2026-11-16, after Alex tried the form ("I cannot preview icon and color changes"): moving Color into the Edit form had taken away seeing a color before it is stored. While the form is open the map now paints the picked color on that element (editing/appearance-preview.ts). It keeps no architecture state: the renderer asks it for the sheet as the open form would make it look, and it repaints the map when the picked value changes or the form goes away. Test plan: rule = the map shows the picked color on the edited element only, and "No color" shows it without its saved color (authority: this request); wrong result caught = the preview painting another element or keeping the saved color; gap = withAppearance is new and had no coverage; added test-bun/web-appearance-preview.test.ts (2 tests). Checked on the live map of this branch: violet shows on the building while picked, Cancel shows the saved state again.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
@@ -135,4 +142,6 @@ Cold simplicity review (one round), applied: on covers the color rules reach onl
 Elements can carry one of six named colors. groma.color stores the name, groma edit --color and a swatch row in the web details pane set or clear it, and the choice applies at once. Each UI theme defines what every name looks like; the map mixes that value into the element surfaces and outline, in the browser and on exported covers. Selection, lit flows, task marks and drafts keep their own look, and comparison switches authored colors off. groma.md own containers are colored. Group colors are not included and need a storage decision.
 
 Revision 2026-11-16: in the web map the color is the Color field of the element's Edit form (a radio group from organisms/choice-field.ts), stored by Save under the conflict check; the reading pane has no color control and the pane has no onColor hook.
+
+Later the same day: the map previews the color picked in the open Edit form on that element, without storing it.
 <!-- SECTION:FINAL_SUMMARY:END -->

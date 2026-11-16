@@ -25,6 +25,8 @@ groma:
       file: src/viewers/web/organisms/tip.ts
     - scanner: typescript
       file: src/viewers/web/project/editor.ts
+    - scanner: typescript
+      file: src/viewers/web/editing/appearance-preview.ts
   group: Architecture panels
 description: Turns browser gestures and forms into architecture write actions
 ---

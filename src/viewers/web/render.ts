@@ -35,6 +35,7 @@ import { createPins } from './work/pins.ts'
 import { createTip } from './organisms/tip.ts'
 import { createProjectEditor } from './project/editor.ts'
 import { createAuthoring } from './authoring.ts'
+import { createAppearancePreview } from './editing/appearance-preview.ts'
 import { createRevisionControl } from './revision/control.ts'
 import { createSearchSession } from './search/session.ts'
 import { createWorkIsland } from './work/island.ts'
@@ -67,8 +68,9 @@ const filterC4 = bindC4Filter(document.getElementById('c4-filter')!, opened.hidd
   rememberMapControls()
 })
 const debug = createMapDebugPanel(document.body, () => ({ ...mapMeta, world, sheet }))
+const appearance = createAppearancePreview(document.getElementById('details')!, () => repaintScene(false))
 function projectedScene() {
-  return debug.project(() => changes.project(filterC4.project(presentScene(mapMotion.sheet, project, mapMotion.pose))))
+  return debug.project(() => changes.project(filterC4.project(presentScene(appearance.show(mapMotion.sheet), project, mapMotion.pose))))
 }
 let scene = projectedScene()
 const hosts = pageHosts()
@@ -194,6 +196,7 @@ function paintViewState(commitUrl = true): void {
   })
   paintHeaderSummary(statsHost, world, project)
   paintDetailsState(task)
+  appearance.sync()
   shell.paint(selection)
 }
 
