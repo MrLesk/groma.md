@@ -141,14 +141,11 @@ pub fn scan(input: Input) -> anyhow::Result<Value> {
         }
         sources.sort_by(|a, b| a.file.cmp(&b.file));
         let (operations, functions) = declarations(&sources, &sema);
+        let mut symbols = symbols_by_file(&operations);
         for file in &mut files {
-            file["symbols"] = Value::Array(
-                operations
-                    .iter()
-                    .filter(|op| op["file"] == file["file"])
-                    .map(|op| json!({"id": op["id"], "name": op["name"], "kind": "function"}))
-                    .collect(),
-            );
+            // Each file is listed once, so its symbols move out of the map.
+            let own = file["file"].as_str().and_then(|name| symbols.remove(name));
+            file["symbols"] = Value::Array(own.unwrap_or_default());
         }
         let invocations = calls(&sources, &sema, &db, &functions);
         let constants = url::constants(sources.iter().map(|source| source.syntax.syntax().clone()));
@@ -259,6 +256,18 @@ fn declarations(
         }
     }
     (operations, functions)
+}
+
+/// The symbols each file lists: one for each of its operations, in their order. The operations
+/// are read once, however many files there are.
+fn symbols_by_file(operations: &[Value]) -> HashMap<&str, Vec<Value>> {
+    let mut symbols = HashMap::<&str, Vec<Value>>::new();
+    for operation in operations {
+        let file = operation["file"].as_str().expect("every operation names its file");
+        let symbol = json!({"id": operation["id"], "name": operation["name"], "kind": "function"});
+        symbols.entry(file).or_default().push(symbol);
+    }
+    symbols
 }
 
 fn calls(

@@ -118,11 +118,15 @@ output, curated ownership across repeat scans, failed scan preservation,
 component that also holds a TypeScript file, outline members of same-named types
 in different inline modules beside test-only `cfg` conditions, every HTTP
 endpoint and request fact of the axum, actix-web, Rocket and reqwest fixture
-with its constraints, order and blockers, and the HTTP rows a registered scan of
-that fixture derives. Each test owns its temporary fixture and runs
+with its constraints, order and blockers, the HTTP rows a registered scan of
+that fixture derives, and the [scan time rule](index.md#scan-time) on one
+generated source file at two sizes. Each test owns its temporary fixture and runs
 concurrently. Native tests are opt-in because a
 general repository checkout need not contain a built Rust worker or project
 toolchain.
+
+Adding `-t "scan time stays proportional"` to the `bun test` command above runs
+the scaling check alone.
 
 The 9 September focused run, before the lint case existed, passed 6 tests and
 33 assertions. The complete repository check passed 110 Node tests and
