@@ -1,3 +1,4 @@
+import { approvalBar } from '../atoms/approval-bar.ts'
 import type { WebDataSource } from '../data.ts'
 import type { CreationKind } from './intent.ts'
 
@@ -9,35 +10,32 @@ export function createDialog(data: WebDataSource) {
   dialog.id = 'create-dialog'
   dialog.className = 'verb-dialog'
   dialog.innerHTML = '<form><h1></h1><label>Name<input name="name" required></label>'
-    + '<label data-overview>Overview<textarea name="overview"></textarea></label>'
-    + '<p class="error" role="status"></p><div class="actions">'
-    + '<button type="button" data-cancel>Cancel</button><button type="submit">Save</button></div></form>'
+    + '<label data-overview>Overview<textarea name="overview"></textarea></label></form>'
   document.body.append(dialog)
   const form = dialog.querySelector('form')!
   const name = form.elements.namedItem('name') as HTMLInputElement
   const overview = form.elements.namedItem('overview') as HTMLTextAreaElement
-  const error = form.querySelector<HTMLElement>('.error')!
-  const submit = form.querySelector<HTMLButtonElement>('[type=submit]')!
+  // The verb is set when the dialog opens: Group for a group, Draft for a draft.
+  const approval = approvalBar('Draft')
+  form.append(approval.bar)
   let creation: Creation | undefined
-  form.querySelector('[data-cancel]')!.addEventListener('click', () => dialog.close())
+  approval.cancel.addEventListener('click', () => dialog.close())
   form.addEventListener('submit', async event => {
     event.preventDefault()
-    if (creation === undefined) return
-    submit.disabled = true
-    error.textContent = ''
-    try {
-      if (creation.kind === 'group') await data.add!({ thing: 'group', name: name.value, members: creation.members })
-      else await data.draft!({ kind: creation.kind, name: name.value, parent: creation.parent, overview: overview.value })
-      dialog.close()
-    } catch (cause) { error.textContent = cause instanceof Error ? cause.message : String(cause) }
-    finally { submit.disabled = false }
+    const created = creation
+    if (created === undefined) return
+    const outcome = await approval.approve(() => created.kind === 'group'
+      ? data.add!({ thing: 'group', name: name.value, members: created.members })
+      : data.draft!({ kind: created.kind, name: name.value, parent: created.parent, overview: overview.value }))
+    if (outcome === 'stored') dialog.close()
   })
   return {
     close: () => dialog.close(),
     open(next: Creation): void {
       creation = next
       form.reset()
-      error.textContent = ''
+      approval.clear()
+      approval.verb.textContent = next.kind === 'group' ? 'Group' : 'Draft'
       form.querySelector('h1')!.textContent = next.kind === 'group' ? `Group ${next.members.length} components`
         : `Draft ${next.kind}${next.parentTitle === undefined ? '' : ` in ${next.parentTitle}`}`
       form.querySelector<HTMLElement>('[data-overview]')!.hidden = next.kind === 'group'

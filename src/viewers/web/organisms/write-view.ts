@@ -1,22 +1,23 @@
+import { approvalBar } from '../atoms/approval-bar.ts'
 import { choiceField, type Choice } from './choice-field.ts'
 import { tagsField } from './tags-field.ts'
 
 /*
  * The one way a pane of the web map writes. A reading pane offers each write as a write entry: a button
  * that opens the write's view and stores nothing. The view shows what the write needs, then the approval
- * bar: Cancel and the verb. Only the verb writes. Every write of a pane is described as data
- * (`commands.ts`) and painted here, so no write has a layout or an approval step of its own. A pane's
- * code can only hand its entries to `paintWriteEntries`: it cannot open a view or build one itself.
+ * bar the whole web map shares (`atoms/approval-bar.ts`): Cancel and the verb. Only the verb writes. Every
+ * write of a pane is described as data (`commands.ts`) and painted here, so no write has a layout or an
+ * approval step of its own. A pane's code can only hand its entries to `paintWriteEntries`: it cannot
+ * open a view or build one itself.
  */
 
 export const writeViewCss = `
-  /* A write entry is a button that opens a write view. */
-  #details .write-entry, #details .approval-bar button {
+  /* A write entry is a button that opens a write view. It looks like the buttons of the approval bar. */
+  #details .write-entry {
     border: 1px solid var(--hairline); border-radius: 6px; padding: 6px 12px;
-    background: transparent; color: var(--ink); font: inherit; white-space: nowrap; cursor: pointer;
-    transition: background 160ms ease;
+    background: transparent; color: var(--ink); white-space: nowrap; transition: background 160ms ease;
   }
-  #details .write-entry:hover, #details .approval-bar button:hover { background: var(--hover); }
+  #details .write-entry:hover { background: var(--hover); }
   #details .write-entries { display: flex; flex-wrap: wrap; gap: 8px; }
   /* The entries of a reading pane stand in its header, before the pane's own controls. */
   #details .write-entries.of-pane { position: absolute; top: 12px; right: 92px; }
@@ -41,30 +42,24 @@ export const writeViewCss = `
   #details .write-form textarea { min-height: 140px; resize: vertical; }
   #details .write-form :is(input, textarea, select):focus { outline: 2px solid var(--highlight); }
   #details .write-view .question { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
-  #details .write-view .error { margin: 0; color: var(--highlight-text); overflow-wrap: anywhere; }
-  #details .write-view .error:empty { display: none; }
+  /* The line under the record's other writes, for one that cannot open yet. */
+  #details .write-view > .error { margin: 0; color: var(--highlight-text); }
+  #details .write-view > .error:empty { display: none; }
   /*
-   * The approval bar: the message of a failed write, then Cancel and the verb. It spans the pane's padding
-   * at the pane's bottom and stays there, covering a taller form that scrolls under it.
+   * In a pane the approval bar spans the pane's padding at the pane's bottom and stays there, covering a
+   * taller form that scrolls under it.
    */
   #details .approval-bar {
-    position: sticky; bottom: -22px; display: grid; gap: 10px;
-    margin: auto -24px -22px; padding: 12px 24px 14px;
+    position: sticky; bottom: -22px; margin: auto -24px -22px; padding: 12px 24px 14px;
     border-top: 1px solid var(--hairline); background: color-mix(in srgb, var(--paper) 94%, transparent);
   }
-  #details .approval-bar .buttons { display: flex; justify-content: flex-end; gap: 8px; }
-  #details .approval-bar button[type="submit"] { border-color: var(--accent); color: var(--accent-text); }
-  /* While the write is in flight the view waits: nothing in it can be pressed or typed. */
-  #details .write-view > *, #details .write-form > * { transition: opacity 160ms ease; }
-  #details .write-view[data-writing] :is(.write-entries, .write-form > *) { opacity: 0.5; }
+  /* While the write is in flight the record's other writes wait with the form. */
+  #details .write-view .write-entries { transition: opacity 160ms ease; }
+  #details .write-view .write-entries[inert] { opacity: 0.5; }
   @media (prefers-reduced-motion: reduce) {
-    #details .write-view > *, #details .write-form > *, #details .write-entry, #details .approval-bar button { transition: none; }
+    #details .write-entry, #details .write-view .write-entries { transition: none; }
   }
 `
-
-function message(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause)
-}
 
 /** One thing a write view asks the person for. Its kind follows from which optional part it carries. */
 export interface WriteField {
@@ -125,30 +120,6 @@ function formValues(form: HTMLFormElement): Record<string, string> {
   return Object.fromEntries([...new FormData(form)].map(([name, value]) => [name, String(value)]))
 }
 
-/**
- * Lets the writes of one view run one at a time. `run` starts a write unless another is still in flight,
- * and tells `onWriting` when writing starts and when it settles. It resolves to `'ignored'` for a write
- * that did not start and to `'done'` after one that succeeded, and rejects with a failed write's error.
- */
-export function oneWriteAtATime(onWriting: (writing: boolean) => void) {
-  let writing = false
-  return {
-    get writing(): boolean { return writing },
-    async run(write: () => Promise<void>): Promise<'done' | 'ignored'> {
-      if (writing) return 'ignored'
-      writing = true
-      onWriting(true)
-      try {
-        await write()
-        return 'done'
-      } finally {
-        writing = false
-        onWriting(false)
-      }
-    },
-  }
-}
-
 /** The buttons for `entries`. A click opens that entry's view unless `refusal` returns why it cannot open now. */
 function entryRow(
   host: HTMLElement, key: string, entries: readonly WriteEntry[], read: () => void, refusal: () => string | undefined,
@@ -192,27 +163,6 @@ function errorLine(): HTMLElement {
 }
 
 /**
- * The approval bar of a write view: the line for a failed write, then Cancel and the verb. The verb is the
- * form's submit button, so Enter in a field approves as well.
- */
-function approvalBar(verb: string): { bar: HTMLElement; error: HTMLElement; cancel: HTMLButtonElement; approve: HTMLButtonElement } {
-  const bar = document.createElement('div')
-  bar.className = 'approval-bar'
-  const error = errorLine()
-  const buttons = document.createElement('div')
-  buttons.className = 'buttons'
-  const cancel = document.createElement('button')
-  cancel.type = 'button'
-  cancel.textContent = 'Cancel'
-  const approve = document.createElement('button')
-  approve.type = 'submit'
-  approve.textContent = verb
-  buttons.append(cancel, approve)
-  bar.append(error, buttons)
-  return { bar, error, cancel, approve }
-}
-
-/**
  * Switches the pane from reading to one write view, the only place a pane changes the architecture.
  * From top to bottom the view holds the record's other writes, the fields or the question, and the
  * approval bar. Picking and typing store nothing. The verb calls `write` once and returns the pane to
@@ -223,7 +173,7 @@ function openWriteView(host: HTMLElement, key: string, { verb, fields, question,
   const view = document.createElement('div')
   view.className = 'write-view'
   view.dataset.writeKey = key
-  // Focusable, so the view can hold the focus, and with it Escape, while the write is in flight.
+  // Focusable, so it can hold the focus while its form is inert.
   view.tabIndex = -1
   const form = document.createElement('form')
   form.className = 'write-form'
@@ -234,9 +184,6 @@ function openWriteView(host: HTMLElement, key: string, { verb, fields, question,
     form.append(line)
   }
   for (const field of fields) form.append(fieldControl(field))
-  const { bar, error, cancel, approve } = approvalBar(verb)
-  form.append(bar)
-
   /**
    * What the fields hold as the view opens. The record's other writes act on the stored record, so their
    * entries open only while the fields still hold this.
@@ -247,42 +194,36 @@ function openWriteView(host: HTMLElement, key: string, { verb, fields, question,
   if (entries.length > 0) view.append(others.row, others.error)
   view.append(form)
 
-  const close = (): void => { view.remove(); read() }
-  /** While the write is in flight the view is inert and holds the focus: no second write starts and Escape waits. */
-  const writes = oneWriteAtATime(writing => {
-    view.toggleAttribute('data-writing', writing)
-    others.row.inert = form.inert = writing
+  // While the write is in flight the record's other writes wait too, and the view holds the focus, and with it Escape.
+  const approval = approvalBar(verb, writing => {
+    others.row.inert = writing
     if (writing) view.focus()
   })
+  form.append(approval.bar)
 
-  cancel.addEventListener('click', close)
+  const close = (): void => { view.remove(); read() }
+  approval.cancel.addEventListener('click', close)
   view.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return
     event.preventDefault()
     event.stopPropagation()
-    if (!writes.writing) close()
+    if (!approval.writing) close()
   })
   form.addEventListener('submit', async event => {
     event.preventDefault()
-    const focused = document.activeElement
-    error.textContent = others.error.textContent = ''
-    try {
-      const outcome = await writes.run(async () => {
-        await write(formValues(form))
-        // Says on the pane that the view's values are now stored, while they can still be read from it.
-        view.dispatchEvent(new CustomEvent(WRITE_STORED, { bubbles: true }))
-      })
-      if (outcome === 'done') close()
-    } catch (cause) {
-      error.textContent = message(cause)
-      if (focused instanceof HTMLElement) focused.focus()
-    }
+    others.error.textContent = ''
+    const outcome = await approval.approve(async () => {
+      await write(formValues(form))
+      // Says on the pane that the view's values are now stored, while they can still be read from it.
+      view.dispatchEvent(new CustomEvent(WRITE_STORED, { bubbles: true }))
+    })
+    if (outcome === 'stored') close()
   })
 
   host.querySelector('.tabs')!.replaceChildren()
   host.querySelector('.body')!.replaceChildren(view)
   // The first field takes the focus. A write without fields puts it on the verb, so Enter approves.
-  ;(view.querySelector<HTMLElement>('.write-form :is(input:not([type="hidden"]), textarea, select)') ?? approve).focus()
+  ;(view.querySelector<HTMLElement>('.write-form :is(input:not([type="hidden"]), textarea, select)') ?? approval.verb).focus()
 }
 
 function fieldControl(field: WriteField): HTMLElement {
