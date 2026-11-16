@@ -274,3 +274,13 @@ The standard library is not loaded, so rust-analyzer cannot tell an unresolved
 name in a pattern from a new binding. An identifier pattern that starts with an
 uppercase letter, such as `None` or a glob-imported `Less`, stays text,
 because Rust names enum variants and constants that way.
+
+## Scan time
+
+The worker's own work stays proportional to source size. It never reads a file
+again to find a position or a line: it answers from tables of offsets that it
+builds when it reads the file. It reads the operations once to list each
+file's symbols. The engine's analysis is outside this rule.
+
+The native suite's scaling check checks the rule on one long file;
+[Reproduce the checks](validation.md#reproduce-the-checks) says how to run it.

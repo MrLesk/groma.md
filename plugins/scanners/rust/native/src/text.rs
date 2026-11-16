@@ -12,10 +12,21 @@ use ra_ap_syntax::{AstNode, NodeOrToken, SyntaxKind, SyntaxNode, SyntaxToken, T,
 ///
 /// The worker parses only `normalized()`, so an offset in a syntax tree is an offset in that text.
 /// The other methods turn such an offset into the place in the file on disk that the worker reports.
+///
+/// The scan asks for the place of every function and call, so an answer must not read the text
+/// again: that makes a file twice as long take four times as long to scan. `read` builds three
+/// tables of offsets, each in ascending order. Every answer counts the entries of a table before
+/// the offset, with a binary search.
 pub struct SourceText {
     normalized: String,
+    /// The offset in `normalized` of each `\n`.
+    line_ends: Vec<TextSize>,
     /// The offset in `normalized` of each `\n` that is `\r\n` in the file.
     removed_carriage_returns: Vec<TextSize>,
+    /// The offset in `normalized` of each byte that adds no UTF-16 unit. UTF-8 stores a character
+    /// outside ASCII in 2, 3 or 4 bytes, and UTF-16 stores the same character in 1, 1 or 2 units.
+    /// The first bytes of the character stand for its units and the others add none.
+    bytes_without_utf16_unit: Vec<TextSize>,
 }
 
 impl SourceText {
@@ -30,7 +41,9 @@ impl SourceText {
             rest = &rest[carriage_return + 1..];
         }
         normalized.push_str(rest);
-        Ok(Self { normalized, removed_carriage_returns })
+        let line_ends = normalized.match_indices('\n').map(|(offset, _)| text_size(offset)).collect();
+        let bytes_without_utf16_unit = find_bytes_without_utf16_unit(&normalized);
+        Ok(Self { normalized, line_ends, removed_carriage_returns, bytes_without_utf16_unit })
     }
 
     /// The text to parse.
@@ -40,24 +53,45 @@ impl SourceText {
 
     /// Zero-based UTF-16 offset in the file on disk, the unit the observation contract counts.
     pub fn position(&self, offset: TextSize) -> usize {
-        // A carriage return is one UTF-16 unit.
-        self.normalized[..usize::from(offset)].encode_utf16().count() + self.carriage_returns_before(offset)
+        // Each byte before the offset is one UTF-16 unit, except the bytes that add none. A
+        // carriage return the file has there is one more unit.
+        usize::from(offset) - count_before(&self.bytes_without_utf16_unit, offset)
+            + count_before(&self.removed_carriage_returns, offset)
     }
 
     /// One-based line, which is the same line in the file on disk.
     pub fn line(&self, offset: TextSize) -> usize {
-        self.normalized[..usize::from(offset)].bytes().filter(|byte| *byte == b'\n').count() + 1
+        count_before(&self.line_ends, offset) + 1
     }
 
     /// The byte range in the file on disk.
     pub fn on_disk_range(&self, range: TextRange) -> TextRange {
-        let on_disk = |offset| offset + TextSize::new(self.carriage_returns_before(offset) as u32);
+        let on_disk = |offset| offset + text_size(count_before(&self.removed_carriage_returns, offset));
         TextRange::new(on_disk(range.start()), on_disk(range.end()))
     }
+}
 
-    fn carriage_returns_before(&self, offset: TextSize) -> usize {
-        self.removed_carriage_returns.iter().filter(|line_end| **line_end < offset).count()
+/// How many of these offsets, which are in ascending order, are before `offset`.
+fn count_before(ascending: &[TextSize], offset: TextSize) -> usize {
+    ascending.partition_point(|earlier| *earlier < offset)
+}
+
+/// The offsets, in ascending order, of the bytes of `text` that add no UTF-16 unit: of each
+/// character, every byte after as many bytes as the character has UTF-16 units.
+fn find_bytes_without_utf16_unit(text: &str) -> Vec<TextSize> {
+    let mut offsets = Vec::new();
+    for (start, character) in text.char_indices() {
+        for byte in character.len_utf16()..character.len_utf8() {
+            offsets.push(text_size(start + byte));
+        }
     }
+    offsets
+}
+
+/// An offset or a count in one file as the engine's offset type, which holds 32 bits. The engine
+/// cannot parse a longer file either.
+fn text_size(value: usize) -> TextSize {
+    TextSize::try_from(value).expect("a Rust source file is shorter than 4 GiB")
 }
 
 /// The text of a string literal, without escape sequences.
