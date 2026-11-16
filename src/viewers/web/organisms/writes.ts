@@ -4,7 +4,7 @@ import type { EditValues } from '../../../authoring-conflict.ts'
 import { message } from './editable.ts'
 
 /** What the edit verb changes from the pane; the id is the selected element's. */
-export type MeaningEdit = Pick<EditArchitectureInput, 'title' | 'description' | 'overview' | 'technology' | 'parent'>
+export type MeaningEdit = Pick<EditArchitectureInput, 'title' | 'description' | 'overview' | 'technology' | 'parent' | 'tags'>
 
 export interface ParentOption {
   id: string
@@ -17,14 +17,15 @@ export interface SelectionWrites {
   onCombine: (survivor: string) => Promise<void>
 }
 
-/** The write hooks an element pane gets on the current revision of a live map. */
+/**
+ * The write hooks an element pane gets on the current revision of a live map. Only the controls that
+ * write receive them: the sections a person reads are painted without any, so reading cannot write.
+ */
 export interface PaneWrites {
   onRead?: () => void
   onRemove?: () => Promise<void>
   onAccept?: () => Promise<void>
   onEdit?: (input: MeaningEdit, original: EditValues) => Promise<void>
-  /** Stores the element's complete tag list at once, from the Tags row. */
-  onTags?: (tags: string[]) => Promise<void>
   parents?: readonly ParentOption[]
   /** Present while several components are selected on a live map. */
   selection?: SelectionWrites

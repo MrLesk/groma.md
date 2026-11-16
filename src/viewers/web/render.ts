@@ -231,8 +231,7 @@ function paintDetailsState(task: WorkItem | undefined): void {
       onSource: source.open,
       workGroups: selected?.kind === 'component' ? elementWorkGroups(work, selected.representationId, world) : [],
       onTask: toggleTask,
-      ...(selected === undefined ? {} : authoring.paneWrites(selected.id, selectedArchitecture(selection))),
-    })
+    }, selected === undefined ? {} : authoring.paneWrites(selected.id, selectedArchitecture(selection)))
   }
 }
 
