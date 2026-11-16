@@ -29,6 +29,8 @@ groma:
       file: src/viewers/web/atoms/text.ts
     - scanner: typescript
       file: src/viewers/web/icons/glyph-element.ts
+    - scanner: typescript
+      file: src/viewers/web/atoms/approval-bar.ts
 description: Shared buttons, dialogs, menus and text styles for browser panels
 ---
 

@@ -1,4 +1,5 @@
 import type { DraftInput } from '../../../authoring.ts'
+import { approvalBar } from '../atoms/approval-bar.ts'
 
 export interface RelateDialogEnds {
   sourceTitle: string
@@ -16,9 +17,7 @@ export function createRelateDialog(add: (input: DraftInput) => Promise<void>) {
     + '<label>Source file<select name="source" required></select></label>'
     + '<label>Target file<select name="target" required></select></label>'
     + '<label>Description<input name="description" required></label>'
-    + '<label>Technology<input name="technology" required></label>'
-    + '<p class="error" role="status"></p>'
-    + '<div class="actions"><button type="button" data-cancel>Cancel</button><button type="submit">Save draft</button></div></form>'
+    + '<label>Technology<input name="technology" required></label></form>'
   document.body.append(dialog)
 
   const form = dialog.querySelector('form')!
@@ -27,30 +26,22 @@ export function createRelateDialog(add: (input: DraftInput) => Promise<void>) {
   const target = form.elements.namedItem('target') as HTMLSelectElement
   const description = form.elements.namedItem('description') as HTMLInputElement
   const technology = form.elements.namedItem('technology') as HTMLInputElement
-  const error = form.querySelector<HTMLElement>('.error')!
-  const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!
+  const approval = approvalBar('Draft')
+  form.append(approval.bar)
   let ends: RelateDialogEnds | undefined
 
-  form.querySelector('[data-cancel]')!.addEventListener('click', () => dialog.close())
+  approval.cancel.addEventListener('click', () => dialog.close())
   form.addEventListener('submit', async event => {
     event.preventDefault()
     if (ends === undefined) return
-    submit.disabled = true
-    error.textContent = ''
-    try {
-      await add({
-        kind: 'relation',
-        name: source.value,
-        relation: target.value,
-        description: description.value,
-        technology: technology.value,
-      })
-      dialog.close()
-    } catch (cause) {
-      error.textContent = cause instanceof Error ? cause.message : String(cause)
-    } finally {
-      submit.disabled = false
-    }
+    const outcome = await approval.approve(() => add({
+      kind: 'relation',
+      name: source.value,
+      relation: target.value,
+      description: description.value,
+      technology: technology.value,
+    }))
+    if (outcome === 'stored') dialog.close()
   })
 
   return {
@@ -62,8 +53,8 @@ export function createRelateDialog(add: (input: DraftInput) => Promise<void>) {
       for (const [select, files] of [[source, next.sourceFiles], [target, next.targetFiles]] as const) {
         select.replaceChildren(...files.map(file => new Option(file, file)))
       }
-      submit.disabled = next.sourceFiles.length === 0 || next.targetFiles.length === 0
-      error.textContent = ''
+      approval.verb.disabled = next.sourceFiles.length === 0 || next.targetFiles.length === 0
+      approval.clear()
       dialog.showModal()
       description.focus()
     },

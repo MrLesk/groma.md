@@ -2,6 +2,7 @@ import { createHtmlRenderer } from '@comark/html'
 import security from 'comark/plugins/security'
 
 import type { ProjectProfile } from '../../../project-profile.ts'
+import { approvalBar } from '../atoms/approval-bar.ts'
 import { changedEdit, type EditValues } from '../../../authoring-conflict.ts'
 
 const renderMarkdown = createHtmlRenderer({
@@ -42,7 +43,7 @@ export const projectEditorCss = `
   #project-editor .markdown-head { display: flex; align-items: end; justify-content: space-between; }
   #project-editor .markdown-label { color: var(--muted); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
   #project-editor .markdown-modes { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--hairline); border-radius: 6px; }
-  #project-editor .markdown-modes button { border: 0; padding: 4px 8px; color: var(--muted); font-size: 10px; }
+  #project-editor .markdown-modes button { border: 0; border-radius: 6px; padding: 4px 8px; color: var(--muted); font-size: 10px; }
   #project-editor .markdown-modes button[aria-selected="true"] { color: var(--paper); background: color-mix(in srgb, var(--ink) 85%, transparent); }
   #project-editor input, #project-editor textarea {
     width: 100%;
@@ -72,12 +73,6 @@ export const projectEditorCss = `
   #project-editor .markdown-preview code { padding: 1px 4px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
   #project-editor .markdown-preview a { color: var(--highlight-text); text-underline-offset: 2px; }
   #project-editor input:focus, #project-editor textarea:focus { outline: 2px solid var(--highlight); outline-offset: -1px; }
-  #project-editor .error { min-height: 1.5em; margin: -6px 0 0; color: var(--highlight-text); font-size: 11px; }
-  #project-editor .error:empty { display: none; }
-  #project-editor .actions { display: flex; justify-content: flex-end; gap: 8px; }
-  #project-editor button { border: 1px solid var(--hairline); border-radius: 6px; padding: 7px 12px; background: transparent; }
-  #project-editor button[type="submit"] { border-color: var(--accent); background: transparent; color: var(--accent-text); }
-  #project-editor button:disabled { opacity: 0.5; cursor: wait; }
   @media (max-width: 640px) {
     #project-editor { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); }
     #project-editor form { gap: 10px; max-height: calc(100dvh - 24px); padding: 16px; }
@@ -126,7 +121,7 @@ export function createProjectEditor(
 ) {
   const dialog = document.createElement('dialog')
   dialog.id = 'project-editor'
-  dialog.innerHTML = '<span class="anchor-line" aria-hidden="true"></span><form><h1></h1><label>Title<input name="title" required></label><label>Description<input name="description"></label><div class="markdown-field"><div class="markdown-head"><span class="markdown-label">Overview</span><div class="markdown-modes" role="tablist"><button type="button" role="tab" data-mode="write" aria-selected="true">Write</button><button type="button" role="tab" data-mode="preview" aria-selected="false">Preview</button></div></div><textarea name="overview" required aria-label="Overview Markdown"></textarea><div class="markdown-preview" role="tabpanel" hidden></div></div><p class="error" role="status"></p><div class="actions"><button type="button" data-cancel>Cancel</button><button type="submit">Save</button></div></form>'
+  dialog.innerHTML = '<span class="anchor-line" aria-hidden="true"></span><form><h1></h1><label>Title<input name="title" required></label><label>Description<input name="description"></label><div class="markdown-field"><div class="markdown-head"><span class="markdown-label">Overview</span><div class="markdown-modes" role="tablist"><button type="button" role="tab" data-mode="write" aria-selected="true">Write</button><button type="button" role="tab" data-mode="preview" aria-selected="false">Preview</button></div></div><textarea name="overview" required aria-label="Overview Markdown"></textarea><div class="markdown-preview" role="tabpanel" hidden></div></div></form>'
   document.body.append(dialog)
 
   const line = dialog.querySelector<HTMLElement>('.anchor-line')!
@@ -137,9 +132,8 @@ export function createProjectEditor(
   const overview = form.elements.namedItem('overview') as HTMLTextAreaElement
   const preview = form.querySelector<HTMLElement>('.markdown-preview')!
   const modes = [...form.querySelectorAll<HTMLButtonElement>('[data-mode]')]
-  const cancel = form.querySelector<HTMLButtonElement>('[data-cancel]')!
-  const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!
-  const error = form.querySelector<HTMLElement>('.error')!
+  const approval = approvalBar('Save')
+  form.append(approval.bar)
   let anchor: Element | undefined
   let original: EditValues = {}
 
@@ -167,24 +161,19 @@ export function createProjectEditor(
   overview.addEventListener('input', () => {
     if (!preview.hidden) void showMode('preview')
   })
-  cancel.addEventListener('click', () => dialog.close())
+  approval.cancel.addEventListener('click', () => dialog.close())
   form.addEventListener('submit', async event => {
     event.preventDefault()
-    submit.disabled = true
-    error.textContent = ''
-    try {
-      const input = changedEdit(original, {
-        title: title.value,
-        overview: overview.value,
-        description: description.value,
-      })
+    const input = changedEdit(original, {
+      title: title.value,
+      overview: overview.value,
+      description: description.value,
+    })
+    // Save without a change closes the dialog and writes nothing.
+    const outcome = await approval.approve(async () => {
       if (Object.keys(input.original).length) await save(input)
-      dialog.close()
-    } catch (cause) {
-      error.textContent = cause instanceof Error ? cause.message : String(cause)
-    } finally {
-      submit.disabled = false
-    }
+    })
+    if (outcome === 'stored') dialog.close()
   })
 
   return {
@@ -195,7 +184,7 @@ export function createProjectEditor(
       description.value = profile.description ?? ''
       overview.value = profile.overview
       original = { title: title.value, description: description.value, overview: overview.value }
-      error.textContent = ''
+      approval.clear()
       void showMode('write')
       dialog.showModal()
       placeEditor(dialog, anchor, line)
