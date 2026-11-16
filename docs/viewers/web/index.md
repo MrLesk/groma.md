@@ -228,6 +228,9 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   values. The map mixes the saved color into the element's surfaces and outline;
   selection, lit flows, task marks and drafts keep their own look over it, and a
   comparison switches authored colors off because color means change there.
+  While the form is open the map shows the picked color on that element; it is
+  stored only by **Save**
+  ([`editing/appearance-preview.ts`](../../../src/viewers/web/editing/appearance-preview.ts)).
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
   IDs and titles from the configured work source. `Up`/`Down` preview matches;
   `Enter` opens the selected element or task; `Escape` restores the prior selection
