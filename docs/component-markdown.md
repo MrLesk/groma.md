@@ -353,11 +353,10 @@ parts and people, never a vendor or a programming language:
 
 [`src/icons.ts`](../src/icons.ts) holds the list. `groma edit <id> --icon
 database` sets the icon of an actor, system, external system, container, or
-component, and an empty value removes it. The web details pane offers the same
-names as a grid that applies at once. No icon is assigned automatically, an
-icon is not inherited by what the element contains, and scans keep it. A group
-has no icon: an icon says what an element is, and a group is a name on its
-members, not an element.
+component, and an empty value removes it. In the web map the Edit form of an
+element offers the same names as its Icon field. No icon is assigned
+automatically, an icon is not inherited by what the element contains, and scans
+keep it. Groups do not carry an icon.
 
 The [web map](viewers/web/index.md) draws each name twice: as a small object
 standing beside the element's name in the tilted views, and as a flat glyph in
