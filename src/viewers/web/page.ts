@@ -29,6 +29,7 @@ import { flowRowCss } from './flow/row.ts'
 import { mapCss } from './iso/painting/style.ts'
 import { editableCss } from './organisms/editable.ts'
 import { tagRowCss } from './organisms/tag-row.ts'
+import { tagsFieldCss } from './organisms/tags-field.ts'
 import { removeCss } from './organisms/remove.ts'
 import { relationshipCardCss } from './organisms/relationship-card.ts'
 import { tipCss } from './organisms/tip.ts'
@@ -387,7 +388,7 @@ const style = `
 ${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
 ${emptyStateCss}
 ${addDialogCss}${editorCss}
-${relationshipCardCss}${removeCss}${editableCss}${tagRowCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}`
+${relationshipCardCss}${removeCss}${editableCss}${tagRowCss}${tagsFieldCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}`
 
 function legend(): string {
   return legendKinds.map(line => {

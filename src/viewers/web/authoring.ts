@@ -1,4 +1,3 @@
-import { formatTags } from '../../tags.ts'
 import type { AnnotatedArchitectureModel } from '../../types.ts'
 import { createMapEditor } from './editing/gestures.ts'
 import type { WebDataSource } from './data.ts'
@@ -17,7 +16,6 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
   const gestures = createMapEditor(host, map, data, () => deps.world().elements, deps.live)
   const { accept, add, edit, remove } = data
   const titleOf = (id: string): string => deps.world().elements.find(element => element.id === id)?.title ?? id
-  const tagsOf = (id: string): readonly string[] => deps.world().elements.find(element => element.id === id)?.tags ?? []
   /** Group as and Combine into, while several components are selected. */
   function selectionWrites(ids: readonly string[]): SelectionWrites | undefined {
     if (ids.length < 2 || add === undefined || edit === undefined) return undefined
@@ -38,8 +36,6 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
       ...(accept === undefined ? {} : { onAccept: () => accept({ id: selectedId }) }),
       ...(edit === undefined ? {} : {
         onEdit: (input, original) => edit({ id: selectedId, ...input, original }),
-        // The list the row showed goes along, so a tag someone else added meanwhile is not overwritten.
-        onTags: tags => edit({ id: selectedId, tags: formatTags(tags), original: { tags: formatTags(tagsOf(selectedId)) } }),
         parents: deps.world().elements.filter(element => element.kind === 'container')
           .map(element => ({ id: element.id, title: element.title }))
           .sort((left, right) => left.title.localeCompare(right.title) || left.id.localeCompare(right.id)),
