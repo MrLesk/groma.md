@@ -45,6 +45,9 @@ export function isEditing(host: HTMLElement, key: string): boolean {
   return host.querySelector<HTMLFormElement>('.edit-form')?.dataset.editKey === key
 }
 
+/** The event an Edit form sends up the pane right after Save stored it, before the form closes. */
+export const EDIT_SAVED = 'edit-saved'
+
 /** The key of the open Edit form and the values it holds, saved or not. Undefined while the pane is reading. */
 export function pendingEdit(host: HTMLElement): { key: string; values: Record<string, string> } | undefined {
   const form = host.querySelector<HTMLFormElement>('.edit-form')
@@ -102,7 +105,12 @@ export function editButton(
       if (Object.keys(changes).length === 0) { close(); return }
       submit.disabled = cancel.disabled = true
       error.textContent = ''
-      try { await save(changes, original); close() }
+      try {
+        await save(changes, original)
+        // Says on the pane that the form's values are now stored, while the form can still be read.
+        form.dispatchEvent(new CustomEvent(EDIT_SAVED, { bubbles: true }))
+        close()
+      }
       catch (cause) { error.textContent = message(cause) }
       finally { submit.disabled = cancel.disabled = false }
     })
