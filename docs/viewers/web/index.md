@@ -176,13 +176,13 @@ takes what the pane reads and the write hooks
 and hands the hooks only to the controls that write.
 
 - **Element fields:** `title`, `description`, `overview`, `technology`, `parent`
-  (where the component can move), `tags`, and `color`. Empty optional values
-  clear the field. The Tags field is one box that holds the pending tags as
-  chips and the text being typed: Enter or a comma turns the typed text into a
-  chip, Backspace in the empty text takes the last chip off, and the × on a chip
-  takes that one off. The tags already in use are offered under the box,
+  (where the component can move), `tags`, `color`, and `icon`. Empty optional
+  values clear the field. The Tags field is one box that holds the pending tags
+  as chips and the text being typed: Enter or a comma turns the typed text into
+  a chip, Backspace in the empty text takes the last chip off, and the × on a
+  chip takes that one off. The tags already in use are offered under the box,
   narrowed by what is typed. The Color field offers no color and each named
-  color.
+  color; the Icon field offers no icon and each named icon.
 - **Relationship fields:** `description` and `technology`.
 - **Draft acceptance and removal:** A matched draft element or a draft relationship
   exposes **Accept** (`groma accept`). **Remove** appears only where `groma remove`
