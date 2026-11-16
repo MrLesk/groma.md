@@ -45,6 +45,14 @@ export function isEditing(host: HTMLElement, key: string): boolean {
   return host.querySelector<HTMLFormElement>('.edit-form')?.dataset.editKey === key
 }
 
+/** The key of the open Edit form and the values it holds, saved or not. Undefined while the pane is reading. */
+export function pendingEdit(host: HTMLElement): { key: string; values: Record<string, string> } | undefined {
+  const form = host.querySelector<HTMLFormElement>('.edit-form')
+  const key = form?.closest<HTMLElement>('[data-edit-key]')?.dataset.editKey
+  if (form === null || key === undefined) return undefined
+  return { key, values: Object.fromEntries([...new FormData(form)].map(([name, value]) => [name, String(value)])) }
+}
+
 /**
  * One explicit edit session, the only place a record's fields change in the web map. Picking and typing in
  * the form store nothing: only Save calls the shared writer, and Cancel and Escape leave saved data alone.
