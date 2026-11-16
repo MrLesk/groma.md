@@ -1,7 +1,10 @@
 /*
  * The approval bar: the one way a write is approved in the web map. Every form that writes, in a pane or
  * in a dialog, ends with it and has no other button that writes. From top to bottom it holds the message
- * of a failed write, then Cancel and the verb that names the write.
+ * of a failed write, then Cancel and the button that approves the write.
+ *
+ * The approving button says Save. It says something else only where another word tells better what
+ * happens: Add, Accept, Remove, Combine, Create group.
  */
 
 export const approvalBarCss = `
@@ -52,14 +55,14 @@ export interface ApprovalBar {
   /** The bar itself. It goes last in the form whose write it approves. */
   bar: HTMLElement
   cancel: HTMLButtonElement
-  /** The verb. It is the form's submit button, so Enter in a field presses it. */
-  verb: HTMLButtonElement
+  /** The button that approves the write. It is the form's submit button, so Enter in a field presses it. */
+  approveButton: HTMLButtonElement
   /** True while a write is in flight. */
   readonly writing: boolean
   /** Empties the line of a failed write, for a form that is shown again. */
   clear(): void
   /**
-   * Runs the write the verb approves and says what became of it: `'stored'` once it succeeded, `'failed'`
+   * Runs the write the person approved and says what became of it: `'stored'` once it succeeded, `'failed'`
    * when it threw, or `'ignored'` when an earlier write of this bar is still in flight. While the write
    * runs the form is inert, so nothing is typed or pressed twice. A failed write shows its message in the
    * bar and gives the focus back to where it was.
@@ -68,10 +71,10 @@ export interface ApprovalBar {
 }
 
 /**
- * Builds the approval bar of one form. `verb` names the write: Save, Add, Remove. `onWriting` is for a
- * caller that has more to lock than the form, such as the buttons beside it.
+ * Builds the approval bar of one form. `approveLabel` is what the approving button says, Save in most
+ * forms. `onWriting` is for a caller that has more to lock than the form, such as the buttons beside it.
  */
-export function approvalBar(verb: string, onWriting: (writing: boolean) => void = () => {}): ApprovalBar {
+export function approvalBar(approveLabel: string, onWriting: (writing: boolean) => void = () => {}): ApprovalBar {
   const bar = document.createElement('div')
   bar.className = 'approval-bar'
   const error = document.createElement('p')
@@ -84,7 +87,7 @@ export function approvalBar(verb: string, onWriting: (writing: boolean) => void 
   cancel.textContent = 'Cancel'
   const approve = document.createElement('button')
   approve.type = 'submit'
-  approve.textContent = verb
+  approve.textContent = approveLabel
   buttons.append(cancel, approve)
   bar.append(error, buttons)
 
@@ -95,7 +98,7 @@ export function approvalBar(verb: string, onWriting: (writing: boolean) => void 
   return {
     bar,
     cancel,
-    verb: approve,
+    approveButton: approve,
     get writing(): boolean { return writes.writing },
     clear(): void { error.textContent = '' },
     async approve(write): Promise<'stored' | 'failed' | 'ignored'> {

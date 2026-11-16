@@ -5,10 +5,10 @@ import { tagsField } from './tags-field.ts'
 /*
  * The one way a pane of the web map writes. A reading pane offers each write as a write entry: a button
  * that opens the write's view and stores nothing. The view shows what the write needs, then the approval
- * bar the whole web map shares (`atoms/approval-bar.ts`): Cancel and the verb. Only the verb writes. Every
- * write of a pane is described as data (`commands.ts`) and painted here, so no write has a layout or an
- * approval step of its own. A pane's code can only hand its entries to `paintWriteEntries`: it cannot
- * open a view or build one itself.
+ * bar the whole web map shares (`atoms/approval-bar.ts`): Cancel and the approving button. Only that
+ * button writes. Every write of a pane is described as data (`commands.ts`) and painted here, so no write
+ * has a layout or an approval step of its own. A pane's code can only hand its entries to
+ * `paintWriteEntries`: it cannot open a view or build one itself.
  */
 
 export const writeViewCss = `
@@ -78,15 +78,18 @@ export interface WriteField {
   choices?: readonly Choice[]
 }
 
-/** One write a pane offers: what it asks the person for, and the verb that approves it. */
+/** One write a pane offers: what it asks the person for, and the button that approves it. */
 export interface WriteView {
-  /** The word on the button that approves the write: Save, Accept, Remove. No other control of the view writes. */
-  verb: string
+  /**
+   * What the button that approves the write says: Save, unless another word tells better what happens
+   * (Accept, Remove, Create group). No other control of the view writes.
+   */
+  approveLabel: string
   /** What the write needs from the person, in the order shown. A write that needs nothing has none. */
   fields: readonly WriteField[]
   /** What a write without fields is about to do, shown where the fields would be: "Remove Billing?". */
   question?: string
-  /** Stores the write. Called once the person presses the verb, with the value of every field by name. */
+  /** Stores the write. Called once the approving button is pressed, with the value of every field by name. */
   write: (values: Record<string, string>) => Promise<void>
   /** The other writes of the same record, offered above the fields. Each opens its own view in place of this one. */
   entries?: readonly WriteEntry[]
@@ -165,11 +168,11 @@ function errorLine(): HTMLElement {
 /**
  * Switches the pane from reading to one write view, the only place a pane changes the architecture.
  * From top to bottom the view holds the record's other writes, the fields or the question, and the
- * approval bar. Picking and typing store nothing. The verb calls `write` once and returns the pane to
- * reading; a failed write leaves the view as it was, with the failure's message in the bar. Cancel and
- * Escape return to reading without writing.
+ * approval bar. Picking and typing store nothing. The approving button calls `write` once and returns
+ * the pane to reading; a failed write leaves the view as it was, with the failure's message in the bar.
+ * Cancel and Escape return to reading without writing.
  */
-function openWriteView(host: HTMLElement, key: string, { verb, fields, question, write, entries = [] }: WriteView, read: () => void): void {
+function openWriteView(host: HTMLElement, key: string, { approveLabel, fields, question, write, entries = [] }: WriteView, read: () => void): void {
   const view = document.createElement('div')
   view.className = 'write-view'
   view.dataset.writeKey = key
@@ -190,12 +193,12 @@ function openWriteView(host: HTMLElement, key: string, { verb, fields, question,
    */
   const opened = JSON.stringify(formValues(form))
   const others = entryRow(host, key, entries, read,
-    () => JSON.stringify(formValues(form)) === opened ? undefined : `${verb} or cancel your changes first.`)
+    () => JSON.stringify(formValues(form)) === opened ? undefined : `${approveLabel} or cancel your changes first.`)
   if (entries.length > 0) view.append(others.row, others.error)
   view.append(form)
 
   // While the write is in flight the record's other writes wait too, and the view holds the focus, and with it Escape.
-  const approval = approvalBar(verb, writing => {
+  const approval = approvalBar(approveLabel, writing => {
     others.row.inert = writing
     if (writing) view.focus()
   })
@@ -222,8 +225,8 @@ function openWriteView(host: HTMLElement, key: string, { verb, fields, question,
 
   host.querySelector('.tabs')!.replaceChildren()
   host.querySelector('.body')!.replaceChildren(view)
-  // The first field takes the focus. A write without fields puts it on the verb, so Enter approves.
-  ;(view.querySelector<HTMLElement>('.write-form :is(input:not([type="hidden"]), textarea, select)') ?? approval.verb).focus()
+  // The first field takes the focus. A write without fields puts it on the approving button, so Enter approves.
+  ;(view.querySelector<HTMLElement>('.write-form :is(input:not([type="hidden"]), textarea, select)') ?? approval.approveButton).focus()
 }
 
 function fieldControl(field: WriteField): HTMLElement {

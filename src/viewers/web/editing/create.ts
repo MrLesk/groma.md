@@ -15,8 +15,8 @@ export function createDialog(data: WebDataSource) {
   const form = dialog.querySelector('form')!
   const name = form.elements.namedItem('name') as HTMLInputElement
   const overview = form.elements.namedItem('overview') as HTMLTextAreaElement
-  // The verb is set when the dialog opens: Group for a group, Draft for a draft.
-  const approval = approvalBar('Draft')
+  // A draft is saved. A group gets its own label when the dialog opens for one.
+  const approval = approvalBar('Save')
   form.append(approval.bar)
   let creation: Creation | undefined
   approval.cancel.addEventListener('click', () => dialog.close())
@@ -35,7 +35,7 @@ export function createDialog(data: WebDataSource) {
       creation = next
       form.reset()
       approval.clear()
-      approval.verb.textContent = next.kind === 'group' ? 'Group' : 'Draft'
+      approval.approveButton.textContent = next.kind === 'group' ? 'Create group' : 'Save'
       form.querySelector('h1')!.textContent = next.kind === 'group' ? `Group ${next.members.length} components`
         : `Draft ${next.kind}${next.parentTitle === undefined ? '' : ` in ${next.parentTitle}`}`
       form.querySelector<HTMLElement>('[data-overview]')!.hidden = next.kind === 'group'
