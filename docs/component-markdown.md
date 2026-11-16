@@ -617,7 +617,7 @@ the elements whose `group` is that ID, as it finds children by `parent`.
 the container's ID followed by the kebab-case name, so two containers can each
 have a group of the same name. `--description` and `--overview` add its
 meaning. When the container already has a group with exactly this title, the
-components join that group instead, which is how Group as in the web map adds
+components join that group instead, which is how Group in the web map adds
 to an existing group. `groma edit <group-id>` accepts `--title`, `--description`, and
 `--overview`. `groma edit <component-id> --group <group-id>` puts a component
 in an existing group and takes it out of the group it was in; `--ungroup` only

@@ -27,6 +27,8 @@ groma:
       file: src/viewers/web/editing/appearance-preview.ts
     - scanner: typescript
       file: src/viewers/web/organisms/commands.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/write-view.ts
 description: Turns browser gestures and forms into architecture write actions
 ---
 
