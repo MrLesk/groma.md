@@ -30,7 +30,7 @@ groma:
     - scanner: typescript
       file: src/viewers/web/icons/glyph-element.ts
     - scanner: typescript
-      file: src/viewers/web/atoms/approval-bar.ts
+      file: src/viewers/web/atoms/write-form.ts
 description: Shared buttons, dialogs, menus and text styles for browser panels
 ---
 

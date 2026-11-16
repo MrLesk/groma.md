@@ -1,4 +1,4 @@
-import { approvalBar } from '../atoms/approval-bar.ts'
+import { approvalBar } from '../atoms/write-form.ts'
 import type { WebDataSource } from '../data.ts'
 import type { CreationKind } from './intent.ts'
 
@@ -9,7 +9,7 @@ export function createDialog(data: WebDataSource) {
   const dialog = document.createElement('dialog')
   dialog.id = 'create-dialog'
   dialog.className = 'verb-dialog'
-  dialog.innerHTML = '<form><h1></h1><label>Name<input name="name" required></label>'
+  dialog.innerHTML = '<form class="write-form"><h1></h1><label>Name<input name="name" required></label>'
     + '<label data-overview>Overview<textarea name="overview"></textarea></label></form>'
   document.body.append(dialog)
   const form = dialog.querySelector('form')!

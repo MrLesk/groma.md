@@ -203,11 +203,13 @@ fields or question, and the writer it calls.
 [`organisms/write-view.ts`](../../../src/viewers/web/organisms/write-view.ts)
 paints every one of them, so a new write cannot bring its own controls: it is
 one more function in `commands.ts`, added to the entries of the pane or of the
-Edit view that offers it. The approval bar is one atom,
-[`atoms/approval-bar.ts`](../../../src/viewers/web/atoms/approval-bar.ts): it
-builds Cancel and the approving button, runs one write at a time, and shows a
-failed write's message. Every form that writes, in a pane or a dialog, ends with it
-and builds no approval buttons of its own. A new editable field is one entry in the Edit view's
+Edit view that offers it. Every form that writes, in a pane or a dialog, is a
+write form: one atom,
+[`atoms/write-form.ts`](../../../src/viewers/web/atoms/write-form.ts), gives
+its fields one look (the class `write-form`: a small label over its control)
+and builds its approval bar, which holds Cancel and the approving button, runs
+one write at a time, and shows a failed write's message. A form that writes
+styles no field and builds no approval button of its own. A new editable field is one entry in the Edit view's
 field list (`elementFields` in
 [`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts)). The
 code that paints what a person reads receives no write hook: `paintDetails`

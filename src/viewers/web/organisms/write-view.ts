@@ -1,11 +1,11 @@
-import { approvalBar } from '../atoms/approval-bar.ts'
+import { approvalBar } from '../atoms/write-form.ts'
 import { choiceField, type Choice } from './choice-field.ts'
 import { tagsField } from './tags-field.ts'
 
 /*
  * The one way a pane of the web map writes. A reading pane offers each write as a write entry: a button
  * that opens the write's view and stores nothing. The view shows what the write needs, then the approval
- * bar the whole web map shares (`atoms/approval-bar.ts`): Cancel and the approving button. Only that
+ * bar the whole web map shares (`atoms/write-form.ts`): Cancel and the approving button. Only that
  * button writes. Every write of a pane is described as data (`commands.ts`) and painted here, so no write
  * has a layout or an approval step of its own. A pane's code can only hand its entries to
  * `paintWriteEntries`: it cannot open a view or build one itself.
@@ -34,13 +34,8 @@ export const writeViewCss = `
   }
   #details .write-view { gap: 14px; outline: none; }
   #details .write-form { gap: 14px; }
-  #details .write-form label { display: grid; gap: 5px; font-size: 12px; }
-  #details .write-form :is(input, textarea, select) {
-    box-sizing: border-box; width: 100%; border: 1px solid var(--hairline); border-radius: 4px; padding: 7px;
-    color: var(--ink); background: color-mix(in srgb, var(--paper) 35%, transparent); font: inherit;
-  }
-  #details .write-form textarea { min-height: 140px; resize: vertical; }
-  #details .write-form :is(input, textarea, select):focus { outline: 2px solid var(--highlight); }
+  /* A pane has the room for a long text, so its text area starts taller and can be dragged taller still. */
+  #details .write-form textarea { height: auto; min-height: 140px; resize: vertical; }
   #details .write-view .question { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
   /* The line under the record's other writes, for one that cannot open yet. */
   #details .write-view > .error { margin: 0; color: var(--highlight-text); }
