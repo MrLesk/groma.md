@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-15T23:19:00Z'
+updated_date: '2026-11-16T07:39:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -134,6 +134,8 @@ Dogfooding: groma.md own architecture now carries five tags (scanning, map, web,
 Cold simplicity review (one round), applied: map names are tag-specific (IsoMap.focusTags, the tag-match class, data-tag-focus, TagSelection.parents) because focus, focused and context already mean camera framing, a flow step and the surface under a selection; dropping a tag the world stopped using is an explicit tagFocus.retain step in applyWorld beside retainFlows and retainSelection, so painting is read-only and its order no longer matters; tagsInUse is the one rule both the URL reader and retain use; groups drawn beside a system island now recede; a hovered or compared route keeps its arrow; the Markdown contract says the map, not selectByTags, decides groups and routes. Removed: the extra state that kept an unchanged chip list in place, so the earlier note about keyboard focus no longer holds; like the flow rows, the Tags block is rebuilt on each paint. The test file is named tag-selection after what it tests.
 
 Added scope 2026-11-16, verified on the live map of this repository in light and dark themes. A link with tag=map alone opens at 229 percent framed on the three zones the tag selects, with a map chip in the bar under the view switch, where it opened at 100 percent as a pale map before. Clicking the bar chip ends the focus, hides the bar and frames the selection again (90 percent); terminal alone frames its zone, terminal and web together frame both. With component=scene and tag=map in one link the camera frames all matches and the selected component stays highlighted. Hierarchy rows outside the focus recede (external systems and non-matching components) and matches and their parents keep full ink. 212 of 233 task pins recede; pins on matched elements keep full strength. bun run check passes on this branch (28 Node tests, 947 Bun tests, 0 failures, the 2 lint warnings are older and in other files). Not done, by choice: tagging several elements at once in the web map, which tags on groups will cover; an add or remove form of --tags on the command line.
+
+2026-11-16: after the tags PR moved tag editing into the Edit form, the Tags row of the details pane only reads: it is the title plus the same focus chips (tagChips) the hierarchy pane and the focus bar use, so a chip toggles the focus and nothing in the row writes. The rule in docs/viewers/web/index.md names tag focus as view state.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
