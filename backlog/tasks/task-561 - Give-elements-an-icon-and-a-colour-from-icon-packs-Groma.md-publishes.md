@@ -1,11 +1,11 @@
 ---
 id: TASK-561
-title: 'Assign icons to actors, systems, containers and components'
+title: Assign icons to actors, systems, containers and components
 status: Done
 assignee:
   - '@claude'
-created_date: '2026-10-07 23:16'
-updated_date: '2026-11-16T18:20:00Z'
+created_date: 2026-10-07 23:16
+updated_date: '2026-11-16T19:02:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -132,6 +132,8 @@ Reviews. Cold review and full-context review ran on the first snapshot. Fixed fr
 2026-11-16 revision: the Icon grid that stored on click was withdrawn after the owner asked that no editing happens outside the Edit form. Verified on the live map of this repository: the reading pane has no icon choice and no input; the Edit form shows Icon after Color with 24 choices and No icon checked; picking database and Save puts the object on the roof and the glyph in the details title; picking No icon and Save removes both; in a 600 px high window the form scrolls under the pinned Save and Cancel bar, which sits flush with the bottom of the pane. Full check: 959 Bun tests and the Node suite pass, 0 failures.
 
 2026-11-16, after Alex tried the form ("I cannot preview icon and color changes"): the preview the colors task added (editing/appearance-preview.ts) now carries the picked icon too. The icon object stands on the roof while it is picked; the layout does not move until Save, because core owns layout and a preview stores nothing. The test of withAppearance gained the icon. Checked on the live map at the top of the stack: picking database shows the object on the building, Cancel and selecting another element show the saved state again.
+
+Same day, own critical pass: the preview now keeps a saved icon on the map until the saved map arrives, as it does for the color, so the element does not flash back after Save.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
