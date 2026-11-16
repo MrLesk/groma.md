@@ -1,7 +1,7 @@
 import { isColorName } from '../../../colors.ts'
 import { isIconName } from '../../../icons.ts'
 import type { SheetItem, SheetScene } from '../../../sheet/types.ts'
-import { EDIT_SAVED, pendingEdit } from '../organisms/editable.ts'
+import { WRITE_STORED, pendingValues } from '../organisms/write-view.ts'
 
 /** The color and icon one element is shown with before they are saved. An empty name shows none. */
 export interface PickedAppearance {
@@ -47,7 +47,7 @@ export function createAppearancePreview(detailsHost: HTMLElement, repaintMap: ()
   /** What Save just stored. It stays on the map until the saved map arrives, so the element does not flash back. */
   let saved: PickedAppearance | undefined
   function picked(): PickedAppearance | undefined {
-    const edit = pendingEdit(detailsHost)
+    const edit = pendingValues(detailsHost)
     if (edit === undefined || edit.values.color === undefined) return undefined
     return { id: edit.key, color: edit.values.color, icon: edit.values.icon ?? '' }
   }
@@ -59,7 +59,7 @@ export function createAppearancePreview(detailsHost: HTMLElement, repaintMap: ()
     repaintMap()
   }
   detailsHost.addEventListener('input', sync)
-  detailsHost.addEventListener(EDIT_SAVED, () => { saved = picked() })
+  detailsHost.addEventListener(WRITE_STORED, () => { saved = picked() })
   return {
     sync,
     /** The sheet as the open Edit form would make it look, or as the Save that just ran left it. */

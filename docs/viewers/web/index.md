@@ -158,36 +158,52 @@ One rule decides where a write lives in the web map:
   flows, tag focus, filters, theme, and camera. That state lives in the URL or
   the browser, never in the architecture.
 - **A pane writes only from a view the person opens.** On a live current map a
-  reading pane holds write entries: buttons that open such a view and store
-  nothing themselves. It holds no other control that writes and no input.
-- **A record has one write entry, Edit.** It switches the pane of the selected
-  element or relationship to its Edit view: the record's commands, then its
-  fields.
-- **A record's fields change in its Edit form, and nowhere else.** The Edit
-  form is the form of the Edit view. It holds every field a person can set on
-  the record. Picking and typing in it store nothing. **Save** sends the changed
-  fields as one `groma edit`; **Cancel** and Escape leave the saved data alone.
-- **Every other write is a command:** a control named by its CLI verb that
-  writes once and returns the pane to reading. **Accept** and **Remove** stand
-  in a record's Edit view. A command there acts on the saved record: while the
-  form holds unsaved changes it writes nothing and asks for them to be saved or
-  cancelled first. Save and the commands of one view write one at a time: while
-  one of them writes, the view waits, and a failed write leaves it as it was.
+  reading pane holds write entries in its header: buttons that open such a view
+  and store nothing themselves. It holds no other control that writes and no
+  input.
+- **Every write is approved the same way.** A write view holds one write. It
+  shows what the write needs, its fields or, for a write that needs none, one
+  line that says what it will do. It ends with the approval bar at the bottom
+  of the pane: **Cancel**, then the verb of the write. Only the verb writes,
+  once, and returns the pane to reading; Enter in a field presses it. Cancel
+  and Escape return to reading and leave the stored data alone. While the write
+  is in flight the view waits, and a failed write leaves the view as it was
+  with its message. No write has a layout or an approval step of its own.
+- **A record has one write entry, Edit.** It opens the Edit view of the
+  selected element or relationship: every field a person can set on the
+  record, and nowhere else can they change. Picking and typing store nothing.
+  **Save** sends the changed fields as one `groma edit`.
+- **A record's other writes are entries of its Edit view.** **Accept** and
+  **Remove** stand above the fields. Each opens its own write view in place of
+  the Edit view. They act on the stored record: while the fields hold unsaved
+  changes they do not open and ask for the changes to be saved or cancelled
+  first.
 - **Several selected components are not a record.** Their pane lists them, and
-  its write entries are the two commands that take several, **Group** and
-  **Combine**. Each opens the view of that one command.
+  its write entries are the two writes that take several, **Group** and
+  **Combine**.
 
-A new editable field is one entry in the form's field list (`elementFields` in
-[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts)). A new
-command is one control in
-[`organisms/commands.ts`](../../../src/viewers/web/organisms/commands.ts),
-called from the `paintCommands` of the
-[`EditView`](../../../src/viewers/web/organisms/editable.ts) that offers it; the
-control hands its write to the view's runner. A write entry is a button that
-calls `openEditView` and nothing else. The code that paints what a person reads
-receives no write hook: `paintDetails` takes what the pane reads and the write
-hooks ([`PaneWrites`](../../../src/viewers/web/organisms/writes.ts)) as two
-arguments, and hands the hooks only to the function that paints Edit.
+| Write | Entry | The view shows | Verb |
+|---|---|---|---|
+| Change a record's fields | Edit, in the record's pane | the fields | Save |
+| Accept a draft | Accept, in the Edit view | one question | Accept |
+| Remove a record | Remove, in the Edit view | one question | Remove |
+| Group components | Group, in the pane of several components | a field for the group name | Group |
+| Combine components | Combine, in the pane of several components | a list to pick the component that stays | Combine |
+
+Every write of a pane is one function in
+[`organisms/commands.ts`](../../../src/viewers/web/organisms/commands.ts) that
+only describes it: the label of its entry, its verb, its fields or question, and
+the writer it calls.
+[`organisms/write-view.ts`](../../../src/viewers/web/organisms/write-view.ts)
+paints every one of them, so a new write cannot bring its own controls: it is
+one more function in `commands.ts`, added to the entries of the pane or of the
+Edit view that offers it. A new editable field is one entry in the Edit view's
+field list (`elementFields` in
+[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts)). The
+code that paints what a person reads receives no write hook: `paintDetails`
+takes what the pane reads and the write hooks
+([`PaneWrites`](../../../src/viewers/web/organisms/writes.ts)) as two arguments,
+and hands the hooks only to the function that paints the Edit entry.
 
 - **Element fields:** `title`, `description`, `overview`, `technology`, `parent`
   (where the component can move), `tags`, `color`, and `icon`. Empty optional
@@ -201,7 +217,8 @@ arguments, and hands the hooks only to the function that paints Edit.
 - **Draft acceptance and removal:** The Edit view of a matched draft element or
   a draft relationship offers **Accept** (`groma accept`). **Remove** is offered
   only where `groma remove` would succeed (an unreferenced actor, external
-  system, ghost, or draft relationship), and asks before it removes.
+  system, ghost, or draft relationship). Each asks in its own view and writes
+  when its verb is pressed.
 - **Conflict checking:** Element, relationship, and project forms submit changed
   fields together with their original values. If another edit changed one of those
   fields concurrently, **Save** preserves the unsaved input and shows the original,

@@ -1,108 +1,75 @@
-import type { RunCommand } from './editable.ts'
+import { changedEdit, type EditValues } from '../../../authoring-conflict.ts'
+import type { WriteEntry, WriteField } from './write-view.ts'
 import type { SelectionWrites } from './writes.ts'
 
 /*
- * The commands of an Edit view: the writes that are not field changes. Each control is named by its CLI verb
- * and hands its write to `run`, which refuses while the form holds unsaved changes, writes once, returns the
- * pane to reading, and shows a refusal or a failure in the view. A control never calls its write itself.
- * A new command is one more function here, called from the `paintCommands` of the Edit view that offers it.
+ * Every write a pane of the web map offers, one function each. A function only describes its write: the
+ * label of its entry, the verb that approves it, what it asks for, and the writer it calls. `write-view.ts`
+ * paints every one of them the same way. A new write is one more function here, added to the entries of
+ * the pane or of the Edit view that offers it.
  */
 
-export const commandsCss = `
-  #details .edit-view .commands { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
-  #details .edit-view .commands:empty { display: none; }
-  #details .commands button {
-    border: 1px solid var(--hairline); border-radius: 6px; padding: 6px 10px;
-    background: transparent; color: var(--muted); white-space: nowrap;
-  }
-  #details .commands button:hover { color: var(--ink); background: var(--hover); }
-  #details .commands .remove-command .confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  #details .commands .remove-command .confirm[hidden] { display: none; }
-  #details .commands .remove-command [data-confirm] { border-color: var(--highlight); color: var(--highlight-text); }
-  #details .commands .selection-command { flex: 1 1 100%; display: flex; gap: 8px; }
-  #details .commands .selection-command :is(input, select) {
-    flex: 1; min-width: 0; border: 1px solid var(--hairline); border-radius: 4px; padding: 4px 6px;
-    color: var(--ink); background: color-mix(in srgb, var(--paper) 72%, transparent); font: inherit;
-  }
-  #details .commands .selection-command :is(input, select):focus { outline: 2px solid var(--highlight); }
-`
+/** One field of a record's Edit form. Its name is a value the edit conflict check knows, so no field escapes it. */
+export type EditField = WriteField & { name: keyof EditValues }
 
-function button(label: string): HTMLButtonElement {
-  const control = document.createElement('button')
-  control.type = 'button'
-  control.textContent = label
-  return control
+/**
+ * Edit: every field a person can set on a record, stored by Save as one `groma edit` of the fields that
+ * changed. `others` are the record's other writes, offered above the fields.
+ */
+export function editEntry(
+  fields: readonly EditField[],
+  save: (changes: EditValues, original: EditValues) => Promise<void>,
+  others: readonly WriteEntry[],
+): WriteEntry {
+  return {
+    label: 'Edit',
+    view: {
+      verb: 'Save',
+      fields,
+      entries: others,
+      write: async values => {
+        const { original, ...changes } = changedEdit(
+          Object.fromEntries(fields.map(field => [field.name, field.value])),
+          Object.fromEntries(fields.map(field => [field.name, values[field.name] ?? ''])),
+        )
+        if (Object.keys(changes).length > 0) await save(changes, original)
+      },
+    },
+  }
 }
 
 /** Accept: a matched ghost or a draft relationship becomes stable through the same accept input as the CLI. */
-export function paintAcceptCommand(box: HTMLElement, run: RunCommand, accept: () => Promise<void>): void {
-  const control = button('Accept')
-  control.addEventListener('click', () => run(accept))
-  box.append(control)
+export function acceptEntry(title: string, accept: () => Promise<void>): WriteEntry {
+  return { label: 'Accept', view: { verb: 'Accept', fields: [], question: `Accept ${title}?`, write: accept } }
 }
 
-/** Remove: one click asks, the second removes. */
-export function paintRemoveCommand(box: HTMLElement, run: RunCommand, title: string, remove: () => Promise<void>): void {
-  const control = document.createElement('div')
-  control.className = 'remove-command'
-  const ask = button('Remove')
-  const confirm = document.createElement('div')
-  confirm.className = 'confirm'
-  confirm.hidden = true
-  const question = document.createElement('span')
-  question.textContent = `Remove ${title}?`
-  const yes = button('Remove')
-  yes.dataset.confirm = ''
-  const keep = button('Keep')
-  confirm.append(question, yes, keep)
-  control.append(ask, confirm)
-  box.append(control)
-
-  ask.addEventListener('click', () => {
-    ask.hidden = true
-    confirm.hidden = false
-    yes.focus()
-  })
-  keep.addEventListener('click', () => {
-    confirm.hidden = true
-    ask.hidden = false
-  })
-  yes.addEventListener('click', () => run(remove))
+/** Remove: takes the record out of the architecture. */
+export function removeEntry(title: string, remove: () => Promise<void>): WriteEntry {
+  return { label: 'Remove', view: { verb: 'Remove', fields: [], question: `Remove ${title}?`, write: remove } }
 }
 
-/** Group as: names several selected components as one group. */
-export function paintGroupCommand(box: HTMLElement, run: RunCommand, group: (name: string) => Promise<void>): void {
-  const form = document.createElement('form')
-  form.className = 'selection-command'
-  const name = document.createElement('input')
-  name.required = true
-  name.placeholder = 'Group name'
-  name.setAttribute('aria-label', 'Group name')
-  const submit = button('Group as')
-  submit.type = 'submit'
-  form.append(name, submit)
-  form.addEventListener('submit', event => {
-    event.preventDefault()
-    void run(() => group(name.value))
-  })
-  box.append(form)
+/** Group: names several selected components as one group. */
+export function groupEntry(group: SelectionWrites['onGroup']): WriteEntry {
+  return {
+    label: 'Group',
+    hint: 'Name these components as one group',
+    view: {
+      verb: 'Group',
+      fields: [{ name: 'name', label: 'Group name', value: '', required: true }],
+      write: values => group(values.name ?? ''),
+    },
+  }
 }
 
-/** Combine into: folds several selected components into the survivor the person picks. */
-export function paintCombineCommand(
-  box: HTMLElement, run: RunCommand, members: SelectionWrites['members'], combine: (survivor: string) => Promise<void>,
-): void {
-  const form = document.createElement('form')
-  form.className = 'selection-command'
-  const survivor = document.createElement('select')
-  survivor.setAttribute('aria-label', 'Survivor')
-  for (const member of members) survivor.add(new Option(member.title, member.id))
-  const submit = button('Combine into')
-  submit.type = 'submit'
-  form.append(survivor, submit)
-  form.addEventListener('submit', event => {
-    event.preventDefault()
-    void run(() => combine(survivor.value))
-  })
-  box.append(form)
+/** Combine: folds several selected components into the one the person picks. */
+export function combineEntry(members: SelectionWrites['members'], combine: SelectionWrites['onCombine']): WriteEntry {
+  return {
+    label: 'Combine',
+    hint: 'Fold these components into one of them',
+    view: {
+      verb: 'Combine',
+      fields: [{ name: 'survivor', label: 'Combine into', value: members[0]?.id ?? '', options: members }],
+      write: values => combine(values.survivor ?? ''),
+    },
+  }
 }

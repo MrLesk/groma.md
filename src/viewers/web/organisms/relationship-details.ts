@@ -1,7 +1,7 @@
 import type { AnnotatedRelationship, ArchitectureGraph } from '../../../types.ts'
 import { heading, paragraph } from '../atoms/text.ts'
-import { paintAcceptCommand, paintRemoveCommand } from './commands.ts'
-import { editButton, isEditing } from './editable.ts'
+import { acceptEntry, editEntry, removeEntry } from './commands.ts'
+import { isWriteViewOpen, paintWriteEntries } from './write-view.ts'
 import { relationshipCard } from './relationship-card.ts'
 import type { RelationWrites } from './writes.ts'
 
@@ -13,7 +13,7 @@ export function paintRelationship(
   onSelect: (id: string, additive: boolean) => void,
   writesFor: (source: string, target: string) => RelationWrites,
 ): void {
-  if (isEditing(host, relationship.id)) return
+  if (isWriteViewOpen(host, relationship.id)) return
   const related = world.relationships.filter(row => (row.source === relationship.source && row.target === relationship.target)
     || (row.source === relationship.target && row.target === relationship.source))
   const connections = related.flatMap(row => row.connections ?? [])
@@ -33,7 +33,6 @@ export function paintRelationship(
   if (!connection) return
   const details = document.createElement('div')
   body.append(details)
-  host.querySelector('.edit-entry')?.remove()
   const writes = writesFor(connection.source, connection.target)
   details.append(heading(connection.authored ? 'Authored interaction' : 'Derived interaction'))
   details.append(paragraph('description', connection.description), paragraph('technology', connection.technology))
@@ -41,19 +40,18 @@ export function paintRelationship(
     && row.source === connection.source && row.target === connection.target)
   const { onAccept, onEdit, onRead, onRemove } = writes
   if (!editable || onEdit === undefined || onRead === undefined) return
+  // A draft relationship is accepted or removed from its Edit view.
   const draft = connection.authored && connection.status === 'draft'
-  details.append(editButton(host, relationship.id, {
-    form: {
-      fields: [
-        { name: 'description', label: 'Description', value: connection.description, required: true },
-        { name: 'technology', label: 'Technology', value: connection.technology, required: true },
-      ],
-      save: onEdit,
-    },
-    // A draft relationship is accepted or removed from its Edit view.
-    paintCommands: (box, run) => {
-      if (draft && onAccept !== undefined) paintAcceptCommand(box, run, onAccept)
-      if (draft && onRemove !== undefined) paintRemoveCommand(box, run, connection.description, onRemove)
-    },
-  }, onRead))
+  const title = `the relationship from ${byId.get(relationship.source)!.title} to ${byId.get(relationship.target)!.title}`
+  paintWriteEntries(host, relationship.id, [editEntry(
+    [
+      { name: 'description', label: 'Description', value: connection.description, required: true },
+      { name: 'technology', label: 'Technology', value: connection.technology, required: true },
+    ],
+    onEdit,
+    [
+      ...(draft && onAccept !== undefined ? [acceptEntry(title, onAccept)] : []),
+      ...(draft && onRemove !== undefined ? [removeEntry(title, onRemove)] : []),
+    ],
+  )], onRead)
 }

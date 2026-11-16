@@ -2,9 +2,9 @@ import assert from 'node:assert/strict'
 
 import { test } from 'bun:test'
 
-import { oneWriteAtATime } from '../src/viewers/web/organisms/editable.ts'
+import { oneWriteAtATime } from '../src/viewers/web/organisms/write-view.ts'
 
-test.concurrent('a second write of an Edit view does not start while the first is in flight', async () => {
+test.concurrent('a second write of a write view does not start while the first is in flight', async () => {
   const states: boolean[] = []
   const writes = oneWriteAtATime(writing => states.push(writing))
   let started = 0
@@ -25,7 +25,7 @@ test.concurrent('a second write of an Edit view does not start while the first i
   assert.deepEqual(states, [true, false, true, false])
 })
 
-test.concurrent('a failed write frees the Edit view for the next one', async () => {
+test.concurrent('a failed write frees the write view for the next one', async () => {
   const writes = oneWriteAtATime(() => {})
   await assert.rejects(writes.run(async () => { throw new Error('refused') }), /refused/)
   assert.equal(writes.writing, false)
