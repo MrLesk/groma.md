@@ -150,9 +150,11 @@ and hands the hooks only to the controls that write.
 
 - **Element fields:** `title`, `description`, `overview`, `technology`, `parent`
   (where the component can move), and `tags`. Empty optional values clear the
-  field. The Tags field shows the pending tags as chips: a typed tag joins them
-  on Enter, with the tags already in use offered as suggestions, and the × on a
-  chip takes it off.
+  field. The Tags field is one box that holds the pending tags as chips and the
+  text being typed: Enter or a comma turns the typed text into a chip, Backspace
+  in the empty text takes the last chip off, and the × on a chip takes that one
+  off. The tags already in use are offered under the box, narrowed by what is
+  typed.
 - **Relationship fields:** `description` and `technology`.
 - **Draft acceptance and removal:** A matched draft element or a draft relationship
   exposes **Accept** (`groma accept`). **Remove** appears only where `groma remove`
