@@ -26,26 +26,41 @@ export const writeViewCss = `
   #details:has(.write-entries.of-pane) > .meta { padding-right: 140px; }
   #details:has(.write-entries.of-pane > :nth-child(2)) > .meta { padding-right: 250px; }
 
-  /* An open write view fills the pane, so its approval bar stands at the pane's bottom whatever it holds. */
-  #details:has(.write-view) { display: flex; flex-direction: column; }
+  /*
+   * An open write view fills the pane in three parts: the pane's header, the fields, and the approval bar.
+   * Only the fields scroll, between the other two. The pane itself does not scroll then, so it keeps no
+   * room for a scrollbar and the bar runs from one edge of the pane to the other. That room
+   * (--details-gutter, measured by the shell) becomes padding, so nothing in the header moves.
+   */
+  #details:has(.write-view) {
+    display: flex; flex-direction: column; overflow: hidden; scrollbar-gutter: auto;
+    padding-right: calc(24px + var(--details-gutter, 0px));
+  }
   #details:has(.write-view) > :is(.meta, h1) { flex-shrink: 0; }
   #details:has(.write-view) > .body, #details .write-view, #details .write-form {
-    flex: 1 0 auto; display: flex; flex-direction: column;
+    flex: 1 1 0; min-height: 0; display: flex; flex-direction: column;
   }
   #details .write-view { gap: 14px; outline: none; }
-  #details .write-form { gap: 14px; }
+  /*
+   * The fields scroll in this box. It reaches the pane's right edge, so its scrollbar stands where the
+   * pane's own would, and it leaves a little room around the fields for their focus rings.
+   */
+  #details .write-fields {
+    flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 14px;
+    overflow: hidden auto; scrollbar-gutter: stable;
+    margin: -2px calc(-24px - var(--details-gutter, 0px)) 0 -4px; padding: 2px 24px 16px 4px;
+  }
+  #details .write-fields > * { flex-shrink: 0; }
   /* A pane has the room for a long text, so its text area starts taller and can be dragged taller still. */
   #details .write-form textarea { height: auto; min-height: 140px; resize: vertical; }
   #details .write-view .question { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
   /* The line under the record's other writes, for one that cannot open yet. */
   #details .write-view > .error { margin: 0; color: var(--highlight-text); }
   #details .write-view > .error:empty { display: none; }
-  /*
-   * In a pane the approval bar spans the pane's padding at the pane's bottom and stays there, covering a
-   * taller form that scrolls under it.
-   */
+  /* In a pane the approval bar is the pane's footer: it spans the pane from edge to edge, across its padding. */
   #details .approval-bar {
-    position: sticky; bottom: -22px; margin: auto -24px -22px; padding: 12px 24px 14px;
+    flex: none; margin: 0 calc(-24px - var(--details-gutter, 0px)) -22px -24px;
+    padding: 12px calc(24px + var(--details-gutter, 0px)) 14px 24px;
     border-top: 1px solid var(--hairline); background: color-mix(in srgb, var(--paper) 94%, transparent);
   }
   /* While the write is in flight the record's other writes wait with the form. */
@@ -163,7 +178,7 @@ function errorLine(): HTMLElement {
 /**
  * Switches the pane from reading to one write view, the only place a pane changes the architecture.
  * From top to bottom the view holds the record's other writes, the fields or the question, and the
- * approval bar. Picking and typing store nothing. The approving button calls `write` once and returns
+ * approval bar as the pane's footer. Picking and typing store nothing. The approving button calls `write` once and returns
  * the pane to reading; a failed write leaves the view as it was, with the failure's message in the bar.
  * Cancel and Escape return to reading without writing.
  */
@@ -175,13 +190,17 @@ function openWriteView(host: HTMLElement, key: string, { approveLabel, fields, q
   view.tabIndex = -1
   const form = document.createElement('form')
   form.className = 'write-form'
+  // The fields scroll in their own box, so the approval bar under them stays in place as the pane's footer.
+  const fieldsBox = document.createElement('div')
+  fieldsBox.className = 'write-fields'
   if (question !== undefined) {
     const line = document.createElement('p')
     line.className = 'question'
     line.textContent = question
-    form.append(line)
+    fieldsBox.append(line)
   }
-  for (const field of fields) form.append(fieldControl(field))
+  for (const field of fields) fieldsBox.append(fieldControl(field))
+  form.append(fieldsBox)
   /**
    * What the fields hold as the view opens. The record's other writes act on the stored record, so their
    * entries open only while the fields still hold this.
