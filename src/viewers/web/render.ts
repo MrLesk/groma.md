@@ -29,6 +29,7 @@ import { bindMapPointer } from './iso/camera/pointer.ts'
 import { createCameraSession } from './iso/camera/session.ts'
 import { presentScene, createMapAnimator, createMapMotion } from './iso/view-motion/presentation.ts'
 import { paintRelationship } from './organisms/relationship-details.ts'
+import { paintSelection } from './organisms/selection-details.ts'
 import { detailsTabAfterSelection, detailsTabAfterWork, type DetailsTab, inspectSelection, paintDetails } from './organisms/details.ts'
 import { createHierarchy } from './organisms/hierarchy.ts'
 import { createPins } from './work/pins.ts'
@@ -212,16 +213,15 @@ function paintDetailsState(task: WorkItem | undefined): void {
   const inspected = inspectSelection(selectedId, world, sheet.zones)
   const relationship = worldRelationship(selectedId)
   const paintedReader = source.paint(selected) || taskDiff.paint(task)
-  paintFlowReturn(
-    detailsHost, activeFlow, selection.kind === 'flow', world, select, showFlows,
-    source.file !== undefined,
-  )
+  paintFlowReturn(detailsHost, activeFlow, selection.kind === 'flow', world, select, showFlows, source.file !== undefined)
   if (paintedReader) return
   const flow = world.flows.find(item => item.id === selectedId)
   if (selection.kind === 'flow' && flow !== undefined && activeFlow !== undefined) {
     paintFlowDetails(detailsHost, flow, activeFlow, world, selectFlowStep, select)
     return
   }
+  const several = selectedArchitecture(selection)
+  if (paintSelection(detailsHost, several, world, select, authoring.selectionWrites(several))) return
   if (relationship !== undefined) {
     paintRelationship(detailsHost, relationship, world, select, authoring.relationWrites)
   } else if (inspected !== undefined) {
@@ -239,7 +239,7 @@ function paintDetailsState(task: WorkItem | undefined): void {
       onSource: source.open,
       workGroups: selected?.kind === 'component' ? elementWorkGroups(work, selected.representationId, world) : [],
       onTask: toggleTask,
-    }, selected === undefined ? {} : authoring.paneWrites(selected.id, selectedArchitecture(selection)))
+    }, authoring.paneWrites(selected?.id))
   }
 }
 

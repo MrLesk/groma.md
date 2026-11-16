@@ -1,0 +1,61 @@
+import type { ArchitectureGraph } from '../../../types.ts'
+import { kindLabel } from '../../atoms/kind.ts'
+import { paintCombineCommand, paintGroupCommand } from './commands.ts'
+import { elementLinks } from './details.ts'
+import { isEditing, openEditView, type EditView } from './editable.ts'
+import type { SelectionWrites } from './writes.ts'
+
+export const selectionDetailsCss = `
+  #details .link .note { margin-left: 10px; color: var(--muted); font-size: 11px; }
+  #details .selection-entries { display: flex; gap: 8px; margin-top: 18px; }
+`
+
+/** What the selected elements are called together: their kind when they share one. */
+function nounOf(kinds: readonly string[]): string {
+  return new Set(kinds).size === 1 ? `${kinds[0]!.toLowerCase()}s` : 'elements'
+}
+
+/**
+ * Paints the pane of several selected elements and says whether it did. The pane lists what is selected,
+ * each component with the group it is in; a click on one selects it alone and a shift-click drops it from
+ * the selection. With `writes`, the pane also offers Group and Combine. Neither writes on its click: each
+ * opens the view of that one command.
+ */
+export function paintSelection(
+  host: HTMLElement,
+  ids: readonly string[],
+  world: ArchitectureGraph,
+  onSelect: (id: string, additive: boolean) => void,
+  writes: SelectionWrites | undefined,
+): boolean {
+  const members = ids.flatMap(id => world.elements.filter(element => element.representationId === id))
+  if (ids.length < 2 || members.length !== ids.length) return false
+  const key = ids.join(' ')
+  if (isEditing(host, key)) return true
+  host.querySelector('.meta')!.textContent = 'Selection'
+  host.querySelector('h1')!.textContent = `${members.length} ${nounOf(members.map(member => kindLabel(member.kind, member.external)))}`
+  host.querySelector('.tabs')!.replaceChildren()
+  const body = host.querySelector('.body')!
+  const groupTitle = new Map(world.groups.map(group => [group.id, group.title]))
+  body.replaceChildren(elementLinks(members.map(member => ({
+    id: member.representationId, title: member.title, kind: member.kind, external: member.external,
+    note: groupTitle.get(member.group ?? ''),
+  })), onSelect))
+  if (writes === undefined) return true
+
+  const entries = document.createElement('div')
+  entries.className = 'selection-entries'
+  const entry = (label: string, hint: string, paintCommands: EditView['paintCommands']): void => {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'write-entry'
+    button.textContent = label
+    button.title = hint
+    button.addEventListener('click', () => openEditView(host, key, { paintCommands }, writes.onRead))
+    entries.append(button)
+  }
+  entry('Group', 'Name these components as one group', (box, run) => paintGroupCommand(box, run, writes.onGroup))
+  entry('Combine', 'Fold these components into one of them', (box, run) => paintCombineCommand(box, run, writes.members, writes.onCombine))
+  body.append(entries)
+  return true
+}

@@ -1,9 +1,9 @@
 import type { AnnotatedRelationship, ArchitectureGraph } from '../../../types.ts'
 import { heading, paragraph } from '../atoms/text.ts'
+import { paintAcceptCommand, paintRemoveCommand } from './commands.ts'
 import { editButton, isEditing } from './editable.ts'
 import { relationshipCard } from './relationship-card.ts'
-import { paintRemoveControl } from './remove.ts'
-import { paintAcceptControl, type RelationWrites } from './writes.ts'
+import type { RelationWrites } from './writes.ts'
 
 /** A map connection bundles claims; authoring always addresses an exact endpoint pair. */
 export function paintRelationship(
@@ -39,11 +39,21 @@ export function paintRelationship(
   details.append(paragraph('description', connection.description), paragraph('technology', connection.technology))
   const editable = connection.authored || !connections.some(row => row.authored
     && row.source === connection.source && row.target === connection.target)
-  if (editable && writes.onEdit && writes.onRead) details.append(editButton(host, relationship.id, [
-    { name: 'description', label: 'Description', value: connection.description, required: true },
-    { name: 'technology', label: 'Technology', value: connection.technology, required: true },
-  ], writes.onEdit, writes.onRead))
-  if (!connection.authored || connection.status !== 'draft') return
-  if (writes.onAccept) paintAcceptControl(details, writes.onAccept)
-  if (writes.onRemove) paintRemoveControl(details, connection.description, writes.onRemove)
+  const { onAccept, onEdit, onRead, onRemove } = writes
+  if (!editable || onEdit === undefined || onRead === undefined) return
+  const draft = connection.authored && connection.status === 'draft'
+  details.append(editButton(host, relationship.id, {
+    form: {
+      fields: [
+        { name: 'description', label: 'Description', value: connection.description, required: true },
+        { name: 'technology', label: 'Technology', value: connection.technology, required: true },
+      ],
+      save: onEdit,
+    },
+    // A draft relationship is accepted or removed from its Edit view.
+    paintCommands: (box, run) => {
+      if (draft && onAccept !== undefined) paintAcceptCommand(box, run, onAccept)
+      if (draft && onRemove !== undefined) paintRemoveCommand(box, run, connection.description, onRemove)
+    },
+  }, onRead))
 }

@@ -42,8 +42,8 @@ export interface IsoMap {
   changes(comparison: Comparison | undefined): void
   /** Outlines the elements the active tasks touch and uniformly accents the routes leaving them; an empty set clears both. */
   mark(ids: ReadonlySet<string>): void
-  /** Gives the inspected component a breathing glow and softly accents its direct component neighbors. */
-  markNeighbors(selectedId: string | undefined, neighbors: ReadonlySet<string>): void
+  /** Gives every selected component a breathing glow and softly accents their direct component neighbors. */
+  markNeighbors(selected: ReadonlySet<string>, neighbors: ReadonlySet<string>): void
   /** Tag focus: keeps the bodies the tags match and their parents, the zones with a matched member and the routes whose two ends match; everything else recedes. Undefined clears it. */
   focusTags(selection: TagSelection | undefined): void
   /** Lights route ids and direct endpoints; contextual ancestors stay neutral while everything off the path dims. */
@@ -288,10 +288,10 @@ export function createMap(host: HTMLElement): IsoMap {
         node.group.classList.toggle('endpoint', directItems.has(node.source) || directItems.has(node.target))
       }
     },
-    markNeighbors(selectedId, neighbors) {
+    markNeighbors(selected, neighbors) {
       for (const [itemId, node] of items) {
-        node.classList.toggle('component-focus', itemId === selectedId)
-        node.classList.toggle('neighbor', itemId !== selectedId && neighbors.has(itemId))
+        node.classList.toggle('component-focus', selected.has(itemId))
+        node.classList.toggle('neighbor', neighbors.has(itemId))
       }
       updateGlows()
     },

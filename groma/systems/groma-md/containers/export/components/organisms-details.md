@@ -33,6 +33,8 @@ groma:
       file: src/viewers/web/organisms/choice-field.ts
     - scanner: typescript
       file: src/viewers/web/organisms/icon-picker.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/selection-details.ts
 description: Shows the selected element, its source and its relationships
 ---
 
