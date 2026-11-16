@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-16T18:12:00Z'
+updated_date: '2026-11-16T19:02:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -122,6 +122,8 @@ Added scope 2026-11-16, Tags row. Verified on the live map of this repository (b
 2026-11-16 revision: the Tags row that stored on click was withdrawn after the owner asked that no editing happens outside the Edit form. Verified on the live map of this repository: the Edit form shows a Tags field after Technology; typing 'map, terminal' and Enter makes two chips, a third tag typed without Enter is kept by Save; the element file then lists the three tags; Cancel after taking a chip off leaves the stored list; taking all chips off and saving removes the field; the reading pane shows the chips with no input and no remove button. Full check: 945 Bun tests and the Node suite pass, 0 failures, no new lint findings.
 
 2026-11-16, after Alex tried the form ("the tag editing and adding input seems from few years ago"): the Tags field was a row of chips above a separate text input with a native datalist. It is now one token box (tags-field.ts only; the hidden control and the form contract are unchanged). Checked on the live map at the top of the stack: open shows the saved tag and the unused tags in use; typing narrows the offers; a click on an offer, Enter, a comma and a pasted comma list each add chips; Backspace in the empty text and the × remove; text typed without Enter still reaches Save through the hidden control.
+
+Same day, own critical pass: the offered tags under the Tags box were too faint in the dark theme (dashed hairline border, muted text). They now take their border and text from the ink color.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

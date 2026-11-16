@@ -142,8 +142,8 @@ export const tagsFieldCss = `
   #details .tags-field .tag-suggestions { display: flex; flex-wrap: wrap; gap: 5px; }
   #details .tags-field .tag-suggestions:empty { display: none; }
   #details .tags-field .tag-suggestion {
-    border: 1px dashed var(--hairline); border-radius: 10px; padding: 0 8px; background: transparent;
-    font-size: 11px; line-height: 20px; color: var(--muted);
+    border: 1px dashed color-mix(in srgb, var(--ink) 35%, transparent); border-radius: 10px; padding: 0 8px;
+    background: transparent; font-size: 11px; line-height: 20px; color: color-mix(in srgb, var(--ink) 75%, transparent);
     transition: color 160ms ease, border-color 160ms ease;
   }
   #details .tags-field .tag-suggestion::before { content: '+ '; opacity: 0.6; }
