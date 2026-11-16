@@ -29,11 +29,11 @@ export function withAppearance(sheet: SheetScene, picked: PickedAppearance): She
   }
 }
 
-/** True when the sheet already shows that element with that color, or does not show it at all. */
+/** True when the sheet already shows that element with that color and icon, or does not show it at all. */
 function carries(sheet: SheetScene, appearance: PickedAppearance): boolean {
   const items: SheetItem[] = [...sheet.islands.flatMap(island => island.element ?? []), ...sheet.slabs, ...sheet.buildings]
   const item = items.find(candidate => candidate.id === appearance.id)
-  return item === undefined || (item.color ?? '') === appearance.color
+  return item === undefined || ((item.color ?? '') === appearance.color && (item.icon ?? '') === appearance.icon)
 }
 
 /**
