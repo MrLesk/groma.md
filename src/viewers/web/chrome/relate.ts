@@ -26,7 +26,7 @@ export function createRelateDialog(add: (input: DraftInput) => Promise<void>) {
   const target = form.elements.namedItem('target') as HTMLSelectElement
   const description = form.elements.namedItem('description') as HTMLInputElement
   const technology = form.elements.namedItem('technology') as HTMLInputElement
-  const approval = approvalBar('Draft')
+  const approval = approvalBar('Save')
   form.append(approval.bar)
   let ends: RelateDialogEnds | undefined
 
@@ -53,7 +53,7 @@ export function createRelateDialog(add: (input: DraftInput) => Promise<void>) {
       for (const [select, files] of [[source, next.sourceFiles], [target, next.targetFiles]] as const) {
         select.replaceChildren(...files.map(file => new Option(file, file)))
       }
-      approval.verb.disabled = next.sourceFiles.length === 0 || next.targetFiles.length === 0
+      approval.approveButton.disabled = next.sourceFiles.length === 0 || next.targetFiles.length === 0
       approval.clear()
       dialog.showModal()
       description.focus()
