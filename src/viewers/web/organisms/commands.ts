@@ -4,9 +4,9 @@ import type { SelectionWrites } from './writes.ts'
 
 /*
  * Every write a pane of the web map offers, one function each. A function only describes its write: the
- * label of its entry, the verb that approves it, what it asks for, and the writer it calls. `write-view.ts`
- * paints every one of them the same way. A new write is one more function here, added to the entries of
- * the pane or of the Edit view that offers it.
+ * label of its entry, what the button that approves it says, what it asks for, and the writer it calls.
+ * `write-view.ts` paints every one of them the same way. A new write is one more function here, added to
+ * the entries of the pane or of the Edit view that offers it.
  */
 
 /** One field of a record's Edit form. Its name is a value the edit conflict check knows, so no field escapes it. */
@@ -24,7 +24,7 @@ export function editEntry(
   return {
     label: 'Edit',
     view: {
-      verb: 'Save',
+      approveLabel: 'Save',
       fields,
       entries: others,
       write: async values => {
@@ -40,12 +40,12 @@ export function editEntry(
 
 /** Accept: a matched ghost or a draft relationship becomes stable through the same accept input as the CLI. */
 export function acceptEntry(title: string, accept: () => Promise<void>): WriteEntry {
-  return { label: 'Accept', view: { verb: 'Accept', fields: [], question: `Accept ${title}?`, write: accept } }
+  return { label: 'Accept', view: { approveLabel: 'Accept', fields: [], question: `Accept ${title}?`, write: accept } }
 }
 
 /** Remove: takes the record out of the architecture. */
 export function removeEntry(title: string, remove: () => Promise<void>): WriteEntry {
-  return { label: 'Remove', view: { verb: 'Remove', fields: [], question: `Remove ${title}?`, write: remove } }
+  return { label: 'Remove', view: { approveLabel: 'Remove', fields: [], question: `Remove ${title}?`, write: remove } }
 }
 
 /** Group: names several selected components as one group. */
@@ -54,7 +54,7 @@ export function groupEntry(group: SelectionWrites['onGroup']): WriteEntry {
     label: 'Group',
     hint: 'Name these components as one group',
     view: {
-      verb: 'Group',
+      approveLabel: 'Create group',
       fields: [{ name: 'name', label: 'Group name', value: '', required: true }],
       write: values => group(values.name ?? ''),
     },
@@ -67,7 +67,7 @@ export function combineEntry(members: SelectionWrites['members'], combine: Selec
     label: 'Combine',
     hint: 'Fold these components into one of them',
     view: {
-      verb: 'Combine',
+      approveLabel: 'Combine',
       fields: [{ name: 'survivor', label: 'Combine into', value: members[0]?.id ?? '', options: members }],
       write: values => combine(values.survivor ?? ''),
     },
