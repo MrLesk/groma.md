@@ -130,8 +130,8 @@ One rule decides where a write lives in the web map:
 
 - **Reading never writes.** Whatever a person clicks or types while reading the
   map or a pane only selects, navigates, or changes the view: selection, lit
-  flows, filters, theme, and camera. That state lives in the URL or the browser,
-  never in the architecture.
+  flows, tag focus, filters, theme, and camera. That state lives in the URL or
+  the browser, never in the architecture.
 - **A record's fields change in its Edit form, and nowhere else.** On a live
   current map, **Edit** switches the pane of the selected element or
   relationship from reading to a form that holds every field a person can set on
