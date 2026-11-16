@@ -11,27 +11,28 @@ export interface AuthoringDependencies {
   repaint: () => void
 }
 
-/** Shared write operations for details and group actions. */
+/** The write hooks of the three architecture panes: an element, a relationship, several selected components. */
 export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSource, deps: AuthoringDependencies) {
   const gestures = createMapEditor(host, map, data, () => deps.world().elements, deps.live)
   const { accept, add, edit, remove } = data
-  const titleOf = (id: string): string => deps.world().elements.find(element => element.id === id)?.title ?? id
-  /** Group as and Combine into, while several components are selected. */
+  /** Group and Combine, while every selected element is a component on the current revision of a live map. */
   function selectionWrites(ids: readonly string[]): SelectionWrites | undefined {
-    if (ids.length < 2 || add === undefined || edit === undefined) return undefined
+    if (!deps.live() || add === undefined || edit === undefined) return undefined
+    const members = ids.flatMap(id => deps.world().elements.filter(element => element.id === id && element.kind === 'component'))
+    if (members.length !== ids.length) return undefined
     return {
-      members: ids.map(id => ({ id, title: titleOf(id) })),
+      onRead: deps.repaint,
+      members: members.map(({ id, title }) => ({ id, title })),
       onGroup: name => add({ thing: 'group', name, members: [...ids] }),
       onCombine: survivor => edit({ id: survivor, combine: ids.filter(id => id !== survivor) }),
     }
   }
 
-  function paneWrites(selectedId: string, selectedIds: readonly string[]): PaneWrites {
-    if (!deps.live()) return {}
-    const selection = selectionWrites(selectedIds)
+  /** The hooks of one element's pane. A pane that shows no stored element, such as a placement group, gets none. */
+  function paneWrites(selectedId: string | undefined): PaneWrites {
+    if (!deps.live() || selectedId === undefined) return {}
     return {
       onRead: deps.repaint,
-      ...(selection === undefined ? {} : { selection }),
       ...(remove === undefined ? {} : { onRemove: () => remove({ id: selectedId }) }),
       ...(accept === undefined ? {} : { onAccept: () => accept({ id: selectedId }) }),
       ...(edit === undefined ? {} : {
@@ -40,7 +41,6 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
           .map(element => ({ id: element.id, title: element.title }))
           .sort((left, right) => left.title.localeCompare(right.title) || left.id.localeCompare(right.id)),
       }),
-
     }
   }
 
@@ -54,5 +54,5 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
     }
   }
 
-  return { paneWrites, relationWrites, ...gestures }
+  return { paneWrites, relationWrites, selectionWrites, ...gestures }
 }

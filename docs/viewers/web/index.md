@@ -159,21 +159,37 @@ One rule decides where a write lives in the web map:
   map or a pane only selects, navigates, or changes the view: selection, lit
   flows, tag focus, filters, theme, and camera. That state lives in the URL or
   the browser, never in the architecture.
-- **A record's fields change in its Edit form, and nowhere else.** On a live
-  current map, **Edit** switches the pane of the selected element or
-  relationship from reading to a form that holds every field a person can set on
-  it. Picking and typing in the form store nothing. **Save** sends the changed
+- **A pane writes only from a view the person opens.** On a live current map a
+  reading pane holds write entries: buttons that open such a view and store
+  nothing themselves. It holds no other control that writes and no input.
+- **A record has one write entry, Edit.** It switches the pane of the selected
+  element or relationship to its Edit view: the record's commands, then its
+  fields.
+- **A record's fields change in its Edit form, and nowhere else.** The Edit
+  form is the form of the Edit view. It holds every field a person can set on
+  the record. Picking and typing in it store nothing. **Save** sends the changed
   fields as one `groma edit`; **Cancel** and Escape leave the saved data alone.
-- **Every other write is a command:** one button named by its CLI verb that
-  writes once. These are **Accept**, **Remove**, **Group as**, and **Combine
-  into**, described below.
+- **Every other write is a command:** a control named by its CLI verb that
+  writes once and returns the pane to reading. **Accept** and **Remove** stand
+  in a record's Edit view. A command there acts on the saved record: while the
+  form holds unsaved changes it writes nothing and asks for them to be saved or
+  cancelled first. Save and the commands of one view write one at a time: while
+  one of them writes, the view waits, and a failed write leaves it as it was.
+- **Several selected components are not a record.** Their pane lists them, and
+  its write entries are the two commands that take several, **Group** and
+  **Combine**. Each opens the view of that one command.
 
 A new editable field is one entry in the form's field list (`elementFields` in
-[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts)). The
-code that paints what a person reads receives no write hook: `paintDetails`
-takes what the pane reads and the write hooks
-([`PaneWrites`](../../../src/viewers/web/organisms/writes.ts)) as two arguments,
-and hands the hooks only to the controls that write.
+[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts)). A new
+command is one control in
+[`organisms/commands.ts`](../../../src/viewers/web/organisms/commands.ts),
+called from the `paintCommands` of the
+[`EditView`](../../../src/viewers/web/organisms/editable.ts) that offers it; the
+control hands its write to the view's runner. A write entry is a button that
+calls `openEditView` and nothing else. The code that paints what a person reads
+receives no write hook: `paintDetails` takes what the pane reads and the write
+hooks ([`PaneWrites`](../../../src/viewers/web/organisms/writes.ts)) as two
+arguments, and hands the hooks only to the function that paints Edit.
 
 - **Element fields:** `title`, `description`, `overview`, `technology`, `parent`
   (where the component can move), `tags`, `color`, and `icon`. Empty optional
@@ -184,16 +200,24 @@ and hands the hooks only to the controls that write.
   narrowed by what is typed. The Color field offers no color and each named
   color; the Icon field offers no icon and each named icon.
 - **Relationship fields:** `description` and `technology`.
-- **Draft acceptance and removal:** A matched draft element or a draft relationship
-  exposes **Accept** (`groma accept`). **Remove** appears only where `groma remove`
-  would succeed (an unreferenced actor, external system, ghost, or draft
-  relationship).
+- **Draft acceptance and removal:** The Edit view of a matched draft element or
+  a draft relationship offers **Accept** (`groma accept`). **Remove** is offered
+  only where `groma remove` would succeed (an unreferenced actor, external
+  system, ghost, or draft relationship), and asks before it removes.
 - **Conflict checking:** Element, relationship, and project forms submit changed
   fields together with their original values. If another edit changed one of those
   fields concurrently, **Save** preserves the unsaved input and shows the original,
   current, and proposed values without writing.
-- **Multi-select actions:** Shift-clicking sibling components offers **Group as**
-  and **Combine into**.
+- **Several selected elements:** Shift-clicking elements selects them together,
+  and the pane lists them in place of one element's details, each component
+  with the group it is in
+  ([`organisms/selection-details.ts`](../../../src/viewers/web/organisms/selection-details.ts)).
+  The map gives every selected component the focus look and softly accents the
+  components one hop from any of them. A click on a listed element selects it
+  alone; a shift-click drops it from the selection. On a live current map, while every selected element is a
+  component, the pane offers **Group** (name them as one group, `groma add
+  group`) and **Combine** (fold them into the one the person picks, `groma edit
+  --combine`). Changing the selection returns the pane to reading.
 
 Historical and exported maps are read-only and expose no write controls.
 

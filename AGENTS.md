@@ -225,7 +225,8 @@ is necessary to prevent misunderstanding or error, and never use it to restate t
 
 ## Web map writes
 
-Reading never writes, and a record's fields change only in its Edit form. Before designing or changing a control that
+Reading never writes. A pane writes only from a view the person opens: a record's fields change only in the form of
+its Edit view, and every other write is a command inside such a view. Before designing or changing a control that
 writes from the web map, read [Reading and editing](docs/viewers/web/index.md#reading-and-editing) and place the write
 by that rule. Do not add a control that stores a change from a reading view, and do not give reading code a write hook.
 
