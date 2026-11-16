@@ -1,11 +1,11 @@
 ---
 id: TASK-637
-title: 'Assign named colors to actors, systems, containers and components'
+title: Assign named colors to actors, systems, containers and components
 status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-16T18:16:00Z'
+updated_date: '2026-11-16T19:02:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -134,6 +134,8 @@ Cold simplicity review (one round), applied: on covers the color rules reach onl
 2026-11-16 revision: the Color row that stored on click was withdrawn after the owner asked that no editing happens outside the Edit form. Verified on the live map of this repository: the reading pane has no swatch and no input; the Edit form shows Color after Tags with No color checked; picking blue and Save colors the building blue and reopening the form shows blue checked; picking No color and Save removes the field from the element file. Full check: 953 Bun tests and the Node suite pass, 0 failures.
 
 2026-11-16, after Alex tried the form ("I cannot preview icon and color changes"): moving Color into the Edit form had taken away seeing a color before it is stored. While the form is open the map now paints the picked color on that element (editing/appearance-preview.ts). It keeps no architecture state: the renderer asks it for the sheet as the open form would make it look, and it repaints the map when the picked value changes or the form goes away. Test plan: rule = the map shows the picked color on the edited element only, and "No color" shows it without its saved color (authority: this request); wrong result caught = the preview painting another element or keeping the saved color; gap = withAppearance is new and had no coverage; added test-bun/web-appearance-preview.test.ts (2 tests). Checked on the live map of this branch: violet shows on the building while picked, Cancel shows the saved state again.
+
+Same day, own critical pass: after Save the element flashed back to its old color for about 120 ms, between the form closing and the saved map arriving. The Edit form now sends an event up the pane when Save has stored it (EDIT_SAVED), and the preview keeps what was saved on the map until the sheet carries it. Measured on the live map at the top of the stack: blue from the pick through Save to the saved map with no change in between; Cancel after a pick shows the saved color again.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
