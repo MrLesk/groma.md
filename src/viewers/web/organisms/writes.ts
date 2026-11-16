@@ -4,7 +4,7 @@ import type { EditValues } from '../../../authoring-conflict.ts'
 import { message } from './editable.ts'
 
 /** What the edit verb changes from the pane; the id is the selected element's. */
-export type MeaningEdit = Pick<EditArchitectureInput, 'title' | 'description' | 'overview' | 'technology' | 'parent' | 'tags'>
+export type MeaningEdit = Pick<EditArchitectureInput, 'title' | 'description' | 'overview' | 'technology' | 'parent' | 'tags' | 'color'>
 
 export interface ParentOption {
   id: string
@@ -26,8 +26,6 @@ export interface PaneWrites {
   onRemove?: () => Promise<void>
   onAccept?: () => Promise<void>
   onEdit?: (input: MeaningEdit, original: EditValues) => Promise<void>
-  /** Sets the element's color name at once; an empty name clears it. */
-  onColor?: (color: string) => Promise<void>
   parents?: readonly ParentOption[]
   /** Present while several components are selected on a live map. */
   selection?: SelectionWrites

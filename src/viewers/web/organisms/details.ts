@@ -21,7 +21,7 @@ import { createFlowList } from '../flow/list.ts'
 import type { CodeFile } from '../../source/structure.ts'
 import { paintElementWork } from '../work/component-tasks.ts'
 import { codeList } from './code-lists.ts'
-import { colorSwatches } from './color-swatches.ts'
+import { colorChoices } from './color-swatches.ts'
 import { heading, paragraph } from '../atoms/text.ts'
 import { editButton, isEditing, type EditField } from './editable.ts'
 import { tagRow } from './tag-row.ts'
@@ -328,7 +328,6 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
       if (inspected.description !== '') body.append(paragraph('description', inspected.description))
       if (inspected.overview !== '') body.append(paragraph('overview', inspected.overview))
       if (inspected.tags.length > 0) body.append(tagRow(inspected.tags, options.focusTags, options.onToggleTag))
-      if (writes.onColor !== undefined) body.append(colorSwatches(inspected.color, writes.onColor))
     },
 
     relationships: () => {
@@ -415,5 +414,6 @@ function elementFields(inspected: Inspected, parents: readonly ParentOption[], t
     { name: 'technology', label: 'Technology', value: inspected.technology },
     ...(inspected.movable ? [{ name: 'parent' as const, label: 'Parent', value: inspected.parent ?? '', options: parents }] : []),
     { name: 'tags', label: 'Tags', value: formatTags(inspected.tags), suggestions: tagsInUse },
+    { name: 'color', label: 'Color', value: inspected.color, choices: colorChoices() },
   ]
 }
