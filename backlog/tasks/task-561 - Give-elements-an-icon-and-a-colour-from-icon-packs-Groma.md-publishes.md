@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-07 23:16'
-updated_date: '2026-11-16T07:52:00Z'
+updated_date: '2026-11-16T18:20:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -77,6 +77,8 @@ modified_files:
   - src/viewers/web/organisms/color-swatches.ts
   - src/viewers/web/organisms/editable.ts
   - src/authoring-conflict.ts
+  - src/viewers/web/editing/appearance-preview.ts
+  - test-bun/web-appearance-preview.test.ts
 type: feature
 ordinal: 1
 ---
@@ -94,6 +96,7 @@ An architecture author gives an actor, system, external system, container or com
 - [x] #3 Assignments survive reloads and scans and remain the same when the UI theme changes.
 - [x] #4 The documented storage uses Groma presentation metadata without changing C4 containment, and no icon is assigned automatically.
 - [x] #5 In the web map the icon is the Icon field of the element's Edit form: Save stores it with the form's other fields under the same conflict check, the reading pane has no icon control, and Save and Cancel stay visible while the form scrolls
+- [x] #6 While the Edit form of an element is open, the map shows the picked icon on that element without storing it, in the room the element has now; the map lays itself out for the icon after Save
 <!-- AC:END -->
 
 ## Definition of Done
@@ -127,6 +130,8 @@ Groma's own map sets no icon in this branch: the architecture comparison job rea
 Reviews. Cold review and full-context review ran on the first snapshot. Fixed from them: icon parts no longer share the buildings' face classes (hover, draft, comparison and colored covers repainted them); parts are drawn back to front with a part over what it stands on (the cache chip's front pins were covered); only title icons are landmarks (an enlarged roof icon left its roof); the camera rules sit side by side in icon-camera.ts and the still path now fades inner lines by the same ramp as the live map; one slot function and one painter per name kind; a still is a named option; wall marks only type-check on boxes; cylinder renamed from round; Color row and Icon grid share one control. Left for Alex: a table of authored name fields (color and icon are now two hand-kept copies of the same path), and whether the live map should use the painter path for camera rules so one mechanism remains.
 
 2026-11-16 revision: the Icon grid that stored on click was withdrawn after the owner asked that no editing happens outside the Edit form. Verified on the live map of this repository: the reading pane has no icon choice and no input; the Edit form shows Icon after Color with 24 choices and No icon checked; picking database and Save puts the object on the roof and the glyph in the details title; picking No icon and Save removes both; in a 600 px high window the form scrolls under the pinned Save and Cancel bar, which sits flush with the bottom of the pane. Full check: 959 Bun tests and the Node suite pass, 0 failures.
+
+2026-11-16, after Alex tried the form ("I cannot preview icon and color changes"): the preview the colors task added (editing/appearance-preview.ts) now carries the picked icon too. The icon object stands on the roof while it is picked; the layout does not move until Save, because core owns layout and a preview stores nothing. The test of withAppearance gained the icon. Checked on the live map at the top of the stack: picking database shows the object on the building, Cancel and selecting another element show the saved state again.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
@@ -137,4 +142,6 @@ Verified: bun run check passes (28 Node tests, 959 Bun tests, 64 environment-dep
 Not included: icons on groups (by decision), icon packs, vendor logos, animation, icons in the terminal map (plain output prints the name). Groma's own map sets no icon until a release knows the field. Open for Alex: his verdict on the artwork, a table for authored name fields, and whether the live map should use the painter path for the camera rules.
 
 Revision 2026-11-16: in the web map the icon is the Icon field of the element's Edit form, stored by Save under the conflict check; organisms/instant-choice.ts and the onIcon hook are deleted, the reading pane has no icon control, and the form's Save and Cancel bar is pinned to the bottom of the pane.
+
+Later the same day: the map previews the icon picked in the open Edit form on that element, without storing it.
 <!-- SECTION:FINAL_SUMMARY:END -->
