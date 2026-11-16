@@ -17,8 +17,6 @@ groma:
       file: src/viewers/web/organisms/relationship-details.ts
       symbol: paintRelationship
     - scanner: typescript
-      file: src/viewers/web/organisms/editable.ts
-    - scanner: typescript
       file: src/viewers/web/organisms/sidebar-section.ts
       symbol: sectionHeading
     - scanner: typescript

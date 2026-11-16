@@ -4,7 +4,7 @@ import { formatTags, parseTags } from '../../../tags.ts'
 const OFFERED = 8
 
 /**
- * The Tags field of an edit form: one box that holds the record's tags as chips and the text being typed.
+ * The Tags field of a write view: one box that holds the record's tags as chips and the text being typed.
  * Enter or a comma turns the typed text into a chip, Backspace in the empty text takes the last chip off,
  * and the tags already in use are offered under the box, narrowed by what is typed. Nothing is stored
  * here: the hidden control named `name` holds the pending list as the comma-separated text every edit
@@ -134,11 +134,11 @@ export const tagsFieldCss = `
     line-height: 22px; opacity: 0.45; transition: opacity 160ms ease;
   }
   #details .tags-field .tag-remove:hover, #details .tags-field .tag-remove:focus-visible { background: transparent; opacity: 1; }
-  #details .edit-form .tags-field .tag-box input {
+  #details .write-form .tags-field .tag-box input {
     flex: 1 1 72px; width: auto; min-width: 72px; border: 0; border-radius: 0; padding: 0 2px;
     background: transparent; line-height: 22px;
   }
-  #details .edit-form .tags-field .tag-box input:focus { outline: none; }
+  #details .write-form .tags-field .tag-box input:focus { outline: none; }
   #details .tags-field .tag-suggestions { display: flex; flex-wrap: wrap; gap: 5px; }
   #details .tags-field .tag-suggestions:empty { display: none; }
   #details .tags-field .tag-suggestion {

@@ -26,8 +26,8 @@ import { iconChoices } from './icon-picker.ts'
 import { glyphElement } from '../icons/glyph-element.ts'
 import type { IconName } from '../../../icons.ts'
 import { heading, paragraph } from '../atoms/text.ts'
-import { paintAcceptCommand, paintRemoveCommand } from './commands.ts'
-import { editButton, isEditing, type EditField, type RunCommand } from './editable.ts'
+import { acceptEntry, editEntry, removeEntry, type EditField } from './commands.ts'
+import { isWriteViewOpen, paintWriteEntries, type WriteEntry } from './write-view.ts'
 import { tagRow } from './tag-row.ts'
 import type { PaneWrites, ParentOption } from './writes.ts'
 import { relationshipCard, relationshipPairCard, type RelationshipPairData } from './relationship-card.ts'
@@ -311,11 +311,11 @@ function paintComparedRelationships(list: HTMLElement, pair: RelationshipPairDat
 
 /**
  * Paints the pane of one element. Its sections only read and navigate, from `options`. The one control that
- * leads to writing, Edit, is painted last, from `writes`.
+ * leads to writing, the Edit entry, is painted last, from `writes`.
  */
 export function paintDetails(host: HTMLElement, inspected: Inspected, options: DetailsOptions, writes: PaneWrites): void {
   const { onSelect, onToggleFlow, activeFlows, tab, onTab, code, onSource, workGroups, onTask } = options
-  if (writes.onEdit !== undefined && isEditing(host, inspected.id)) return
+  if (writes.onEdit !== undefined && isWriteViewOpen(host, inspected.id)) return
   const title = host.querySelector('h1')!
   const meta = host.querySelector('.meta')!
   const tabsHost = host.querySelector<HTMLElement>('.tabs')!
@@ -382,26 +382,24 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   }
   if (shownTab === 'tasks') paintElementWork(body, workGroups, onTask)
   else for (const key of tabSections(shownTab)) sections[key]()
-  paintEditEntry(host, body, inspected, writes, knownTags(options.world.elements))
+  paintEditEntry(host, inspected, writes, knownTags(options.world.elements))
 }
 
-/** Paints Edit, the pane's only control that leads to writing: it opens the element's commands and fields. */
-function paintEditEntry(
-  host: HTMLElement, body: Element, inspected: Inspected, writes: PaneWrites, tagsInUse: readonly string[],
-): void {
+/** Paints Edit, the pane's only write entry: its view holds the element's fields and offers its other writes. */
+function paintEditEntry(host: HTMLElement, inspected: Inspected, writes: PaneWrites, tagsInUse: readonly string[]): void {
   const { onEdit, onRead } = writes
   if (onEdit === undefined || onRead === undefined) return
-  body.prepend(editButton(host, inspected.id, {
-    form: { fields: elementFields(inspected, writes.parents ?? [], tagsInUse), save: onEdit },
-    paintCommands: (box, run) => paintElementCommands(box, run, inspected, writes),
-  }, onRead))
+  const fields = elementFields(inspected, writes.parents ?? [], tagsInUse)
+  paintWriteEntries(host, inspected.id, [editEntry(fields, onEdit, otherWrites(inspected, writes))], onRead)
 }
 
-/** The commands one element takes: Accept on a matched draft, Remove where `groma remove` would succeed. */
-function paintElementCommands(box: HTMLElement, run: RunCommand, inspected: Inspected, writes: PaneWrites): void {
+/** The other writes one element takes: Accept on a matched draft, Remove where `groma remove` would succeed. */
+function otherWrites(inspected: Inspected, writes: PaneWrites): WriteEntry[] {
   const { onAccept, onRemove } = writes
-  if (inspected.matchedGhost && onAccept !== undefined) paintAcceptCommand(box, run, onAccept)
-  if (inspected.removable && onRemove !== undefined) paintRemoveCommand(box, run, inspected.title, onRemove)
+  return [
+    ...(inspected.matchedGhost && onAccept !== undefined ? [acceptEntry(inspected.title, onAccept)] : []),
+    ...(inspected.removable && onRemove !== undefined ? [removeEntry(inspected.title, onRemove)] : []),
+  ]
 }
 
 /** Empties the pane while nothing is selected. */
