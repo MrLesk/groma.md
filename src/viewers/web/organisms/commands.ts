@@ -1,6 +1,7 @@
 import { changedEdit, type EditValues } from '../../../authoring-conflict.ts'
-import type { WriteEntry, WriteField } from './write-view.ts'
-import type { SelectionWrites } from './writes.ts'
+import { tagChanges, type TagsField } from '../tags/tags-field.ts'
+import { isTagsField, type ValueField, type WriteEntry } from './write-view.ts'
+import type { ComponentWrites, MeaningEdit } from './writes.ts'
 
 /*
  * Every write a pane of the web map offers, one function each. A function only describes its write: the
@@ -9,17 +10,36 @@ import type { SelectionWrites } from './writes.ts'
  * the entries of the pane or of the Edit view that offers it.
  */
 
-/** One field of a record's Edit form. Its name is a value the edit conflict check knows, so no field escapes it. */
-export type EditField = WriteField & { name: keyof EditValues }
+/** Edit checks named values against their opening values. The Tags field supplies its own changes. */
+export type EditField = (ValueField & { name: keyof EditValues }) | TagsField
+
+/** Collect the changed values and their originals. Tag additions and removals need no opening values. */
+function editChanges(
+  fields: readonly EditField[], values: Record<string, string>,
+): { changes: MeaningEdit; original: EditValues } {
+  const opening: EditValues = {}
+  const picked: EditValues = {}
+  for (const field of fields) {
+    if (isTagsField(field)) continue
+    // A choice field nobody picked in has no value: its records differ (mixed) and stay as they are.
+    // Do not default it to '': an empty value clears the field on every record.
+    if (values[field.name] === undefined) continue
+    opening[field.name] = field.value
+    picked[field.name] = values[field.name]
+  }
+  const { original, ...changedValues } = changedEdit(opening, picked)
+  const changes = { ...changedValues, ...tagChanges(values) }
+  return { changes, original }
+}
 
 /**
- * Edit: every field a person can set on a record, stored by Save as one `groma edit` of the fields that
- * changed. `others` are the record's other writes, offered above the fields.
+ * Edit stores the changed fields of one record or several selected elements in one write.
+ * A single record can offer its other writes above the fields.
  */
 export function editEntry(
   fields: readonly EditField[],
-  save: (changes: EditValues, original: EditValues) => Promise<void>,
-  others: readonly WriteEntry[],
+  save: (changes: MeaningEdit, original: EditValues) => Promise<void>,
+  others: readonly WriteEntry[] = [],
 ): WriteEntry {
   return {
     label: 'Edit',
@@ -28,10 +48,7 @@ export function editEntry(
       fields,
       entries: others,
       write: async values => {
-        const { original, ...changes } = changedEdit(
-          Object.fromEntries(fields.map(field => [field.name, field.value])),
-          Object.fromEntries(fields.map(field => [field.name, values[field.name] ?? ''])),
-        )
+        const { changes, original } = editChanges(fields, values)
         if (Object.keys(changes).length > 0) await save(changes, original)
       },
     },
@@ -49,7 +66,7 @@ export function removeEntry(title: string, remove: () => Promise<void>): WriteEn
 }
 
 /** Group: names several selected components as one group. */
-export function groupEntry(group: SelectionWrites['onGroup']): WriteEntry {
+export function groupEntry(group: ComponentWrites['onGroup']): WriteEntry {
   return {
     label: 'Group',
     hint: 'Name these components as one group',
@@ -62,7 +79,7 @@ export function groupEntry(group: SelectionWrites['onGroup']): WriteEntry {
 }
 
 /** Combine: folds several selected components into the one the person picks. */
-export function combineEntry(members: SelectionWrites['members'], combine: SelectionWrites['onCombine']): WriteEntry {
+export function combineEntry(members: readonly { id: string; title: string }[], combine: ComponentWrites['onCombine']): WriteEntry {
   return {
     label: 'Combine',
     hint: 'Fold these components into one of them',

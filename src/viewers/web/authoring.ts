@@ -11,21 +11,30 @@ export interface AuthoringDependencies {
   repaint: () => void
 }
 
-/** The write hooks of the three architecture panes: an element, a relationship, several selected components. */
+/** The write hooks for an element, a relationship, or several selected elements. */
 export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSource, deps: AuthoringDependencies) {
   const gestures = createMapEditor(host, map, data, () => deps.world().elements, deps.live)
   const { accept, add, edit, remove } = data
-  /** Group and Combine, while every selected element is a component on the current revision of a live map. */
+  /**
+   * Several elements share one edit with no opening values to check. Only components can group or combine.
+   * The selection names elements by the ids the map shows, which on the current revision are their stored ids.
+   */
   function selectionWrites(ids: readonly string[]): SelectionWrites | undefined {
-    if (!deps.live() || add === undefined || edit === undefined) return undefined
-    const members = ids.flatMap(id => deps.world().elements.filter(element => element.id === id && element.kind === 'component'))
+    if (!deps.live() || edit === undefined) return undefined
+    const members = deps.world().elements.filter(element => ids.includes(element.id))
     if (members.length !== ids.length) return undefined
-    return {
+    const [id, ...alsoIds] = ids
+    const writes: SelectionWrites = {
       onRead: deps.repaint,
-      members: members.map(({ id, title }) => ({ id, title })),
-      onGroup: name => add({ thing: 'group', name, members: [...ids] }),
-      onCombine: survivor => edit({ id: survivor, combine: ids.filter(id => id !== survivor) }),
+      onEdit: changes => edit({ id, alsoIds, ...changes }),
     }
+    if (add !== undefined && members.every(member => member.kind === 'component')) {
+      writes.components = {
+        onGroup: name => add({ thing: 'group', name, members: [...ids] }),
+        onCombine: survivor => edit({ id: survivor, combine: ids.filter(id => id !== survivor) }),
+      }
+    }
+    return writes
   }
 
   /** The hooks of one element's pane. A pane that shows no stored element, such as a placement group, gets none. */

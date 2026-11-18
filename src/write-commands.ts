@@ -1,7 +1,7 @@
 import type { Command } from 'commander'
 
 import { writes } from './authoring.ts'
-import type { AddInput, RemoveInput } from './authoring.ts'
+import type { AddInput, EditArchitectureInput, RemoveInput } from './authoring.ts'
 import { COLOR_NAMES } from './colors.ts'
 import { ICON_NAMES } from './icons.ts'
 import type { StructuralResult } from './curate.ts'
@@ -31,6 +31,12 @@ function addressed(id: string, ids: string[]): RemoveInput {
   }
   if (ids.length > 0) throw new Error(`${id} takes no further id`)
   return { id }
+}
+
+/** Edit takes two endpoints after `relation`, or one or more element ids. */
+function editAddress(id: string, ids: string[]): EditArchitectureInput {
+  if (id === 'relation' || ids.length === 0) return addressed(id, ids)
+  return { id, alsoIds: ids }
 }
 
 /** `add relation <a> <b>` and `add group <name> <ids...>` carry ids after the name; nothing else does. */
@@ -125,13 +131,14 @@ export function registerWriteCommands(program: Command): void {
     .command('edit')
     .description('Update authored meaning')
     .argument('<id>', 'element id, draft id, flow id, group id, project, or relation')
-    .argument('[ids...]', 'with relation: the source and target endpoints')
+    .argument('[ids...]', 'more elements taking the same tag changes, color and icon, or the two endpoints of a relation')
     .option('--title <text>', 'new title; the id stays')
     .option('--overview <markdown>', 'full Markdown explanation, or the outcome of a draft')
     .option('--steps <markdown>', 'flow Steps table: From | To | Action, with Markdown endpoint links')
     .option('--description <text>', 'optional short summary (empty removes it), or how a relation works')
     .option('--technology <text>', 'technology of an element (empty removes it) or of a relation')
-    .option('--tags <tags>', 'comma-separated OKF tags of an element; replaces its list (empty removes it)')
+    .option('--add-tags <tags>', 'comma-separated OKF tags to add to each element')
+    .option('--remove-tags <tags>', 'comma-separated OKF tags to remove from each element')
     .option('--color <name>', `color of an element on the map: ${COLOR_NAMES.join(', ')} (empty removes it)`)
     .option('--icon <name>', `icon of an element on the map: ${ICON_NAMES.join(', ')} (empty removes it)`)
     .option('--draft <draft-id>', 'link this element to the draft that touches it')
@@ -144,16 +151,15 @@ export function registerWriteCommands(program: Command): void {
     .addHelpText('after', '\nAgent guides: groma agent-instructions')
     .action(async (id: string, ids: string[], options) => {
       try {
-        const { id: target, relation } = addressed(id, ids)
         const edited = await writes.edit(process.cwd(), {
-          id: target,
-          relation,
+          ...editAddress(id, ids),
           title: options.title,
           overview: options.overview,
           steps: options.steps,
           description: options.description,
           technology: options.technology,
-          tags: options.tags,
+          addTags: options.addTags,
+          removeTags: options.removeTags,
           color: options.color,
           icon: options.icon,
           draft: options.draft,

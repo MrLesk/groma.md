@@ -241,13 +241,15 @@ tag adds no C4 element, parent, or relationship, and it is unrelated to the
 `groma.draft` field that links a concept to a draft record. There is no
 `groma.tags` field and no separate tag catalog.
 
-`groma edit <id> --tags payments,legacy` replaces the concept's list, and an
-empty value removes the field. In the web map the Edit form of an element has a
-Tags field ([`tagsField`](../src/viewers/web/tags/tags-field.ts)): typing
-a name and pressing Enter adds a tag, with the tags already in use offered as
-suggestions, and the × on a tag takes it off. Save stores the list through the
-same edit. Groma writes tags without commas, blanks, or repeats, and reads any list
-of non-empty strings that another OKF tool wrote.
+`groma edit checkout-api orders --add-tags payments --remove-tags legacy`
+adds and removes tags on both elements. One id changes one element. Each keeps
+its other tags in order, with new tags at the end. Removing the last tag clears
+the field. In the web map, **Edit** opens the same Tags field
+([`tagsField`](../src/viewers/web/tags/tags-field.ts)) for one element or several.
+Enter, a comma, or a suggestion adds a tag to all. A partial chip
+shows how many carry it. Press its name to give it to all, or × on any chip to
+take it from all. **Save** applies the changes. Edits take comma-separated
+names, skip blanks and add each tag once. Groma reads any OKF list of non-empty strings.
 
 #### Focusing on tags
 
