@@ -45,7 +45,7 @@ export function createMapEditor(host: HTMLElement, map: IsoMap, data: WebDataSou
   let gesture: Gesture | undefined
   const enabled = (): boolean => live() && data.draft !== undefined && data.add !== undefined
   const element = (id: string | undefined): AnnotatedElement | undefined => elements().find(item => item.id === id)
-  const hit = (point: Point): string | undefined => map.hitId(document.elementFromPoint(point.x, point.y))
+  const hit = (point: Point): string | undefined => map.hitElementId(document.elementFromPoint(point.x, point.y))
   const pointOf = (event: PointerEvent): Point => ({ x: event.clientX, y: event.clientY })
 
   function choose(next: Tool | undefined): void {
@@ -98,7 +98,7 @@ export function createMapEditor(host: HTMLElement, map: IsoMap, data: WebDataSou
     const base = { pointerId: event.pointerId, start: pointOf(event), end: pointOf(event) }
     if (tool === 'group') start(event, { ...base, tool })
     else {
-      const source = element(map.hitId(event.target))
+      const source = element(map.hitElementId(event.target))
       if (source?.kind === 'component') start(event, { ...base, tool, source: source.id })
       else { event.stopImmediatePropagation(); error.textContent = 'Start on a component' }
     }

@@ -34,6 +34,22 @@ export interface PaneWrites {
   parents?: readonly ParentOption[]
 }
 
+/** What Edit changes on a group or a flow: its wording and its tags. */
+export type WordingEdit = Pick<MeaningEdit, 'title' | 'description' | 'overview' | 'addTags' | 'removeTags'>
+
+/** The write hooks a group pane gets on the current revision of a live map: Edit, and Remove of the group record. */
+export interface GroupWrites {
+  onRead: () => void
+  onEdit: (input: WordingEdit, original: EditValues) => Promise<void>
+  onRemove?: () => Promise<void>
+}
+
+/** The write hooks a flow pane gets on the current revision of a live map: Edit. Its Steps table is edited on the command line. */
+export interface FlowWrites {
+  onRead: () => void
+  onEdit: (input: WordingEdit, original: EditValues) => Promise<void>
+}
+
 /** The write hooks a relationship pane gets on the current revision of a live map. */
 export interface RelationWrites {
   onRead?: () => void

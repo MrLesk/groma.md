@@ -39,6 +39,8 @@ export interface Island {
 export interface Zone {
   key: string
   name: string
+  /** The id of the stored group this zone draws, when it draws one. */
+  groupId?: string
   /** Derived display group for components whose system is known but container is not. */
   unidentifiedContainer?: true
   /** Island key or slab representation id the zone lies on. */
