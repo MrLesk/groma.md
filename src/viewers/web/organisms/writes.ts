@@ -1,20 +1,25 @@
 import type { EditArchitectureInput } from '../../../authoring.ts'
 import type { EditValues } from '../../../authoring-conflict.ts'
 
-/** What the edit verb changes from the pane; the id is the selected element's. */
-export type MeaningEdit = Pick<EditArchitectureInput, 'title' | 'description' | 'overview' | 'technology' | 'parent' | 'tags' | 'color' | 'icon'>
+/** The fields Edit can change from an element's pane. */
+export type MeaningEdit = Pick<EditArchitectureInput, 'title' | 'description' | 'overview' | 'technology' | 'parent' | 'addTags' | 'removeTags' | 'color' | 'icon'>
 
 export interface ParentOption {
   id: string
   title: string
 }
 
-/** The write hooks the pane of several selected components gets on the current revision of a live map. */
-export interface SelectionWrites {
-  onRead: () => void
-  members: { id: string; title: string }[]
+/** Group and Combine take a selection made entirely of components. */
+export interface ComponentWrites {
   onGroup: (name: string) => Promise<void>
   onCombine: (survivor: string) => Promise<void>
+}
+
+/** Any selection of elements can edit tags and appearance on the current revision of a live map. */
+export interface SelectionWrites {
+  onRead: () => void
+  onEdit: (changes: Pick<MeaningEdit, 'addTags' | 'removeTags' | 'color' | 'icon'>) => Promise<void>
+  components?: ComponentWrites
 }
 
 /**

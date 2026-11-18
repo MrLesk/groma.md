@@ -1,6 +1,6 @@
 import { approvalBar } from '../atoms/write-form.ts'
 import { choiceField, type Choice } from './choice-field.ts'
-import { tagsField } from '../tags/tags-field.ts'
+import { tagsField, type TagsField } from '../tags/tags-field.ts'
 
 /*
  * The one way a pane of the web map writes. A reading pane offers each write as a write entry: a button
@@ -22,7 +22,7 @@ export const writeViewCss = `
   /* The entries of a reading pane stand in its header, before the pane's own controls. */
   #details .write-entries.of-pane { position: absolute; top: 12px; right: 92px; }
   #details .write-entries.of-pane .write-entry { height: 32px; padding-block: 0; }
-  /* The line above the title keeps clear of them: of one entry, or of two. */
+  /* Keep the line above the title clear of the header's write entries. */
   #details:has(.write-entries.of-pane) > .meta { padding-right: 140px; }
   #details:has(.write-entries.of-pane > :nth-child(2)) > .meta { padding-right: 250px; }
 
@@ -71,21 +71,27 @@ export const writeViewCss = `
   }
 `
 
-/** One thing a write view asks the person for. Its kind follows from which optional part it carries. */
-export interface WriteField {
+/** A field that sends one named value. */
+export interface ValueField {
   /** The key of this field's value in what `WriteView.write` receives. */
   name: string
   label: string
-  /** The value the field starts with. */
-  value: string
+  /** A choice with no opening value is mixed across the selected records. */
+  value: string | undefined
   multiline?: boolean
   required?: boolean
   /** Makes this a select: the records its value is picked from. */
   options?: readonly { id: string; title: string }[]
-  /** Makes this a tags field: the tags already in use, offered while a tag is typed. */
-  suggestions?: readonly string[]
   /** Makes this a choice field: the fixed set its value is picked from. */
   choices?: readonly Choice[]
+}
+
+/** A write view asks for one named value or for the tags to add and remove. */
+export type WriteField = ValueField | TagsField
+
+/** Tells the Tags field from a value field: only the Tags field says which tags its records carry. */
+export function isTagsField(field: WriteField): field is TagsField {
+  return 'carried' in field
 }
 
 /** One write a pane offers: what it asks the person for, and the button that approves it. */
@@ -99,7 +105,7 @@ export interface WriteView {
   fields: readonly WriteField[]
   /** What a write without fields is about to do, shown where the fields would be: "Remove Billing?". */
   question?: string
-  /** Stores the write. Called once the approving button is pressed, with the value of every field by name. */
+  /** Stores the write on approval. A radio group with no choice has no entry. */
   write: (values: Record<string, string>) => Promise<void>
   /** The other writes of the same record, offered above the fields. Each opens its own view in place of this one. */
   entries?: readonly WriteEntry[]
@@ -121,12 +127,10 @@ export function isWriteViewOpen(host: HTMLElement, key: string): boolean {
 /** The event a write view sends up the pane right after its write was stored, before the view closes. */
 export const WRITE_STORED = 'write-stored'
 
-/** The key of the open write view and the values its fields hold, stored or not. Undefined while the pane is reading. */
-export function pendingValues(host: HTMLElement): { key: string; values: Record<string, string> } | undefined {
-  const form = host.querySelector<HTMLFormElement>('.write-form')
-  const key = form?.closest<HTMLElement>('[data-write-key]')?.dataset.writeKey
-  if (form === null || key === undefined) return undefined
-  return { key, values: formValues(form) }
+/** The values of the open write form, or undefined while the pane is reading. */
+export function pendingValues(host: HTMLElement): Record<string, string> | undefined {
+  const form = host.querySelector<HTMLFormElement>('.write-view .write-form')
+  return form === null ? undefined : formValues(form)
 }
 
 function formValues(form: HTMLFormElement): Record<string, string> {
@@ -157,8 +161,7 @@ function entryRow(
 }
 
 /**
- * Paints the write entries of a reading pane in the pane's header: Edit for a record, Group and Combine
- * for several selected components. They are the pane's only controls that lead to writing. `key` names
+ * Paints the write entries of a reading pane in its header. They are the pane's only controls that lead to writing. `key` names
  * what the pane shows, and `read` paints the pane's reading view again once a view closes.
  */
 export function paintWriteEntries(host: HTMLElement, key: string, entries: readonly WriteEntry[], read: () => void): void {
@@ -243,18 +246,21 @@ function openWriteView(host: HTMLElement, key: string, { approveLabel, fields, q
   ;(view.querySelector<HTMLElement>('.write-form :is(input:not([type="hidden"]), textarea, select)') ?? approval.approveButton).focus()
 }
 
+function textControl(field: ValueField): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
+  if (field.options === undefined) return document.createElement(field.multiline ? 'textarea' : 'input')
+  const select = document.createElement('select')
+  for (const option of field.options) select.add(new Option(option.title, option.id))
+  return select
+}
+
 function fieldControl(field: WriteField): HTMLElement {
-  if (field.suggestions !== undefined) return tagsField(field.name, field.label, field.value, field.suggestions)
+  if (isTagsField(field)) return tagsField(field)
   if (field.choices !== undefined) return choiceField(field.name, field.label, field.value, field.choices)
   const label = document.createElement('label')
   label.textContent = field.label
-  const input = field.options !== undefined ? document.createElement('select')
-    : field.multiline ? document.createElement('textarea') : document.createElement('input')
-  if (input instanceof HTMLSelectElement) {
-    for (const option of field.options ?? []) input.add(new Option(option.title, option.id))
-  }
+  const input = textControl(field)
   input.name = field.name
-  input.value = field.value
+  input.value = field.value ?? ''
   input.required = field.required === true
   label.append(input)
   return label

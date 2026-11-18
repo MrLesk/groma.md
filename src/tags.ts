@@ -1,6 +1,6 @@
 /**
  * OKF `tags` are short strings that name cross-cutting categories of an element.
- * Documents store them as a list. Commands and forms write them as one comma-separated text.
+ * Documents store them as a list. Edits name the tags to add and remove in comma-separated text.
  */
 
 /** The tags named by comma-separated text, in the order written, without blanks or repeats. */

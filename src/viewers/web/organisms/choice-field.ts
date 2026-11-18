@@ -12,7 +12,7 @@ export interface Choice {
  * A field of an edit form whose value is picked from a fixed set, such as a color. Every choice is a radio
  * button named `name`, so the form sends the pick when Save is pressed. Picking stores nothing.
  */
-export function choiceField(name: string, label: string, value: string, choices: readonly Choice[]): HTMLElement {
+export function choiceField(name: string, label: string, value: string | undefined, choices: readonly Choice[]): HTMLElement {
   const field = document.createElement('div')
   field.className = 'choice-field'
   field.setAttribute('role', 'radiogroup')
@@ -20,6 +20,12 @@ export function choiceField(name: string, label: string, value: string, choices:
   const title = document.createElement('span')
   title.className = 'field-title'
   title.textContent = label
+  if (value === undefined) {
+    const mixed = document.createElement('span')
+    mixed.className = 'mixed'
+    mixed.textContent = ' · mixed'
+    title.append(mixed)
+  }
   const row = document.createElement('div')
   row.className = 'choices'
   for (const choice of choices) {
@@ -40,8 +46,11 @@ export function choiceField(name: string, label: string, value: string, choices:
   return field
 }
 
+/** Shared radio choices and the title of a field whose records differ. */
 export const choiceFieldCss = `
   #details .choice-field { display: grid; gap: 6px; font-size: 12px; }
+  #details .choice-field .mixed { text-transform: none; letter-spacing: normal; color: var(--muted); }
+  #details .choice-field:has(:checked) .mixed { display: none; }
   #details .choice-field .choices { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
   #details .choice-field .choices label { position: relative; display: grid; place-items: center; cursor: pointer; }
   /* The radio button stays focusable but unseen: its label shows the choice. */

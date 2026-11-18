@@ -2,7 +2,7 @@ import { parseMarkdown, parseFrontmatter } from 'comark'
 import { renderFrontmatter } from 'comark/render'
 
 import { GromaFileSystem } from './groma-filesystem.ts'
-import { buildArchitectureModel } from './architecture-model.ts'
+import { buildArchitectureModel, tagsOf } from './architecture-model.ts'
 import { requireText } from './naming.ts'
 import { parseTags } from './tags.ts'
 import { DRAFT_TYPE, c4Type, requireGromaMapping } from './okf-profile.ts'
@@ -20,13 +20,16 @@ export async function validateElementSource(documents: ArchitectureDocument[], s
   buildArchitectureModel([...documents.filter(item => item.sourceFilename !== sourceFilename), document])
 }
 
+/** Authored fields one edit applies to the current Markdown document. */
 export interface MeaningChanges {
   title?: string
   overview?: string
   description?: string
   technology?: string
-  /** Comma-separated OKF tags that replace the element's list; empty text removes it. */
-  tags?: string
+  /** Comma-separated OKF tags the element gains. */
+  addTags?: string
+  /** Comma-separated OKF tags the element loses. */
+  removeTags?: string
   /** A color name from src/colors.ts; empty text removes it. */
   color?: string
   /** An icon name from src/icons.ts; empty text removes it. */
@@ -40,7 +43,7 @@ export function withMeaning(source: string, input: MeaningChanges): string {
   if (input.overview !== undefined) source = replaceLeadProse(source, input.overview)
   source = withDescription(source, input.description)
   if (input.technology !== undefined) source = withGromaField(source, 'technology', input.technology || undefined)
-  if (input.tags !== undefined) source = withTags(source, parseTags(input.tags))
+  if (input.addTags !== undefined || input.removeTags !== undefined) source = withTags(source, input)
   if (input.color !== undefined) source = withGromaField(source, 'color', input.color || undefined)
   if (input.icon !== undefined) source = withGromaField(source, 'icon', input.icon || undefined)
   if (input.draft !== undefined) source = withGromaField(source, 'draft', input.draft || undefined)
@@ -104,13 +107,21 @@ export function withTitle(source: string, title: string): string {
   return sourceWithFrontmatter({ ...data, title }, content)
 }
 
-/** OKF tags go just ahead of the nested groma mapping; every other field keeps its place. */
-function withTags(source: string, tags: readonly string[]): string {
+/** Keep the document's tag order and append new tags in the order the author gave them. */
+function withTags(source: string, { addTags, removeTags }: MeaningChanges): string {
+  const added = parseTags(addTags ?? '')
+  const removed = new Set(parseTags(removeTags ?? ''))
+  const overlap = added.find(tag => removed.has(tag))
+  if (overlap !== undefined) throw new Error(`cannot both add and remove tag "${overlap}"`)
   const { content, data } = documentParts(source)
+  const carried = tagsOf(data.tags, 'document') ?? []
+  const kept = carried.filter(tag => !removed.has(tag))
+  const gained = added.filter(tag => !carried.includes(tag))
+  const tags = [...kept, ...gained]
   const frontmatter: Record<string, unknown> = {}
   for (const [field, value] of Object.entries(data)) {
     if (field === 'tags') continue
-    if (field === 'groma' && tags.length > 0) frontmatter.tags = [...tags]
+    if (field === 'groma' && tags.length > 0) frontmatter.tags = tags
     frontmatter[field] = value
   }
   return sourceWithFrontmatter(frontmatter, content)

@@ -53,7 +53,7 @@ test.concurrent('a filtered export publishes neither an excluded component nor i
   try {
     await cp(fixture, root, { recursive: true })
     await writeFile(path.join(root, 'src/orders.ts'), 'export const internalOnly = true\n')
-    await writes.edit(root, { id: 'orders', tags: 'internal' })
+    await writes.edit(root, { id: 'orders', addTags: 'internal' })
     const boot = await publish(root, { filter: { include: [], exclude: ['internal'] } })
     expect(boot.world.elements.map(element => element.id).sort()).toEqual(['api', 'shop'])
     expect(JSON.stringify(boot)).not.toContain('internalOnly')
@@ -78,7 +78,7 @@ test.concurrent('a filtered comparison publishes no source from the commit that 
     await cp(fixture, root, { recursive: true })
     await git('init', '--quiet')
     const published = await commit('Public orders')
-    await writes.edit(root, { id: 'orders', tags: 'internal' })
+    await writes.edit(root, { id: 'orders', addTags: 'internal' })
     await writeFile(path.join(root, 'src/orders.ts'), 'export const internalOnly = true\n')
     const internal = await commit('Orders become internal')
     const boot = await publish(root, { from: published, revision: internal, filter: { include: [], exclude: ['internal'] } })
