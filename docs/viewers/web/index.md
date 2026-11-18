@@ -272,28 +272,29 @@ The top header groups the groma.md lockup, project title from `project.md`,
 system/container/component counts, the revision picker, **Search**, and the view
 controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**):
 
-- **Projection bar:** **Iso**, **2D**, and **Layers** sit in a floating bar at the
-  top center of the map (`F2` toggles **Layers**; `F1` hides the HUD chrome for a
-  map-only view; `F3` toggles the performance/debug panel).
+- **Iso**, **2D**, and **Layers** sit in the projection bar at the top left of
+  the map, above the C4 filter. `F2` toggles **Layers**, `F1` hides the controls
+  for a map-only view, and `F3` toggles the performance/debug panel.
 - **C4 filter bar:** The floating icon bar beside the hierarchy toggles **Actors**,
   **Systems**, **Containers**, **Components**, and **Relationships** on the map.
   Choices persist in `localStorage` and URL parameters.
-- **Tags:** While any element carries [OKF tags](../../component-markdown.md#tags),
-  the hierarchy pane lists every tag in use above the kind legend, with the number
-  of elements that carry it. Clicking a tag focuses the map on it, and the same
-  chip in the Tags row of the details pane does the same. Several tags can be
-  focused together. The map keeps every element in place and recedes what the
-  focused tags do not select, by the
-  [matching rule](../../component-markdown.md#focusing-on-tags). A focus:
-  - shows its tags in a bar under the view switch, where a click on one ends
-    that tag's focus, also while both panes are closed;
-  - moves the camera to frame everything the tags select, and back to the
-    selection when the last tag is released;
-  - recedes the hierarchy rows and the task pins of what the tags do not
-    select, as it recedes their buildings.
+- **Tags** appears beside the view switch when an element carries a tag. Open it
+  with a click or `T`. The list shows tags alphabetically and counts the elements
+  that carry each tag directly. Type to find a tag. Point at a row or use ↑ and ↓
+  to preview a toggle. Click or press Enter to keep it and frame the matches.
+  Escape or a click outside closes the list. Details chips toggle the same focus.
+  - With two or more focused tags, **any** lights elements matching at least one
+    and **all** requires every tag. A component in a `payments` container that
+    carries `internal` itself matches both.
+  - **not** excludes a tag. With just **not internal**, everything outside
+    `internal` stays lit. The bar shows a filled chip for each focused tag and
+    an outlined chip for each exclusion. Click × to remove one.
+  - The map, hierarchy rows and task pins recede together. A preview leaves the
+    camera and URL in place. Clearing the last chip frames the current selection.
+    [Tag matching and example](../../component-markdown.md#focusing-on-tags).
 
-  [`chrome/tag-focus.ts`](../../../src/viewers/web/chrome/tag-focus.ts) owns the
-  focused tags.
+  [`chrome/tag-focus.ts`](../../../src/viewers/web/chrome/tag-focus.ts) owns the focus and the bar, and
+  [`chrome/tag-list.ts`](../../../src/viewers/web/chrome/tag-list.ts) owns the list.
 - **Colors:** The Edit form of an element has a **Color** field: no color, then
   each [named color](../../component-markdown.md#colors) in the current theme's
   values. The map mixes the saved color into the element's surfaces and outline;
@@ -431,10 +432,10 @@ The URL query string tracks the current view so any state can be shared by link:
   restore selections.
 - `tab=how|tasks`, `file=<path>`, and `line=<number>` open the corresponding
   details tab and source location.
-- `tag=<tag>`, repeated for several tags, focuses the map on those tags, and
-  the view opens framed on what they select. A tag the architecture does not
-  use is ignored. The focus is part of the link and is not saved as a browser
-  preference, because tags belong to one project.
+- `tag=<tag>` focuses a tag. Repeat it for more tags. The default is **any**.
+- `match=all` requires every focused tag.
+- `not=<tag>` excludes a tag. Repeat it for more exclusions. Opening the link
+  frames the matches. Tags absent from this architecture are ignored.
 - `view=iso|2d|layers`, `hide=...`, `theme=auto|<theme id>`, `hud=off`, and
   `inset=<pixels>` configure projection and chrome. A theme id the project does
   not enable is ignored, so the link falls back to the saved choice.

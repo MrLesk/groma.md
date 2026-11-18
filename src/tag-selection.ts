@@ -1,9 +1,16 @@
 import { ancestorIds, parentOfElements } from './viewers/relationship-text.ts'
 import type { AnnotatedArchitectureModel, AnnotatedElement } from './types.ts'
 
-/** What a set of tags selects in one architecture. Every id is a representation id. */
+/** The map's tag focus. Each tag can be focused or excluded. */
+export interface TagFocus {
+  readonly focused: readonly string[]
+  readonly match: 'any' | 'all'
+  readonly excluded: readonly string[]
+}
+
+/** What a tag focus selects in one architecture. Every id is a representation id. */
 export interface TagSelection {
-  /** Elements that carry one of the tags, and everything inside them. */
+  /** Elements that match the focus after exclusions. */
   matched: ReadonlySet<string>
   /** Systems and containers that hold a matched element without being matched themselves. */
   parents: ReadonlySet<string>
@@ -11,8 +18,14 @@ export interface TagSelection {
 
 type Tagged = Pick<AnnotatedElement, 'representationId' | 'parent' | 'tags'>
 
+/** One tag in the list and the number of elements that carry it directly. */
+export interface TagCount {
+  tag: string
+  count: number
+}
+
 /** Every tag in use, in alphabetical order, with the number of elements that carry it. */
-export function tagCounts(elements: readonly Tagged[]): { tag: string; count: number }[] {
+export function tagCounts(elements: readonly Tagged[]): TagCount[] {
   const counts = new Map<string, number>()
   for (const element of elements) {
     for (const tag of element.tags ?? []) counts.set(tag, (counts.get(tag) ?? 0) + 1)
@@ -20,32 +33,37 @@ export function tagCounts(elements: readonly Tagged[]): { tag: string; count: nu
   return [...counts].map(([tag, count]) => ({ tag, count })).sort((left, right) => left.tag.localeCompare(right.tag))
 }
 
-/** The given tags that at least one element carries, in the given order. */
-export function tagsInUse(elements: readonly Tagged[], tags: readonly string[]): string[] {
+/** Keeps each known tag once. Exclusion wins a conflict and a single focused tag uses the default match mode. */
+export function tagFocusInUse(elements: readonly Tagged[], focus: TagFocus): TagFocus {
   const used = new Set(elements.flatMap(element => element.tags ?? []))
-  return tags.filter(tag => used.has(tag))
+  const excluded = [...new Set(focus.excluded)].filter(tag => used.has(tag))
+  const focused = [...new Set(focus.focused)].filter(tag => used.has(tag) && !excluded.includes(tag))
+  return { focused, match: focused.length < 2 ? 'any' : focus.match, excluded }
 }
 
-/**
- * An element matches when it carries any of the tags. A match takes everything inside it,
- * and the elements that hold a match are its parents. The map's tag focus and the filtered
- * export both read this one rule.
- */
-export function selectByTags(elements: readonly Tagged[], tags: readonly string[]): TagSelection {
-  const wanted = new Set(tags)
-  const carriers = new Set(elements
-    .filter(element => element.tags?.some(tag => wanted.has(tag)))
-    .map(element => element.representationId))
+function matchesFocus(tags: ReadonlySet<string>, focus: TagFocus): boolean {
+  if (focus.excluded.some(tag => tags.has(tag))) return false
+  if (focus.focused.length === 0) return true
+  if (focus.match === 'all') return focus.focused.every(tag => tags.has(tag))
+  return focus.focused.some(tag => tags.has(tag))
+}
+
+/** The map and the filtered export both match each element against its own and its ancestors' tags. */
+export function selectByTags(elements: readonly Tagged[], focus: TagFocus): TagSelection {
   const parentOf = parentOfElements(elements)
+  const tagsById = new Map(elements.map(element => [element.representationId, element.tags ?? []]))
   const matched = new Set<string>()
   const parents = new Set<string>()
   for (const element of elements) {
     const lineage = ancestorIds(element.representationId, parentOf)
-    if (lineage.some(id => carriers.has(id))) matched.add(element.representationId)
+    const tags = new Set(lineage.flatMap(id => tagsById.get(id) ?? []))
+    if (!matchesFocus(tags, focus)) continue
+    matched.add(element.representationId)
+    const ancestors = lineage.slice(1)
+    for (const ancestor of ancestors) parents.add(ancestor)
   }
-  for (const id of matched) {
-    for (const ancestor of ancestorIds(id, parentOf)) if (!matched.has(ancestor)) parents.add(ancestor)
-  }
+  // Parents supply context for a match. An ancestor that also matches belongs in matched alone.
+  for (const id of matched) parents.delete(id)
   return { matched, parents }
 }
 
@@ -63,16 +81,8 @@ export interface TagFilter {
  * Scan findings are left out, because they name source files across the whole project.
  */
 export function subsetByTags(world: AnnotatedArchitectureModel, filter: TagFilter): AnnotatedArchitectureModel {
-  const excluded = selectByTags(world.elements, filter.exclude).matched
-  const included = filter.include.length === 0
-    ? world.elements.map(element => element.representationId)
-    : [...selectByTags(world.elements, filter.include).matched]
-  const parentOf = parentOfElements(world.elements)
-  const kept = new Set<string>()
-  for (const id of included) {
-    // An excluded parent already excludes everything inside it, so a kept element's parents are never excluded.
-    if (!excluded.has(id)) for (const ancestor of ancestorIds(id, parentOf)) kept.add(ancestor)
-  }
+  const { matched, parents } = selectByTags(world.elements, { focused: filter.include, match: 'any', excluded: filter.exclude })
+  const kept = new Set([...matched, ...parents])
   const relationships = world.relationships.filter(item => kept.has(item.source) && kept.has(item.target))
   const relationshipIds = new Set(relationships.map(item => item.id))
   return {
