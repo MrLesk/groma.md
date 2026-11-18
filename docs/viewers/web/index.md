@@ -275,8 +275,8 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
     camera and URL in place. Clearing the last chip frames the current selection.
     [Tag matching and example](../../component-markdown.md#focusing-on-tags).
 
-  [`chrome/tag-focus.ts`](../../../src/viewers/web/chrome/tag-focus.ts) owns the focus and the bar, and
-  [`chrome/tag-list.ts`](../../../src/viewers/web/chrome/tag-list.ts) owns the list.
+  [`tags/tag-focus.ts`](../../../src/viewers/web/tags/tag-focus.ts) owns the focus and the bar, and
+  [`tags/tag-list.ts`](../../../src/viewers/web/tags/tag-list.ts) owns the list.
 - **Colors:** The Edit form of an element has a **Color** field: no color, then
   each [named color](../../component-markdown.md#colors) in the current theme's
   values. The map mixes the saved color into the element's surfaces and outline;

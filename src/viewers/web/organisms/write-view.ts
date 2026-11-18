@@ -1,6 +1,6 @@
 import { approvalBar } from '../atoms/write-form.ts'
 import { choiceField, type Choice } from './choice-field.ts'
-import { tagsField } from './tags-field.ts'
+import { tagsField } from '../tags/tags-field.ts'
 
 /*
  * The one way a pane of the web map writes. A reading pane offers each write as a write entry: a button

@@ -243,7 +243,7 @@ tag adds no C4 element, parent, or relationship, and it is unrelated to the
 
 `groma edit <id> --tags payments,legacy` replaces the concept's list, and an
 empty value removes the field. In the web map the Edit form of an element has a
-Tags field ([`tagsField`](../src/viewers/web/organisms/tags-field.ts)): typing
+Tags field ([`tagsField`](../src/viewers/web/tags/tags-field.ts)): typing
 a name and pressing Enter adds a tag, with the tags already in use offered as
 suggestions, and the × on a tag takes it off. Save stores the list through the
 same edit. Groma writes tags without commas, blanks, or repeats, and reads any list
