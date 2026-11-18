@@ -34,9 +34,9 @@ import { motionCss } from './chrome/motion.ts'
 import { detailsPanelCss } from './chrome/shell.ts'
 import { flowRowCss } from './flow/row.ts'
 import { mapCss } from './iso/painting/style.ts'
+import { factRowCss } from './atoms/fact-row.ts'
 import { writeFormCss } from './atoms/write-form.ts'
 import { writeViewCss } from './organisms/write-view.ts'
-import { tagRowCss } from './tags/tag-row.ts'
 import { tagsFieldCss } from './tags/tags-field.ts'
 import { selectionDetailsCss } from './organisms/selection-details.ts'
 import { relationshipCardCss } from './organisms/relationship-card.ts'
@@ -130,7 +130,7 @@ const style = `
   body.hud-hidden #pins { display: none; }
   button { font: inherit; color: inherit; background: transparent; cursor: pointer; }
   button:focus-visible { outline: 2px solid var(--highlight); outline-offset: -1px; }
-  #legend span, #details .meta, #details .section, #details .tag-row .title, #hierarchy .section, #tree .group, #zoom, #details .chip, #stats, .pane-label {
+  #legend span, #details .meta, #details .section, #details .fact-row .title, #hierarchy .section, #tree .group, #zoom, #details .chip, #stats, .pane-label {
     font-size: 10px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -385,7 +385,7 @@ const style = `
 ${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
 ${emptyStateCss}
 ${addDialogCss}${editorCss}
-${relationshipCardCss}${selectionDetailsCss}${writeFormCss}${writeViewCss}${tagRowCss}${tagsFieldCss}${mapDebugCss}${detailsPanelCss}${tagFocusCss}${tagListCss}${mapViewCss}${c4FilterCss}${choiceFieldCss}${colorSwatchesCss}${iconPickerCss}${glyphCss}`
+${relationshipCardCss}${selectionDetailsCss}${writeFormCss}${writeViewCss}${factRowCss}${tagsFieldCss}${mapDebugCss}${detailsPanelCss}${tagFocusCss}${tagListCss}${mapViewCss}${c4FilterCss}${choiceFieldCss}${colorSwatchesCss}${iconPickerCss}${glyphCss}`
 
 function legend(): string {
   return legendKinds.map(line => {
