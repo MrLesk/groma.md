@@ -1,4 +1,4 @@
-import { tagChip } from '../chrome/tag-focus.ts'
+import { tagChip } from './tag-focus.ts'
 
 /**
  * An element's tags as one row of chips under a title, for reading. Pressing a chip focuses the map on its
