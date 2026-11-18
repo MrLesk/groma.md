@@ -314,7 +314,7 @@ export const mapCss = `
   /* Chrome can drop animated routes after zooming beneath the forced camera cache. Keep only their own layer promoted during a flow. */
   #map .camera[data-tracing] { will-change: auto !important; }
   #map .camera[data-tracing] .route-surface { will-change: transform; }
-  #map > .map-surface [data-id] { cursor: pointer; }
+  #map > .map-surface :is([data-id], [data-group]) { cursor: pointer; }
   #map > .map-surface:active, #map .drag-cover { cursor: grabbing; }
   #map .drag-cover { position: absolute; inset: 0; }
   ${mapDrawingCss()}

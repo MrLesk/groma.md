@@ -177,8 +177,9 @@ One rule decides where a write lives in the web map:
   another word tells better what happens: **Add**, **Accept**, **Remove**,
   **Combine**, and **Create group**.
 - **A record has one write entry, Edit.** It opens the Edit view of the
-  selected element or relationship: every field a person can set on the
-  record, and nowhere else can they change. Picking and typing store nothing.
+  selected element, relationship, group, or flow: every field a person can set
+  on the record in the web map, and nowhere else can they change. Picking and
+  typing store nothing.
   **Save** sends the changed fields as one `groma edit`.
 - **A record's other writes are entries of its Edit view.** **Accept** and
   **Remove** stand above the fields. Each opens its own write view in place of
@@ -190,10 +191,11 @@ One rule decides where a write lives in the web map:
 
 | Write | Entry | The view shows | Approving button |
 |---|---|---|---|
-| Change a record's fields | Edit, in the record's pane | the fields | Save |
+| Edit an element or relationship | Edit, in its pane | the fields | Save |
+| Edit a group or flow | Edit, in its pane | Title, Description, Overview and Tags | Save |
 | Edit several elements | Edit, in the selection pane | Tags, Color and Icon | Save |
 | Accept a draft | Accept, in the Edit view | one question | Accept |
-| Remove a record | Remove, in the Edit view | one question | Remove |
+| Remove an element, draft relationship, or group | Remove, in its Edit view | one question | Remove |
 | Group components | Group, in the pane of several components | a field for the group name | Create group |
 | Combine components | Combine, in the pane of several components | a list to pick the component that stays | Combine |
 
@@ -211,8 +213,9 @@ its fields one look (the class `write-form`: a small label over its control)
 and builds its approval bar, which holds Cancel and the approving button, runs
 one write at a time, and shows a failed write's message. A form that writes
 styles no field and builds no approval button of its own. A new editable field
-is one entry in the Edit view's field list (`elementFields` in
-[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts)). Put a
+is one entry in its Edit view's field list. For an element this is `elementFields` in
+[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts). For a group
+or flow it is `wordingAndTagFields` in [`organisms/commands.ts`](../../../src/viewers/web/organisms/commands.ts). Put a
 field that several elements can share in `sharedElementFields`; the core's
 `fieldsOfSeveralElements` in [`src/edit.ts`](../../../src/edit.ts) decides which fields
 several elements take. The
@@ -231,11 +234,12 @@ and hands the hooks only to the function that paints the Edit entry.
   (`addTags`, `removeTags`), not the list. The Color field offers no color and
   each named color; the Icon field offers no icon and each named icon.
 - **Relationship fields:** `description` and `technology`.
+- **Flow steps** are edited with `groma edit <flow-id> --steps`.
 - **Draft acceptance and removal:** The Edit view of a matched draft element or
   a draft relationship offers **Accept** (`groma accept`). **Remove** is offered
   only where `groma remove` would succeed (an unreferenced actor, external
-  system, ghost, or draft relationship). Each asks in its own view and writes
-  when its approving button is pressed.
+  system, ghost, draft relationship, or group). Each asks in its own view and
+  writes when its approving button is pressed. Removing a group leaves its members in place.
 - **Conflict checking:** A single record's form submits changed values with
   their original values. Tag additions and removals merge with the current tags.
   If another edit changed one of the conflict-checked fields concurrently,
@@ -363,7 +367,12 @@ at once. When a flow carries tags, its reader shows a **Tags** row after the
 description and overview
 ([`flow/reader.ts`](../../../src/viewers/web/flow/reader.ts)). Press a tag to toggle the map's focus.
 
-The right details pane opens when an element, relationship, flow, or task is
+Click a group's zone name to select the group alone. Its pane shows the description,
+overview, tags, and links to its members. Click a member to select that component.
+Opening a group link frames its members. A group without members draws no zone; only its link opens it
+([`organisms/group-details.ts`](../../../src/viewers/web/organisms/group-details.ts)).
+
+The right details pane opens when an element, relationship, group, flow, or task is
 selected (and can be expanded for wider source and diff reading):
 
 - **What it does:** Shows the element's description, overview, peer
@@ -424,7 +433,7 @@ its first referenced element) and in the bottom-center **Backlog.md Tasks** bar:
 The URL query string tracks the current view so any state can be shared by link:
 
 - `from=<commit>` and `revision=<commit>` select history snapshots or comparisons.
-- `actor=<id>`, `system=<id>`, `container=<id>`, `component=<id>`,
+- `actor=<id>`, `system=<id>`, `container=<id>`, `component=<id>`, `group=<id>`,
   `relationship=<source>/<target>`, `flow=<id>`, `step=<number>`, and `task=<id>`
   restore selections.
 - `tab=how|tasks`, `file=<path>`, and `line=<number>` open the corresponding

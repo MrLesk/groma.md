@@ -21,7 +21,7 @@ async function session(fixture = 'relationship-pairs') {
 
 test.concurrent('selection separates direct neighbors from the focused component without following a second hop', async () => {
   const s = await session()
-  const selection = selectArchitecture(noSelection, 'talks', false)
+  const selection = selectArchitecture(noSelection, 'talks', false, s.world.groups)
   const original = structuredClone({ world: s.world, selection })
   s.highlights.paint(selection, s.world, [], [])
   expect(s.focused()).toEqual(['talks'])
@@ -34,8 +34,8 @@ test.concurrent('selection separates direct neighbors from the focused component
 
 test.concurrent('incoming-only neighbors are included and a new selection replaces the old neighborhood', async () => {
   const s = await session()
-  s.highlights.paint(selectArchitecture(noSelection, 'talks', false), s.world, [], [])
-  s.highlights.paint(selectArchitecture(noSelection, 'people', false), s.world, [], [])
+  s.highlights.paint(selectArchitecture(noSelection, 'talks', false, s.world.groups), s.world, [], [])
+  s.highlights.paint(selectArchitecture(noSelection, 'people', false, s.world.groups), s.world, [], [])
   expect(s.focused()).toEqual(['people'])
   expect([...s.neighbors()].sort()).toEqual(['speakers', 'talks'])
   expect(s.neighbors().has('sessions')).toBe(false)
@@ -43,7 +43,8 @@ test.concurrent('incoming-only neighbors are included and a new selection replac
 
 test.concurrent('every selected component is focused, and their neighbors are the components one hop from any of them', async () => {
   const s = await session()
-  const selection = selectArchitecture(selectArchitecture(noSelection, 'talks', false), 'people', true)
+  const first = selectArchitecture(noSelection, 'talks', false, s.world.groups)
+  const selection = selectArchitecture(first, 'people', true, s.world.groups)
   s.highlights.paint(selection, s.world, [], [])
   expect(s.focused().sort()).toEqual(['people', 'talks'])
   expect([...s.neighbors()].sort()).toEqual(['sessions', 'speakers'])
@@ -53,9 +54,9 @@ test.concurrent('task, relationship, container, and empty selections clear compo
   const s = await session()
   const container = s.world.elements.find(element => element.kind === 'container')!
   for (const next of [selectTask('task'), noSelection,
-    selectArchitecture(noSelection, s.world.relationships[0]!.id, false),
-    selectArchitecture(noSelection, container.representationId, false)]) {
-    s.highlights.paint(selectArchitecture(noSelection, 'talks', false), s.world, [], [])
+    selectArchitecture(noSelection, s.world.relationships[0]!.id, false, s.world.groups),
+    selectArchitecture(noSelection, container.representationId, false, s.world.groups)]) {
+    s.highlights.paint(selectArchitecture(noSelection, 'talks', false, s.world.groups), s.world, [], [])
     s.highlights.paint(next, s.world, [], [])
     expect(s.focused()).toEqual([])
     expect(s.neighbors().size).toBe(0)
@@ -68,7 +69,7 @@ test.concurrent('component neighbors coexist with active flow filtering without 
   s.highlights.paint(noSelection, s.world, flows, [])
   const before = [...s.lit()]
   expect(before.length).toBeGreaterThan(0)
-  s.highlights.paint(selectArchitecture(noSelection, 'entry', false), s.world, flows, [])
+  s.highlights.paint(selectArchitecture(noSelection, 'entry', false, s.world.groups), s.world, flows, [])
   expect([...s.lit()]).toEqual(before)
   expect([...s.neighbors()]).toEqual(['worker'])
   expect(s.focused()).toEqual(['entry'])

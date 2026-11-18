@@ -9,7 +9,8 @@ import { bundledThemes } from '../../themes/bundled.ts'
 import { AUTO_THEME, isThemeMode, type ThemeDefinition } from '../../themes/definition.ts'
 import { mapControlEntries, readMapControls, type MapControls } from './chrome/map-view.ts'
 import type { DetailsTab } from './organisms/details.ts'
-import { noSelection, selectTask } from './selection.ts'
+import { flowSelection } from './flow/state.ts'
+import { noSelection, selectArchitecture, selectedArchitecture, selectTask } from './selection.ts'
 import type { Selection } from './selection.ts'
 
 /** What the page's query string carries, so a view opens again from its link. */
@@ -49,6 +50,7 @@ function architectureId(
   byId: ReadonlyMap<string, AnnotatedElement>,
   world: ArchitectureGraph,
 ): string | undefined {
+  if (name === 'group') return world.groups.find(group => group.id === value)?.id
   const element = byId.get(value)
   if (KINDS.includes(name as C4Kind) && element?.kind === name) return element.representationId
   return name === 'relationship' ? relationshipFor(value, byId, world)?.id : undefined
@@ -56,15 +58,17 @@ function architectureId(
 
 function architectureSelection(
   params: URLSearchParams,
-  byId: ReadonlyMap<string, AnnotatedElement>,
   world: ArchitectureGraph,
-): string[] {
-  const ids: string[] = []
+): Selection {
+  const byId = new Map(world.elements.map(element => [element.id, element]))
+  let selection: Selection = noSelection
   for (const [name, value] of params) {
     const id = architectureId(name, value, byId, world)
-    if (id !== undefined && !ids.includes(id)) ids.push(id)
+    // Each parameter is one additive pick. A repeated id is skipped, because an additive pick of a selected id takes it out.
+    if (id === undefined || selectedArchitecture(selection).includes(id)) continue
+    selection = selectArchitecture(selection, id, true, world.groups)
   }
-  return ids
+  return selection
 }
 
 function activeFlows(params: URLSearchParams, world: ArchitectureGraph): FlowRef[] {
@@ -153,7 +157,7 @@ function appendTab(pairs: [string, string][], state: ViewState, change: Componen
 
 /**
  * Reads the ordered architecture selection (repeated `<kind>=<id>` and
- * `relationship=<source id>/<target id>` entries) or `task=<id>`,
+ * `relationship=<source id>/<target id>` entries, or a single `group=<id>`) or `task=<id>`,
  * checked flows (repeated `flow=<id>`) and the last flow's one-based `step=<number>`,
  * tag focus (repeated `tag=<tag>` and `not=<tag>`, `match=all`), `tab=how|tasks`, `view=iso|2d|layers`, `hide=<comma-separated filters>`,
  * `theme=auto|<theme id>` and `hud=off`. A query theme overrides
@@ -173,15 +177,8 @@ export function readView(
   const params = new URLSearchParams(url.search)
   const inset = Number(params.get('inset'))
   const revision = revisions.find(candidate => candidate.id === params.get('revision'))?.id
-  const byId = new Map(world.elements.map(element => [element.id, element]))
-  const architecture = architectureSelection(params, byId, world)
-  const task = work.find(item => item.id === params.get('task'))
   const flows = activeFlows(params, world)
-  const flow = flows.at(-1)
-  const selection: Selection = architecture.length > 0
-    ? { kind: 'architecture', ids: architecture }
-    : task !== undefined ? selectTask(task.id)
-    : flow !== undefined ? { kind: 'flow', id: flow.id } : noSelection
+  const selection = readSelection(params, world, work, flows)
   const selected = selection.kind === 'architecture'
     ? world.elements.find(element => element.representationId === selection.ids.at(-1))
     : undefined
@@ -198,6 +195,17 @@ export function readView(
     theme: readTheme(url, defaultTheme, themes),
     hudVisible: params.get('hud') !== 'off',
   }
+}
+
+/** The architecture named by the link owns the pane first, then a task, then the last checked flow. */
+function readSelection(
+  params: URLSearchParams, world: ArchitectureGraph, work: readonly WorkItem[], flows: readonly FlowRef[],
+): Selection {
+  const architecture = architectureSelection(params, world)
+  if (architecture.kind !== 'none') return architecture
+  const task = work.find(candidate => candidate.id === params.get('task'))
+  if (task !== undefined) return selectTask(task.id)
+  return flowSelection(flows)
 }
 
 function relationshipEnds(
@@ -223,6 +231,7 @@ function appendSelection(
       const element = elements.get(id)
       const relationship = relationshipEnds(id, elements, world)
       if (element !== undefined) pairs.push([element.kind, element.id])
+      else if (world.groups.some(group => group.id === id)) pairs.push(['group', id])
       else if (relationship !== undefined) pairs.push(['relationship', relationship])
     }
     return

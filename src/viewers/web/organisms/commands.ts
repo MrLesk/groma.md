@@ -1,7 +1,9 @@
 import { changedEdit, type EditValues } from '../../../authoring-conflict.ts'
+import { carriedTags, knownTags } from '../../../tags.ts'
+import type { AnnotatedGroup, ArchitectureFlow, ArchitectureGraph } from '../../../types.ts'
 import { tagChanges, type TagsField } from '../tags/tags-field.ts'
 import { isTagsField, type ValueField, type WriteEntry } from './write-view.ts'
-import type { ComponentWrites, MeaningEdit } from './writes.ts'
+import type { ComponentWrites, FlowWrites, GroupWrites, MeaningEdit } from './writes.ts'
 
 /*
  * Every write a pane of the web map offers, one function each. A function only describes its write: the
@@ -63,6 +65,35 @@ export function acceptEntry(title: string, accept: () => Promise<void>): WriteEn
 /** Remove: takes the record out of the architecture. */
 export function removeEntry(title: string, remove: () => Promise<void>): WriteEntry {
   return { label: 'Remove', view: { approveLabel: 'Remove', fields: [], question: `Remove ${title}?`, write: remove } }
+}
+
+/** A field of a group's or a flow's Edit view. The core refuses any other field on these two records. */
+type WordingField = (ValueField & { name: 'title' | 'description' | 'overview' }) | TagsField
+
+/**
+ * The fields a group and a flow share, in the order their Edit views show them: wording, then tags.
+ * A new editable field of both is one entry here.
+ */
+function wordingAndTagFields(
+  record: AnnotatedGroup | ArchitectureFlow, world: ArchitectureGraph, { overviewRequired }: { overviewRequired: boolean },
+): WordingField[] {
+  return [
+    { name: 'title', label: 'Title', value: record.title, required: true },
+    { name: 'description', label: 'Description', value: record.description ?? '' },
+    { name: 'overview', label: 'Overview', value: record.overview, multiline: true, required: overviewRequired },
+    { label: 'Tags', carried: carriedTags([record]), recordCount: 1, suggestions: knownTags(world) },
+  ]
+}
+
+/** Edit of a group: its wording and tags. Remove, which deletes the group and leaves its members, is offered above the fields. */
+export function groupEditEntry(group: AnnotatedGroup, world: ArchitectureGraph, writes: GroupWrites): WriteEntry {
+  const others = writes.onRemove === undefined ? [] : [removeEntry(group.title, writes.onRemove)]
+  return editEntry(wordingAndTagFields(group, world, { overviewRequired: false }), writes.onEdit, others)
+}
+
+/** Edit of a flow: its wording and tags. A flow cannot lose its overview. */
+export function flowEditEntry(flow: ArchitectureFlow, world: ArchitectureGraph, writes: FlowWrites): WriteEntry {
+  return editEntry(wordingAndTagFields(flow, world, { overviewRequired: true }), writes.onEdit)
 }
 
 /** Group: names several selected components as one group. */

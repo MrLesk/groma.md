@@ -30,7 +30,8 @@ export function paintSelection(
   const members = ids.flatMap(id => world.elements.filter(element => element.representationId === id))
   if (ids.length < 2 || members.length !== ids.length) return false
   const key = ids.join(' ')
-  if (isWriteViewOpen(host, key)) return true
+  // An open write view stays across repaints while the pane may write. On another revision it gives way to reading.
+  if (writes !== undefined && isWriteViewOpen(host, key)) return true
   host.querySelector('.meta')!.textContent = 'Selection'
   host.querySelector('h1')!.textContent = `${members.length} ${nounOf(members.map(member => kindLabel(member.kind, member.external)))}`
   host.querySelector('.tabs')!.replaceChildren()
