@@ -1,7 +1,8 @@
+import { knownTags } from '../../../tags.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import { kindLabel } from '../../atoms/kind.ts'
-import { combineEntry, groupEntry } from './commands.ts'
-import { elementLinks } from './details.ts'
+import { combineEntry, editEntry, groupEntry } from './commands.ts'
+import { elementLinks, sharedElementFields } from './details.ts'
 import { isWriteViewOpen, paintWriteEntries } from './write-view.ts'
 import type { SelectionWrites } from './writes.ts'
 
@@ -17,8 +18,7 @@ function nounOf(kinds: readonly string[]): string {
 /**
  * Paints the pane of several selected elements and says whether it did. The pane lists what is selected,
  * each component with the group it is in; a click on one selects it alone and a shift-click drops it from
- * the selection. With `writes`, the pane's write entries are Group and Combine. Neither writes on its
- * click: each opens the view of that one write.
+ * the selection. A live selection offers Edit, followed by Group and Combine for a selection of components.
  */
 export function paintSelection(
   host: HTMLElement,
@@ -41,6 +41,10 @@ export function paintSelection(
     note: groupTitle.get(member.group ?? ''),
   })), onSelect))
   if (writes === undefined) return true
-  paintWriteEntries(host, key, [groupEntry(writes.onGroup), combineEntry(writes.members, writes.onCombine)], writes.onRead)
+  const fields = sharedElementFields(members, knownTags(world.elements))
+  const entries = [editEntry(fields, writes.onEdit)]
+  const components = writes.components
+  if (components !== undefined) entries.push(groupEntry(components.onGroup), combineEntry(members, components.onCombine))
+  paintWriteEntries(host, key, entries, writes.onRead)
   return true
 }

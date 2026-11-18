@@ -196,13 +196,13 @@ One rule decides where a write lives in the web map:
   the Edit view. They act on the stored record: while the fields hold unsaved
   changes they do not open and ask for the changes to be saved or cancelled
   first.
-- **Several selected components are not a record.** Their pane lists them, and
-  its write entries are the two writes that take several, **Group** and
-  **Combine**.
+- **Several selected elements share one Edit view.** It offers Tags, Color and
+  Icon. A selection made entirely of components also offers **Group** and **Combine**.
 
 | Write | Entry | The view shows | Approving button |
 |---|---|---|---|
 | Change a record's fields | Edit, in the record's pane | the fields | Save |
+| Edit several elements | Edit, in the selection pane | Tags, Color and Icon | Save |
 | Accept a draft | Accept, in the Edit view | one question | Accept |
 | Remove a record | Remove, in the Edit view | one question | Remove |
 | Group components | Group, in the pane of several components | a field for the group name | Create group |
@@ -221,9 +221,12 @@ write form: one atom,
 its fields one look (the class `write-form`: a small label over its control)
 and builds its approval bar, which holds Cancel and the approving button, runs
 one write at a time, and shows a failed write's message. A form that writes
-styles no field and builds no approval button of its own. A new editable field is one entry in the Edit view's
-field list (`elementFields` in
-[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts)). The
+styles no field and builds no approval button of its own. A new editable field
+is one entry in the Edit view's field list (`elementFields` in
+[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts)). Put a
+field that several elements can share in `sharedElementFields`; the core's
+`elementOnlyFields` in [`src/edit.ts`](../../../src/edit.ts) decides which fields
+several elements take. The
 code that paints what a person reads receives no write hook: `paintDetails`
 takes what the pane reads and the write hooks
 ([`PaneWrites`](../../../src/viewers/web/organisms/writes.ts)) as two arguments,
@@ -235,22 +238,24 @@ runs its write the way it runs every plugin action, so the form closes when its
 button is pressed and a failed action shows above the plugin list.
 
 - **Element fields:** `title`, `description`, `overview`, `technology`, `parent`
-  (where the component can move), `tags`, `color`, and `icon`. Empty optional
-  values clear the field. The Tags field is one box that holds the pending tags
-  as chips and the text being typed: Enter or a comma turns the typed text into
+  (where the component can move), tags, `color`, and `icon`. Empty optional
+  values clear the field. The Tags field is one box that holds the tags as
+  chips and the text being typed: Enter or a comma turns the typed text into
   a chip, Backspace in the empty text takes the last chip off, and the × on a
   chip takes that one off. The tags already in use are offered under the box,
-  narrowed by what is typed. The Color field offers no color and each named
-  color; the Icon field offers no icon and each named icon.
+  narrowed by what is typed. Save sends the tags added and the tags removed
+  (`addTags`, `removeTags`), not the list. The Color field offers no color and
+  each named color; the Icon field offers no icon and each named icon.
 - **Relationship fields:** `description` and `technology`.
 - **Draft acceptance and removal:** The Edit view of a matched draft element or
   a draft relationship offers **Accept** (`groma accept`). **Remove** is offered
   only where `groma remove` would succeed (an unreferenced actor, external
   system, ghost, or draft relationship). Each asks in its own view and writes
   when its approving button is pressed.
-- **Conflict checking:** Element, relationship, and project forms submit changed
-  fields together with their original values. If another edit changed one of those
-  fields concurrently, **Save** preserves the unsaved input and shows the original,
+- **Conflict checking:** A single record's form submits changed values with
+  their original values. Tag additions and removals merge with the current tags.
+  If another edit changed one of the conflict-checked fields concurrently,
+  **Save** preserves the unsaved input and shows the original,
   current, and proposed values without writing.
 - **Several selected elements:** Shift-clicking elements selects them together,
   and the pane lists them in place of one element's details, each component
@@ -258,8 +263,13 @@ button is pressed and a failed action shows above the plugin list.
   ([`organisms/selection-details.ts`](../../../src/viewers/web/organisms/selection-details.ts)).
   The map gives every selected component the focus look and softly accents the
   components one hop from any of them. A click on a listed element selects it
-  alone; a shift-click drops it from the selection. On a live current map, while every selected element is a
-  component, the pane offers **Group** (name them as one group, `groma add
+  alone. A shift-click drops it from the selection. On a live current map,
+  **Edit** offers Tags, Color and Icon. A partial tag chip shows how many
+  elements carry it. Press its name to add it to all, or × to remove it from
+  all. A shared color or icon starts selected. A mixed field starts with no
+  choice. Picks preview on every selected element. **Save** applies the changes
+  to all in one edit, without checking opening values. When every selected
+  element is a component the pane also offers **Group** (name them as one group, `groma add
   group`) and **Combine** (fold them into the one the person picks, `groma edit
   --combine`). Changing the selection returns the pane to reading; an open
   view that holds unsaved input keeps the selection instead.

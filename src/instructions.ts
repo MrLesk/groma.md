@@ -50,7 +50,7 @@ Say what must be true, not how to build it. Do not specify frameworks, file layo
 - Rename a part or a draft record, id unchanged: groma edit <id> --title <text>
 - Rename the id of a system, container, or component: groma edit <id> --id <new-id>. Its document and the documents under it move, and relationship rows and flow steps that link them follow.
 - Technology of an element: groma edit <id> --technology <text>. Pass an empty value to remove it.
-- OKF tags of an element: groma edit <id> --tags <a,b>. The value replaces the whole list; pass an empty value to remove it.
+- OKF tags of an element: groma edit <id> --add-tags <a,b> --remove-tags <c>. Several element ids take the same tag changes, color and icon.
 - Map color of an element: groma edit <id> --color <name>, one of red, orange, yellow, blue, violet, pink. Pass an empty value to remove it.
 - Map icon of an element: groma edit <id> --icon <name>; groma edit --help lists the names. Pass an empty value to remove it.
 - Current long overview: groma edit <id> --overview <markdown>. Pass an empty value to clear it.

@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
-import { cp, mkdtemp, rm } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'bun:test'
 import { parseFrontmatter } from 'comark'
 import { writes } from '../src/authoring.ts'
+import { loadArchitecture } from '../src/architecture-reader.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
 import type { StructuralResult } from '../src/curate.ts'
 import { scanRepository } from '../src/scanner.ts'
@@ -89,26 +90,57 @@ test.concurrent('web edits reject conflicting fields as one request and accept u
   }
 })
 
-test.concurrent('tag edits replace and remove the OKF list, and other edits and scans keep it', async () => {
+test.concurrent('tag edits keep carried tags in order, append new tags once and remove an empty OKF field', async () => {
   const root = await fixture()
   try {
-    const read = async () => (await loadAnnotatedArchitecture(root)).elements.find(element => element.id === 'stock')!
-    await writes.edit(root, { id: 'stock', tags: 'inventory, checkout,inventory' })
-    assert.deepEqual((await read()).tags, ['inventory', 'checkout'])
+    const filesystem = GromaFileSystem.open(root)
+    const frontmatter = async () => parseFrontmatter(await filesystem.read('systems/shop/containers/api/components/stock.md')).data
+    await writes.edit(root, { id: 'stock', addTags: 'inventory, legacy, checkout, audit' })
+    await writes.edit(root, { id: 'stock', addTags: 'inventory, warehouse, cold, warehouse', removeTags: 'legacy, unused' })
     await writes.edit(root, { id: 'stock', title: 'Availability' })
     await scanRepository(root)
-    assert.deepEqual((await read()).tags, ['inventory', 'checkout'])
-    const source = await GromaFileSystem.open(root).read('systems/shop/containers/api/components/stock.md')
-    const { tags, groma } = parseFrontmatter(source).data as { tags: unknown; groma: Record<string, unknown> }
-    assert.deepEqual(tags, ['inventory', 'checkout'])
+    const { tags, groma } = await frontmatter() as { tags: unknown; groma: Record<string, unknown> }
+    assert.deepEqual(tags, ['inventory', 'checkout', 'audit', 'warehouse', 'cold'])
     assert.equal('tags' in groma, false)
-    await writes.edit(root, { id: 'stock', tags: 'warehouse, cold' })
-    assert.deepEqual((await read()).tags, ['warehouse', 'cold'])
-    // A form opened before that edit proposes the same tags in another spelling: already applied, so no conflict.
-    await writes.edit(root, { id: 'stock', tags: 'warehouse,cold', original: { tags: 'warehouse' } })
-    await writes.edit(root, { id: 'stock', tags: '' })
-    assert.equal((await read()).tags, undefined)
-    await assert.rejects(writes.edit(root, { id: 'project', title: 'Shop', tags: 'warehouse' }))
+    await assert.rejects(writes.edit(root, { id: 'stock', addTags: 'cold', removeTags: 'cold' }))
+    await writes.edit(root, { id: 'stock', removeTags: 'cold, warehouse, audit, inventory, checkout' })
+    assert.equal('tags' in await frontmatter(), false)
+    await assert.rejects(writes.edit(root, { id: 'project', title: 'Shop', addTags: 'warehouse' }))
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('one edit adds a tag and sets the color on every named element', async () => {
+  const root = await fixture()
+  try {
+    await writes.edit(root, { id: 'stock', addTags: 'inventory' })
+    const result = await writes.edit(root, { id: 'shop', alsoIds: ['api', 'stock'], addTags: 'checkout', color: 'blue' })
+    assert.ok(typeof result !== 'string')
+    assert.equal(result.id, 'shop')
+    assert.deepEqual(new Set(result.affectedIds), new Set(['shop', 'api', 'stock']))
+    const filesystem = GromaFileSystem.open(root)
+    const edited: Record<string, { color: string; tags: string[] }> = {}
+    for (const filename of result.changed) {
+      const { tags, groma } = parseFrontmatter(await filesystem.readSource(filename)).data
+      edited[groma.id] = { color: groma.color, tags }
+    }
+    assert.deepEqual(edited, {
+      shop: { color: 'blue', tags: ['checkout'] },
+      api: { color: 'blue', tags: ['checkout'] },
+      stock: { color: 'blue', tags: ['inventory', 'checkout'] },
+    })
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('a refused edit of several elements leaves every document unchanged', async () => {
+  const root = await fixture()
+  try {
+    const { documents } = await loadArchitecture(root)
+    const bytes = () => Promise.all(documents.map(document => readFile(path.join(root, document.sourceFilename))))
+    const before = await bytes()
+    // An unknown id after two known ones, and a field several elements do not take.
+    await assert.rejects(writes.edit(root, { id: 'shop', alsoIds: ['api', 'missing'], addTags: 'checkout', color: 'blue' }))
+    await assert.rejects(writes.edit(root, { id: 'shop', alsoIds: ['api'], addTags: 'checkout', title: 'Storefront' }))
+    assert.deepEqual(await bytes(), before)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 

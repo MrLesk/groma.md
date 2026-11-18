@@ -83,7 +83,7 @@ function optionalText(
 }
 
 /** OKF `tags` is a top-level list of short strings. An empty list means the same as no tags. */
-function tagsOf(value: unknown, sourceFilename: string): string[] | undefined {
+export function tagsOf(value: unknown, sourceFilename: string): string[] | undefined {
   if (value === undefined) return undefined
   if (!Array.isArray(value) || value.some(tag => typeof tag !== 'string' || tag.trim() === '')) {
     invalidElement(sourceFilename, 'tags must be a list of non-empty strings')

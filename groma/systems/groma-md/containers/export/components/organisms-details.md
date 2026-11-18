@@ -22,10 +22,6 @@ groma:
     - scanner: typescript
       file: src/viewers/web/comparison/details.ts
     - scanner: typescript
-      file: src/viewers/web/organisms/tag-row.ts
-    - scanner: typescript
-      file: src/viewers/web/organisms/tags-field.ts
-    - scanner: typescript
       file: src/viewers/web/organisms/color-swatches.ts
     - scanner: typescript
       file: src/viewers/web/organisms/choice-field.ts
@@ -33,6 +29,10 @@ groma:
       file: src/viewers/web/organisms/icon-picker.ts
     - scanner: typescript
       file: src/viewers/web/organisms/selection-details.ts
+    - scanner: typescript
+      file: src/viewers/web/tags/tag-row.ts
+    - scanner: typescript
+      file: src/viewers/web/tags/tags-field.ts
 description: Shows the selected element, its source and its relationships
 ---
 
