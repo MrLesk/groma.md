@@ -28,7 +28,7 @@ import type { IconName } from '../../../icons.ts'
 import { heading, paragraph } from '../atoms/text.ts'
 import { acceptEntry, editEntry, removeEntry, type EditField } from './commands.ts'
 import { isWriteViewOpen, paintWriteEntries, type WriteEntry } from './write-view.ts'
-import { tagRow } from './tag-row.ts'
+import { tagRow } from '../tags/tag-row.ts'
 import type { PaneWrites, ParentOption } from './writes.ts'
 import { relationshipCard, relationshipPairCard, type RelationshipPairData } from './relationship-card.ts'
 import {
