@@ -88,7 +88,10 @@ const tip = createTip(host)
 const pins = createPins(host, id => map.anchorOf(id), id => toggleTask(id, false), tip)
 const island = createWorkIsland(host, id => toggleTask(id), pins.show, tip)
 const hierarchy = createHierarchy(treeHost, select)
-const tagFocus = bindTagFocus(document.getElementById('tags')!, document.getElementById('tag-focus')!, opened.focusTags, () => { paintViewState(); focusOpened(selection.kind) })
+const tagFocus = bindTagFocus(world, opened.tagFocus, { map, pins, hierarchy }, () => {
+  paintViewState()
+  focusOpened(selection.kind)
+})
 const themeControl = bindThemeControl(document.getElementById('theme') as HTMLDetailsElement, opened.theme, boot.themes, syncUrl)
 let hudVisible = opened.hudVisible
 shell.setHud(hudVisible)
@@ -160,8 +163,7 @@ function syncUrl(): void {
     ...(revisionControl.from === undefined ? {} : { from: revisionControl.from }),
     ...(source.file === undefined ? {} : { file: source.file }),
     ...(source.line === undefined ? {} : { line: source.line }),
-    selection, flows: activeFlows, focusTags: tagFocus.tags,
-    tab: detailsTab,
+    selection, flows: activeFlows, tab: detailsTab, tagFocus: tagFocus.focus,
     theme: themeControl.mode,
     hudVisible,
     ...(opened.inset === undefined ? {} : { inset: opened.inset }),
@@ -178,8 +180,7 @@ function rememberMapControls(): void {
 function paintMapState(): void {
   const task = selection.kind === 'task' ? workItem(selection.id) : undefined
   map.changes(changes.marks())
-  map.focusTags(tagFocus.matches(world))
-  pins.recede(tagFocus.matches(world)?.matched)
+  tagFocus.paintSurfaces()
   highlights.paint(selection, world, activeFlows, activeTaskIds.map(id => workItem(id)).filter((item): item is WorkItem => item !== undefined))
   pins.activate(activeTaskIds, task?.id)
   island.activate(activeTaskIds, task?.id)
@@ -189,9 +190,8 @@ function paintViewState(commitUrl = true): void {
   if (commitUrl) syncUrl()
   const task = selection.kind === 'task' ? workItem(selection.id) : undefined
   changes.update(world, revisionControl.comparison, revisionControl.selected, primarySelection(selection))
-  paintMapState()
-  hierarchy.paint(world, selectedArchitecture(selection), revisionControl.comparison, changes.enabled, tagFocus.matches(world))
-  tagFocus.paint(world)
+  paintMapState() // Before the hierarchy: it tells the hierarchy which rows the tag focus recedes.
+  hierarchy.paint(world, selectedArchitecture(selection), revisionControl.comparison, changes.enabled)
   paintFlows(flowsHost, world, activeFlows, toggleFlow, {
     title: 'Actors', selectedIds: selectedArchitecture(selection), onSelectActor: select,
   })
@@ -229,7 +229,7 @@ function paintDetailsState(task: WorkItem | undefined): void {
       world, comparison: revisionControl.comparison,
       onSelect: select,
       onToggleFlow: flow => toggleFlow(flow, selected?.representationId),
-      activeFlows, focusTags: tagFocus.tags, onToggleTag: tagFocus.toggle,
+      activeFlows, focusTags: tagFocus.focus.focused, onToggleTag: tagFocus.toggle,
       tab: detailsTab,
       onTab: tab => {
         detailsTab = tab
@@ -260,12 +260,10 @@ function focusActiveTasks(): void {
     const task = workItem(id)
     return task === undefined ? [] : touchedElements(task, world)
   })
-  const frame = viewport()
-  camera.focus(fitHighlights(scene, elementIds, frame, zoomLimits(camera.fitted).max), frame)
+  camera.focus(frame => fitHighlights(scene, elementIds, frame, zoomLimits(camera.fitted).max))
 }
 function focusArchitecture(ids: readonly string[]): void {
-  const frame = viewport()
-  camera.focus(fitArchitecture(scene, world, ids, frame), frame)
+  camera.focus(frame => fitArchitecture(scene, world, ids, frame))
 }
 
 /** Task pins preserve the camera; panel and search selections bring active work into view. */
@@ -357,6 +355,7 @@ map.svg.addEventListener('keydown', event => {
 
 function toggleHud(): void {
   hudVisible = !hudVisible
+  if (!hudVisible) tagFocus.close()
   shell.setHud(hudVisible)
   camera.refit()
   syncUrl()
@@ -364,7 +363,7 @@ function toggleHud(): void {
 
 /** Frames what a view shows: all that its focused tags select; without tags its task, flow step or selection, or the whole sheet when it names none. */
 function focusOpened(kind: Selection['kind']): void {
-  const tagged = tagFocus.matches(world)?.matched
+  const tagged = tagFocus.committedSelection()?.matched
   if (tagged !== undefined) focusArchitecture([...tagged])
   else if (kind === 'task') focusActiveTasks()
   else if (kind === 'architecture') focusArchitecture(selectedArchitecture(selection))
@@ -378,7 +377,7 @@ function openView(search: string): void {
   source.clear()
   selection = next.selection
   activeFlows = next.flows
-  tagFocus.set(next.focusTags)
+  tagFocus.restore(next.tagFocus)
   activeTaskIds = selection.kind === 'task' ? [selection.id] : []
   detailsTab = next.tab
   filterC4.setHidden(next.hiddenFilters)
@@ -422,6 +421,7 @@ const paintMapView = bindMapView(document.getElementById('map-view')!, view => {
 paintMapView(mapMotion.view)
 
 bindChromeActions({
+  tags: () => { if (hudVisible) tagFocus.open() },
   hud: toggleHud,
   layers: () => { mapAnimator.toggleLayers(); rememberMapControls() },
   debug: debug.toggle,
@@ -434,7 +434,7 @@ bindChromeActions({
 function applyWorld(payload: WebPayload, reset = false): void {
   mapMeta = { generation: payload.generation, timings: payload.timings }
   world = payload.world
-  tagFocus.retain(world)
+  tagFocus.setWorld(world)
   changes.update(world, payload.comparison, payload.revision?.id, primarySelection(selection))
   work = payload.work
   sheet = payload.sheet
