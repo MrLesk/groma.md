@@ -20,16 +20,18 @@ export async function validateElementSource(documents: ArchitectureDocument[], s
   buildArchitectureModel([...documents.filter(item => item.sourceFilename !== sourceFilename), document])
 }
 
-/** Authored fields one edit applies to the current Markdown document. */
-export interface MeaningChanges {
+/** Comma-separated OKF tags to add to or remove from a record's current list. */
+export interface TagChanges {
+  addTags?: string
+  removeTags?: string
+}
+
+/** Authored fields one edit applies to the current element document. */
+export interface MeaningChanges extends TagChanges {
   title?: string
   overview?: string
   description?: string
   technology?: string
-  /** Comma-separated OKF tags the element gains. */
-  addTags?: string
-  /** Comma-separated OKF tags the element loses. */
-  removeTags?: string
   /** A color name from src/colors.ts; empty text removes it. */
   color?: string
   /** An icon name from src/icons.ts; empty text removes it. */
@@ -43,7 +45,7 @@ export function withMeaning(source: string, input: MeaningChanges): string {
   if (input.overview !== undefined) source = replaceLeadProse(source, input.overview)
   source = withDescription(source, input.description)
   if (input.technology !== undefined) source = withGromaField(source, 'technology', input.technology || undefined)
-  if (input.addTags !== undefined || input.removeTags !== undefined) source = withTags(source, input)
+  source = withTags(source, input)
   if (input.color !== undefined) source = withGromaField(source, 'color', input.color || undefined)
   if (input.icon !== undefined) source = withGromaField(source, 'icon', input.icon || undefined)
   if (input.draft !== undefined) source = withGromaField(source, 'draft', input.draft || undefined)
@@ -108,7 +110,8 @@ export function withTitle(source: string, title: string): string {
 }
 
 /** Keep the document's tag order and append new tags in the order the author gave them. */
-function withTags(source: string, { addTags, removeTags }: MeaningChanges): string {
+export function withTags(source: string, { addTags, removeTags }: TagChanges): string {
+  if (addTags === undefined && removeTags === undefined) return source
   const added = parseTags(addTags ?? '')
   const removed = new Set(parseTags(removeTags ?? ''))
   const overlap = added.find(tag => removed.has(tag))

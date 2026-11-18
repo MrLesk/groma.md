@@ -77,7 +77,7 @@ function projectedScene() {
 let scene = projectedScene()
 const hosts = pageHosts()
 const { host, treeHost, flowsHost, statsHost, revisionBox, searchRoot, detailsHost, zoomHost, hierarchyContent, hierarchyToggle } = hosts
-const paintFlows = createFlowList()
+const flowList = createFlowList()
 const map = createMap(host)
 const highlights = createMapHighlights(map)
 const edit = data.edit
@@ -89,7 +89,7 @@ const tip = createTip(host)
 const pins = createPins(host, id => map.anchorOf(id), id => toggleTask(id, false), tip)
 const island = createWorkIsland(host, id => toggleTask(id), pins.show, tip)
 const hierarchy = createHierarchy(treeHost, select)
-const tagFocus = bindTagFocus(world, opened.tagFocus, { map, pins, hierarchy }, () => {
+const tagFocus = bindTagFocus(world, opened.tagFocus, { map, pins, hierarchy, flowList }, () => {
   paintViewState()
   focusOpened(selection.kind)
 })
@@ -190,9 +190,9 @@ function paintViewState(commitUrl = true): void {
   if (commitUrl) syncUrl()
   const task = selection.kind === 'task' ? workItem(selection.id) : undefined
   changes.update(world, revisionControl.comparison, revisionControl.selected, primarySelection(selection))
-  paintMapState() // Before the hierarchy: it tells the hierarchy which rows the tag focus recedes.
+  paintMapState() // The hierarchy and flow list receive the tag selection before they repaint their rows.
   hierarchy.paint(world, selectedArchitecture(selection), revisionControl.comparison, changes.enabled)
-  paintFlows(flowsHost, world, activeFlows, toggleFlow, {
+  flowList.paint(flowsHost, world, activeFlows, toggleFlow, {
     title: 'Actors', selectedIds: selectedArchitecture(selection), onSelectActor: select,
   })
   paintHeaderSummary(statsHost, world, project)
@@ -217,7 +217,7 @@ function paintDetailsState(task: WorkItem | undefined): void {
   if (paintedReader) return
   const flow = world.flows.find(item => item.id === selectedId)
   if (selection.kind === 'flow' && flow !== undefined && activeFlow !== undefined) {
-    paintFlowDetails(detailsHost, flow, activeFlow, world, selectFlowStep, select)
+    paintFlowDetails(detailsHost, flow, activeFlow, world, selectFlowStep, select, tagFocus.focus.focused, tagFocus.toggle)
     return
   }
   const several = selectedArchitecture(selection)
@@ -363,8 +363,8 @@ function toggleHud(): void {
 
 /** Frames what a view shows: all that its focused tags select; without tags its task, flow step or selection, or the whole sheet when it names none. */
 function focusOpened(kind: Selection['kind']): void {
-  const tagged = tagFocus.committedSelection()?.matched
-  if (tagged !== undefined) focusArchitecture([...tagged])
+  const lit = tagFocus.committedSelection()?.lit
+  if (lit !== undefined) focusArchitecture([...lit])
   else if (kind === 'task') focusActiveTasks()
   else if (kind === 'architecture') focusArchitecture(selectedArchitecture(selection))
   else if (kind === 'flow') focusArchitecture(flowFocus(activeFlows, world))

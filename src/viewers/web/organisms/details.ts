@@ -12,8 +12,7 @@ import type { ElementWorkGroup } from '../../../work/pins.ts'
 import type { Zone } from '../../../sheet/types.ts'
 import { findingsForOwner } from '../../../architecture-findings.ts'
 import { removalBlocker } from '../../../removable.ts'
-import { knownTags } from '../../../tags.ts'
-import { carriedTags } from '../../../tag-selection.ts'
+import { carriedTags, knownTags } from '../../../tags.ts'
 import { flowsThrough } from '../../flows.ts'
 import type { FlowRef } from '../../flows.ts'
 import { kindGlyph, kindLabel } from '../../atoms/kind.ts'
@@ -260,7 +259,7 @@ export interface DetailsOptions {
   onTask: (id: string) => void
 }
 
-const paintDetailFlows = createFlowList()
+const { paint: paintDetailFlows } = createFlowList()
 
 function paintTabs(tabsHost: HTMLElement, availableTabs: DetailsTab[], shownTab: DetailsTab, onTab: (tab: DetailsTab) => void): void {
   tabsHost.replaceChildren()
@@ -383,7 +382,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   }
   if (shownTab === 'tasks') paintElementWork(body, workGroups, onTask)
   else for (const key of tabSections(shownTab)) sections[key]()
-  paintEditEntry(host, inspected, writes, knownTags(options.world.elements))
+  paintEditEntry(host, inspected, writes, knownTags(options.world))
 }
 
 /** Paints Edit, the pane's only write entry: its view holds the element's fields and offers its other writes. */
@@ -432,7 +431,7 @@ function sharedChoice(values: readonly (string | undefined)[]): string | undefin
 
 /**
  * Tags, Color and Icon are the fields a person can edit on one element or on a selection. The core decides
- * which fields several elements take (`elementOnlyFields` in src/edit.ts); a field added only here is refused on Save.
+ * which fields several elements take (`fieldsOfSeveralElements` in src/edit.ts); a field added only here is refused on Save.
  */
 export function sharedElementFields(
   records: readonly { tags?: string[]; color?: string; icon?: string }[], tagsInUse: readonly string[],

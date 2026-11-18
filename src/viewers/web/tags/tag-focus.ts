@@ -1,4 +1,5 @@
-import { selectByTags, tagCounts, tagFocusInUse, type TagFocus, type TagSelection } from '../../../tag-selection.ts'
+import { selectByTags, tagFocusInUse, type TagFocus, type TagSelection } from '../../../tag-selection.ts'
+import { tagCounts } from '../../../tags.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import { chromeButton } from '../atoms/button.ts'
 import type { IsoMap } from '../iso/painting/map.ts'
@@ -9,6 +10,7 @@ interface TagFocusSurfaces {
   map: Pick<IsoMap, 'focusTags'>
   pins: Pick<PinLayer, 'recede'>
   hierarchy: { recede(selection: TagSelection | undefined): void }
+  flowList: { recede(selection: TagSelection | undefined): void }
 }
 
 /** One tag button, shared by the focus bar and the reading pane. */
@@ -71,7 +73,7 @@ function matchSwitch(choose: (match: TagFocus['match']) => void) {
   }
 }
 
-/** Owns the committed focus. The list can preview another focus on the three map surfaces until a click commits it. */
+/** Owns the committed focus. The Tags list can preview another focus on the map and its lists until a click commits it. */
 export function bindTagFocus(world: ArchitectureGraph, initial: TagFocus, surfaces: TagFocusSurfaces, onCommit: () => void) {
   let focus = initial
   const host = document.getElementById('tag-control')!
@@ -92,7 +94,7 @@ export function bindTagFocus(world: ArchitectureGraph, initial: TagFocus, surfac
 
   function selectionFor(tagFocus: TagFocus): TagSelection | undefined {
     if (tagFocus.focused.length === 0 && tagFocus.excluded.length === 0) return undefined
-    return selectByTags(world.elements, tagFocus)
+    return selectByTags(world, tagFocus)
   }
 
   function committedSelection(): TagSelection | undefined {
@@ -105,12 +107,13 @@ export function bindTagFocus(world: ArchitectureGraph, initial: TagFocus, surfac
     return selectionFor(toggleFocusedTag(focus, tag))
   }
 
-  /** Paints what the focus lights and recedes on the map, the task pins and the hierarchy rows. */
+  /** Paints what the focus lights and recedes on the map, task pins, hierarchy rows and flow rows. */
   function paintSurfaces(): void {
     const selection = shownSelection()
     surfaces.map.focusTags(selection)
-    surfaces.pins.recede(selection?.matched)
+    surfaces.pins.recede(selection)
     surfaces.hierarchy.recede(selection)
+    surfaces.flowList.recede(selection)
   }
 
   function paintControl(): void {
@@ -124,7 +127,7 @@ export function bindTagFocus(world: ArchitectureGraph, initial: TagFocus, surfac
   }
 
   function commit(next: TagFocus): void {
-    focus = tagFocusInUse(world.elements, next)
+    focus = tagFocusInUse(world, next)
     list.endPreview()
     paintControl()
     onCommit()
@@ -135,8 +138,8 @@ export function bindTagFocus(world: ArchitectureGraph, initial: TagFocus, surfac
 
   function setWorld(next: ArchitectureGraph): void {
     world = next
-    focus = tagFocusInUse(world.elements, focus)
-    const counts = tagCounts(world.elements)
+    focus = tagFocusInUse(world, focus)
+    const counts = tagCounts(world)
     host.hidden = counts.length === 0
     list.setTags(counts)
     paintControl()
@@ -150,7 +153,7 @@ export function bindTagFocus(world: ArchitectureGraph, initial: TagFocus, surfac
     close: list.close,
     /** A link supplies the whole focus and ends any preview of the previous view. */
     restore(next: TagFocus): void {
-      focus = tagFocusInUse(world.elements, next)
+      focus = tagFocusInUse(world, next)
       list.close()
       paintControl()
     },

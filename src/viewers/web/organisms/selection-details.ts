@@ -41,7 +41,7 @@ export function paintSelection(
     note: groupTitle.get(member.group ?? ''),
   })), onSelect))
   if (writes === undefined) return true
-  const fields = sharedElementFields(members, knownTags(world.elements))
+  const fields = sharedElementFields(members, knownTags(world))
   const entries = [editEntry(fields, writes.onEdit)]
   const components = writes.components
   if (components !== undefined) entries.push(groupEntry(components.onGroup), combineEntry(members, components.onCombine))

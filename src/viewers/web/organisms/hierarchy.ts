@@ -143,7 +143,7 @@ function paintHierarchy(
 function recedeRows(host: HTMLElement, tagSelection: TagSelection | undefined): void {
   for (const row of host.querySelectorAll<HTMLElement>('.row[data-id]')) {
     const id = row.dataset.id!
-    row.classList.toggle('receded', tagSelection !== undefined && !tagSelection.matched.has(id) && !tagSelection.parents.has(id))
+    row.classList.toggle('receded', tagSelection !== undefined && !tagSelection.lit.has(id) && !tagSelection.parents.has(id))
   }
 }
 

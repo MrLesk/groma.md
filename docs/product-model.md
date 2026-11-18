@@ -114,7 +114,8 @@ operation before opening a map.
      field is changed separately with `--description`. `--title` renames a
      part or a draft record while its id and file stay. `--technology` sets or
      clears an element's technology. One or several elements can take the same
-     `--add-tags` and `--remove-tags` changes to their [OKF tags](component-markdown.md#tags),
+     `--add-tags` and `--remove-tags` changes to their [OKF tags](component-markdown.md#tags)
+     (a group and a flow take them too),
      `--color` for their [map color](component-markdown.md#colors), and `--icon`
      for their [map icon](component-markdown.md#icons). An empty color or icon
      clears it. The web map's [Edit form](viewers/web/index.md#reading-and-editing)

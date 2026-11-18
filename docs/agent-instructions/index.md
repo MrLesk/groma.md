@@ -90,7 +90,7 @@ syntax and operation-specific restrictions belong in these guides and
 | --- | --- | --- |
 | Inspecting a scan | scan the repository or read and explain the current architecture | `groma agent-instructions inspect` |
 | Curating structure | decide which elements exist, where they belong, and which files each owns | `groma agent-instructions structure` |
-| Describing elements | write titles, summaries, responsibilities, or technology | `groma agent-instructions describe` |
+| Describing elements | write titles, summaries, responsibilities, or technology, or tag elements, groups, and flows | `groma agent-instructions describe` |
 | Relationships and flows | record how elements interact or walk through a scenario | `groma agent-instructions relationships` |
 | Backlog task links | change repository files for a Backlog task and the `backlog` CLI is available | `groma agent-instructions backlog` |
 

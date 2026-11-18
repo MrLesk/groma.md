@@ -5,7 +5,7 @@ import { compiledAsset } from '../../compiled-asset.ts'
 import { loadAnnotatedArchitecture } from '../../core.ts'
 import { loadProjectProfile } from '../../project-profile.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
-import { subsetByTags, type TagFilter } from '../../tag-selection.ts'
+import { subsetByTags, type TagFocus } from '../../tag-selection.ts'
 import type { WebMapPayload } from './payload.ts'
 
 export type MapLoadPhase = 'loading-architecture' | 'preparing-map'
@@ -29,7 +29,7 @@ export async function bundleRenderer(): Promise<string> {
 export async function loadMapRoot(
   repositoryRoot: string,
   onProgress?: (phase: MapLoadPhase) => void | Promise<void>,
-  filter?: TagFilter,
+  filter?: TagFocus,
 ): Promise<Pick<WebMapPayload, 'project' | 'world' | 'sheet' | 'timings'>> {
   onProgress?.('loading-architecture')
   const started = performance.now()

@@ -105,8 +105,9 @@ groma export ./site --include-filter payments --exclude-filter internal
   Without it the export starts from the whole architecture.
 - `--exclude-filter` removes what its tags select, and wins when both filters
   name the same element.
-- A relationship is exported when both of its ends are, and a flow when all of
-  its steps are.
+- A relationship is exported when both of its ends are. A flow is exported
+  when all of its steps are and it carries no excluded tag. A group is exported
+  when one of its members is, so a group with an excluded tag goes with its members.
 
 An excluded element is absent, not dimmed: the map is laid out for the subset,
 and the element's descriptions and source files are not written to the output.
@@ -213,7 +214,7 @@ styles no field and builds no approval button of its own. A new editable field
 is one entry in the Edit view's field list (`elementFields` in
 [`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts)). Put a
 field that several elements can share in `sharedElementFields`; the core's
-`elementOnlyFields` in [`src/edit.ts`](../../../src/edit.ts) decides which fields
+`fieldsOfSeveralElements` in [`src/edit.ts`](../../../src/edit.ts) decides which fields
 several elements take. The
 code that paints what a person reads receives no write hook: `paintDetails`
 takes what the pane reads and the write hooks
@@ -270,23 +271,25 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
 - **C4 filter bar:** The floating icon bar beside the hierarchy toggles **Actors**,
   **Systems**, **Containers**, **Components**, and **Relationships** on the map.
   Choices persist in `localStorage` and URL parameters.
-- **Tags** appears beside the view switch when an element carries a tag. Open it
-  with a click or `T`. The list shows tags alphabetically and counts the elements
-  that carry each tag directly. Type to find a tag. Point at a row or use ↑ and ↓
+- **Tags** appears beside the view switch when an element, group, or flow carries
+  a tag. Open it with a click or `T`. The list shows tags alphabetically and
+  counts the records that carry each tag directly. Type to find a tag. Point at a row or use ↑ and ↓
   to preview a toggle. Click or press Enter to keep it and frame the matches.
   Escape or a click outside closes the list. Details chips toggle the same focus.
-  - With two or more focused tags, **any** lights elements matching at least one
-    and **all** requires every tag. A component in a `payments` container that
-    carries `internal` itself matches both.
+  - With two or more focused tags, **any** matches elements and flows with at
+    least one, and **all** requires every tag on the same element or flow.
+    A component in a `payments` container that carries `internal` itself matches both.
   - **not** excludes a tag. With just **not internal**, everything outside
     `internal` stays lit. The bar shows a filled chip for each focused tag and
     an outlined chip for each exclusion. Click × to remove one.
-  - The map, hierarchy rows and task pins recede together. A preview leaves the
-    camera and URL in place. Clearing the last chip frames the current selection.
+  - The map, the hierarchy rows, the flows under **Actors** and the task pins recede together. A group's
+    tag lights its members. A flow's tag lights its step ends. A preview leaves
+    the camera and URL in place. Clearing the last chip frames the current selection.
     [Tag matching and example](../../component-markdown.md#focusing-on-tags).
 
   [`tags/tag-focus.ts`](../../../src/viewers/web/tags/tag-focus.ts) owns the focus and the bar, and
   [`tags/tag-list.ts`](../../../src/viewers/web/tags/tag-list.ts) owns the list.
+  [`flow/list.ts`](../../../src/viewers/web/flow/list.ts) keeps the flow rows' emphasis across repaints.
 - **Colors:** The Edit form of an element has a **Color** field: no color, then
   each [named color](../../component-markdown.md#colors) in the current theme's
   values. The map mixes the saved color into the element's surfaces and outline;
@@ -356,7 +359,9 @@ authored flows nested beneath it) and **Structure** (internal systems, container
 and components, followed by **External systems**). Clicking a flow row checks it,
 highlights its ordered route path with animated directional dashes on the map, and
 opens the flow reader in the right details pane. Multiple flows can stay checked
-at once.
+at once. When a flow carries tags, its reader shows a **Tags** row after the
+description and overview
+([`flow/reader.ts`](../../../src/viewers/web/flow/reader.ts)). Press a tag to toggle the map's focus.
 
 The right details pane opens when an element, relationship, flow, or task is
 selected (and can be expanded for wider source and diff reading):
