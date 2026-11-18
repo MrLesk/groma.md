@@ -2,6 +2,9 @@ import type { ArchitectureFlow, ArchitectureGraph } from '../../../types.ts'
 import { paragraph } from '../atoms/text.ts'
 import { chromeButton } from '../atoms/button.ts'
 import type { FlowRef } from '../../flows.ts'
+import { flowEditEntry } from '../organisms/commands.ts'
+import { isWriteViewOpen, paintWriteEntries } from '../organisms/write-view.ts'
+import type { FlowWrites } from '../organisms/writes.ts'
 import { tagRow } from '../tags/tag-row.ts'
 import { flowReturn, type WebFlowRef } from './state.ts'
 
@@ -20,17 +23,28 @@ function stepControl(label: string, action: () => void): HTMLButtonElement {
   return control
 }
 
-/** Shows the flow's wording, its own focusable tags and its ordered steps. */
+/** What the flow pane lets a person do while reading: walk the steps, inspect an end, toggle the focus on a tag. */
+export interface FlowReading {
+  onStep: (step: number | undefined) => void
+  onInspect: (id: string) => void
+  focusTags: readonly string[]
+  onToggleTag: (tag: string) => void
+}
+
+/**
+ * Shows the flow's wording, its own focusable tags and its ordered steps. With `writes`, the pane's write
+ * entry is Edit; an open Edit view stays across repaints.
+ */
 export function paintFlowDetails(
   host: HTMLElement,
   flow: ArchitectureFlow,
   active: FlowRef,
   world: ArchitectureGraph,
-  onStep: (step: number | undefined) => void,
-  onInspect: (id: string) => void,
-  focusTags: readonly string[],
-  onToggleTag: (tag: string) => void,
+  { onStep, onInspect, focusTags, onToggleTag }: FlowReading,
+  writes: FlowWrites | undefined,
 ): void {
+  // An open Edit view stays across repaints while the pane may write. On another revision it gives way to reading.
+  if (writes !== undefined && isWriteViewOpen(host, flow.id)) return
   host.querySelector('h1')!.textContent = flow.title
   host.querySelector('.meta')!.textContent = 'Flow'
   host.querySelector('.tabs')!.replaceChildren()
@@ -65,6 +79,7 @@ export function paintFlowDetails(
     list.append(row)
   })
   body.append(list)
+  if (writes !== undefined) paintWriteEntries(host, flow.id, [flowEditEntry(flow, world, writes)], writes.onRead)
 }
 
 /** The reader returns to its origin; endpoint inspection returns to the same flow. */

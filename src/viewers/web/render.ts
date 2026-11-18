@@ -3,7 +3,7 @@ import { createComparisonControl } from './comparison/control.ts'
 import { createProjectSettings } from './settings/control.ts'
 import { createProjectReview } from './review/control.ts'
 import type { ProjectProfile } from '../../project-profile.ts'
-import type { AnnotatedElement, AnnotatedRelationship, WorkItem } from '../../types.ts'
+import type { AnnotatedElement, WorkItem } from '../../types.ts'
 import { elementWorkGroups, touchedElements } from '../../work/pins.ts'
 import type { FlowRef } from '../flows.ts'
 import { createAddControl } from './chrome/add.ts'
@@ -12,7 +12,6 @@ import { createMapDebugPanel } from './chrome/map-debug.ts'
 import { bindMapView, readSavedMapControls, saveMapControls } from './chrome/map-view.ts'
 import { bindC4Filter } from './chrome/c4-filter.ts'
 import { bindTagFocus } from './tags/tag-focus.ts'
-import { animateContent } from './chrome/motion.ts'
 import { measureFrame, type MapFrame } from './chrome/frame.ts'
 import { bindChromeActions, cameraActions, createWebShell, pageHosts } from './chrome/shell.ts'
 import { bindThemeControl, readSavedTheme } from './chrome/theme-control.ts'
@@ -28,6 +27,7 @@ import { createMapHighlights } from './iso/highlights.ts'
 import { bindMapPointer } from './iso/camera/pointer.ts'
 import { createCameraSession } from './iso/camera/session.ts'
 import { presentScene, createMapAnimator, createMapMotion } from './iso/view-motion/presentation.ts'
+import { paintGroup } from './organisms/group-details.ts'
 import { paintRelationship } from './organisms/relationship-details.ts'
 import { paintSelection } from './organisms/selection-details.ts'
 import { detailsTabAfterSelection, detailsTabAfterWork, type DetailsTab, inspectSelection, paintDetails } from './organisms/details.ts'
@@ -43,7 +43,7 @@ import { createSearchSession } from './search/session.ts'
 import { createWorkIsland } from './work/island.ts'
 import { openWorkSelection, toggleWorkSelection } from './work/selection.ts'
 import type { WebBootPayload, WebPayload, WebWorkPayload } from './payload.ts'
-import { noSelection, primarySelection, primarySystem, retainSelection, selectArchitecture, selectMapArchitecture, selectedArchitecture, selectTask, type Selection } from './selection.ts'
+import { isKnownArchitecture, noSelection, primarySelection, primarySystem, retainLiveSelection, retainSelection, selectArchitecture, selectMapArchitecture, selectOne, selectedArchitecture, selectTask, type Selection } from './selection.ts'
 import { createSourceControl } from './source/control.ts'
 import { createTaskDiffControl } from './task-diff/control.ts'
 import { readView, writeView } from './url.ts'
@@ -100,7 +100,7 @@ shell.setHud(hudVisible)
 let activeFlows: WebFlowRef[] = opened.flows
 const initial = primarySystem(world)
 if (boot.revision === null && selection.kind === 'none' && initial !== undefined) {
-  selection = selectArchitecture(noSelection, initial.representationId, false)
+  selection = selectOne(initial.representationId)
 }
 /** Tasks activated from pins or chips, in activation order; selection is independent and this order supplies its deactivation fallback. */
 let activeTaskIds: string[] = selection.kind === 'task' ? [selection.id] : []
@@ -142,14 +142,7 @@ const camera = createCameraSession({
 /** A world update's blend: the camera tracks its fit on every frame, through the last, instead of refitting a selection. */
 let following = false
 function worldElement(id: string | undefined): AnnotatedElement | undefined { return id === undefined ? undefined : world.elements.find(element => element.representationId === id) }
-function worldRelationship(id: string | undefined): AnnotatedRelationship | undefined { return id === undefined ? undefined : world.relationships.find(item => item.id === id) }
-function unidentifiedGroup(id: string | undefined) { return sheet.zones.find(zone => zone.unidentifiedContainer && zone.key === id) }
 function workItem(id: string | undefined): WorkItem | undefined { return id === undefined ? undefined : work.items.find(item => item.id === id) }
-
-function known(id: string | undefined): boolean {
-  return worldElement(id) !== undefined || worldRelationship(id) !== undefined || unidentifiedGroup(id) !== undefined || workItem(id) !== undefined
-    || world.flows.some(flow => flow.id === id)
-}
 
 function syncUrl(): void {
   const query = writeView({
@@ -196,27 +189,29 @@ function paintViewState(commitUrl = true): void {
   shell.paint(selection)
 }
 
-let paintedDetail = ''
 function paintDetailsState(task: WorkItem | undefined): void {
-  const detail = `${primarySelection(selection)}:${detailsTab}:${source.file}`
-  if (revisionControl.comparison !== undefined && detail !== paintedDetail) animateContent(detailsHost.querySelector<HTMLElement>('.body')!)
-  paintedDetail = detail
-  detailsHost.querySelector('.comparison-reasons')?.remove()
-  const activeFlow = activeFlows.at(-1)
   const selectedId = primarySelection(selection)
+  changes.prepareDetails(detailsHost, selectedId, detailsTab, source.file)
+  const activeFlow = activeFlows.at(-1)
   const selected = worldElement(selectedId)
-  const inspected = inspectSelection(selectedId, world, sheet.zones)
-  const relationship = worldRelationship(selectedId)
   const paintedReader = source.paint(selected) || taskDiff.paint(task)
   paintFlowReturn(detailsHost, activeFlow, selection.kind === 'flow', world, select, showFlows, source.file !== undefined)
   if (paintedReader) return
   const flow = world.flows.find(item => item.id === selectedId)
   if (selection.kind === 'flow' && flow !== undefined && activeFlow !== undefined) {
-    paintFlowDetails(detailsHost, flow, activeFlow, world, selectFlowStep, select, tagFocus.focus.focused, tagFocus.toggle)
+    const reading = { onStep: selectFlowStep, onInspect: select, focusTags: tagFocus.focus.focused, onToggleTag: tagFocus.toggle }
+    paintFlowDetails(detailsHost, flow, activeFlow, world, reading, authoring.flowWrites(flow.id))
+    return
+  }
+  const group = world.groups.find(group => group.id === selectedId)
+  if (selection.kind === 'architecture' && group !== undefined) {
+    paintGroup(detailsHost, group, world, select, tagFocus.focus.focused, tagFocus.toggle, authoring.groupWrites(group.id))
     return
   }
   const several = selectedArchitecture(selection)
   if (paintSelection(detailsHost, several, world, select, authoring.selectionWrites(several))) return
+  const relationship = world.relationships.find(row => row.id === selectedId)
+  const inspected = inspectSelection(selectedId, world, sheet.zones)
   if (relationship !== undefined) {
     paintRelationship(detailsHost, relationship, world, select, authoring.relationWrites)
   } else if (inspected !== undefined) {
@@ -239,11 +234,11 @@ function paintDetailsState(task: WorkItem | undefined): void {
 }
 
 function select(id: string, additive = false, origin: 'panel' | 'map' = 'panel'): void {
-  if (worldElement(id) === undefined && worldRelationship(id) === undefined && unidentifiedGroup(id) === undefined) return
+  if (!isKnownArchitecture(id, world, sheet.zones)) return
   if (!mayLeaveWriteView(detailsHost)) return
   source.clear()
   const next = origin === 'map' ? selectMapArchitecture(selection, id, additive, world)
-    : selectArchitecture(selection, id, additive)
+    : selectArchitecture(selection, id, additive, world.groups)
   detailsTab = detailsTabAfterSelection(detailsTab, primarySelection(selection), primarySelection(next), comparisonDefaultTab(revisionControl.comparison?.components[worldElement(primarySelection(next))?.id ?? '']))
   selection = next
   camera.touched = true
@@ -452,7 +447,8 @@ function applyWorld(payload: WebPayload, reset = false): void {
     hierarchy.reset()
     activeTaskIds = []
     activeFlows = []
-    selection = retainSelection(selection, id => worldElement(id) !== undefined)
+    // Another revision keeps a selected element or group. A relationship's id is its position in that revision, so it is dropped.
+    selection = retainSelection(selection, id => worldElement(id) !== undefined || world.groups.some(group => group.id === id))
     if (!new URLSearchParams(location.search).has('tab')) {
       detailsTab = comparisonDefaultTab(payload.comparison?.components[worldElement(primarySelection(selection))?.id ?? ''])
     } else if (detailsTab === 'tasks') detailsTab = 'what'
@@ -463,7 +459,7 @@ function applyWorld(payload: WebPayload, reset = false): void {
     activeTaskIds = activeTaskIds.filter(id => workItem(id) !== undefined)
     activeFlows = retainFlows(activeFlows, world)
     if (selection.kind === 'flow') selection = flowSelection(activeFlows)
-    selection = retainSelection(selection, id => known(id))
+    selection = retainLiveSelection(selection, world, sheet.zones, work.items)
   }
   taskDiff.invalidate()
   paintWorld()
@@ -478,7 +474,7 @@ function applyWork(payload: WebWorkPayload): void {
     && elementWorkGroups(work, selected.representationId, world).length > 0
   detailsTab = detailsTabAfterWork(detailsTab, hasTasks)
   activeTaskIds = activeTaskIds.filter(id => workItem(id) !== undefined)
-  selection = retainSelection(selection, id => known(id))
+  selection = retainLiveSelection(selection, world, sheet.zones, work.items)
   pins.paint(currentPins.filter(pin => map.anchorOf(pin.elementId) !== undefined))
   island.paint(payload.pins, work)
   paintViewState()

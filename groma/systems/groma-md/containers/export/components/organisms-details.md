@@ -33,6 +33,9 @@ groma:
       file: src/viewers/web/tags/tag-row.ts
     - scanner: typescript
       file: src/viewers/web/tags/tags-field.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/group-details.ts
+      symbol: paintGroup
 description: Shows the selected element, its source and its relationships
 ---
 

@@ -2,7 +2,7 @@ import type { AnnotatedArchitectureModel } from '../../types.ts'
 import { createMapEditor } from './editing/gestures.ts'
 import type { WebDataSource } from './data.ts'
 import type { IsoMap } from './iso/painting/map.ts'
-import type { PaneWrites, RelationWrites, SelectionWrites } from './organisms/writes.ts'
+import type { FlowWrites, GroupWrites, PaneWrites, RelationWrites, SelectionWrites } from './organisms/writes.ts'
 
 export interface AuthoringDependencies {
   /** True on the current revision of a live map, the only place writes are offered. */
@@ -11,7 +11,7 @@ export interface AuthoringDependencies {
   repaint: () => void
 }
 
-/** The write hooks for an element, a relationship, or several selected elements. */
+/** The write hooks for the pane of an element, relationship, group, flow, or selection of elements. */
 export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSource, deps: AuthoringDependencies) {
   const gestures = createMapEditor(host, map, data, () => deps.world().elements, deps.live)
   const { accept, add, edit, remove } = data
@@ -53,6 +53,22 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
     }
   }
 
+  /** A flow's pane saves its changed wording and tags with one edit of the flow's id. */
+  function flowWrites(id: string): FlowWrites | undefined {
+    if (!deps.live() || edit === undefined) return undefined
+    return { onRead: deps.repaint, onEdit: (changes, original) => edit({ id, ...changes, original }) }
+  }
+
+  /** A group's pane saves the same way. Remove deletes the group's document; the next world update empties the selection. */
+  function groupWrites(id: string): GroupWrites | undefined {
+    if (!deps.live() || edit === undefined) return undefined
+    return {
+      onRead: deps.repaint,
+      onEdit: (changes, original) => edit({ id, ...changes, original }),
+      ...(remove === undefined ? {} : { onRemove: () => remove({ id }) }),
+    }
+  }
+
   function relationWrites(source: string, target: string): RelationWrites {
     if (!deps.live()) return {}
     return {
@@ -63,5 +79,5 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
     }
   }
 
-  return { paneWrites, relationWrites, selectionWrites, ...gestures }
+  return { paneWrites, relationWrites, groupWrites, flowWrites, selectionWrites, ...gestures }
 }
