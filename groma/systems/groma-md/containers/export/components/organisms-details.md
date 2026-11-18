@@ -31,6 +31,7 @@ groma:
       file: src/viewers/web/organisms/selection-details.ts
     - scanner: typescript
       file: src/viewers/web/tags/tag-row.ts
+      symbol: tagRow
     - scanner: typescript
       file: src/viewers/web/tags/tags-field.ts
     - scanner: typescript

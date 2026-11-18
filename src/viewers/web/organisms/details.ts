@@ -25,6 +25,7 @@ import { colorChoices } from './color-swatches.ts'
 import { iconChoices } from './icon-picker.ts'
 import { glyphElement } from '../icons/glyph-element.ts'
 import type { IconName } from '../../../icons.ts'
+import { factRow } from '../atoms/fact-row.ts'
 import { heading, paragraph } from '../atoms/text.ts'
 import { acceptEntry, editEntry, removeEntry, type EditField } from './commands.ts'
 import { isWriteViewOpen, paintWriteEntries, type WriteEntry } from './write-view.ts'
@@ -52,6 +53,8 @@ export interface Inspected {
   kindLabel: string
   origin: Origin
   overview: string
+  /** The group a component is in. */
+  group?: { id: string; title: string }
   tags: string[]
   /** The authored color name, or '' when the element has none. */
   color: string
@@ -144,6 +147,7 @@ export function inspectDetails(
       })),
     }
   })
+  const group = world.groups.find(candidate => candidate.id === element.group)
   const children: InspectedChild[] = []
   for (const childId of element.children) {
     const child = byId.get(childId)
@@ -161,6 +165,7 @@ export function inspectDetails(
     kindLabel: kindLabel(element.kind, element.external),
     origin: element.origin,
     overview: element.overview,
+    ...(group === undefined ? {} : { group: { id: group.id, title: group.title } }),
     tags: element.tags ?? [],
     color: element.color ?? '',
     icon: element.icon ?? '',
@@ -339,6 +344,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
       if (change !== undefined) { comparisonOverview(body, change, options.world); return }
       if (inspected.description !== '') body.append(paragraph('description', inspected.description))
       if (inspected.overview !== '') body.append(paragraph('overview', inspected.overview))
+      if (inspected.group !== undefined) body.append(groupRow(inspected.group, onSelect))
       if (inspected.tags.length > 0) body.append(tagRow(inspected.tags, options.focusTags, options.onToggleTag))
     },
 
@@ -400,6 +406,16 @@ function otherWrites(inspected: Inspected, writes: PaneWrites): WriteEntry[] {
     ...(inspected.matchedGhost && onAccept !== undefined ? [acceptEntry(inspected.title, onAccept)] : []),
     ...(inspected.removable && onRemove !== undefined ? [removeEntry(inspected.title, onRemove)] : []),
   ]
+}
+
+/** The group a component is in, as a link that selects the group. */
+function groupRow(group: { id: string; title: string }, onSelect: (id: string, additive: boolean) => void): HTMLElement {
+  const link = document.createElement('button')
+  link.type = 'button'
+  link.className = 'link'
+  link.textContent = group.title
+  link.addEventListener('click', () => onSelect(group.id, false))
+  return factRow('Group', [link])
 }
 
 /** Empties the pane while nothing is selected. */
