@@ -12,6 +12,10 @@ export const flowRowCss = `
     color: inherit; font: inherit; text-align: left;
   }
   .flow-row:hover { background: var(--hover); }
+  /* A flow that a tag focus does not match recedes, as a row does in the hierarchy. */
+  .flow-row { transition: opacity 200ms ease; }
+  .flow-row.receded { opacity: 0.4; }
+  @media (prefers-reduced-motion: reduce) { .flow-row { transition: none; } }
   .flow-check {
     display: grid; width: 12px; height: 12px; flex: 0 0 12px;
     place-items: center; border: 1px solid var(--muted); font-size: 9px; line-height: 1;

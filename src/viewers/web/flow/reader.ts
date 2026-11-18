@@ -2,6 +2,7 @@ import type { ArchitectureFlow, ArchitectureGraph } from '../../../types.ts'
 import { paragraph } from '../atoms/text.ts'
 import { chromeButton } from '../atoms/button.ts'
 import type { FlowRef } from '../../flows.ts'
+import { tagRow } from '../tags/tag-row.ts'
 import { flowReturn, type WebFlowRef } from './state.ts'
 
 function button(label: string, action: () => void): HTMLButtonElement {
@@ -19,6 +20,7 @@ function stepControl(label: string, action: () => void): HTMLButtonElement {
   return control
 }
 
+/** Shows the flow's wording, its own focusable tags and its ordered steps. */
 export function paintFlowDetails(
   host: HTMLElement,
   flow: ArchitectureFlow,
@@ -26,6 +28,8 @@ export function paintFlowDetails(
   world: ArchitectureGraph,
   onStep: (step: number | undefined) => void,
   onInspect: (id: string) => void,
+  focusTags: readonly string[],
+  onToggleTag: (tag: string) => void,
 ): void {
   host.querySelector('h1')!.textContent = flow.title
   host.querySelector('.meta')!.textContent = 'Flow'
@@ -34,6 +38,7 @@ export function paintFlowDetails(
   body.replaceChildren()
   if (flow.description) body.append(paragraph('description', flow.description))
   for (const prose of flow.overview.split('\n\n')) body.append(paragraph('overview', prose))
+  if (flow.tags?.length) body.append(tagRow(flow.tags, focusTags, onToggleTag))
   const controls = document.createElement('div')
   controls.className = 'flow-controls'
   const previous = stepControl('Previous', () => onStep(Math.max(0, (active.step ?? 1) - 1)))

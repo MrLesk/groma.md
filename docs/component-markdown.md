@@ -236,14 +236,16 @@ groma:
 ```
 
 Any OKF reader sees the two categories. Groma reads the list on actors, systems,
-external systems, containers, and components, and shows it with the concept. A
-tag adds no C4 element, parent, or relationship, and it is unrelated to the
-`groma.draft` field that links a concept to a draft record. There is no
+external systems, containers, components, groups, and flows. `groma view <id>`
+shows the record's own tags. A tag adds no C4 element, parent, or relationship,
+and it is unrelated to the `groma.draft` field that links a concept to a draft
+record. There is no
 `groma.tags` field and no separate tag catalog.
 
 `groma edit checkout-api orders --add-tags payments --remove-tags legacy`
-adds and removes tags on both elements. One id changes one element. Each keeps
-its other tags in order, with new tags at the end. Removing the last tag clears
+adds and removes tags on both elements. A single element, group, or flow ID takes
+the same options. They write `tags` in that record's front matter. Each record
+keeps its other tags in order, with new tags at the end. Removing the last tag clears
 the field. In the web map, **Edit** opens the same Tags field
 ([`tagsField`](../src/viewers/web/tags/tags-field.ts)) for one element or several.
 Enter, a comma, or a suggestion adds a tag to all. A partial chip
@@ -256,16 +258,22 @@ names, skip blanks and add each tag once. Groma reads any OKF list of non-empty 
 Open **Tags** beside the web map's view switch to find, preview or focus a tag.
 A row or a details chip toggles focus. The × on a bar chip clears it.
 [`selectByTags`](../src/tag-selection.ts) reads each element's own tags and those
-on its parent system and container.
+of its system, container, and group. A flow matches on its own tags. A matching
+flow lights both ends of each step.
 
-- **any** lights elements matching at least one focused tag.
-- **all** requires every focused tag. The switch appears with two or more.
-- **not** removes any element matching an excluded tag. With only exclusions,
-  all other elements match. Parents of the remaining matches stay as context.
+- **any** matches an element or flow with at least one focused tag.
+- **all** requires every focused tag to match the same element or the same flow.
+  The switch appears with two or more.
+- **not** removes any element or flow matching an excluded tag. An excluded
+  end stays out even when a matching flow uses it. Excluding a flow leaves its
+  ends eligible. With only exclusions, all other elements and flows match.
+  Parents of the lit elements stay as context.
 
 In system `shop`, the `checkout-api` container carries `payments` and its
 `refunds` component carries `internal`. In the `storefront` container, `cart`
-carries `payments` and `catalog` has no tags.
+carries `payments` and `catalog` has no tags. The `storefront-basket` group carries
+`store-team` and lists `cart`. The `browse-cart` flow carries `shopping` and
+has one step from `catalog` to `cart`.
 
 | Focus | Matches |
 | --- | --- |
@@ -273,15 +281,17 @@ carries `payments` and `catalog` has no tags.
 | `payments` and `internal` | Only `refunds`. Its container and system stay as context. |
 | `payments`, not `internal` | `checkout-api`, its components except `refunds`, and `cart`. |
 | Only not `internal` | Everything except `refunds`. |
+| `store-team` | Only the group member `cart` lights, along with its zone. |
+| `shopping` | `browse-cart` matches. Its ends `catalog` and `cart` light, along with their route. |
 
 A link carries `tag=<tag>` for each focused tag, `match=all` for **all**, and
 `not=<tag>` for each exclusion. Opening it frames the matches. For example,
 `?tag=payments&not=internal` opens the third row.
 
 The map then decides what it draws around those elements
-([`IsoMap.focusTags`](../src/viewers/web/iso/painting/map.ts)): a group stays
-when one of its members matches, and a relationship stays when both of its ends
-match.
+([`IsoMap.focusTags`](../src/viewers/web/iso/painting/map.ts)). A group zone
+lights when one of its members is lit, and a relationship lights when both ends
+are lit. Flows that do not match recede among the flows under **Actors** in the hierarchy pane.
 
 Focusing changes emphasis only. Positions, containment and the stored
 architecture stay as they are.
@@ -289,8 +299,12 @@ architecture stay as they are.
 #### Exporting a subset
 
 `groma export --include-filter <tags> --exclude-filter <tags>` uses the same
-selection to decide what a static export contains. Include keeps the matches and
-their context. Exclude then removes its own matches and wins over include.
+selection to decide what a static export contains. Include keeps the lit elements
+and their parents, including a tagged group's members and a tagged flow's step
+ends. Exclude wins over include. Excluding a group's tag leaves out the group
+and its members. A group is exported when one of its members is. Excluding a flow's tag
+leaves out the flow and keeps its otherwise included ends. A relationship stays
+when both ends stay, and a flow with no excluded tag stays when all its steps stay.
 
 In the same example, `--include-filter payments --exclude-filter internal` exports:
 
@@ -528,7 +542,8 @@ the scenario meaning and order; the existence of an interaction alone does
 not establish execution order. A flow uses an
 explicit, ordered subset of the directed relationships. It is an OKF concept with type `Groma Flow`, stored at
 `<groma-root>/flows/<id>.md`. It is not a C4 element and has no parent,
-Code references, footprint, or routes of its own.
+Code references, footprint, or routes of its own. A flow may carry `tags` in
+its front matter.
 
 ```markdown
 ---
@@ -565,7 +580,7 @@ outgoing connections to extend a flow.
 
 `groma add flow <title> --overview <prose> --steps <markdown-table>` authors a
 record. The table may include Markdown link definitions. `groma edit <flow-id>`
-accepts `--title`, `--description`, `--overview`, and `--steps`;
+accepts `--title`, `--description`, `--overview`, `--steps`, `--add-tags`, and `--remove-tags`.
 `groma remove <flow-id>` removes it. A referenced relationship or endpoint
 cannot be removed while a flow still uses it. Live, historical, and static
 viewers all read these same records.
@@ -578,7 +593,7 @@ never do, and scans keep them. A group is an OKF concept with type
 `Groma Group`, stored at `<groma-root>/groups/<id>.md`. It is not a C4 element
 and not another containment level: it never becomes a parent, owns no Code
 references, and is never a relationship end. The maps draw it as a zone around
-its members.
+its members. A group may carry `tags` in its front matter.
 
 ```markdown
 ---
@@ -626,8 +641,8 @@ the container's ID followed by the kebab-case name, so two containers can each
 have a group of the same name. `--description` and `--overview` add its
 meaning. When the container already has a group with exactly this title, the
 components join that group instead, which is how Group in the web map adds
-to an existing group. `groma edit <group-id>` accepts `--title`, `--description`, and
-`--overview`. `groma edit <component-id> --group <group-id>` puts a component
+to an existing group. `groma edit <group-id>` accepts `--title`, `--description`,
+`--overview`, `--add-tags`, and `--remove-tags`. `groma edit <component-id> --group <group-id>` puts a component
 in an existing group and takes it out of the group it was in; `--ungroup` only
 takes it out. `groma remove <group-id>` deletes the record and leaves its
 members in place. `groma view <group-id>` prints the record.

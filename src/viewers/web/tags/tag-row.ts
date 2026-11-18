@@ -1,8 +1,8 @@
 import { tagChip } from './tag-focus.ts'
 
 /**
- * An element's tags as one row of chips under a title, for reading. Pressing a chip focuses the map on its
- * tag, or ends that focus: that changes the view, never the architecture. Tags are changed in the Edit form.
+ * A record's own tags as a row of chips in its reading pane. Pressing a chip toggles the map's focus.
+ * To change the tags on an element, use its Edit form.
  */
 export function tagRow(tags: readonly string[], focused: readonly string[], onToggle: (tag: string) => void): HTMLElement {
   const row = document.createElement('div')

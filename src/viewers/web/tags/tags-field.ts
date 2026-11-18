@@ -1,5 +1,4 @@
-import { formatTags, parseTags } from '../../../tags.ts'
-import type { TagCount } from '../../../tag-selection.ts'
+import { formatTags, parseTags, type TagCount } from '../../../tags.ts'
 
 /*
  * The names of the field's two hidden controls. They are the names the edit input uses for tag changes

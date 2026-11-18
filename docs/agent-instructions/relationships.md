@@ -35,7 +35,7 @@ establish a runtime workflow.
 | `groma edit relation <source> <target> [--description <text>] [--technology <text>]` | the endpoints of an existing relationship; its lifecycle stays |
 | `groma remove relation <source> <target>` | the endpoints of a draft relationship that no flow uses |
 | `groma add flow <title> --overview <prose> --steps <markdown-table>` | the title of a new flow; its ID is the title in kebab case |
-| `groma edit <flow-id> [--title <text>] [--overview <prose>] [--steps <markdown-table>]` | a flow ID |
+| `groma edit <flow-id> [--title <text>] [--description <text>] [--overview <prose>] [--steps <markdown-table>] [--add-tags <tags>] [--remove-tags <tags>]` | a flow ID |
 | `groma remove <flow-id>` | a flow ID |
 
 Endpoints between software elements are exact repository-relative source files,

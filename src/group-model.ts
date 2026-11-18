@@ -1,5 +1,5 @@
 import { collectNodes, elementOverview, nodeText, relationshipTargetFilename } from './architecture-markdown.ts'
-import { ArchitectureModelError } from './architecture-model.ts'
+import { ArchitectureModelError, tagsOf } from './architecture-model.ts'
 import { isArchitectureId } from './naming.ts'
 import { requireGromaMapping } from './okf-profile.ts'
 import type {
@@ -65,6 +65,7 @@ function documentToGroup(document: ArchitectureDocument, model: ArchitectureMode
   }
   if (Object.keys(groma).some(field => field !== 'id')) invalid(document, 'group groma mapping only supports id')
   const { title, description } = document.frontmatter
+  const tags = tagsOf(document.frontmatter.tags, document.sourceFilename)
   if (typeof title !== 'string' || title.trim() === '') invalid(document, 'title must be non-empty text')
   if (description !== undefined && typeof description !== 'string') invalid(document, 'description must be text')
   const members = memberItems(document).map(item => resolveMember(document, item, model))
@@ -75,6 +76,7 @@ function documentToGroup(document: ArchitectureDocument, model: ArchitectureMode
     id,
     title,
     ...(description === undefined ? {} : { description }),
+    ...(tags === undefined ? {} : { tags }),
     overview: elementOverview(document, (_code, _filename, message) => invalid(document, message)),
     memberIds,
     sourceFilename: document.sourceFilename,

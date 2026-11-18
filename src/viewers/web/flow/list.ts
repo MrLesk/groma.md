@@ -1,3 +1,4 @@
+import type { TagSelection } from '../../../tag-selection.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import type { FlowRef } from '../../flows.ts'
 import { replaceTreeChildren, sidebarBranches, sidebarRow } from '../organisms/sidebar-row.ts'
@@ -20,17 +21,27 @@ function groupedTitle(title: string, actorTitle: string): string {
   return actor === prefix || actor.endsWith(` ${prefix}`) ? title.slice(separator + 2) : title
 }
 
-/** Each panel owns its fold state while sharing the same tree renderer. */
+/** Each list keeps its open branches and the flows selected by a tag focus across repaints. */
 export function createFlowList() {
   let unfolded = true
   const expandedActors = new Set<string>()
-  return function paintFlows(
+  const rows = new Map<string, HTMLButtonElement>()
+  let tagSelection: TagSelection | undefined
+
+  /** Flows that a tag focus does not match recede, as rows do in the hierarchy; undefined ends it. */
+  function recede(selection: TagSelection | undefined): void {
+    tagSelection = selection
+    for (const [id, row] of rows) row.classList.toggle('receded', selection !== undefined && !selection.matchingFlows.has(id))
+  }
+
+  function paintFlows(
     host: HTMLElement,
     world: ArchitectureGraph,
     active: readonly FlowRef[],
     onToggle: (flow: FlowRef) => void,
     options: FlowListOptions,
   ): void {
+    rows.clear()
     host.classList.add('flow-tree')
     const { title, visibleFlows } = options
     const visibleIds = visibleFlows && new Set(visibleFlows.map(row => row.flow.id))
@@ -51,6 +62,12 @@ export function createFlowList() {
     list.hidden = !unfolded
     const actorIds = new Set(actors.map(actor => actor.id))
     const ungrouped = flows.filter(flow => !actorIds.has(flow.steps[0]!.source))
+    function listedFlowRow(id: string, title: string): HTMLButtonElement {
+      const row = flowRow({ flow: { id }, title }, active, onToggle)
+      row.classList.add('row')
+      rows.set(id, row)
+      return row
+    }
     const actorRows = (
       actor: typeof actors[number],
       actorFlows: typeof flows,
@@ -67,8 +84,7 @@ export function createFlowList() {
       const children = document.createElement('div')
       children.hidden = !expanded
       for (const [flowIndex, flow] of actorFlows.entries()) {
-        const row = flowRow({ flow: { id: flow.id }, title: groupedTitle(flow.title, actor.title) }, active, onToggle)
-        row.classList.add('row')
+        const row = listedFlowRow(flow.id, groupedTitle(flow.title, actor.title))
         row.prepend(...sidebarBranches([followingActor, flowIndex < actorFlows.length - 1]))
         children.append(row)
       }
@@ -87,11 +103,12 @@ export function createFlowList() {
     }
     for (const [index, flow] of ungrouped.entries()) {
       const title = contextActor?.id === flow.steps[0]!.source ? groupedTitle(flow.title, contextActor.title) : flow.title
-      const row = flowRow({ flow: { id: flow.id }, title }, active, onToggle)
-      row.classList.add('row')
+      const row = listedFlowRow(flow.id, title)
       row.prepend(...sidebarBranches([index < ungrouped.length - 1]))
       list.append(row)
     }
     replaceTreeChildren(host, heading, list)
+    recede(tagSelection)
   }
+  return { paint: paintFlows, recede }
 }

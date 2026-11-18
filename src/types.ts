@@ -212,6 +212,7 @@ export interface ArchitectureFlow {
   id: string
   title: string
   description?: string
+  tags?: string[]
   overview: string
   sourceFilename: string
   steps: FlowStep[]
@@ -225,6 +226,7 @@ export interface ArchitectureGroup {
   id: string
   title: string
   description?: string
+  tags?: string[]
   overview: string
   /** The components the document links under "## Members", in its order. */
   memberIds: string[]
@@ -235,7 +237,7 @@ export interface ArchitectureGroup {
  * A group as a view sees it. A view finds the members the other way round: each one names its
  * group in AnnotatedElement.group, as it names its parent.
  */
-export type AnnotatedGroup = Pick<ArchitectureGroup, 'id' | 'title' | 'description' | 'overview'>
+export type AnnotatedGroup = Pick<ArchitectureGroup, 'id' | 'title' | 'description' | 'tags' | 'overview'>
 
 export interface FlowStep {
   relationshipId: string

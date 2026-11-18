@@ -34,7 +34,7 @@ the scanner cannot see.
 | `groma edit <id> --id <new-id>` | a system, container, or component ID and the kebab-case ID it should keep |
 | `groma edit <component> --detach <file...>` | a component ID and exact repository-relative files it owns |
 | `groma add group <name> <component...>` | component IDs of one container; prints the group ID. A name the container already uses adds the components to that group. `--description` and `--overview` are optional on a new group |
-| `groma edit <group-id> --title <text>` | a group ID; `--description` and `--overview` work the same way |
+| `groma edit <group-id>` | a group ID with `--title`, `--description`, `--overview`, `--add-tags`, or `--remove-tags` |
 | `groma edit <component> --group <group-id>` or `--ungroup` | a component ID and the ID of an existing group in its container |
 | `groma remove <group-id>` | a group ID; the record is deleted and its members stay |
 | `groma add actor <name> --overview <markdown>` | the name of a new person |

@@ -55,14 +55,14 @@ test.concurrent('a filtered export publishes neither an excluded component nor i
     await cp(fixture, root, { recursive: true })
     await writeFile(path.join(root, 'src/orders.ts'), 'export const internalOnly = true\n')
     await writes.edit(root, { id: 'orders', addTags: 'internal' })
-    const boot = await publish(root, { filter: { include: [], exclude: ['internal'] } })
+    const boot = await publish(root, { filter: { focused: [], match: 'any', excluded: ['internal'] } })
     expect(boot.world.elements.map(element => element.id).sort()).toEqual(['api', 'shop'])
     expect(JSON.stringify(boot)).not.toContain('internalOnly')
     // A filter that leaves nothing fails and writes nothing: no directory, no half-written site.
     const unwritten = path.join(root, 'unwritten-site')
-    await expect(exportWebViewer(root, unwritten, { filter: { include: ['internal'], exclude: ['internal'] } })).rejects.toThrow('leaves no element')
+    await expect(exportWebViewer(root, unwritten, { filter: { focused: ['internal'], match: 'any', excluded: ['internal'] } })).rejects.toThrow('leaves no element')
     // A tag nothing carries is most likely mistyped: the export stops and names it, so a wrong exclude publishes nothing.
-    await expect(exportWebViewer(root, unwritten, { filter: { include: [], exclude: ['intrenal'] } })).rejects.toThrow('nothing carries: intrenal')
+    await expect(exportWebViewer(root, unwritten, { filter: { focused: [], match: 'any', excluded: ['intrenal'] } })).rejects.toThrow('nothing carries: intrenal')
     expect(existsSync(unwritten)).toBe(false)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
@@ -87,7 +87,7 @@ test.concurrent('a filtered comparison publishes no source from the commit that 
     await writes.edit(root, { id: 'orders', addTags: 'internal' })
     await writeFile(path.join(root, 'src/orders.ts'), 'export const internalOnly = true\n')
     const internal = await commit('Orders become internal')
-    const boot = await publish(root, { from: published, revision: internal, filter: { include: [], exclude: ['internal'] } })
+    const boot = await publish(root, { from: published, revision: internal, filter: { focused: [], match: 'any', excluded: ['internal'] } })
     expect(boot.comparison?.components.orders?.status).toBe('removed')
     expect(JSON.stringify(boot)).not.toContain('internalOnly')
   } finally { await rm(root, { recursive: true, force: true }) }
