@@ -50,12 +50,12 @@ Say what must be true, not how to build it. Do not specify frameworks, file layo
 - Rename a part or a draft record, id unchanged: groma edit <id> --title <text>
 - Rename the id of a system, container, or component: groma edit <id> --id <new-id>. Its document and the documents under it move, and relationship rows and flow steps that link them follow.
 - Technology of an element: groma edit <id> --technology <text>. Pass an empty value to remove it.
-- OKF tags of an element: groma edit <id> --add-tags <a,b> --remove-tags <c>. Several element ids take the same tag changes, color and icon.
+- OKF tags of an element, group or flow: groma edit <id> --add-tags <a,b> --remove-tags <c>. Several element ids take the same tag changes, color and icon.
 - Map color of an element: groma edit <id> --color <name>, one of red, orange, yellow, blue, violet, pink. Pass an empty value to remove it.
 - Map icon of an element: groma edit <id> --icon <name>; groma edit --help lists the names. Pass an empty value to remove it.
 - Current long overview: groma edit <id> --overview <markdown>. Pass an empty value to clear it.
 - Optional concise description: groma edit <id> --description <text>. Pass an empty value to remove it.
-- Group components of one container: groma add group <name> <ids...> creates a group record and prints its id; a name the container already uses adds the components to that group. groma edit <group-id> --title, --description or --overview changes what the group says, and groma remove <group-id> deletes the record and leaves its members. One component: groma edit <id> --group <group-id> or --ungroup.
+- Group components of one container: groma add group <name> <ids...> creates a group record and prints its id; a name the container already uses adds the components to that group. groma edit <group-id> --title, --description, --overview, --add-tags or --remove-tags changes what the group says and how it is tagged, and groma remove <group-id> deletes the record and leaves its members. One component: groma edit <id> --group <group-id> or --ungroup.
 - Move an empty scanned component to another container, or a container with its components to another system: groma edit <id> --parent <container-id|system-id>
 - Combine empty scanned systems, containers, or components into one: groma edit <target-id> --combine <source-id...>
 - Current collaboration: groma add relation <source-file> <target-file> --description <prose> --technology <text>. One authored row per ordered file pair, stored in the source element document. Actor and external-system declarations may use concept IDs.

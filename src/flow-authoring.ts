@@ -3,12 +3,13 @@ import { buildArchitectureModel, freeId } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { resolveFlows } from './flow-model.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
-import { parsedDocument, readDocument, replaceLeadProse, withDescription, withTitle, writeDocument } from './markdown-emitter.ts'
+import { parsedDocument, readDocument, replaceLeadProse, type TagChanges, withDescription, withTags, withTitle, writeDocument } from './markdown-emitter.ts'
 import { requireText } from './naming.ts'
 import { FLOW_TYPE } from './okf-profile.ts'
 import type { ArchitectureDocument, ArchitectureRecords } from './types.ts'
 
-export interface FlowChanges {
+/** The wording, tags and ordered steps an author can change on a flow record. */
+export interface FlowChanges extends TagChanges {
   title?: string
   overview?: string
   description?: string
@@ -22,7 +23,8 @@ async function writeFlow(repositoryRoot: string, records: ArchitectureRecords, f
   await writeDocument(repositoryRoot, filename, source)
 }
 
-export async function addFlow(repositoryRoot: string, title: string, input: FlowChanges): Promise<string> {
+/** Creates a scenario from its title, overview and ordered steps, with an optional description. */
+export async function addFlow(repositoryRoot: string, title: string, input: Pick<FlowChanges, 'overview' | 'steps' | 'description'>): Promise<string> {
   const records = await loadArchitecture(repositoryRoot)
   const id = freeId(records, buildArchitectureModel(records.documents), title)
   const source = `---\n${renderFrontmatter({
@@ -33,11 +35,13 @@ export async function addFlow(repositoryRoot: string, title: string, input: Flow
   return id
 }
 
+/** Applies the edit to the current flow document and validates its steps before writing. */
 export async function editFlow(repositoryRoot: string, records: ArchitectureRecords, document: ArchitectureDocument, input: FlowChanges): Promise<string> {
   let source = await readDocument(repositoryRoot, document.sourceFilename)
   if (input.title !== undefined) source = withTitle(source, requireText(input.title, '--title'))
   if (input.overview !== undefined) source = replaceLeadProse(source, requireText(input.overview, '--overview'))
   source = withDescription(source, input.description)
+  source = withTags(source, input)
   if (input.steps !== undefined) {
     source = source.replace(/\n## Steps\s*\n[\s\S]*$/, `\n## Steps\n\n${requireText(input.steps, '--steps')}\n`)
   }

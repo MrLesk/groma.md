@@ -1,3 +1,4 @@
+import type { TagSelection } from '../../../tag-selection.ts'
 import type { Point } from '../../../types.ts'
 import type { WorkPin } from '../../../work/pins.ts'
 import { fillWorkBadge, finishingWorkKeys, WORK_BADGE, WORK_BADGE_FINISH_MS } from './badge.ts'
@@ -87,8 +88,8 @@ export interface PinLayer {
   show(statuses: readonly string[]): void
   /** Colours the pins of the active tasks, greyscale otherwise, and marks those of the selected task, which is always one of the active ones. */
   activate(active: readonly string[], selected: string | undefined): void
-  /** Recedes the pins that stand on elements outside `focused`, what the focused tags select; undefined ends it. */
-  recede(focused: ReadonlySet<string> | undefined): void
+  /** Recedes the pins that stand on elements a tag focus does not light; undefined ends it. */
+  recede(selection: TagSelection | undefined): void
 }
 
 /** The work pins over the map; clicking a pin's head toggles its task. */
@@ -211,9 +212,9 @@ export function createPins(host: HTMLElement, anchorOf: (id: string) => Point | 
       enabledStatuses = statuses
       fanOut()
     },
-    recede(focused) {
+    recede(selection) {
       for (const pin of pins) {
-        pinned.get(pin.key)?.node.classList.toggle('receded', focused !== undefined && !focused.has(pin.elementId))
+        pinned.get(pin.key)?.node.classList.toggle('receded', selection !== undefined && !selection.lit.has(pin.elementId))
       }
     },
     activate(active, selected) {

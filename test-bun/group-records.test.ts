@@ -48,10 +48,12 @@ test.concurrent('a group is one record that lists its members, and its commands 
     expect(added.created).toEqual([`groma/groups/${added.id}.md`])
     expect(membership(await loadAnnotatedArchitecture(root))).toEqual({ [added.id]: ['orders', 'stock'] })
 
-    await writes.edit(root, { id: added.id, title: 'Order checks', description: 'What runs before an order.', overview: 'Both run first.' })
+    await writes.edit(root, { id: added.id, addTags: 'checkout, internal' })
+    await writes.edit(root, { id: added.id, title: 'Order checks', description: 'What runs before an order.', overview: 'Both run first.', removeTags: 'internal' })
+    await expect(writes.edit(root, { id: added.id, title: 'Checks', color: 'blue' })).rejects.toThrow()
     await writes.edit(root, { id: 'orders', ungroup: true })
     const edited = await loadAnnotatedArchitecture(root)
-    expect(edited.groups).toEqual([{ id: added.id, title: 'Order checks', description: 'What runs before an order.', overview: 'Both run first.' }])
+    expect(edited.groups).toEqual([{ id: added.id, title: 'Order checks', description: 'What runs before an order.', overview: 'Both run first.', tags: ['checkout'] }])
     expect(membership(edited)).toEqual({ [added.id]: ['stock'] })
 
     // Grouping under a title the container already has joins that group, as Group as does in the web map.

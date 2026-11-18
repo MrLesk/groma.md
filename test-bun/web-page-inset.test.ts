@@ -9,7 +9,7 @@ import { readView, writeView } from '../src/viewers/web/url.ts'
 
 const payload = {
   project: { title: 'Shop' },
-  world: { elements: [], relationships: [], flows: [] },
+  world: { elements: [], relationships: [], groups: [], flows: [] },
   work: { items: [] },
   pins: [],
   revisions: [],

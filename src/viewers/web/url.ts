@@ -80,7 +80,7 @@ function activeFlows(params: URLSearchParams, world: ArchitectureGraph): FlowRef
 }
 
 function readTagFocus(params: URLSearchParams, world: ArchitectureGraph): TagFocus {
-  return tagFocusInUse(world.elements, {
+  return tagFocusInUse(world, {
     focused: params.getAll('tag'),
     match: params.get('match') === 'all' ? 'all' : 'any',
     excluded: params.getAll('not'),

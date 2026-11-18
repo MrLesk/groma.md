@@ -68,20 +68,26 @@ function isStructural(input: EditArchitectureInput): boolean {
   return changesMembership(input) || movesOrReshapes(input)
 }
 
-/**
- * Tags, color and icon belong to actors, systems, containers and components. They are also the fields
- * several elements take in one edit, so this list decides what the Edit of several elements can offer.
- */
-const elementOnlyFields = ['addTags', 'removeTags', 'color', 'icon'] as const
+/** Tag changes. Elements, groups and flows take them. */
+const tagFields = ['addTags', 'removeTags'] as const
 
-/** True when the edit names a field only elements take. */
-function hasElementOnlyField(input: EditArchitectureInput): boolean {
-  return elementOnlyFields.some(field => input[field] !== undefined)
+/** The map color and icon. Only actors, systems, containers and components have them. */
+const appearanceFields = ['color', 'icon'] as const
+
+/** What several elements take in one edit. This list decides what the Edit of several elements can offer. */
+const fieldsOfSeveralElements = [...tagFields, ...appearanceFields] as const
+
+function hasTagChange(input: EditArchitectureInput): boolean {
+  return tagFields.some(field => input[field] !== undefined)
+}
+
+function hasAppearance(input: EditArchitectureInput): boolean {
+  return appearanceFields.some(field => input[field] !== undefined)
 }
 
 /** The project record: its title, description and overview, merged into the current profile. */
 async function editProject(repositoryRoot: string, input: EditArchitectureInput): Promise<string> {
-  if (isStructural(input) || input.draft !== undefined || input.technology !== undefined || hasElementOnlyField(input)) {
+  if (isStructural(input) || input.draft !== undefined || input.technology !== undefined || hasTagChange(input) || hasAppearance(input)) {
     throw new Error('only --title, --description and --overview are valid on the project')
   }
   const overview = input.overview
@@ -99,13 +105,13 @@ async function editProject(repositoryRoot: string, input: EditArchitectureInput)
   return 'project'
 }
 
-/** A draft record carries a title and its outcome; everything else belongs to elements. */
+/** A draft record carries a title and its outcome. */
 async function editDraftRecord(
   repositoryRoot: string,
   record: DraftRecord,
   input: EditArchitectureInput,
 ): Promise<string> {
-  if (input.description !== undefined || input.technology !== undefined || hasElementOnlyField(input)
+  if (input.description !== undefined || input.technology !== undefined || hasTagChange(input) || hasAppearance(input)
     || input.draft !== undefined || isStructural(input)) {
     throw new Error('only --title and --overview are valid on a draft record')
   }
@@ -133,7 +139,7 @@ async function elementMeaning(
 
 /** A relation is a row between two elements, not an element; the flags of elements are refused there. */
 function editRelationRow(repositoryRoot: string, input: EditArchitectureInput, target: string): Promise<string> {
-  if (input.title !== undefined || input.overview !== undefined || hasElementOnlyField(input)
+  if (input.title !== undefined || input.overview !== undefined || hasTagChange(input) || hasAppearance(input)
     || input.draft !== undefined || isStructural(input)) {
     throw new Error('only --description and --technology are valid on a relation')
   }
@@ -152,9 +158,9 @@ async function editGroupOrDraft(
   const context = groupContext(repositoryRoot, records, model)
   const group = context.groups.find(candidate => candidate.id === input.id)
   if (group !== undefined) {
-    if (input.technology !== undefined || hasElementOnlyField(input) || input.draft !== undefined
+    if (input.technology !== undefined || hasAppearance(input) || input.draft !== undefined
       || input.steps !== undefined || isStructural(input)) {
-      throw new Error('only --title, --description and --overview are valid on a group')
+      throw new Error('only --title, --description, --overview, --add-tags and --remove-tags are valid on a group')
     }
     return editGroup(context, group, input)
   }
@@ -190,7 +196,7 @@ export async function editArchitecture(
   const flow = records.flows.find(document => requireGromaMapping(document.frontmatter, document.sourceFilename).id === input.id)
   if (flow !== undefined) {
     if (input.newId !== undefined) throw new Error('--id renames systems, containers, and components')
-    if (hasElementOnlyField(input)) throw new Error('--add-tags, --remove-tags, --color and --icon are valid on actors, systems, containers, and components')
+    if (hasAppearance(input)) throw new Error('--color and --icon are valid only on actors, systems, containers, and components')
     checkEdit(input.original, resolveFlows([flow], model)[0]!, input)
     return editFlow(repositoryRoot, records, flow, input)
   }
@@ -203,17 +209,19 @@ export async function editArchitecture(
 async function editSeveralElements(
   repositoryRoot: string, input: EditArchitectureInput, alsoIds: readonly string[],
 ): Promise<StructuralResult> {
-  const allowed = new Set<string>(['id', 'alsoIds', ...elementOnlyFields])
+  const allowed = new Set<string>(['id', 'alsoIds', ...fieldsOfSeveralElements])
   const unsupported = Object.entries(input).some(([field, value]) => value !== undefined && !allowed.has(field))
-  if (unsupported || !hasElementOnlyField(input)) {
+  const hasSharedField = hasTagChange(input) || hasAppearance(input)
+  if (unsupported || !hasSharedField) {
     throw new Error('with several elements, use only --add-tags, --remove-tags, --color or --icon and supply at least one')
   }
   const records = await loadArchitecture(repositoryRoot)
   const model = buildArchitectureModel(records.documents)
   const byId = new Map(model.elements.map(element => [element.id, element]))
   const affectedIds = [input.id, ...alsoIds]
-  // Only these four fields reach the documents, whatever else the input carries.
-  const shared = { addTags: input.addTags, removeTags: input.removeTags, color: input.color, icon: input.icon }
+  // Only the fields several elements take reach the documents, whatever else the input carries.
+  const shared: MeaningChanges = {}
+  for (const field of fieldsOfSeveralElements) shared[field] = input[field]
   const documents = []
   for (const id of affectedIds) {
     const element = byId.get(id)
@@ -236,7 +244,7 @@ async function editElement(
 ): Promise<string | StructuralResult> {
   checkEdit(input.original, { ...element, parent: element.parentId ?? '' }, input)
   const meaning = [input.title, input.overview, input.description, input.technology, input.draft]
-  const hasMeaning = hasElementOnlyField(input) || meaning.some(value => value !== undefined)
+  const hasMeaning = hasTagChange(input) || hasAppearance(input) || meaning.some(value => value !== undefined)
   if (!hasMeaning && !isStructural(input)) {
     throw new Error('--title, --overview, --description, --technology, --add-tags, --remove-tags, --color, --icon or --draft is required')
   }

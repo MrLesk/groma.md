@@ -9,7 +9,7 @@ import { atRevision, readSourceTexts } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
 import { loadThemes } from '../../themes/configured.ts'
 import type { ThemeDefinition } from '../../themes/definition.ts'
-import type { TagFilter } from '../../tag-selection.ts'
+import type { TagFocus } from '../../tag-selection.ts'
 import { knownTags } from '../../tags.ts'
 import { outlineSourceFiles, readSnapshotCodeStructure } from '../source/structure.ts'
 import { renderPage } from './page.ts'
@@ -24,12 +24,13 @@ export interface WebExportHandle {
   close(): Promise<void>
 }
 
+/** The revisions, tag focus and publication settings for a static web map. */
 export interface WebExportOptions {
   url?: string
   revision?: string
   from?: string
   /** Export only the subset these tags keep; absent exports everything. */
-  filter?: TagFilter
+  filter?: TagFocus
   watch?: boolean
   onError?: (error: unknown) => void
 }
@@ -77,16 +78,16 @@ function comparisonView(before: PublishedView, after: PublishedView): PublishedV
  * Stops an export whose filter names a tag that nothing carries in the exported commits. Such a tag is most
  * likely mistyped, and a mistyped exclude would publish what it was meant to leave out.
  */
-async function refuseTagsNothingCarries(roots: readonly string[], filter: TagFilter | undefined): Promise<void> {
+async function refuseTagsNothingCarries(roots: readonly string[], filter: TagFocus | undefined): Promise<void> {
   if (filter === undefined) return
   const worlds = await Promise.all(roots.map(root => loadAnnotatedArchitecture(root)))
-  const carried = new Set(worlds.flatMap(world => knownTags(world.elements)))
-  const unused = [...filter.include, ...filter.exclude].filter(tag => !carried.has(tag))
+  const carried = new Set(worlds.flatMap(world => knownTags(world)))
+  const unused = [...filter.focused, ...filter.excluded].filter(tag => !carried.has(tag))
   if (unused.length > 0) throw new Error(`The export filter names ${unused.length === 1 ? 'a tag' : 'tags'} that nothing carries: ${unused.join(', ')}`)
 }
 
 /** Materialize existing viewer reads while the requested roots are available; no Git reaches the browser. */
-async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number, filter: TagFilter | undefined, themes: ThemeDefinition[]): Promise<WebBootPayload> {
+async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number, filter: TagFocus | undefined, themes: ThemeDefinition[]): Promise<WebBootPayload> {
   const to = revisions.at(-1) ?? null
   const from = revisions.length === 2 ? revisions[0]! : undefined
   return atRevision(root, to, async afterRoot => {

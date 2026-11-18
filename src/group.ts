@@ -11,7 +11,9 @@ import {
   readDocument,
   removeDocument,
   replaceLeadProse,
+  type TagChanges,
   withDescription,
+  withTags,
   withTitle,
   writeDocument,
 } from './markdown-emitter.ts'
@@ -202,23 +204,26 @@ export async function addGroup(context: GroupContext, input: AddGroupInput): Pro
   return writeResult(id, [created], left, members)
 }
 
-export interface GroupMeaning {
+/** The wording and tags an author can change on a group record. */
+export interface GroupMeaning extends TagChanges {
   title?: string
   description?: string
   overview?: string
   original?: EditValues
 }
 
-/** Changes what a group says about itself; its id and members stay. */
+/** Updates the group's wording and tags while preserving its id and members. */
 export async function editGroup(context: GroupContext, group: ArchitectureGroup, input: GroupMeaning): Promise<string> {
-  if (input.title === undefined && input.description === undefined && input.overview === undefined) {
-    throw new Error('--title, --description or --overview is required')
+  const changes = [input.title, input.description, input.overview, input.addTags, input.removeTags]
+  if (changes.every(value => value === undefined)) {
+    throw new Error('--title, --description, --overview, --add-tags or --remove-tags is required')
   }
   checkEdit(input.original, group, input)
   let source = await readDocument(context.repositoryRoot, group.sourceFilename)
   if (input.title !== undefined) source = withTitle(source, requireText(input.title, '--title').trim())
   if (input.overview !== undefined) source = replaceLeadProse(source, input.overview)
   source = withDescription(source, input.description)
+  source = withTags(source, input)
   await writeGroups(context, [{ sourceFilename: group.sourceFilename, source }])
   return group.id
 }
