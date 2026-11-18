@@ -31,6 +31,8 @@ groma:
       file: src/viewers/web/icons/glyph-element.ts
     - scanner: typescript
       file: src/viewers/web/atoms/write-form.ts
+    - scanner: typescript
+      file: src/viewers/web/atoms/fact-row.ts
 description: Shared buttons, dialogs, menus and text styles for browser panels
 ---
 

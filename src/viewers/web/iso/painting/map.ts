@@ -48,9 +48,9 @@ export interface IsoMap {
   focusTags(selection: TagSelection | undefined): void
   /** Lights route ids and direct endpoints; contextual ancestors stay neutral while everything off the path dims. */
   setLitRoutes(litRouteIds: ReadonlySet<string>, onPath: (id: string) => boolean, focusedRouteId?: string): void
-  /** What a click on this target selects: the group whose name it is, else the element, route or placement group it belongs to. */
+  /** What a click on this target selects: the group whose zone it lies on, else the element, route or placement group it belongs to. */
   hitId(target: EventTarget | null): string | undefined
-  /** The element this target belongs to, for a gesture that drops onto or starts from one. A group's name counts as the surface it lies on. */
+  /** The element this target belongs to, for a gesture that drops onto or starts from one. A group's zone counts as the container it lies on. */
   hitElementId(target: EventTarget | null): string | undefined
   /** True when a click hit nothing but the sheet. */
   isSheet(target: EventTarget | null): boolean
@@ -191,11 +191,9 @@ export function createMap(host: HTMLElement): IsoMap {
   const index = (inputs: ReturnType<typeof highlightInputs>): void => {
     items = new Map([layers.islands, layers.slabs, layers.items].flatMap(group =>
       [...group.querySelectorAll<SVGGElement>('[data-id]')].map(item => [item.dataset.id!, item] as const)))
-    // A group's name takes the click, and its whole zone takes the selected look.
+    // A stored group is marked by its id on its zone.
     for (const layer of [layers.islands, layers.slabs]) {
-      for (const name of layer.querySelectorAll<SVGGElement>('[data-group]')) {
-        items.set(name.dataset.group!, name.closest<SVGGElement>('.zone')!)
-      }
+      for (const zone of layer.querySelectorAll<SVGGElement>('.zone[data-group]')) items.set(zone.dataset.group!, zone)
     }
     const groups = new Map([...layers.routes.querySelectorAll<SVGGElement>('g.route')]
       .map(group => [group.dataset.id!, group]))

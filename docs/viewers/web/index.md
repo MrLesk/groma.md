@@ -367,8 +367,10 @@ at once. When a flow carries tags, its reader shows a **Tags** row after the
 description and overview
 ([`flow/reader.ts`](../../../src/viewers/web/flow/reader.ts)). Press a tag to toggle the map's focus.
 
-Click a group's zone name to select the group alone. Its pane shows the description,
-overview, tags, and links to its members. Click a member to select that component.
+Click anywhere on a group's zone to select the group alone; a building in the zone still
+selects its component. The group's pane shows the description, overview, tags, and links to
+its members. Click a member to select that component. The pane of a component in a group
+names the group, and that name selects the group.
 Opening a group link frames its members. A group without members draws no zone; only its link opens it
 ([`organisms/group-details.ts`](../../../src/viewers/web/organisms/group-details.ts)).
 

@@ -595,7 +595,7 @@ never do, and scans keep them. A group is an OKF concept with type
 and not another containment level: it never becomes a parent, owns no Code
 references, and is never a relationship end. The maps draw it as a zone around
 its members. A group may carry `tags` in its front matter.
-Click the zone's name on the web map to select the group and use **Edit** in its pane on a live current map.
+Click the zone on the web map to select the group and use **Edit** in its pane on a live current map.
 
 ```markdown
 ---
