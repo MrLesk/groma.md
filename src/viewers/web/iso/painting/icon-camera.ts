@@ -4,9 +4,9 @@
  * expression the live map evaluates from --camera-scale while the camera moves. The painter writes
  * `--icon-side`, the slot's side in plane pixels, on every live icon.
  *
- * There are two kinds of icon. A landmark, the icon before a system's or container's title, is enlarged so it
- * stays readable when the map is zoomed out. Icons on roofs and beside zone names stay in their slots and
- * fade out when they would be a smudge.
+ * There are two kinds of icon. A landmark, the icon before a system's or container's title, keeps a least size
+ * on screen, so the map still shows what its large parts are when it is zoomed out. Every other icon is as
+ * large as its slot and fades out when it would be a smudge.
  */
 const LIVE_SCALE = 'var(--camera-scale, 1)'
 
@@ -16,9 +16,9 @@ export interface Still {
 }
 
 /** Screen pixels a landmark's slot never gets narrower than; its diamond is twice as wide. */
-const LANDMARK_MIN_SIDE = 34
+const LANDMARK_MIN_SIDE = 24
 
-/** How much a landmark is enlarged at camera scale `k`, so its slot of `side` plane pixels stays readable. */
+/** How much a landmark is enlarged at camera scale `k`, so its slot of `side` plane pixels keeps its least size. */
 export function landmarkZoom(k: number, side: number): number {
   return Math.max(1, LANDMARK_MIN_SIDE / (side * k))
 }
@@ -44,19 +44,19 @@ function rampCss(ramp: Ramp): string {
   return `clamp(0, calc((${SCREEN_SIDE_CSS} - ${ramp.from}) / ${ramp.to - ramp.from}), 1)`
 }
 
-/** An icon that is no landmark (on a roof, or before a zone's name) fades out below these sizes instead of staying on the map as a smudge. */
-const ROOF_ICON: Ramp = { from: 7, to: 10 }
+/** An icon that is no landmark fades out below these sizes instead of staying on the map as a smudge. */
+const SMALL_ICON: Ramp = { from: 6, to: 9 }
 
-/** Opacity of a roof icon whose slot is `side` screen pixels wide. */
-export function roofIconOpacity(side: number): number {
-  return rampAt(ROOF_ICON, side)
+/** Opacity of an icon that is no landmark, for a slot `side` screen pixels wide. */
+export function smallIconOpacity(side: number): number {
+  return rampAt(SMALL_ICON, side)
 }
-export const ROOF_ICON_OPACITY_CSS = rampCss(ROOF_ICON)
+export const SMALL_ICON_OPACITY_CSS = rampCss(SMALL_ICON)
 
-/** An object's inner lines fade in between these sizes: a smaller object shows its outline alone. */
-const DETAIL: Ramp = { from: 16, to: 34 }
+/** An object's quiet inner lines fade in between these sizes: a smaller object shows its outline and its accent alone. */
+const DETAIL: Ramp = { from: 14, to: 26 }
 
-/** Opacity of an object's inner lines, for a slot `side` screen pixels wide. */
+/** Opacity of an object's quiet inner lines, for a slot `side` screen pixels wide. */
 export function detailOpacity(side: number): number {
   return rampAt(DETAIL, side)
 }
@@ -69,8 +69,8 @@ interface StrokeRule {
   perPixel: number
 }
 
-/** An object is a small drawing: its lines follow its own size, not the map's weight. */
-const OBJECT_STROKE: StrokeRule = { min: 0.35, max: 1.25, perPixel: 1 / 45 }
+/** An object is a fine line drawing: its lines stay hairlines however large it is drawn. */
+const OBJECT_STROKE: StrokeRule = { min: 0.6, max: 1, perPixel: 1 / 34 }
 /** A glyph is drawn like the title beside it, so its lines are heavier. Only the live map shows glyphs: a cover is tilted. */
 const GLYPH_STROKE: StrokeRule = { min: 0.6, max: 3, perPixel: 1 / 18 }
 
