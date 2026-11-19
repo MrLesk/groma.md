@@ -12,7 +12,8 @@ import type { ElementWorkGroup } from '../../../work/pins.ts'
 import type { Zone } from '../../../sheet/types.ts'
 import { findingsForOwner } from '../../../architecture-findings.ts'
 import { removalBlocker } from '../../../removable.ts'
-import { formatTags, knownTags } from '../../../tags.ts'
+import { knownTags } from '../../../tags.ts'
+import { carriedTags } from '../../../tag-selection.ts'
 import { flowsThrough } from '../../flows.ts'
 import type { FlowRef } from '../../flows.ts'
 import { kindGlyph, kindLabel } from '../../atoms/kind.ts'
@@ -28,7 +29,7 @@ import type { IconName } from '../../../icons.ts'
 import { heading, paragraph } from '../atoms/text.ts'
 import { acceptEntry, editEntry, removeEntry, type EditField } from './commands.ts'
 import { isWriteViewOpen, paintWriteEntries, type WriteEntry } from './write-view.ts'
-import { tagRow } from './tag-row.ts'
+import { tagRow } from '../tags/tag-row.ts'
 import type { PaneWrites, ParentOption } from './writes.ts'
 import { relationshipCard, relationshipPairCard, type RelationshipPairData } from './relationship-card.ts'
 import {
@@ -409,7 +410,8 @@ export function clearDetails(host: HTMLElement): void {
 
 /**
  * Every field a person can set on an element, in the order the Edit view shows them. A new editable field
- * is one entry here; nothing outside the Edit view changes an element's fields.
+ * is one entry here; nothing outside the Edit view changes an element's fields. Put a field that several
+ * elements can share in `sharedElementFields`.
  */
 function elementFields(inspected: Inspected, parents: readonly ParentOption[], tagsInUse: readonly string[]): EditField[] {
   return [
@@ -418,8 +420,26 @@ function elementFields(inspected: Inspected, parents: readonly ParentOption[], t
     { name: 'overview', label: 'Overview', value: inspected.overview, multiline: true },
     { name: 'technology', label: 'Technology', value: inspected.technology },
     ...(inspected.movable ? [{ name: 'parent' as const, label: 'Parent', value: inspected.parent ?? '', options: parents }] : []),
-    { name: 'tags', label: 'Tags', value: formatTags(inspected.tags), suggestions: tagsInUse },
-    { name: 'color', label: 'Color', value: inspected.color, choices: colorChoices() },
-    { name: 'icon', label: 'Icon', value: inspected.icon, choices: iconChoices() },
+    ...sharedElementFields([inspected], tagsInUse),
+  ]
+}
+
+/** A shared empty value selects "none". Different values leave every radio button unchecked. */
+function sharedChoice(values: readonly (string | undefined)[]): string | undefined {
+  const first = values[0] ?? ''
+  return values.every(value => (value ?? '') === first) ? first : undefined
+}
+
+/**
+ * Tags, Color and Icon are the fields a person can edit on one element or on a selection. The core decides
+ * which fields several elements take (`elementOnlyFields` in src/edit.ts); a field added only here is refused on Save.
+ */
+export function sharedElementFields(
+  records: readonly { tags?: string[]; color?: string; icon?: string }[], tagsInUse: readonly string[],
+): EditField[] {
+  return [
+    { label: 'Tags', carried: carriedTags(records), recordCount: records.length, suggestions: tagsInUse },
+    { name: 'color', label: 'Color', value: sharedChoice(records.map(record => record.color)), choices: colorChoices() },
+    { name: 'icon', label: 'Icon', value: sharedChoice(records.map(record => record.icon)), choices: iconChoices() },
   ]
 }

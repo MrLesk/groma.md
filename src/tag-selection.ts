@@ -24,13 +24,18 @@ export interface TagCount {
   count: number
 }
 
-/** Every tag in use, in alphabetical order, with the number of elements that carry it. */
-export function tagCounts(elements: readonly Tagged[]): TagCount[] {
+/** Each tag in the order the elements first carry it, counted once per element. */
+export function carriedTags(elements: readonly Pick<AnnotatedElement, 'tags'>[]): TagCount[] {
   const counts = new Map<string, number>()
   for (const element of elements) {
-    for (const tag of element.tags ?? []) counts.set(tag, (counts.get(tag) ?? 0) + 1)
+    for (const tag of new Set(element.tags ?? [])) counts.set(tag, (counts.get(tag) ?? 0) + 1)
   }
-  return [...counts].map(([tag, count]) => ({ tag, count })).sort((left, right) => left.tag.localeCompare(right.tag))
+  return Array.from(counts, ([tag, count]) => ({ tag, count }))
+}
+
+/** Every tag in use, in alphabetical order, with the number of elements that carry it. */
+export function tagCounts(elements: readonly Pick<AnnotatedElement, 'tags'>[]): TagCount[] {
+  return carriedTags(elements).sort((left, right) => left.tag.localeCompare(right.tag))
 }
 
 /** Keeps each known tag once. Exclusion wins a conflict and a single focused tag uses the default match mode. */

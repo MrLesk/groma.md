@@ -31,14 +31,17 @@ of writing guesses. Optional fields need content only when they add meaning.
 
 | Command | Target | Options |
 | --- | --- | --- |
-| `groma edit <id>` | an element ID: actor, external system, system, container, or component | `--title`, `--description`, `--overview`, `--technology`, `--tags`, `--color`, `--icon` |
+| `groma edit <id>` | an actor, system, external system, container, or component ID | `--title`, `--description`, `--overview`, `--technology`, `--add-tags`, `--remove-tags`, `--color`, `--icon` |
+| `groma edit <id> <ids...>` | several element IDs | `--add-tags`, `--remove-tags`, `--color`, `--icon` |
 | `groma edit <draft-id>` | a draft ID | `--title`, `--overview` |
 | `groma edit project` | the word `project`, meaning the project record | `--title`, `--description`, `--overview` |
 
-`--title` renames the record; its ID stays. An empty `--description`,
-`--technology` or `--tags` value removes that field, and an empty `--overview`
-clears the body. `--tags payments,legacy` replaces the whole list, so name every
-tag the element keeps. `--color` and `--icon` each take one of the names
+`--title` renames the record; its ID stays. An empty `--description` or
+`--technology` value removes that field, and an empty `--overview` clears the body.
+`--add-tags` and `--remove-tags` each take a comma-separated list. Each named
+element keeps its other tags. A tag can appear in only one of the two lists.
+Several ids take the same changes in one edit.
+`--color` and `--icon` each take one of the names
 `groma edit --help` lists and only change how the element looks on the map; set
 them when the user asks for it. `groma view` has no `project` target: the project record is
 `<groma-root>/project.md`. Read that file, and change it only through

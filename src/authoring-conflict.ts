@@ -1,9 +1,7 @@
-import { formatTags, parseTags } from './tags.ts'
+/** Fields a web form can check against the opening values of one record. */
+export type EditValues = Partial<Record<'title' | 'description' | 'overview' | 'technology' | 'color' | 'icon' | 'parent', string>>
 
-/** Values from the start of a web edit session. CLI commands overwrite the latest fields. */
-export type EditValues = Partial<Record<'title' | 'description' | 'overview' | 'technology' | 'tags' | 'color' | 'icon' | 'parent', string>>
-
-/** Both web forms send only changed fields, each paired with its value when editing began. */
+/** Pair each changed value with the value the field had when editing began. */
 export function changedEdit(original: EditValues, values: EditValues): EditValues & { original: EditValues } {
   const changed = (Object.keys(values) as (keyof EditValues)[]).filter(field => values[field] !== original[field])
   return {
@@ -39,14 +37,8 @@ export function checkEdit(original: EditValues | undefined, current: EditValues,
     const next = proposed[field]
     if (typeof before !== 'string' || typeof next !== 'string') throw new Error(`Invalid original value for ${field}`)
     const now = current[field] ?? ''
-    if (now !== before && now !== savedText(field, next)) conflicts.push({ field, original: before, current: now, proposed: next })
+    const saved = field === 'overview' ? next.trim() : next
+    if (now !== before && now !== saved) conflicts.push({ field, original: before, current: now, proposed: next })
   }
   if (conflicts.length) throw new EditConflict(conflicts)
-}
-
-/** The text a field holds after its writer saved it: overview is trimmed and tags are listed without blanks or repeats. */
-function savedText(field: keyof EditValues, proposed: string): string {
-  if (field === 'overview') return proposed.trim()
-  if (field === 'tags') return formatTags(parseTags(proposed))
-  return proposed
 }

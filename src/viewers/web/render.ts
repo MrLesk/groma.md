@@ -11,7 +11,7 @@ import { createEmptyState } from './chrome/empty.ts'
 import { createMapDebugPanel } from './chrome/map-debug.ts'
 import { bindMapView, readSavedMapControls, saveMapControls } from './chrome/map-view.ts'
 import { bindC4Filter } from './chrome/c4-filter.ts'
-import { bindTagFocus } from './chrome/tag-focus.ts'
+import { bindTagFocus } from './tags/tag-focus.ts'
 import { animateControl, animateContent } from './chrome/motion.ts'
 import { measureFrame, type MapFrame } from './chrome/frame.ts'
 import { bindChromeActions, createWebShell, pageHosts } from './chrome/shell.ts'
@@ -69,7 +69,8 @@ const filterC4 = bindC4Filter(document.getElementById('c4-filter')!, opened.hidd
   rememberMapControls()
 })
 const debug = createMapDebugPanel(document.body, () => ({ ...mapMeta, world, sheet }))
-const appearance = createAppearancePreview(document.getElementById('details')!, () => repaintScene(false))
+let selection = opened.selection
+const appearance = createAppearancePreview(document.getElementById('details')!, () => selectedArchitecture(selection), () => repaintScene(false))
 function projectedScene() {
   return debug.project(() => changes.project(filterC4.project(presentScene(appearance.show(mapMotion.sheet), project, mapMotion.pose))))
 }
@@ -95,7 +96,6 @@ const tagFocus = bindTagFocus(world, opened.tagFocus, { map, pins, hierarchy }, 
 const themeControl = bindThemeControl(document.getElementById('theme') as HTMLDetailsElement, opened.theme, boot.themes, syncUrl)
 let hudVisible = opened.hudVisible
 shell.setHud(hudVisible)
-let selection = opened.selection
 let activeFlows: WebFlowRef[] = opened.flows
 const initial = primarySystem(world)
 if (boot.revision === null && selection.kind === 'none' && initial !== undefined) {
