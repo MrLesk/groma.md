@@ -16,13 +16,13 @@ import {
   validateElementSource,
 } from './markdown-emitter.ts'
 import type { MeaningChanges } from './markdown-emitter.ts'
-import { isGroupAddress, requireText } from './naming.ts'
+import { requireText } from './naming.ts'
 import { loadProjectProfile, saveProjectProfile } from './project-profile.ts'
-import { editGroup } from './group.ts'
+import { assignGroup, editGroup, groupContext } from './group.ts'
 import { editRelation } from './relation.ts'
 import { editFlow } from './flow-authoring.ts'
 import { requireGromaMapping } from './okf-profile.ts'
-import type { ArchitectureElement, ArchitectureRecords } from './types.ts'
+import type { ArchitectureElement, ArchitectureModel, ArchitectureRecords } from './types.ts'
 import { checkEdit, type EditValues } from './authoring-conflict.ts'
 import { resolveFlows } from './flow-model.ts'
 import { formatTags } from './tags.ts'
@@ -32,7 +32,9 @@ export interface EditArchitectureInput extends MeaningChanges {
   original?: EditValues
   /** The target id of the relationship from id to edit instead of the element itself. */
   relation?: string
+  /** The id of the group this component joins. */
   group?: string
+  /** Takes this component out of its group. */
   ungroup?: boolean
   parent?: string
   combine?: string[]
@@ -47,13 +49,21 @@ function optionalText(value: string | undefined): string | undefined {
   return value
 }
 
-function isStructural(input: EditArchitectureInput): boolean {
-  return input.group !== undefined
-    || input.ungroup === true
-    || input.parent !== undefined
+function changesMembership(input: EditArchitectureInput): boolean {
+  return input.group !== undefined || input.ungroup === true
+}
+
+/** The edits that curateElement applies to the element's own document and the documents under it. */
+function movesOrReshapes(input: EditArchitectureInput): boolean {
+  return input.parent !== undefined
     || (input.combine?.length ?? 0) > 0
     || (input.detach?.length ?? 0) > 0
     || input.newId !== undefined
+}
+
+/** Every flag that only an element takes besides its meaning. */
+function isStructural(input: EditArchitectureInput): boolean {
+  return changesMembership(input) || movesOrReshapes(input)
 }
 
 /** Tags, color and icon exist only on C4 elements; every other edit target refuses them. */
@@ -113,33 +123,57 @@ async function elementMeaning(
   return source
 }
 
-/** A group address or a relation target names something other than an element; the flags of elements are refused there. */
-function editAddressed(repositoryRoot: string, input: EditArchitectureInput): Promise<string | StructuralResult> | undefined {
-  if (input.relation === undefined && isGroupAddress(input.id)) {
-    if (input.relation !== undefined || input.overview !== undefined || input.description !== undefined
-      || input.technology !== undefined || hasElementOnlyField(input) || input.draft !== undefined || isStructural(input)) {
-      throw new Error('only --title is valid on a group')
-    }
-    return editGroup(repositoryRoot, { address: input.id, title: input.title, original: input.original })
+/** A relation is a row between two elements, not an element; the flags of elements are refused there. */
+function editRelationRow(repositoryRoot: string, input: EditArchitectureInput, target: string): Promise<string> {
+  if (input.title !== undefined || input.overview !== undefined || hasElementOnlyField(input)
+    || input.draft !== undefined || isStructural(input)) {
+    throw new Error('only --description and --technology are valid on a relation')
   }
-  if (input.relation !== undefined) {
-    if (input.title !== undefined || input.overview !== undefined || hasElementOnlyField(input)
-      || input.draft !== undefined || isStructural(input)) {
-      throw new Error('only --description and --technology are valid on a relation')
+  return editRelation(repositoryRoot, {
+    source: input.id, target, description: input.description, technology: input.technology, original: input.original,
+  })
+}
+
+/** An id that names no element and no flow names a group or a draft record. */
+async function editGroupOrDraft(
+  repositoryRoot: string,
+  records: ArchitectureRecords,
+  model: ArchitectureModel,
+  input: EditArchitectureInput,
+): Promise<string> {
+  const context = groupContext(repositoryRoot, records, model)
+  const group = context.groups.find(candidate => candidate.id === input.id)
+  if (group !== undefined) {
+    if (input.technology !== undefined || hasElementOnlyField(input) || input.draft !== undefined
+      || input.steps !== undefined || isStructural(input)) {
+      throw new Error('only --title, --description and --overview are valid on a group')
     }
-    return editRelation(repositoryRoot, {
-      source: input.id, target: input.relation, description: input.description, technology: input.technology, original: input.original,
-    })
+    return editGroup(context, group, input)
   }
-  return undefined
+  const record = records.drafts.map(draftRecordOf).find(candidate => candidate.id === input.id)
+  if (record === undefined) throw new Error(`unknown id "${input.id}"`)
+  return editDraftRecord(repositoryRoot, record, input)
+}
+
+/** Membership is stored in the group's record, not in the component's document, so it is an edit of its own. */
+function editMembership(
+  repositoryRoot: string,
+  records: ArchitectureRecords,
+  model: ArchitectureModel,
+  input: EditArchitectureInput,
+): Promise<StructuralResult> {
+  if (input.group !== undefined && input.ungroup === true) {
+    throw new Error('--group and --ungroup cannot be used together')
+  }
+  const groupId = input.ungroup === true ? undefined : requireText(input.group, '--group').trim()
+  return assignGroup(groupContext(repositoryRoot, records, model), input.id, groupId)
 }
 
 export async function editArchitecture(
   repositoryRoot: string,
   input: EditArchitectureInput,
 ): Promise<string | StructuralResult> {
-  const addressed = editAddressed(repositoryRoot, input)
-  if (addressed !== undefined) return addressed
+  if (input.relation !== undefined) return editRelationRow(repositoryRoot, input, input.relation)
   if (input.id === 'project') return editProject(repositoryRoot, input)
   const records = await loadArchitecture(repositoryRoot)
   const model = buildArchitectureModel(records.documents)
@@ -151,22 +185,31 @@ export async function editArchitecture(
     return editFlow(repositoryRoot, records, flow, input)
   }
   const element = model.elements.find(candidate => candidate.id === input.id)
+  if (element === undefined) return editGroupOrDraft(repositoryRoot, records, model, input)
+  return editElement(repositoryRoot, records, model, element, input)
+}
 
-  if (element === undefined) {
-    const record = records.drafts.map(draftRecordOf).find(candidate => candidate.id === input.id)
-    if (record === undefined) throw new Error(`unknown id "${input.id}"`)
-    return editDraftRecord(repositoryRoot, record, input)
-  }
-
+/** An element takes new meaning, a move or reshape together with meaning, or a membership change on its own. */
+async function editElement(
+  repositoryRoot: string,
+  records: ArchitectureRecords,
+  model: ArchitectureModel,
+  element: ArchitectureElement,
+  input: EditArchitectureInput,
+): Promise<string | StructuralResult> {
   checkEdit(input.original, { ...element, tags: formatTags(element.tags), parent: element.parentId ?? '' }, input)
   const meaning = [input.title, input.overview, input.description, input.technology, input.tags, input.color, input.icon, input.draft]
   const hasMeaning = meaning.some(value => value !== undefined)
   if (!hasMeaning && !isStructural(input)) {
     throw new Error('--title, --overview, --description, --technology, --tags, --color, --icon or --draft is required')
   }
+  if (changesMembership(input)) {
+    if (hasMeaning || movesOrReshapes(input)) throw new Error('--group and --ungroup must be a separate edit')
+    return editMembership(repositoryRoot, records, model, input)
+  }
   const source = hasMeaning ? await elementMeaning(repositoryRoot, records, element, input) : undefined
 
-  if (isStructural(input)) {
+  if (movesOrReshapes(input)) {
     return curateElement(repositoryRoot, records, model, {
       id: input.id,
       title: input.title,
@@ -177,8 +220,6 @@ export async function editArchitecture(
       draft: input.draft,
       overview: input.overview,
       description: input.description,
-      group: input.group,
-      ungroup: input.ungroup,
       parent: optionalText(input.parent),
       combine: input.combine,
       detach: input.detach,

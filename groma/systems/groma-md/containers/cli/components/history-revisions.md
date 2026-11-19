@@ -12,7 +12,6 @@ groma:
       file: src/history/comparison.ts
     - scanner: typescript
       file: src/history/snapshots.ts
-  group: Architecture records
 description: Loads Git snapshots of architecture without changing working files
 ---
 

@@ -229,6 +229,7 @@ test.concurrent('the same world gives the same sheet and the world is untouched'
   const first = sheetScene(fixture)
   const second = sheetScene({
     flows: fixture.flows,
+    groups: fixture.groups,
     elements: [...fixture.elements].reverse().map((element, index) => ({
       ...element,
       bounds: { x: 10_000 - index, y: -10_000 + index, width: 1, height: 1 },

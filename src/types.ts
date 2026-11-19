@@ -55,6 +55,8 @@ export interface ArchitectureDocument {
 /** Every Markdown record under the Groma directory, read in one pass. */
 export interface ArchitectureRecords {
   flows: ArchitectureDocument[]
+  /** Group records under groups/. */
+  groups: ArchitectureDocument[]
   /** C4 element documents, including their outgoing relationships. */
   documents: ArchitectureDocument[]
   /** Draft records under drafts/. */
@@ -97,7 +99,6 @@ export interface ArchitectureElement {
   overview: string
   parentId: string | null
   external: boolean
-  group?: string
   technology?: string
   /** OKF tags: authored categories that cut across the hierarchy. Omitted when the element has none. */
   tags?: string[]
@@ -149,6 +150,7 @@ export interface AnnotatedElement {
   parent: string | null
   children: string[]
   external: boolean
+  /** The id of the group whose record lists this component. */
   group?: string
   technology?: string
   /** OKF tags: authored categories that cut across the hierarchy. Omitted when the element has none. */
@@ -180,6 +182,7 @@ export interface AnnotatedRelationship {
 /** Semantic architecture needed by a view before any renderer adds geometry. */
 export interface ArchitectureGraph {
   flows: ArchitectureFlow[]
+  groups: AnnotatedGroup[]
   elements: AnnotatedElement[]
   relationships: AnnotatedRelationship[]
   /** Review questions from the current scan; omitted when the process has not scanned. */
@@ -214,6 +217,26 @@ export interface ArchitectureFlow {
   steps: FlowStep[]
 }
 
+/**
+ * A named set of components of one container, read from its own document. It is an overlay on the
+ * hierarchy: never a parent, never a relationship end.
+ */
+export interface ArchitectureGroup {
+  id: string
+  title: string
+  description?: string
+  overview: string
+  /** The components the document links under "## Members", in its order. */
+  memberIds: string[]
+  sourceFilename: string
+}
+
+/**
+ * A group as a view sees it. A view finds the members the other way round: each one names its
+ * group in AnnotatedElement.group, as it names its parent.
+ */
+export type AnnotatedGroup = Pick<ArchitectureGroup, 'id' | 'title' | 'description' | 'overview'>
+
 export interface FlowStep {
   relationshipId: string
   source: string
@@ -234,18 +257,10 @@ export interface WorldRelationship extends AnnotatedRelationship {
   label: Bounds | null
 }
 
-/** A named cluster of siblings; a narrative overlay, never a parent. */
-export interface WorldGroup {
-  id: string
-  name: string
-  parent: string | null
-  bounds: Bounds
-}
-
 export interface ArchitectureWorld {
   flows: ArchitectureFlow[]
   bounds: Bounds
   elements: WorldElement[]
-  groups: WorldGroup[]
+  groups: AnnotatedGroup[]
   relationships: WorldRelationship[]
 }

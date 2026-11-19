@@ -5,7 +5,6 @@ status: stable
 groma:
   id: checkout-router
   parent: checkout
-  group: Core
   code:
     - scanner: typescript
       file: src/orders/checkout/router.ts

@@ -5,7 +5,6 @@ status: stable
 groma:
   id: sessions-validator
   parent: sessions
-  group: Core
   code:
     - scanner: typescript
       file: src/identity/sessions/validator.ts

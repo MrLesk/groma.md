@@ -33,7 +33,6 @@ groma:
       file: src/viewers/web/organisms/choice-field.ts
     - scanner: typescript
       file: src/viewers/web/organisms/icon-picker.ts
-  group: Architecture panels
 description: Shows the selected element, its source and its relationships
 ---
 

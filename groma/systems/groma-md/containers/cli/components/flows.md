@@ -10,7 +10,6 @@ groma:
       file: src/viewers/flows.ts
     - scanner: typescript
       file: src/viewers/relationship-text.ts
-  group: Shared viewer data
 description: Resolves flow steps and labels for both viewers
 ---
 

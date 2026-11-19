@@ -46,7 +46,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/elixir/src/syntax.ts
   technology: TypeScript, tree-sitter-elixir, WebAssembly
-  group: Language scanners
 description: Supplies Elixir declarations, Phoenix handlers and Ash actions, code interfaces and JSON:API routes without running project code.
 ---
 

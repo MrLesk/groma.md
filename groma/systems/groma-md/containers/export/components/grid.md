@@ -10,7 +10,6 @@ groma:
   code:
     - scanner: typescript
       file: src/viewers/web/iso/grid.ts
-  group: Map drawing
 description: Draws the graph-paper grid under the browser map
 ---
 

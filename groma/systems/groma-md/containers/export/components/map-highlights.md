@@ -7,7 +7,6 @@ tags:
 groma:
   id: map-highlights
   parent: export
-  group: Map drawing
   code:
     - scanner: typescript
       file: src/viewers/web/iso/highlights.ts

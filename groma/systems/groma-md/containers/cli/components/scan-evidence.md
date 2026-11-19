@@ -15,7 +15,6 @@ groma:
     - scanner: typescript
       file: src/http-relationships.ts
       symbol: httpRelationships
-  group: Source scanning
 description: Turns scanner callback and HTTP facts into candidate relationships
 ---
 

@@ -23,7 +23,6 @@ groma:
       symbol: withJavaScriptEntries
     - scanner: typescript
       file: plugins/scanners/entry-points/source.ts
-  group: Scanner support
 description: Finds language project roots and reports paths from the repository root
 ---
 

@@ -5,7 +5,6 @@ status: stable
 groma:
   id: media-writer
   parent: media
-  group: Support
   code:
     - scanner: typescript
       file: src/catalog/media/writer.ts

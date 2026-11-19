@@ -8,7 +8,6 @@ tags:
 groma:
   id: tui-plugin-settings
   parent: cli
-  group: Terminal map
   code:
     - scanner: typescript
       file: src/viewers/tui/plugin-settings.ts

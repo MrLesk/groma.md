@@ -5,7 +5,6 @@ status: stable
 groma:
   id: page
   parent: web
-  group: Pages
   code:
     - scanner: typescript
       file: src/page.ts

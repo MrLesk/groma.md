@@ -10,7 +10,6 @@ groma:
   code:
     - scanner: typescript
       file: src/scanner/session.ts
-  group: Source scanning
 description: Owns live scanner state for an open terminal or browser viewer
 ---
 

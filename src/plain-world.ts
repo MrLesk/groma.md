@@ -278,7 +278,7 @@ async function fileAnswer(
   return { ok: true, text: `${text}\n` }
 }
 
-/** Resolves the target in order: element drill-down (plain only), element or flow Markdown, draft summary, source file answer, unknown target. */
+/** Resolves the target in order: element drill-down (plain only), element, flow or group Markdown, draft summary, source file answer, unknown target. */
 export async function renderPlainRecord(
   repositoryRoot: string,
   target: string,
@@ -289,7 +289,7 @@ export async function renderPlainRecord(
   const model = annotateArchitecture(records)
   const element = plain ? model.elements.find(item => item.id === target) : undefined
   if (element !== undefined) return { ok: true, text: `${formatPlainElement(model, element, window)}\n` }
-  const documents = [...records.documents, ...records.flows]
+  const documents = [...records.documents, ...records.flows, ...records.groups]
   const documentById = new Map(documents.map(document => [
     requireGromaMapping(document.frontmatter, document.sourceFilename).id,
     document,

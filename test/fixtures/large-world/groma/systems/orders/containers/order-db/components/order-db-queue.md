@@ -5,7 +5,6 @@ status: stable
 groma:
   id: order-db-queue
   parent: order-db
-  group: Support
   code:
     - scanner: typescript
       file: src/orders/order-db/queue.ts
