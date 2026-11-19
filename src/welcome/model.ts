@@ -62,10 +62,10 @@ export const advancedCommands = [
   },
   {
     command: 'groma add <thing> <name> …',
-    description: 'actor, external, draft, relation, group',
+    description: 'actor, external, component, draft, flow, relation, group',
     content: [
-      'Declares a person, an external system, or a draft record with its overview, a relation from one id to another, or a group of sibling components.',
-      'The scanner never sees those; scanned software is drafted instead.',
+      'Declares a person, an external system, a virtual component or a draft record with its overview, a flow, a relationship, or a group of sibling components.',
+      'Use add component with --parent and --overview to explain what no source shows. Scan existing software and draft planned software.',
     ].join('\n'),
   },
   {
@@ -85,7 +85,7 @@ export const advancedCommands = [
   {
     command: 'groma remove <id>',
     description: 'remove an eligible architecture record',
-    content: 'Removes a person, external, ghost, component without Code references, unused draft, relation, or group. For scanned components, delete their source files and scan first. Dependencies can still block removal.',
+    content: 'Removes a person, external, ghost, virtual component, unused draft, relation, or group. For scanned components, delete their source files and scan first. Dependencies can still block removal.',
   },
   {
     command: 'groma accept <id>',

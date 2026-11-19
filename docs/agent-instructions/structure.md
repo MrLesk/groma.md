@@ -12,6 +12,11 @@ Hand-proposed software stays a ghost draft until a scan matches it
 and it is accepted. Actors and external systems are stable declarations of what
 the scanner cannot see.
 
+Add a virtual component to explain a manual step or another responsibility
+that no source shows. Scan code that exists and draft software that is planned.
+A virtual component is stable and owns no file. The web map draws it as a
+flat plate. The terminal draws a stable component and its details say `virtual`.
+
 ## Order of work
 
 1. Exclude development and test tooling that is not product architecture.
@@ -21,7 +26,7 @@ the scanner cannot see.
    files that belong elsewhere, and move components that belong under another
    container.
 4. Group independently meaningful sibling components by domain.
-5. Declare the people and outside systems the scan cannot see.
+5. Declare the people, outside systems and virtual components the scan cannot see.
 6. Curate one system or container at a time and review the rendered map.
 
 ## Commands
@@ -39,9 +44,10 @@ the scanner cannot see.
 | `groma remove <group-id>` | a group ID; the record is deleted and its members stay |
 | `groma add actor <name> --overview <markdown>` | the name of a new person |
 | `groma add external <name> --overview <markdown>` | the name of a new outside system; `--technology` is optional |
+| `groma add component <name> --parent <container-id> --overview <prose>` | a virtual component in an internal container, with optional `--description` and `--technology` |
 | `groma draft <system\|container\|component> <name> --overview <markdown>` | a new name; containers and components also require `--parent <id>`, which a system refuses |
 | `groma accept <id>` | a ghost element ID; scans first when no scan has matched it yet |
-| `groma remove <id>` | an actor, external system, ghost, unused draft, component without Code references, or empty system/container |
+| `groma remove <id>` | an actor, external system, ghost, unused draft, virtual component, or empty system/container |
 
 A group ID is the container's ID followed by the kebab-case group name, such as
 `api-order-checks`. `groma view --plain <component>` shows it as
@@ -107,7 +113,9 @@ container move preserves its body and children. No record anywhere under a moved
 may hold a concept-addressed relationship, because its document changes path and
 these operations do not repoint links; a rename does.
 File connections follow their current owners and do not block these operations.
-The survivor may already have authored meaning.
+The survivor may already have authored meaning. Combining files into a
+virtual component is refused while a relationship between components names it
+by its ID: the contract's Relationships section says what to do.
 
 A scan reuses established ownership or a matching declared boundary. Renames,
 moves and combines remain authoritative; scans cannot recreate removed

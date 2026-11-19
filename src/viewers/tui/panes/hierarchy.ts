@@ -25,12 +25,12 @@ function marker(theme: ViewerTheme, marked: boolean): TextChunk {
 function treeRow(theme: ViewerTheme, row: TreeRow, selected: boolean): Line {
   const expand = row.hasChildren ? row.expanded ? '▾' : '▸' : ' '
   const suffix = row.hasChildren && !row.expanded ? ` (${row.count})` : ''
-  const ghost = row.origin !== 'observed' || row.external
+  const dimmed = row.origin === 'draft' || row.external
   return [
     marker(theme, selected),
     plain(theme, `${'  '.repeat(row.depth)}${expand} `),
     kindMark(theme, row.kind, row.external),
-    (ghost ? dim : plain)(theme, ` ${row.title}${suffix}`),
+    (dimmed ? dim : plain)(theme, ` ${row.title}${suffix}`),
   ]
 }
 

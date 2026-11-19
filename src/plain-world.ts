@@ -1,7 +1,8 @@
 import { draftRecordOf } from './architecture-model.ts'
 import { sourceIndex } from './source-index.ts'
-import { annotateArchitecture, originOf } from './core.ts'
+import { annotateArchitecture } from './core.ts'
 import { loadArchitecture } from './architecture-reader.ts'
+import { relationshipOrigin } from './origin.ts'
 import { emptyWorldLines, isEmptyWorld } from './empty-world.ts'
 import { loadProjectProfile } from './project-profile.ts'
 import { readDocument } from './markdown-emitter.ts'
@@ -118,6 +119,7 @@ export function boundaryRelationships(
 function headerTokens(element: AnnotatedElement): string[] {
   const tokens = [element.id, element.kind, element.title]
   if (element.external) tokens.push('external')
+  if (element.origin === 'virtual') tokens.push('virtual')
   if (element.group !== undefined) tokens.push(`group:${element.group}`)
   if (element.origin === 'draft') {
     tokens.push(element.draft === undefined ? 'draft' : `draft:${element.draft}`)
@@ -216,7 +218,8 @@ function draftItems(
   return elements
     .filter(element => element.draft === draft.id)
     .sort((left, right) => {
-      if (left.origin !== right.origin) return left.origin === 'draft' ? -1 : 1
+      if (left.origin === 'draft' && right.origin !== 'draft') return -1
+      if (right.origin === 'draft' && left.origin !== 'draft') return 1
       return compareIds(left.id, right.id)
     })
 }
@@ -246,7 +249,7 @@ export function fileConnections(
 ): { incoming: PlainRelationship[]; outgoing: PlainRelationship[] } {
   const rows = world.relationships.flatMap(relationship => relationship.connections ?? []).map(connection => ({
     ...connection,
-    origin: originOf(connection.status),
+    origin: relationshipOrigin(connection.status),
   }))
   return {
     incoming: rows.filter(row => row.target === file),

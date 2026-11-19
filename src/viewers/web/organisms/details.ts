@@ -27,7 +27,7 @@ import { glyphElement } from '../icons/glyph-element.ts'
 import type { IconName } from '../../../icons.ts'
 import { factRow } from '../atoms/fact-row.ts'
 import { heading, paragraph } from '../atoms/text.ts'
-import { acceptEntry, editEntry, removeEntry, type EditField } from './commands.ts'
+import { acceptEntry, addComponentEntry, editEntry, removeEntry, type EditField } from './commands.ts'
 import { isWriteViewOpen, paintWriteEntries, type WriteEntry } from './write-view.ts'
 import { tagRow } from '../tags/tag-row.ts'
 import type { PaneWrites, ParentOption } from './writes.ts'
@@ -72,6 +72,8 @@ export interface Inspected {
   matchedGhost: boolean
   /** An empty, unrelated component can move to another container. */
   movable: boolean
+  /** A container takes the virtual components a person adds. */
+  takesComponents: boolean
   parent: string | null
 }
 
@@ -180,6 +182,7 @@ export function inspectDetails(
     removable: removalBlocker(world, element.id) === undefined,
     matchedGhost: isMatchedGhost(element),
     movable: element.movable === true,
+    takesComponents: element.kind === 'container',
     parent: element.parent,
   }
 }
@@ -202,7 +205,7 @@ export function inspectUnidentifiedContainer(zone: Zone, world: ArchitectureGrap
       id: element.representationId, title: element.title, kind: element.kind, external: element.external,
     })),
     tags: [], color: '', icon: '', relationships: [], flows: [], technology: '', files: [], findings: [],
-    removable: false, matchedGhost: false, movable: false, parent: zone.parent,
+    removable: false, matchedGhost: false, movable: false, takesComponents: false, parent: zone.parent,
   }
 }
 
@@ -399,10 +402,14 @@ function paintEditEntry(host: HTMLElement, inspected: Inspected, writes: PaneWri
   paintWriteEntries(host, inspected.id, [editEntry(fields, onEdit, otherWrites(inspected, writes))], onRead)
 }
 
-/** The other writes one element takes: Accept on a matched draft, Remove where `groma remove` would succeed. */
+/**
+ * The other writes one element takes: Add component in a container, Accept on a matched draft, Remove where
+ * `groma remove` would succeed.
+ */
 function otherWrites(inspected: Inspected, writes: PaneWrites): WriteEntry[] {
-  const { onAccept, onRemove } = writes
+  const { onAccept, onAddComponent, onRemove } = writes
   return [
+    ...(inspected.takesComponents && onAddComponent !== undefined ? [addComponentEntry(onAddComponent)] : []),
     ...(inspected.matchedGhost && onAccept !== undefined ? [acceptEntry(inspected.title, onAccept)] : []),
     ...(inspected.removable && onRemove !== undefined ? [removeEntry(inspected.title, onRemove)] : []),
   ]

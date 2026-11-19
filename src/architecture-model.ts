@@ -187,6 +187,29 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
   }
 }
 
+/** A person places new software under its expected parent. Only scanning may leave a component directly under a system. */
+export function resolveParent(
+  elements: readonly ArchitectureElement[],
+  kind: C4Kind,
+  parentId: string | undefined,
+): ArchitectureElement | undefined {
+  const expectedParentKind = expectedParentKinds.get(kind)
+  if (expectedParentKind === undefined) {
+    if (parentId !== undefined) throw new Error('--parent is forbidden for a system')
+    return undefined
+  }
+  if (parentId === undefined) throw new Error(`--parent is required for a ${kind}`)
+  const parent = elements.find(element => element.id === parentId)
+  if (parent === undefined) throw new Error(`unknown parent "${parentId}"`)
+  if (parent.kind !== expectedParentKind) {
+    throw new Error(
+      `${kind} requires a ${expectedParentKind} parent, but "${parentId}" is a ${parent.kind}`,
+    )
+  }
+  if (parent.external) throw new Error(`"${parentId}" is external and has no containers`)
+  return parent
+}
+
 function acceptsParent(element: ArchitectureElement, parent: ArchitectureElement): boolean {
   // A system parent records known system ownership while the component's container is unidentified.
   return parent.kind === expectedParentKinds.get(element.kind)

@@ -97,11 +97,11 @@ operation before opening a map.
    questions about similar implementations; they are not relationship rows.
    The command prints `ok` and a short summary. It does not print the
    architecture. Scan is the one plain command without paging, because a second
-   page would scan again. The scanner alone creates systems, containers, and
-   components; nothing writes them by hand.
+   page would scan again. The scan creates systems, containers, and components
+   from source evidence.
 4. Change the architecture through groma.md's commands; no viewer edits element
    or draft documents.
-   - A **new part** is drafted. `groma draft <kind> <name> --parent <id>
+   - A **planned part** is drafted. `groma draft <kind> <name> --parent <id>
      --overview <markdown>` writes a ghost at the path it will keep once
      accepted; the kind is system, container, or component. `--draft
      <draft-id>` files the ghost under a draft record.
@@ -146,21 +146,26 @@ operation before opening a map.
      the record and leaves its members in place. In the web map the
      pane of several selected components offers Group and Combine (the person
      picks the survivor).
-   - An interaction is authored with `groma add relation <source-file>
-     <target-file> --description <prose> --technology <text>`. Exact source
-     files identify code endpoints; actor and external-system declarations
-     may use concept IDs. The source element document holds one authored row per
+   - An interaction is authored with `groma add relation <source>
+     <target> --description <prose> --technology <text>`. Exact source
+     files identify code endpoints. A virtual component uses its ID. Actor
+     and external-system declarations may use concept IDs. The source element
+     document holds one authored row per
      ordered endpoint pair across the architecture. `groma edit relation` rewords it; `groma draft
      relation` creates a planned row, and `groma accept relation` accepts it.
-     Only draft rows may be removed. The web editor chooses the participating
-     files and lets a reader inspect each claim represented by a map connection.
+     A draft row, or a current row with a virtual component as an endpoint,
+     can be removed when no flow uses it. The web map shows the claims behind a connection. Its Edit
+     view rewords the displayed endpoint pair.
    - **People and outside systems** are declared, never scanned: `groma add
      actor <name> --overview <markdown>` and `groma add external <name>
      [--technology <text>] --overview <markdown>` write them stable at once.
      `groma add draft <name> --overview <markdown>` writes a draft record.
-     `groma add component <name>` refuses and names `groma draft`.
+   - A **virtual component** explains a manual step or another responsibility
+     that no source shows. `groma add component <name> --parent <container-id>
+     --overview <prose>` creates it in an internal container. It accepts an
+     optional `--description` and `--technology`.
    - **Removing** takes the id alone: `groma remove <id>` deletes a person, an
-     external, a ghost, or a draft record no ghost belongs to; it refuses and
+     external, a virtual component, a ghost, or a draft record no ghost belongs to. It refuses and
      names what blocks it while other elements relate to the part, while a
      ghost still contains parts, or while ghosts still carry the draft's tag.
      A scanned component can be removed after its Code list is empty: delete its
@@ -194,7 +199,7 @@ ID. `groma view <id>` resolves exactly one element.
   keeps when accepted, in the same file.
 - A part a draft touches keeps its ID and its file; the tag is the only
   change.
-- Core assigns an ID only when a scan finds an unknown file, derived from its
+- When a scan finds an unknown file, core derives its ID from its
   recognizable file name. It compares new files together, qualifies collisions
   with the existing container and source parent context, and uses a short
   exact-source-path hash only when readable context is exhausted. Titles omit
@@ -210,8 +215,9 @@ The architecture is one tree under `groma/` (or `.groma/`): `actors/` holds the
 people who use the software, `externals/` the systems outside its boundary,
 `systems/` the software itself with its containers and components, and
 `drafts/` one record per draft. It may be empty. groma.md writes it from scans,
-accepted drafts, drafting, and the curation people apply through groma.md. The
-scanner alone creates stable systems, containers, and components.
+accepted drafts, drafting, and the curation people apply through groma.md.
+Scans create stable internal systems, containers and components from code.
+People can also add virtual components: stable components without Code references.
 
 After the first write of a document, later scans may refresh only nested
 `groma.code` frontmatter. They do not rewrite explanations, unowned metadata,
@@ -249,6 +255,8 @@ Core applies the batch like this:
    directories and imports alone do not create containers.
 3. An unknown file becomes a singleton component, unless explicit source-unit
    evidence groups companion files. A matching ghost receives Code and stays a draft.
+   A scan never matches a virtual component. A new file of the same name gets
+   its own owner and the virtual component keeps its ID.
 4. Positive execution-entry evidence lets core create an application container
    and place its unambiguous components. Later scans can complete unidentified
    placement while preserving IDs, source ownership, authored meaning and links.

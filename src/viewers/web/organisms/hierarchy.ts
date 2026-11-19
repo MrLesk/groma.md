@@ -34,7 +34,7 @@ function hierarchyRow(
     : undefined, row.icon)
   button.dataset.id = row.id
   if (selectedIds.has(row.id)) button.classList.add('selected')
-  if (row.origin !== 'observed') button.classList.add('ghost')
+  if (row.origin === 'draft') button.classList.add('ghost')
 
   const change = Object.values(comparison?.components ?? {}).find(item => (item.after ?? item.before)?.representationId === row.id)
   if (change?.status === 'removed' || former) button.classList.add('former')
