@@ -1,7 +1,7 @@
 import {
   buildArchitectureModel,
   freeId,
-  expectedParentKinds,
+  resolveParent,
   requireDraftRecord,
 } from './architecture-model.ts'
 import { architectureElementPath } from './architecture-path.ts'
@@ -9,7 +9,7 @@ import { loadArchitecture } from './architecture-reader.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
 import { renderArchitectureDocument, validateElementSource, writeDocument } from './markdown-emitter.ts'
 import { requireText } from './naming.ts'
-import type { ArchitectureElement, C4Kind } from './types.ts'
+import type { C4Kind } from './types.ts'
 
 export interface DraftElementInput {
   kind: string
@@ -31,28 +31,6 @@ function requireKind(kind: string): C4Kind {
   return kind as C4Kind
 }
 
-function resolveParent(
-  byId: Map<string, ArchitectureElement>,
-  kind: C4Kind,
-  parentId: string | undefined,
-): ArchitectureElement | undefined {
-  const expectedParentKind = expectedParentKinds.get(kind)
-  if (expectedParentKind === undefined) {
-    if (parentId !== undefined) throw new Error('--parent is forbidden for a system')
-    return undefined
-  }
-  if (parentId === undefined) throw new Error(`--parent is required for a ${kind}`)
-  const parent = byId.get(parentId)
-  if (parent === undefined) throw new Error(`unknown parent "${parentId}"`)
-  if (parent.kind !== expectedParentKind) {
-    throw new Error(
-      `${kind} requires a ${expectedParentKind} parent, but "${parentId}" is a ${parent.kind}`,
-    )
-  }
-  if (parent.external) throw new Error(`"${parentId}" is external and has no containers`)
-  return parent
-}
-
 /** Writes a ghost at the path it will keep once accepted. */
 export async function draftElement(
   repositoryRoot: string,
@@ -67,12 +45,11 @@ export async function draftElement(
   const filesystem = GromaFileSystem.open(repositoryRoot)
   const records = await loadArchitecture(repositoryRoot)
   const model = buildArchitectureModel(records.documents)
-  const byId = new Map(model.elements.map(element => [element.id, element]))
   const id = freeId(records, model, name)
   const draft = input.draft === undefined || input.draft === ''
     ? undefined
     : requireDraftRecord(records, input.draft)
-  const parent = resolveParent(byId, kind, input.parent === '' ? undefined : input.parent)
+  const parent = resolveParent(model.elements, kind, input.parent === '' ? undefined : input.parent)
   const destination = architectureElementPath({
     root: filesystem.sourceFilename(),
     kind,

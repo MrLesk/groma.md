@@ -85,14 +85,15 @@ export function registerWriteCommands(program: Command): void {
 
   program
     .command('add')
-    .description('Declare an actor, external system, draft, flow, relation, or group')
-    .argument('<thing>', 'actor, external, draft, flow, relation, or group')
+    .description('Declare an actor, external system, virtual component, draft, flow, relation, or group')
+    .argument('<thing>', 'actor, external, component, draft, flow, relation, or group')
     .argument('<name>', 'name, or the source file or concept ID of a relation')
     .argument('[ids...]', 'target file or concept ID of a relation, or the component IDs a group lists')
     .option('--overview <markdown>', 'full Markdown explanation, or the outcome of a draft')
+    .option('--parent <container-id>', 'internal container for a virtual component')
     .option('--steps <markdown>', 'flow Steps table: From | To | Action, with Markdown endpoint links')
     .option('--description <text>', 'optional short summary, or how the source uses the target')
-    .option('--technology <text>', 'technology of an external, or the interaction mechanism of a relation')
+    .option('--technology <text>', 'technology of an external system or virtual component, or the mechanism of a relation')
     .addHelpText('after', '\nAgent guides: groma agent-instructions')
     .action(async (thing: string, name: string, ids: string[], options) => {
       try {
@@ -100,6 +101,7 @@ export function registerWriteCommands(program: Command): void {
           thing,
           name,
           ...addedIds(thing, ids),
+          parent: options.parent,
           overview: options.overview,
           steps: options.steps,
           description: options.description,
@@ -114,7 +116,7 @@ export function registerWriteCommands(program: Command): void {
 
   program
     .command('remove')
-    .description('Remove a person, external, ghost, component without Code, empty system/container, unused draft, relation, or group')
+    .description('Remove a person, external, ghost, virtual component, empty system/container, unused draft, relation, or group')
     .argument('<id>', 'element id, draft id, flow id, group id, or relation')
     .argument('[ids...]', 'with relation: the source and target endpoints')
     .action(async (id: string, ids: string[]) => {

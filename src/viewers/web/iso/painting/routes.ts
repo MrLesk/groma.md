@@ -11,7 +11,7 @@ export function routesSvg(scene: LayeredScene): SvgNode[] {
       `M${pointsAttribute([from])}L${pointsAttribute([to])}`).join('')
     originPaths.push(`M${pointsAttribute(points)}`, liftPath)
     basePathsByOrigin.set(route.origin, originPaths)
-    const ghost = route.origin === 'observed' ? '' : ` ghost ${route.origin}`
+    const ghost = route.origin === 'draft' ? ' ghost draft' : ''
     return node('g', { 'data-id': route.id }, `route${ghost}`, [
       node('polyline', { points: pointsAttribute(points) }, 'line'),
       node('path', { d: liftPath }, 'line lift'),
@@ -23,7 +23,7 @@ export function routesSvg(scene: LayeredScene): SvgNode[] {
     ])
   })
   const base = [...basePathsByOrigin].map(([origin, lines]) => {
-    const ghost = origin === 'observed' ? '' : ` ghost ${origin}`
+    const ghost = origin === 'draft' ? ' ghost draft' : ''
     return node('path', { d: lines.join('') }, `route route-base${ghost}`)
   })
   return [...base, ...interactiveRoutes]

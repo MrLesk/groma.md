@@ -7,23 +7,17 @@ import { loadArchitecture } from './architecture-reader.ts'
 import { moveBlocker } from './movable.ts'
 import { resolveFlows } from './flow-model.ts'
 import { resolveGroups } from './group-model.ts'
+import { elementOrigin, relationshipOrigin } from './origin.ts'
 import type {
   AnnotatedArchitectureModel,
   AnnotatedElement,
   ArchitectureRecords,
   ArchitectureRelationship,
-  ElementStatus,
   FilesystemAccessHandler,
-  Origin,
 } from './types.ts'
 
 export { acceptGhost, type AcceptResult } from './accept.ts'
 export { reconcileScanObservations } from './scan-reconciler.ts'
-
-/** The map word for a lifecycle status: drafts are ghosts, everything stable was observed. */
-export function originOf(status: ElementStatus): Origin {
-  return status === 'draft' ? 'draft' : 'observed'
-}
 
 function withDirectChildren(elements: AnnotatedElement[]): AnnotatedElement[] {
   const childrenByParent = new Map<string, string[]>()
@@ -91,7 +85,7 @@ export function annotateArchitecture(
     // The web pane offers a new parent only for a component the write would move.
     movable: element.kind === 'component'
       && moveBlocker(element, documents.get(element.sourceFilename)!.body, model.relationships, flows) === undefined,
-    origin: originOf(element.status),
+    origin: elementOrigin(element),
     ...(element.draft === undefined ? {} : { draft: element.draft }),
   }))
 
@@ -112,7 +106,7 @@ export function annotateArchitecture(
         connections: relationship.connections,
         description: relationship.description,
         technology: relationship.technology,
-        origin: originOf(relationship.status),
+        origin: relationshipOrigin(relationship.status),
         ...(source.draft === undefined ? {} : { draft: source.draft }),
       }
     }),

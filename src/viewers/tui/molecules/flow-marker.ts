@@ -20,9 +20,6 @@ export function drawFlowMarker(
   )
   const width = Math.min([...label].length + 2, Math.max(0, right - left))
   if (width < 3) return
-  const background = item.origin === 'observed'
-    ? theme.background
-    : theme.background
   text(
     buffer,
     ` ${label} `,
@@ -30,7 +27,7 @@ export function drawFlowMarker(
     Math.max(bounds.y, projection.viewport.y),
     width,
     theme.selected,
-    background,
+    theme.background,
     TextAttributes.BOLD,
   )
 }

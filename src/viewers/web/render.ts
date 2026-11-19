@@ -113,6 +113,7 @@ const authoring = createAuthoring(host, map, data, {
   live: () => revisionControl.live,
   world: () => world,
   repaint: () => paintViewState(),
+  deselect,
 })
 const source = createSourceControl({
   host: detailsHost, initialFile: opened.file, initialLine: opened.line,
