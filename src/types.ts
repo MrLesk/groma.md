@@ -3,7 +3,10 @@ import type { ColorName } from './colors.ts'
 import type { IconName } from './icons.ts'
 
 export type C4Kind = 'actor' | 'system' | 'container' | 'component'
-export type Origin = 'observed' | 'draft'
+/** How the map presents a relationship: observed, or planned by a draft. */
+export type RelationshipOrigin = 'observed' | 'draft'
+/** How the map presents an element. Only a component can be virtual; `src/origin.ts` decides. */
+export type Origin = RelationshipOrigin | 'virtual'
 /** The OKF lifecycle word every element document carries. */
 export type ElementStatus = 'draft' | 'stable'
 export type TerminalLevel = 'context' | 'components'
@@ -113,7 +116,7 @@ export interface ArchitectureElement {
   sourceFilename: string
 }
 
-/** One exact file interaction, or a declared actor/external-system connection. */
+/** One interaction addressed by exact source files or declared element IDs. */
 export interface RelationshipConnection {
   source: string
   target: string
@@ -175,7 +178,7 @@ export interface AnnotatedRelationship {
   target: string
   description: string
   technology: string
-  origin: Origin
+  origin: RelationshipOrigin
   draft?: string
 }
 

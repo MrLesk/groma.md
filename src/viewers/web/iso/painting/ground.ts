@@ -125,7 +125,7 @@ export function islandsSvg(scene: ProjectedScene, zoom = 1, still?: Still): SvgN
 /** Container slabs have hanging sides, external names and zones on top. `zoom` and `still` are as for islandsSvg. */
 export function slabsSvg(scene: ProjectedScene, zoom = 1, still?: Still): SvgNode[] {
   return scene.slabs.map(({ slab, faces, text }) => {
-    const ghost = slab.origin === 'observed' ? '' : ` ghost ${slab.origin}`
+    const ghost = slab.origin === 'draft' ? ' ghost draft' : ''
     const top = faces.find(face => face.side === 'top')!
     return node('g', { 'aria-label': slab.title, 'data-id': slab.representationId, ...colorAttribute(slab) }, `slab${ghost}`, [
       ...faces.map(face => node('polygon', { points: pointsAttribute(face.points) }, `face ${face.side}`)),

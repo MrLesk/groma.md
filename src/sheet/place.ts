@@ -37,6 +37,8 @@ import type {
 
 const ACTORS_ISLAND = 'island:actors'
 const EXTERNAL_ISLAND = 'island:external'
+/** A virtual component stands a quarter of one unmeasured building unit above its container. */
+const PLATE_HEIGHT_UNITS = 0.25
 
 /** A packed subtree: its size in cells and where each child sits relative to its north corner. */
 interface Node {
@@ -81,8 +83,8 @@ function buildingNode(element: AnnotatedElement, ranges: FileMeasureRanges, degr
   const floors = element.kind === 'component'
     ? floorsOf(element.origin, element.code, ranges, base)
     : []
-  const heightUnits = element.kind !== 'component'
-    ? 1
+  const heightUnits = element.origin === 'virtual'
+    ? PLATE_HEIGHT_UNITS
     : floors.reduce((total, floor) => total + floor.heightUnits, 0) || 1
   const w = Math.max(base.w, ...floors.map(floor => floor.footprint.w))
   const d = Math.max(base.d, ...floors.map(floor => floor.footprint.d))

@@ -108,6 +108,11 @@ a drafted concept has `status: draft`, and a stable concept may carry the tag
 too when the draft touches it. A draft with no `status: draft` concept left is
 complete, and its record remains.
 
+A virtual component is an ordinary `C4 Component` with `status: stable` and
+no `groma.code`. Its overview explains a responsibility the source does not
+show. Nothing else marks it. A component whose last source file went away is
+virtual too. A ghost has `status: draft` and can receive code from a matching scan.
+
 groma.md does not invent `generated`, `verified`, source provenance, or other
 human trust claims.
 
@@ -193,7 +198,7 @@ execution evidence can move it from its system into an application container.
 This preserves its ID, source ownership and authored meaning, and rebases incoming
 and outgoing Markdown links. An existing container assignment is never replaced.
 
-The architecture model owns IDs. groma.md assigns an ID when it drafts a concept
+The architecture model owns IDs. groma.md assigns an ID when it adds or drafts a concept
 or when a scan finds a previously unknown source. A drafted concept keeps its
 ID and its file when accepted. Architecture IDs live in Markdown, not
 application source.
@@ -432,8 +437,8 @@ edits overview or owned metadata.
 ## Relationships
 
 Authored and automatically derived outgoing relationships live in the source
-C4 element document: a component for a source file, or the named element for
-an actor/external-system declaration. They use ordinary Markdown tables and
+C4 element document. A source file uses its owning component's document.
+A source named by ID uses its own document. The rows use ordinary Markdown tables and
 links inside the existing OKF concept. There is no separate relationship
 concept, C4 element, parent, or map level.
 
@@ -445,6 +450,7 @@ For example, a component document may contain:
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
 | [Checkout client](../../../../../../src/checkout-client.ts) | [Payment endpoint](../../../../../../src/payment-endpoint.ts) | Requests payment authorization | HTTPS |
+| [Release](../../../../../../src/release.ts) | [Release approval](release-approval.md) | Requests approval | Review form |
 ```
 
 An actor document stores its outgoing concept-addressed declarations in the
@@ -455,7 +461,10 @@ Code-to-code declarations require exact repository-relative source files with
 known component owners. They never use internal component, container, or
 system IDs as endpoints. This includes interactions without imports, such as
 an HTTP client and its endpoint. An actor or external-system declaration may
-use C4 concept links. Each ordered endpoint pair has one authored row.
+use element IDs on the command line and C4 concept links in the table.
+A virtual component uses its ID on the command line and
+a link to its document in the table. Between components, a component that owns
+code is still named by an exact file. Each ordered endpoint pair has one authored row.
 `Description` states the interaction; `Technology` states its mechanism or a
 required constraint. Both cells are required and non-empty. A stored row may
 name a file that currently has no component owner, for example after a detach:
@@ -466,19 +475,28 @@ their target file links continue to resolve through current ownership. An empty
 former owner cannot be removed while it holds these waiting rows; scan first
 to place them, then remove the empty component.
 
-`groma add relation <source-file> <target-file> --description <text>
+`groma add relation <source> <target> --description <text>
 --technology <text>` declares a current interaction. `groma edit relation`
-changes its text. The web editor selects the participating source files;
-relationship details distinguish derived interactions from authored rows. Editing
+changes its text. The web Edit view addresses the displayed endpoint pair.
+Relationship details distinguish derived interactions from authored rows. Editing
 a derived interaction creates authored text for that exact endpoint pair.
-An actor or external-system declaration accepts its concept IDs instead.
 
 Planned interactions use the same columns under `## Draft relationships`.
-`groma draft relation <source-file> <target-file> --description <text>
+`groma draft relation <source> <target> --description <text>
 --technology <text>` creates a planned row. Edits keep its status. `groma accept
-relation <source-file> <target-file>` explicitly accepts it; only draft rows
-may be removed. This lifecycle is independent of the endpoint statuses.
+relation <source> <target>` explicitly accepts it. A relationship's status is
+independent of the endpoint statuses.
 Finding a source dependency does not accept a draft interaction.
+
+`groma remove relation <source> <target>` removes a draft row or a current
+row with a virtual component as an endpoint. A flow that uses it blocks removal.
+Other current rows stay: the next scan would derive them again.
+
+Once a virtual component takes source files through `groma edit <id> --combine`,
+it is named by a file like any component that owns code. The combine is
+therefore refused while a row between components names it by its document.
+Remove those rows first and add them again with a source file afterwards.
+Rows of actors and external systems keep naming it by its document.
 
 Core writes selected current interactions under `## Derived relationships`,
 using the same four columns. The derived Technology cell lists contributing
@@ -507,7 +525,8 @@ an application constraint, not a universal OKF or C4 rule. Many other files
 may use it. A scan preserves curated membership and never follows dependencies
 to claim ownership. Source ownership does not establish runtime placement.
 
-Core projects file connections through their current owners. Several file
+Core projects file connections through their current owners. A file linked to a
+virtual component connects its owner to that component on the map. Several file
 pairs become one directed component connection while retaining their exact
 endpoints and individual claims. Connections inside one component add no map self-link. Regrouping preserves
 the stored claims and transfers outgoing rows into the surviving source owner; the next scan omits derived interactions whose providers

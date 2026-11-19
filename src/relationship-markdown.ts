@@ -4,6 +4,7 @@ import {
   relationshipTargetFilename,
   tableHeaderNames,
 } from './architecture-markdown.ts'
+import { isVirtualComponent } from './origin.ts'
 import type {
   ArchitectureDocument,
   ArchitectureElement,
@@ -16,25 +17,42 @@ import type {
 const columns = ['Source', 'Target', 'Description', 'Technology']
 type Invalid = (code: string, filename: string, message: string) => never
 
+/**
+ * Whether a relationship may name its endpoints this way. An endpoint names either an exact source file or
+ * an element, by a link to its document in the table and by its ID on the command line. Each argument is
+ * the element an endpoint names, or undefined when that endpoint names a source file.
+ *
+ * - Two source files are always fine.
+ * - A relationship with an actor or an external system may name its other endpoint as an element too.
+ * - Otherwise every named element must be a virtual component, so a component that owns code is only
+ *   ever named by one of its files.
+ */
+export function allowsNamedElements(source: ArchitectureElement | undefined, target: ArchitectureElement | undefined): boolean {
+  const named = [source, target].filter(element => element !== undefined)
+  if (named.length === 0) return true
+  if (named.some(element => element.kind === 'actor' || element.external)) return true
+  return named.every(isVirtualComponent)
+}
 
+/** Reads one endpoint cell: the file or element ID it links to, and the element when the link names one. */
 function endpoint(
   cell: MarkdownElement | undefined,
   filename: string,
   byDocument: ReadonlyMap<string, ArchitectureElement>,
   invalid: Invalid,
-): { value: string; element?: ArchitectureElement; file: boolean } {
+): { value: string; namedElement?: ArchitectureElement } {
   const links = collectNodes(cell, 'a')
   if (links.length !== 1) invalid('INVALID_RELATIONSHIP', filename, 'each endpoint must contain exactly one Markdown link')
   const resolved = relationshipTargetFilename(filename, links[0]?.[1]?.href)
   const concept = resolved === null ? undefined : byDocument.get(resolved)
-  if (concept) return { value: concept.id, element: concept, file: false }
+  if (concept) return { value: concept.id, namedElement: concept }
   // A link into the architecture folder names a concept. Any other link names a source file, which may have no owner
   // until the next scan, for example after a detach.
   const architectureRoot = filename.split('/')[0]
   if (resolved === null || resolved.startsWith(`${architectureRoot}/`)) {
     invalid('UNKNOWN_RELATIONSHIP_TARGET', filename, `endpoint "${resolved}" names no architecture concept`)
   }
-  return { value: resolved!, file: true }
+  return { value: resolved! }
 }
 
 function readRow(
@@ -49,9 +67,8 @@ function readRow(
   if (cells.length !== 4) invalid('INVALID_RELATIONSHIP', filename, 'relationship row must contain four cells')
   const source = endpoint(cells[0], filename, byDocument, invalid)
   const target = endpoint(cells[1], filename, byDocument, invalid)
-  const declaredConcept = [source, target].some(end => end.element?.kind === 'actor' || end.element?.external === true)
-  if (!declaredConcept && (!source.file || !target.file)) {
-    invalid('INVALID_RELATIONSHIP', filename, 'code relationships require source-file endpoints')
+  if (!allowsNamedElements(source.namedElement, target.namedElement)) {
+    invalid('INVALID_RELATIONSHIP', filename, `${source.value} to ${target.value}: code relationships require source-file endpoints`)
   }
   const description = nodeText(cells[2]).trim()
   const technology = nodeText(cells[3]).trim()

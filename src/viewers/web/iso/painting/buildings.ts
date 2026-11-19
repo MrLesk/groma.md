@@ -9,7 +9,7 @@ import { colorAttribute, node, pointsAttribute, type SvgNode } from './svg.ts'
 function classOf(projected: ProjectedBuilding): string {
   const { building } = projected
   const kind = building.kind === 'actor' ? 'actor' : building.external ? 'external' : 'component'
-  const ghost = building.origin === 'observed' ? '' : ` ghost ${building.origin}`
+  const ghost = building.origin === 'draft' ? ' ghost draft' : ''
   return `building ${kind}${ghost}`
 }
 
