@@ -2,6 +2,8 @@
 type: C4 Component
 title: Task map links
 status: stable
+tags:
+  - work
 groma:
   id: src-work-pins
   parent: cli

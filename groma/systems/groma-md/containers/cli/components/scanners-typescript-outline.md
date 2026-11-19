@@ -2,6 +2,8 @@
 type: C4 Component
 title: Shared source outlines
 status: stable
+tags:
+  - scanning
 groma:
   id: scanners-typescript-outline
   parent: cli

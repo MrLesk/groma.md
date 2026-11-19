@@ -2,6 +2,8 @@
 type: C4 Component
 title: TypeScript analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: typescript-src-index
   parent: cli

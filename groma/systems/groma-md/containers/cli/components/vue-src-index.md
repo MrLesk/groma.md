@@ -2,6 +2,8 @@
 type: C4 Component
 title: Vue analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: vue-src-index
   parent: cli

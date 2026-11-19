@@ -130,8 +130,8 @@ One rule decides where a write lives in the web map:
 
 - **Reading never writes.** Whatever a person clicks or types while reading the
   map or a pane only selects, navigates, or changes the view: selection, lit
-  flows, filters, theme, and camera. That state lives in the URL or the browser,
-  never in the architecture.
+  flows, tag focus, filters, theme, and camera. That state lives in the URL or
+  the browser, never in the architecture.
 - **A record's fields change in its Edit form, and nowhere else.** On a live
   current map, **Edit** switches the pane of the selected element or
   relationship from reading to a form that holds every field a person can set on
@@ -181,6 +181,22 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
 - **C4 filter bar:** The floating icon bar beside the hierarchy toggles **Actors**,
   **Systems**, **Containers**, **Components**, and **Relationships** on the map.
   Choices persist in `localStorage` and URL parameters.
+- **Tags:** While any element carries [OKF tags](../../component-markdown.md#tags),
+  the hierarchy pane lists every tag in use above the kind legend, with the number
+  of elements that carry it. Clicking a tag focuses the map on it, and the same
+  chip in the Tags row of the details pane does the same. Several tags can be
+  focused together. The map keeps every element in place and recedes what the
+  focused tags do not select, by the
+  [matching rule](../../component-markdown.md#focusing-on-tags). A focus:
+  - shows its tags in a bar under the view switch, where a click on one ends
+    that tag's focus, also while both panes are closed;
+  - moves the camera to frame everything the tags select, and back to the
+    selection when the last tag is released;
+  - recedes the hierarchy rows and the task pins of what the tags do not
+    select, as it recedes their buildings.
+
+  [`chrome/tag-focus.ts`](../../../src/viewers/web/chrome/tag-focus.ts) owns the
+  focused tags.
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
   IDs and titles from the configured work source. `Up`/`Down` preview matches;
   `Enter` opens the selected element or task; `Escape` restores the prior selection
@@ -285,6 +301,10 @@ The URL query string tracks the current view so any state can be shared by link:
   restore selections.
 - `tab=how|tasks`, `file=<path>`, and `line=<number>` open the corresponding
   details tab and source location.
+- `tag=<tag>`, repeated for several tags, focuses the map on those tags, and
+  the view opens framed on what they select. A tag the architecture does not
+  use is ignored. The focus is part of the link and is not saved as a browser
+  preference, because tags belong to one project.
 - `view=iso|2d|layers`, `hide=...`, `theme=auto|light|dark|blueprint`, `hud=off`,
   and `inset=<pixels>` configure projection and chrome.
 

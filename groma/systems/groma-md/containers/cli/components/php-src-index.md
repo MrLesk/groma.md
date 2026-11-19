@@ -2,6 +2,8 @@
 type: C4 Component
 title: PHP analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: php-src-index
   parent: cli

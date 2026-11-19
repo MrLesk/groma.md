@@ -2,6 +2,8 @@
 type: C4 Component
 title: Scanner contract
 status: stable
+tags:
+  - scanning
 groma:
   id: scanner-src-index
   parent: cli

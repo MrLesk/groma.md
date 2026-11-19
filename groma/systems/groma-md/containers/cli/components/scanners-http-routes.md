@@ -2,6 +2,8 @@
 type: C4 Component
 title: HTTP source analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: scanners-http-routes
   parent: cli

@@ -2,6 +2,8 @@
 type: C4 Component
 title: TypeScript operations
 status: stable
+tags:
+  - scanning
 groma:
   id: source-operations
   parent: cli
