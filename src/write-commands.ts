@@ -2,6 +2,7 @@ import type { Command } from 'commander'
 
 import { writes } from './authoring.ts'
 import type { AddInput, RemoveInput } from './authoring.ts'
+import { COLOR_NAMES } from './colors.ts'
 import type { StructuralResult } from './curate.ts'
 import { isGroupAddress } from './naming.ts'
 import { scanRepository } from './scanner.ts'
@@ -138,6 +139,7 @@ export function registerWriteCommands(program: Command): void {
     .option('--description <text>', 'optional short summary (empty removes it), or how a relation works')
     .option('--technology <text>', 'technology of an element (empty removes it) or of a relation')
     .option('--tags <tags>', 'comma-separated OKF tags of an element; replaces its list (empty removes it)')
+    .option('--color <name>', `color of an element on the map: ${COLOR_NAMES.join(', ')} (empty removes it)`)
     .option('--draft <draft-id>', 'link this element to the draft that touches it')
     .option('--group <name>', 'assign this component to a sibling group')
     .option('--ungroup', 'remove this component from its group')
@@ -158,6 +160,7 @@ export function registerWriteCommands(program: Command): void {
           description: options.description,
           technology: options.technology,
           tags: options.tags,
+          color: options.color,
           draft: options.draft,
           group: options.group,
           ungroup: options.ungroup,
