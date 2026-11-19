@@ -205,7 +205,8 @@ One rule decides where a write lives in the web map:
 |---|---|---|---|
 | Edit an element or relationship | Edit, in its pane | the fields | Save |
 | Add a virtual component | Add component, in the container's Edit view | Name, Description and Overview | Add |
-| Edit a group or flow | Edit, in its pane | Title, Description, Overview and Tags | Save |
+| Edit a group | Edit, in its pane | Title, Description, Overview, Tags, Color and Icon | Save |
+| Edit a flow | Edit, in its pane | Title, Description, Overview and Tags | Save |
 | Edit several elements | Edit, in the selection pane | Tags, Color and Icon | Save |
 | Accept a draft | Accept, in the Edit view | one question | Accept |
 | Remove an element, group, draft relationship, or current relationship with a virtual component | Remove, in its Edit view | one question | Remove |
@@ -228,8 +229,9 @@ and builds its approval bar, which holds Cancel and the approving button, runs
 one write at a time, and shows a failed write's message. A form that writes
 styles no field and builds no approval button of its own. A new editable field
 is one entry in its Edit view's field list. For an element this is `elementFields` in
-[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts). For a group
-or flow it is `wordingAndTagFields` in [`organisms/commands.ts`](../../../src/viewers/web/organisms/commands.ts). Put a
+[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts). Groups and flows share
+`wordingAndTagFields` in [`organisms/commands.ts`](../../../src/viewers/web/organisms/commands.ts).
+Groups and elements share `appearanceFields` for Color and Icon. Put a
 field that several elements can share in `sharedElementFields`; the core's
 `fieldsOfSeveralElements` in [`src/edit.ts`](../../../src/edit.ts) decides which fields
 several elements take. The
@@ -317,19 +319,20 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   [`tags/tag-focus.ts`](../../../src/viewers/web/tags/tag-focus.ts) owns the focus and the bar, and
   [`tags/tag-list.ts`](../../../src/viewers/web/tags/tag-list.ts) owns the list.
   [`flow/list.ts`](../../../src/viewers/web/flow/list.ts) keeps the flow rows' emphasis across repaints.
-- **Colors:** The Edit form of an element has a **Color** field: no color, then
+- **Colors:** The Edit form of an element or group has a **Color** field: no color, then
   each [named color](../../component-markdown.md#colors) in the current theme's
   values. The map mixes the saved color into the element's surfaces and outline;
   selection, lit flows, task marks and drafts keep their own look over it, and a
   comparison switches authored colors off because color means change there.
-  While the form is open the map shows the picked color on that element; it is
+  A group's color lightly tints the ground under its zone's hatch and colors its outline.
+  While the form is open the map shows the picked color on the element or zone; it is
   stored only by **Save**, and stays on the map from the pick until the saved
   map arrives
   ([`editing/appearance-preview.ts`](../../../src/viewers/web/editing/appearance-preview.ts)).
-- **Icons:** The Edit form of an element has an **Icon** field: no icon, then
-  each [named icon](../../component-markdown.md#icons). The element's name makes
+- **Icons:** The Edit form of an element or group has an **Icon** field: no icon, then
+  each [named icon](../../component-markdown.md#icons). The name makes
   room for the saved icon, so the map lays itself out again. While the form is
-  open the map shows the picked icon in the room the element has now.
+  open the map shows the picked icon in the room the name has now.
   - In the Iso and Layers views the icon is a small object standing before the
     name: on the roof of an actor, external system or component, and on the
     ground before the title of a system or container. Objects are built from
@@ -339,8 +342,9 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
     marks the element's row in the hierarchy and its title in the details.
   - The icon before a system's or container's title is a landmark: it never
     gets smaller than a readable size on screen, so a zoomed-out map still
-    shows what its large parts are. An icon on a roof shrinks with the map
-    and fades out when it would be a smudge; its inner lines fade out first.
+    shows what its large parts are. A zone's icon stands before its name and follows the name's size at every zoom.
+    An icon on a roof shrinks with the map. Both
+    fade out when they would be a smudge; their inner lines fade out first.
   - [`icons/objects.ts`](../../../src/viewers/web/icons/objects.ts) holds the
     objects, [`icons/glyphs.ts`](../../../src/viewers/web/icons/glyphs.ts) the
     glyphs, and [`iso/painting/icons.ts`](../../../src/viewers/web/iso/painting/icons.ts)

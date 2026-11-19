@@ -1,5 +1,6 @@
 import type { EditArchitectureInput } from '../../../authoring.ts'
 import type { EditValues } from '../../../authoring-conflict.ts'
+import type { GroupMeaning } from '../../../group.ts'
 import type { ReadPane } from './write-view.ts'
 
 /** The fields Edit can change from an element's pane. */
@@ -38,13 +39,17 @@ export interface PaneWrites {
   parents?: readonly ParentOption[]
 }
 
-/** What Edit changes on a group or a flow: its wording and its tags. */
+/** The wording and tags that Edit changes on a flow. */
 export type WordingEdit = Pick<MeaningEdit, 'title' | 'description' | 'overview' | 'addTags' | 'removeTags'>
 
-/** The write hooks a group pane gets on the current revision of a live map: Edit, and Remove of the group record. */
+/**
+ * The write hooks a group pane gets on the current revision of a live map: Edit, and Remove of the group record.
+ * Edit takes the core's own list of what a group can change (`groupFields` in src/group.ts), so the pane cannot
+ * offer a field the core would refuse.
+ */
 export interface GroupWrites {
   onRead: () => void
-  onEdit: (input: WordingEdit, original: EditValues) => Promise<void>
+  onEdit: (input: GroupMeaning, original: EditValues) => Promise<void>
   onRemove?: () => Promise<void>
 }
 

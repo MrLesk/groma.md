@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: 2026-10-07 23:16
-updated_date: '2026-11-16T19:02:00Z'
+updated_date: '2026-11-19T07:52:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -86,7 +86,7 @@ ordinal: 1
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-An architecture author gives an actor, system, external system, container or component one named icon that says what kind of thing it is, so readers recognize it on the map. Groma presentation metadata under groma owns the name; C4 boundaries stay unchanged and ordinary Markdown readers keep title, description, body and links. A group carries no icon: an icon says what an element is, and a group is a name on its members, not an element. Icon packs, vendor logos, uploads and automatic inference are outside this task.
+An architecture author gives an actor, system, external system, container or component one named icon that says what kind of thing it is, so readers recognize it on the map. Groma presentation metadata under groma owns the name; C4 boundaries stay unchanged and ordinary Markdown readers keep title, description, body and links. Group icons are not part of this task: when it was built a group was a name on its members and had no document. Since TASK-657 a group has its own record, and TASK-666 gives it an icon. Icon packs, vendor logos, uploads and automatic inference are outside this task.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
@@ -124,7 +124,7 @@ Revision 2026-11-16 (owner direction: no editing outside the Edit form). The Ico
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-2026-11-10. Decision record. Alex left the artwork open (animated isometric, static isometric or flat) and on 2026-11-10 asked to see icons that are made nice, isometric or flat, saying earlier icon notes were obsolete. I decided: static isometric objects in the tilted views and flat glyphs in the 2D view and the panes, both drawn by me in code, no animation, no icon pack. Reasons: an object built from the map's own faces belongs to the map and turns with it; the 2D view and the panes need a flat drawing anyway; only lit flows animate on the map. Groups carry no icon by decision: an icon says what an element is.
+2026-11-10. Decision record. Alex left the artwork open (animated isometric, static isometric or flat) and on 2026-11-10 asked to see icons that are made nice, isometric or flat, saying earlier icon notes were obsolete. I decided: static isometric objects in the tilted views and flat glyphs in the 2D view and the panes, both drawn by me in code, no animation, no icon pack. Reasons: an object built from the map's own faces belongs to the map and turns with it; the 2D view and the panes need a flat drawing anyway; only lit flows animate on the map. Groups carried no icon in this task, by a decision of the agent that the owner rejected on 2026-11-12; TASK-666 gives a group an icon.
 Verification on groma's own map (icons assigned on every level in a scratch copy, never committed): objects on component, actor and external roofs and before system and container titles in Iso and Layers; glyphs in 2D, hierarchy rows, the details title and the picker; a click in the picker applied and cleared an icon at once; Light and Dark; the cover shows the container icons.
 Groma's own map sets no icon in this branch: the architecture comparison job reads pull requests with the released groma.md, which rejects a new groma field until the next release.
 Reviews. Cold review and full-context review ran on the first snapshot. Fixed from them: icon parts no longer share the buildings' face classes (hover, draft, comparison and colored covers repainted them); parts are drawn back to front with a part over what it stands on (the cache chip's front pins were covered); only title icons are landmarks (an enlarged roof icon left its roof); the camera rules sit side by side in icon-camera.ts and the still path now fades inner lines by the same ramp as the live map; one slot function and one painter per name kind; a still is a named option; wall marks only type-check on boxes; cylinder renamed from round; Color row and Icon grid share one control. Left for Alex: a table of authored name fields (color and icon are now two hand-kept copies of the same path), and whether the live map should use the painter path for camera rules so one mechanism remains.
@@ -141,7 +141,7 @@ Same day, own critical pass: the preview now keeps a saved icon on the map until
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
 An actor, system, external system, container or component can carry one of 23 named icons in groma.icon, set with groma edit --icon or the Icon grid in the web details pane. The web map draws each name as an isometric object built from the map's own boxes and cylinders in the Iso and Layers views, and as a flat glyph in the 2D view, the hierarchy rows and the details title. The icon stands in a slot the layout reserves before the name. The icon before a system's or container's title stays readable when the map is zoomed out; roof icons shrink with the map and fade out when tiny. Covers draw the same icons.
 Verified: bun run check passes (28 Node tests, 959 Bun tests, 64 environment-dependent skips, 0 failures); icons assigned on every level of a scratch copy of groma's own map and inspected in Iso, 2D, Layers, Light, Dark and the cover; the picker applied and cleared an icon at once.
-Not included: icons on groups (by decision), icon packs, vendor logos, animation, icons in the terminal map (plain output prints the name). Groma's own map sets no icon until a release knows the field. Open for Alex: his verdict on the artwork, a table for authored name fields, and whether the live map should use the painter path for the camera rules.
+Not included: icons on groups (TASK-666 adds them), icon packs, vendor logos, animation, icons in the terminal map (plain output prints the name). Groma's own map sets no icon until a release knows the field. Open for Alex: his verdict on the artwork, a table for authored name fields, and whether the live map should use the painter path for the camera rules.
 
 Revision 2026-11-16: in the web map the icon is the Icon field of the element's Edit form, stored by Save under the conflict check; organisms/instant-choice.ts and the onIcon hook are deleted, the reading pane has no icon control, and the form's Save and Cancel bar is pinned to the bottom of the pane.
 

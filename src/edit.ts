@@ -18,7 +18,7 @@ import {
 import type { MeaningChanges } from './markdown-emitter.ts'
 import { requireText } from './naming.ts'
 import { loadProjectProfile, saveProjectProfile } from './project-profile.ts'
-import { assignGroup, editGroup, groupContext, relistedWrites, writeGroups } from './group.ts'
+import { assignGroup, editGroup, groupContext, groupFields, relistedWrites, writeGroups } from './group.ts'
 import { editRelation } from './relation.ts'
 import { editFlow } from './flow-authoring.ts'
 import { requireGromaMapping } from './okf-profile.ts'
@@ -71,7 +71,7 @@ function isStructural(input: EditArchitectureInput): boolean {
 /** Tag changes. Elements, groups and flows take them. */
 const tagFields = ['addTags', 'removeTags'] as const
 
-/** The map color and icon. Only actors, systems, containers and components have them. */
+/** Elements and groups can carry a map color and icon. */
 const appearanceFields = ['color', 'icon'] as const
 
 /** What several elements take in one edit. This list decides what the Edit of several elements can offer. */
@@ -158,9 +158,10 @@ async function editGroupOrDraft(
   const context = groupContext(repositoryRoot, records, model)
   const group = context.groups.find(candidate => candidate.id === input.id)
   if (group !== undefined) {
-    if (input.technology !== undefined || hasAppearance(input) || input.draft !== undefined
-      || input.steps !== undefined || isStructural(input)) {
-      throw new Error('only --title, --description, --overview, --add-tags and --remove-tags are valid on a group')
+    const allowed = new Set<string>(['id', 'original', ...groupFields])
+    const unsupported = Object.entries(input).some(([field, value]) => value !== undefined && !allowed.has(field))
+    if (unsupported) {
+      throw new Error('only --title, --description, --overview, --add-tags, --remove-tags, --color and --icon are valid on a group')
     }
     return editGroup(context, group, input)
   }
@@ -196,7 +197,7 @@ export async function editArchitecture(
   const flow = records.flows.find(document => requireGromaMapping(document.frontmatter, document.sourceFilename).id === input.id)
   if (flow !== undefined) {
     if (input.newId !== undefined) throw new Error('--id renames systems, containers, and components')
-    if (hasAppearance(input)) throw new Error('--color and --icon are valid only on actors, systems, containers, and components')
+    if (hasAppearance(input)) throw new Error('--color and --icon are valid only on actors, systems, containers, components, and groups')
     checkEdit(input.original, resolveFlows([flow], model)[0]!, input)
     return editFlow(repositoryRoot, records, flow, input)
   }

@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-16T19:02:00Z'
+updated_date: '2026-11-19T07:52:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -82,7 +82,7 @@ An architecture author can give an actor, system, container or component one of 
 
 The architecture document stores only the name under groma, as presentation metadata: an ordinary Markdown or OKF reader keeps the title, description, body and links, and the name itself stays readable. It adds no C4 element or containment level. The map consumes it; every UI theme supplies a value for every name, so an authored color works in every theme.
 
-Group colors are not part of this task: a group is a name on its members and has no document to hold presentation metadata. That storage decision is open and belongs to Alex.
+Group colors are not part of this task: when it was built a group was a name on its members and had no document to hold presentation metadata. Since TASK-657 a group has its own record, and TASK-666 gives it a color.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
@@ -123,7 +123,7 @@ Revision 2026-11-16 (owner direction: no editing outside the Edit form). The Col
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Decisions: Alex said on 2026-11-09 that a stored hex is poor UX, that colors must not be automatic, and that themes define the named colors; whether a color belongs to an element or to a tag he left open. This task puts the name on the element (groma.color), the smallest primitive that needs no other concept. Six names, none green; each bundled theme supplies its own value per name. In the browser a colored element sets four variables that the existing surface and stroke rules read, so selection, lit, draft and comparison rules work unchanged; covers get resolved plain rules because resvg has no variables. A color is not inherited by children. Group colors are left out: a group has no document, and where to store its presentation is Alex decision. The earlier agent PR for this task (MrLesk/groma.md#195) stored a hex and a groupAppearance map; nothing from it is used.
+Decisions: Alex said on 2026-11-09 that a stored hex is poor UX, that colors must not be automatic, and that themes define the named colors; whether a color belongs to an element or to a tag he left open. This task puts the name on the element (groma.color), the smallest primitive that needs no other concept. Six names, none green; each bundled theme supplies its own value per name. In the browser a colored element sets four variables that the existing surface and stroke rules read, so selection, lit, draft and comparison rules work unchanged; covers get resolved plain rules because resvg has no variables. A color is not inherited by children. Group colors were left out of this task: a group had no document then. TASK-657 gave it one and TASK-666 gives a group a color. The earlier agent PR for this task (MrLesk/groma.md#195) stored a hex and a groupAppearance map; nothing from it is used.
 
 Verification: bun run check passed (28 Node tests, 1017 Bun tests, 64 environment-dependent skips, 0 failures). On groma.md own map, with its five containers colored: Iso at fit zoom in Light, Dark and Blueprint shows each container tinted with a colored outline and its zones following the outline; a selected colored container keeps its tint under the green selection outline; the exported cover shows the colors; in a two-commit comparison export the colored slabs compute to the neutral fill and stroke. On the editing fixture in groma web, clicking a swatch in the details pane tinted the slab at once and marked the swatch; groma edit --color with an unknown name is refused naming the six names.
 
@@ -141,7 +141,7 @@ Same day, own critical pass: after Save the element flashed back to its old colo
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Elements can carry one of six named colors. groma.color stores the name, groma edit --color and a swatch row in the web details pane set or clear it, and the choice applies at once. Each UI theme defines what every name looks like; the map mixes that value into the element surfaces and outline, in the browser and on exported covers. Selection, lit flows, task marks and drafts keep their own look, and comparison switches authored colors off. groma.md own containers are colored. Group colors are not included and need a storage decision.
+Elements can carry one of six named colors. groma.color stores the name, groma edit --color and a swatch row in the web details pane set or clear it, and the choice applies at once. Each UI theme defines what every name looks like; the map mixes that value into the element surfaces and outline, in the browser and on exported covers. Selection, lit flows, task marks and drafts keep their own look, and comparison switches authored colors off. groma.md own containers are colored. Group colors were not included; TASK-666 adds them.
 
 Revision 2026-11-16: in the web map the color is the Color field of the element's Edit form (a radio group from organisms/choice-field.ts), stored by Save under the conflict check; the reading pane has no color control and the pane has no onColor hook.
 
