@@ -5,7 +5,7 @@ import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
 import type { Plane, ProjectionView } from '../projection/project.ts'
-import { DETAIL_OPACITY_CSS, GLYPH_STROKE_CSS, LANDMARK_ZOOM_CSS, OBJECT_STROKE_CSS, SMALL_ICON_OPACITY_CSS } from './icon-camera.ts'
+import { DETAIL_OPACITY_CSS, GLYPH_STROKE_CSS, OBJECT_STROKE_CSS, ROOF_ICON_OPACITY_CSS, STANDING_CSS } from './icon-camera.ts'
 import { COLOR_EDGE, COLOR_STRENGTH, FACADE_MARK, ICON_ACCENT_TONE, ICON_INK, ICON_TONE, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
 import type { Level } from './scale.ts'
 import { mark, node, type SvgNode } from './svg.ts'
@@ -115,11 +115,16 @@ const COLORED_LEVELS = [
 ] as const
 
 /**
- * An authored color replaces the ink in its element's surface tints, at a stronger share, and tints its outline.
- * The browser sets four --tint-* variables on the element that the surface and stroke rules read, so selection, lit,
- * draft and comparison rules keep working. Each zone resets the slab's tints and can set its own.
- * A cover has no variables and no states, so it gets the same values as plain rules.
+ * An authored color replaces the ink in its element's surface tints, at a stronger share, tints its outline and
+ * becomes the accent of its icon. The browser sets the AUTHORED_COLOR variables on the element, which the surface,
+ * stroke and icon rules read, so selection, lit, draft and comparison rules keep working. Each zone resets the
+ * slab's variables and can set its own. A cover has no variables and no states, so it gets the same values as plain rules.
  */
+/** The variables an authored color sets on its element; --icon-accent is the color itself, for the icon's accent. */
+const AUTHORED_COLOR = ['--tint-top', '--tint-right', '--tint-left', '--tint-edge', '--icon-accent'] as const
+/** Declarations that take an authored color off an element again: a zone inside a colored slab, or everything while comparing. */
+const NO_AUTHORED_COLOR = AUTHORED_COLOR.map(name => `${name}: initial;`).join(' ')
+
 function authoredColours(palette?: Palette): string {
   return COLOR_NAMES.flatMap(name => COLORED_LEVELS.map(({ kind, own, top }) => {
     const element = `#map .${kind}[data-color="${name}"]`
@@ -148,15 +153,15 @@ function authoredColours(palette?: Palette): string {
 function accentRules(scope: string, color: string, tint: (share: number) => string): string {
   return `${scope} .icon-accent { stroke: ${color}; }
     ${scope} .icon-accent.icon-top, ${scope} .icon-accent.icon-screen { fill: ${tint(ICON_ACCENT_TONE.top)}; }
-    ${scope} .icon-accent.icon-east { fill: ${tint(ICON_ACCENT_TONE.east)}; }
-    ${scope} .icon-accent.icon-south { fill: ${tint(ICON_ACCENT_TONE.south)}; }
+    ${scope} .icon-accent.icon-right { fill: ${tint(ICON_ACCENT_TONE.right)}; }
+    ${scope} .icon-accent.icon-left { fill: ${tint(ICON_ACCENT_TONE.left)}; }
     ${scope} .icon-accent.icon-solid { fill: ${color}; }`
 }
 
 /**
  * An icon's parts have their own classes, so no rule for a building, slab or island reaches them. The object is
  * a fine line drawing: quiet lines a little brighter than the map's outlines, over faces a little off paper that
- * are shaded by the way they are turned. Its accent is drawn in ink. In the browser an element with an authored
+ * are shaded like a building's, by the side they are turned to. Its accent is drawn in ink. In the browser an element with an authored
  * color hands that color to the accent through --icon-accent; the rest of the object stays neutral. The glyph is
  * ink lines.
  */
@@ -173,8 +178,8 @@ function iconCss(palette?: Palette): string {
     ${palette === undefined ? 'stroke-width: var(--icon-stroke);' : ''}
   }
   #map .icon-top { fill: ${paintTint(ICON_TONE.top, palette)}; }
-  #map .icon-east { fill: ${paintTint(ICON_TONE.east, palette)}; }
-  #map .icon-south { fill: ${paintTint(ICON_TONE.south, palette)}; }
+  #map .icon-right { fill: ${paintTint(ICON_TONE.right, palette)}; }
+  #map .icon-left { fill: ${paintTint(ICON_TONE.left, palette)}; }
   #map .icon-screen { fill: ${palette?.paper ?? 'var(--paper)'}; }
   #map .icon-line { fill: none; }
   #map .icon-solid { fill: ${line}; }
@@ -183,14 +188,16 @@ function iconCss(palette?: Palette): string {
 }
 
 /**
- * How live icons follow the camera; icon-camera.ts holds each rule beside the function a still image uses.
- * --icon-zoom is a landmark's enlargement and 1 for every other icon.
+ * How live icons follow the view and the camera; icon-camera.ts holds each scale rule beside the function a still
+ * image uses. --icon-standing is the share of the standing object: 1 for a roof's icon, and for a title's icon
+ * what the camera scale leaves of it. --icon-flat is how flat the view is; the painter sets it. The glyph shows
+ * as far as the object does not.
  */
 const iconCameraCss = `
-  #map .icon { --icon-zoom: 1; --icon-stroke: ${OBJECT_STROKE_CSS}; opacity: ${SMALL_ICON_OPACITY_CSS}; }
-  #map .icon.landmark { --icon-zoom: ${LANDMARK_ZOOM_CSS}; opacity: 1; }
-  #map .icon.landmark > g { transform: scale(var(--icon-zoom)); }
-  #map .icon-glyph { --icon-stroke: ${GLYPH_STROKE_CSS}; }
+  #map .icon { --icon-standing: 1; --icon-stroke: ${OBJECT_STROKE_CSS}; opacity: ${ROOF_ICON_OPACITY_CSS}; }
+  #map .icon.title { --icon-standing: ${STANDING_CSS}; opacity: 1; }
+  #map .icon-object { opacity: calc((1 - var(--icon-flat, 0)) * var(--icon-standing)); }
+  #map .icon-glyph { --icon-stroke: ${GLYPH_STROKE_CSS}; opacity: calc(1 - (1 - var(--icon-flat, 0)) * var(--icon-standing)); }
   #map .icon-detail { opacity: ${DETAIL_OPACITY_CSS}; }
 `
 
@@ -212,7 +219,7 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .sheet { pointer-events: none; ${stroke('island', palette, zoom)} }
   #map .calibration-tick, #map .compass, #map .project-plate { ${stroke('building', palette, zoom)} }
   /* zones lie inside slab groups: they keep their own weight while the slab is hovered or selected, and never take its authored color */
-  #map .zone { ${stroke('building', palette, zoom)} --emphasis: 1; ${palette === undefined ? '--tint-top: initial; --tint-right: initial; --tint-left: initial; --tint-edge: initial; --icon-accent: initial;' : ''} }
+  #map .zone { ${stroke('building', palette, zoom)} --emphasis: 1; ${palette === undefined ? NO_AUTHORED_COLOR : ''} }
   #map .island { ${stroke('island', palette, zoom)} }
   #map .slab { ${stroke('slab', palette, zoom)} }
   #map .building { ${stroke('building', palette, zoom)} }
@@ -368,7 +375,7 @@ export const mapCss = `
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) .face { stroke: color-mix(in srgb, var(--highlight) 45%, var(--map-line)); }
   body:not([data-comparison]) #map .camera:has(.component-focus) .building.component:not(.component-focus):not(.neighbor) { opacity: 0.3; }
   /* Color means change while comparing, so authored colors step aside. */
-  body[data-comparison] #map [data-color] { --tint-top: initial; --tint-right: initial; --tint-left: initial; --tint-edge: initial; }
+  body[data-comparison] #map [data-color] { ${NO_AUTHORED_COLOR} }
   body[data-comparison] #map .building:not([data-change]):not(.selected):not(.component-focus):not(.neighbor),
   body[data-comparison] #map .route:not([data-change]):not(.route-base):not(.selected):not(.endpoint):not(.lit) { opacity: .4; }
   body[data-comparison] #map .route-base { opacity: .4; }

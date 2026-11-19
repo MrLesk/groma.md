@@ -99,7 +99,7 @@ function zoneGroup({ zone, polygon, text }: ProjectedZone, view: ProjectionView,
   return node('g', attributes, 'zone', [
     node('polygon', { points }, 'ground'),
     node('polygon', { points }, 'pattern'),
-    ...surfaceTitle(text, GROUP_FONT, view, 0, zoom, { name: zone.icon, landmark: false }, still),
+    ...surfaceTitle(text, GROUP_FONT, view, 0, zoom, zone.icon, still),
   ])
 }
 
@@ -115,7 +115,7 @@ export function islandsSvg(scene: ProjectedScene, zoom = 1, still?: Still): SvgN
       return node('g', attributes, `island ${island.kind}`, [
         node('polygon', { points: pointsAttribute(polygon) }, 'ground'),
         ...(island.kind === 'system' ? [] : [node('polygon', { points: pointsAttribute(polygon) }, 'pattern')]),
-        ...surfaceTitle(text, ISLAND_FONT, scene.view, ISLAND_SPACING, zoom, { name: island.element?.icon, landmark: true }, still),
+        ...surfaceTitle(text, ISLAND_FONT, scene.view, ISLAND_SPACING, zoom, island.element?.icon, still),
       ])
     }),
     ...scene.zones.filter(zone => scene.islands.some(item => item.island.key === zone.zone.parent))
@@ -131,7 +131,7 @@ export function slabsSvg(scene: ProjectedScene, zoom = 1, still?: Still): SvgNod
     return node('g', { 'aria-label': slab.title, 'data-id': slab.representationId, ...colorAttribute(slab) }, `slab${ghost}`, [
       ...faces.map(face => node('polygon', { points: pointsAttribute(face.points) }, `face ${face.side}`)),
       node('polygon', { points: pointsAttribute(top.points) }, 'pattern'),
-      ...surfaceTitle(text, CONTAINER_FONT, scene.view, 0, zoom, { name: slab.icon, landmark: true }, still),
+      ...surfaceTitle(text, CONTAINER_FONT, scene.view, 0, zoom, slab.icon, still),
       ...scene.zones.filter(zone => zone.zone.parent === slab.representationId)
         .map(zone => zoneGroup(zone, scene.view, zoom, still)),
     ])
