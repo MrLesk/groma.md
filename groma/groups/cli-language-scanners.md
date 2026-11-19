@@ -19,3 +19,4 @@ groma:
 - [r-src-index](../systems/groma-md/containers/cli/components/r-src-index.md)
 - [ruby-src-index](../systems/groma-md/containers/cli/components/ruby-src-index.md)
 - [scala-src-index](../systems/groma-md/containers/cli/components/scala-src-index.md)
+- [elixir-src-index](../systems/groma-md/containers/cli/components/elixir-src-index.md)
