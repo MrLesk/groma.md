@@ -1,5 +1,5 @@
 import type { AnnotatedGroup, ArchitectureGraph } from '../../../types.ts'
-import { heading, paragraph } from '../atoms/text.ts'
+import { heading, paintPaneTitle, paragraph } from '../atoms/text.ts'
 import { tagRow } from '../tags/tag-row.ts'
 import { groupEditEntry } from './commands.ts'
 import { elementLinks } from './details.ts'
@@ -20,7 +20,7 @@ export function paintGroup(
   // An open Edit view stays across repaints while the pane may write. On another revision it gives way to reading.
   if (writes !== undefined && isWriteViewOpen(host, group.id)) return
   host.querySelector('.meta')!.textContent = 'Group'
-  host.querySelector('h1')!.textContent = group.title
+  paintPaneTitle(host.querySelector('h1')!, group.title, group.icon)
   host.querySelector('.tabs')!.replaceChildren()
   const body = host.querySelector('.body')!
   body.replaceChildren()

@@ -33,7 +33,7 @@ of writing guesses. Optional fields need content only when they add meaning.
 | --- | --- | --- |
 | `groma edit <id>` | an actor, system, external system, container, or component ID | `--title`, `--description`, `--overview`, `--technology`, `--add-tags`, `--remove-tags`, `--color`, `--icon` |
 | `groma edit <id> <ids...>` | several element IDs | `--add-tags`, `--remove-tags`, `--color`, `--icon` |
-| `groma edit <group-id>` | a group ID | `--title`, `--description`, `--overview`, `--add-tags`, `--remove-tags` |
+| `groma edit <group-id>` | a group ID | `--title`, `--description`, `--overview`, `--add-tags`, `--remove-tags`, `--color`, `--icon` |
 | `groma edit <flow-id>` | a flow ID | `--title`, `--description`, `--overview`, `--steps`, `--add-tags`, `--remove-tags` |
 | `groma edit <draft-id>` | a draft ID | `--title`, `--overview` |
 | `groma edit project` | the word `project`, meaning the project record | `--title`, `--description`, `--overview` |
@@ -49,7 +49,7 @@ keeps those elements and their parents on include. Excluding a group tag removes
 the group and its members. Excluding a flow tag removes the flow and leaves its
 ends eligible.
 `--color` and `--icon` each take one of the names
-`groma edit --help` lists and only change how the element looks on the map; set
+`groma edit --help` lists and only change how the element or group looks on the map; set
 them when the user asks for it. `groma view` has no `project` target: the project record is
 `<groma-root>/project.md`. Read that file, and change it only through
 `groma edit project`.

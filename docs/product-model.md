@@ -117,7 +117,7 @@ operation before opening a map.
      `--add-tags` and `--remove-tags` changes to their [OKF tags](component-markdown.md#tags)
      (a group and a flow take them too),
      `--color` for their [map color](component-markdown.md#colors), and `--icon`
-     for their [map icon](component-markdown.md#icons). An empty color or icon
+     for their [map icon](component-markdown.md#icons) (a group takes these two as well). An empty color or icon
      clears it. The web map's [Edit form](viewers/web/index.md#reading-and-editing)
      offers tags, color and icon for one element or several. On one element it
      also offers title, description, overview and technology. Save posts one

@@ -20,9 +20,9 @@ export function roofName(text: SurfaceText, size: number, view: ProjectionView, 
 }
 
 /**
- * A surface's title in its front band, with its icon standing before it. The icon grows with the title's zoom
- * step, which `zoom` picks, and is a landmark: it stands on open ground, so it may be enlarged to stay readable.
- * `still` is as for roofName.
+ * A surface's title and icon share one slot layout in its front band. Both follow the title's zoom step.
+ * `icon.landmark` is the caller's choice between the two kinds of icon in icon-camera.ts: a landmark may grow
+ * beyond its slot to stay readable, any other icon stays in its slot. `still` is as for roofName.
  */
 export function surfaceTitle(
   text: SurfaceLabel,
@@ -30,11 +30,13 @@ export function surfaceTitle(
   view: ProjectionView,
   spacing: number,
   zoom: number,
-  icon?: IconName,
+  icon: { name?: IconName; landmark: boolean },
   still?: Still,
 ): SvgNode[] {
-  const label = surfaceLabel(text, size, view, spacing, zoom, icon !== undefined)
-  if (icon === undefined) return [label]
-  const slot = surfaceLabelLayout(text, size, zoom, view, true).icon
-  return [label, iconSvg({ name: icon, corner: onPlane(text.origin, slot.x, slot.y, view), side: slot.side, landmark: true }, view, still)]
+  const layout = surfaceLabelLayout(text, size, zoom, view, icon.name !== undefined)
+  const label = surfaceLabel(text, layout, view, spacing)
+  if (icon.name === undefined) return [label]
+  const slot = layout.icon
+  const corner = onPlane(text.origin, slot.x, slot.y, view)
+  return [label, iconSvg({ name: icon.name, corner, side: slot.side, landmark: icon.landmark }, view, still)]
 }

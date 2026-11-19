@@ -21,13 +21,10 @@ import { createFlowList } from '../flow/list.ts'
 import type { CodeFile } from '../../source/structure.ts'
 import { paintElementWork } from '../work/component-tasks.ts'
 import { codeList } from './code-lists.ts'
-import { colorChoices } from './color-swatches.ts'
-import { iconChoices } from './icon-picker.ts'
-import { glyphElement } from '../icons/glyph-element.ts'
 import type { IconName } from '../../../icons.ts'
 import { factRow } from '../atoms/fact-row.ts'
-import { heading, paragraph } from '../atoms/text.ts'
-import { acceptEntry, addComponentEntry, editEntry, removeEntry, type EditField } from './commands.ts'
+import { heading, paintPaneTitle, paragraph } from '../atoms/text.ts'
+import { acceptEntry, addComponentEntry, colorAndIconFields, editEntry, removeEntry, type EditField } from './commands.ts'
 import { isWriteViewOpen, paintWriteEntries, type WriteEntry } from './write-view.ts'
 import { tagRow } from '../tags/tag-row.ts'
 import type { PaneWrites, ParentOption } from './writes.ts'
@@ -328,7 +325,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
   const meta = host.querySelector('.meta')!
   const tabsHost = host.querySelector<HTMLElement>('.tabs')!
   const body = host.querySelector('.body')!
-  title.replaceChildren(...(inspected.icon === '' ? [] : [glyphElement(inspected.icon, 20)]), inspected.title)
+  paintPaneTitle(title, inspected.title, inspected.icon)
   meta.textContent = `${inspected.kindLabel} · ${inspected.origin}`
 
   const change = options.comparison?.components[inspected.id]
@@ -446,12 +443,6 @@ function elementFields(inspected: Inspected, parents: readonly ParentOption[], t
   ]
 }
 
-/** A shared empty value selects "none". Different values leave every radio button unchecked. */
-function sharedChoice(values: readonly (string | undefined)[]): string | undefined {
-  const first = values[0] ?? ''
-  return values.every(value => (value ?? '') === first) ? first : undefined
-}
-
 /**
  * Tags, Color and Icon are the fields a person can edit on one element or on a selection. The core decides
  * which fields several elements take (`fieldsOfSeveralElements` in src/edit.ts); a field added only here is refused on Save.
@@ -461,7 +452,6 @@ export function sharedElementFields(
 ): EditField[] {
   return [
     { label: 'Tags', carried: carriedTags(records), recordCount: records.length, suggestions: tagsInUse },
-    { name: 'color', label: 'Color', value: sharedChoice(records.map(record => record.color)), choices: colorChoices() },
-    { name: 'icon', label: 'Icon', value: sharedChoice(records.map(record => record.icon)), choices: iconChoices() },
+    ...colorAndIconFields(records),
   ]
 }

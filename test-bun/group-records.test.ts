@@ -49,12 +49,24 @@ test.concurrent('a group is one record that lists its members, and its commands 
     expect(membership(await loadAnnotatedArchitecture(root))).toEqual({ [added.id]: ['orders', 'stock'] })
 
     await writes.edit(root, { id: added.id, addTags: 'checkout, internal' })
-    await writes.edit(root, { id: added.id, title: 'Order checks', description: 'What runs before an order.', overview: 'Both run first.', removeTags: 'internal' })
-    await expect(writes.edit(root, { id: added.id, title: 'Checks', color: 'blue' })).rejects.toThrow()
+    await writes.edit(root, {
+      id: added.id, title: 'Order checks', description: 'What runs before an order.', overview: 'Both run first.',
+      removeTags: 'internal', color: 'blue', icon: 'board',
+    })
+    // An unknown name is refused and leaves the stored color as it was.
+    await expect(writes.edit(root, { id: added.id, color: 'sky' })).rejects.toThrow()
     await writes.edit(root, { id: 'orders', ungroup: true })
     const edited = await loadAnnotatedArchitecture(root)
-    expect(edited.groups).toEqual([{ id: added.id, title: 'Order checks', description: 'What runs before an order.', overview: 'Both run first.', tags: ['checkout'] }])
+    expect(edited.groups).toEqual([{
+      id: added.id, title: 'Order checks', description: 'What runs before an order.', overview: 'Both run first.',
+      tags: ['checkout'], color: 'blue', icon: 'board',
+    }])
     expect(membership(edited)).toEqual({ [added.id]: ['stock'] })
+
+    await writes.edit(root, { id: added.id, color: '', icon: '' })
+    const cleared = (await loadAnnotatedArchitecture(root)).groups[0]!
+    expect(cleared).not.toHaveProperty('color')
+    expect(cleared).not.toHaveProperty('icon')
 
     // Grouping under a title the container already has joins that group, as Group as does in the web map.
     const rejoined = await writes.add(root, { thing: 'group', name: 'Order checks', members: ['orders'] }) as StructuralResult

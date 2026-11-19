@@ -344,10 +344,10 @@ value is never stored. No name is green, because green marks selection and lit
 flows. [`src/colors.ts`](../src/colors.ts) holds the list.
 
 `groma edit <id> --color violet` sets the color of an actor, system, external
-system, container, or component, and an empty value removes it. In the web map
-the Edit form of an element offers the same names as its Color field. Nothing is
+system, container, component, or group, and an empty value removes it. In the web map
+the Edit form offers the same names as its Color field. Nothing is
 colored automatically, a color is not inherited by what the element contains,
-and scans keep it. A [group](#groups) record carries no color.
+and scans keep it. The color on a [group](#groups) record marks its zone, and each member keeps its own color.
 
 ### Icons
 
@@ -376,11 +376,11 @@ parts and people, never a vendor or a programming language:
 | Other | `repository`, `package`, `cloud`, `lock`, `mail`, `chart`, `board` |
 
 [`src/icons.ts`](../src/icons.ts) holds the list. `groma edit <id> --icon
-database` sets the icon of an actor, system, external system, container, or
-component, and an empty value removes it. In the web map the Edit form of an
-element offers the same names as its Icon field. No icon is assigned
+database` sets the icon of an actor, system, external system, container,
+component, or group, and an empty value removes it. In the web map the Edit
+form offers the same names as its Icon field. No icon is assigned
 automatically, an icon is not inherited by what the element contains, and scans
-keep it. A [group](#groups) record carries no icon.
+keep it. The icon on a [group](#groups) record stands before its zone's name, and each member keeps its own icon.
 
 The [web map](viewers/web/index.md) draws each name twice: as a small object
 standing beside the element's name in the tilted views, and as a flat glyph in
@@ -613,7 +613,7 @@ never do, and scans keep them. A group is an OKF concept with type
 `Groma Group`, stored at `<groma-root>/groups/<id>.md`. It is not a C4 element
 and not another containment level: it never becomes a parent, owns no Code
 references, and is never a relationship end. The maps draw it as a zone around
-its members. A group may carry `tags` in its front matter.
+its members. A group may carry `tags`, `groma.color`, and `groma.icon` in its front matter.
 Click the zone on the web map to select the group and use **Edit** in its pane on a live current map.
 
 ```markdown
@@ -661,7 +661,7 @@ have a group of the same name. `--description` and `--overview` add its
 meaning. When the container already has a group with exactly this title, the
 components join that group instead, which is how Group in the web map adds
 to an existing group. `groma edit <group-id>` accepts `--title`, `--description`,
-`--overview`, `--add-tags`, and `--remove-tags`. `groma edit <component-id> --group <group-id>` puts a component
+`--overview`, `--add-tags`, `--remove-tags`, `--color`, and `--icon`. `groma edit <component-id> --group <group-id>` puts a component
 in an existing group and takes it out of the group it was in; `--ungroup` only
 takes it out. `groma remove <group-id>` deletes the record and leaves its
 members in place. `groma view <group-id>` prints the record.

@@ -5,7 +5,6 @@ import { planeMatrix } from '../projection/project.ts'
 import type { Still } from './icon-camera.ts'
 import { surfaceTitle } from './names.ts'
 import { colorAttribute, node, pointsAttribute, round, type SvgNode } from './svg.ts'
-import { surfaceLabel } from './text.ts'
 
 function pathOf(segments: readonly Segment[]): string {
   return segments.map(segment =>
@@ -91,14 +90,16 @@ export function sheetSvg(scene: ProjectedScene): SvgNode[] {
  * `data-group`, not `data-id`, so a gesture that needs the element under the pointer still finds the
  * container the zone lies on. The zone of the placement group carries `data-id`, as an element does.
  */
-function zoneGroup(zone: ProjectedZone, view: ProjectionView, zoom: number): SvgNode {
-  const attributes: Record<string, string> = { 'data-zone': zone.zone.key }
-  if (zone.zone.unidentifiedContainer) attributes['data-id'] = zone.zone.key
-  if (zone.zone.groupId !== undefined) attributes['data-group'] = zone.zone.groupId
-  if (zone.zone.unidentifiedContainer || zone.zone.groupId !== undefined) attributes['aria-label'] = zone.zone.name
+function zoneGroup({ zone, polygon, text }: ProjectedZone, view: ProjectionView, zoom: number, still?: Still): SvgNode {
+  const attributes: Record<string, string> = { 'data-zone': zone.key, ...colorAttribute(zone) }
+  if (zone.unidentifiedContainer) attributes['data-id'] = zone.key
+  if (zone.groupId !== undefined) attributes['data-group'] = zone.groupId
+  if (zone.unidentifiedContainer || zone.groupId !== undefined) attributes['aria-label'] = zone.name
+  const points = pointsAttribute(polygon)
   return node('g', attributes, 'zone', [
-    node('polygon', { points: pointsAttribute(zone.polygon) }, 'ground'),
-    surfaceLabel(zone.text, GROUP_FONT, view, 0, zoom),
+    node('polygon', { points }, 'ground'),
+    node('polygon', { points }, 'pattern'),
+    ...surfaceTitle(text, GROUP_FONT, view, 0, zoom, { name: zone.icon, landmark: false }, still),
   ])
 }
 
@@ -114,11 +115,11 @@ export function islandsSvg(scene: ProjectedScene, zoom = 1, still?: Still): SvgN
       return node('g', attributes, `island ${island.kind}`, [
         node('polygon', { points: pointsAttribute(polygon) }, 'ground'),
         ...(island.kind === 'system' ? [] : [node('polygon', { points: pointsAttribute(polygon) }, 'pattern')]),
-        ...surfaceTitle(text, ISLAND_FONT, scene.view, ISLAND_SPACING, zoom, island.element?.icon, still),
+        ...surfaceTitle(text, ISLAND_FONT, scene.view, ISLAND_SPACING, zoom, { name: island.element?.icon, landmark: true }, still),
       ])
     }),
     ...scene.zones.filter(zone => scene.islands.some(item => item.island.key === zone.zone.parent))
-      .map(zone => zoneGroup(zone, scene.view, zoom)),
+      .map(zone => zoneGroup(zone, scene.view, zoom, still)),
   ]
 }
 
@@ -130,9 +131,9 @@ export function slabsSvg(scene: ProjectedScene, zoom = 1, still?: Still): SvgNod
     return node('g', { 'aria-label': slab.title, 'data-id': slab.representationId, ...colorAttribute(slab) }, `slab${ghost}`, [
       ...faces.map(face => node('polygon', { points: pointsAttribute(face.points) }, `face ${face.side}`)),
       node('polygon', { points: pointsAttribute(top.points) }, 'pattern'),
-      ...surfaceTitle(text, CONTAINER_FONT, scene.view, 0, zoom, slab.icon, still),
+      ...surfaceTitle(text, CONTAINER_FONT, scene.view, 0, zoom, { name: slab.icon, landmark: true }, still),
       ...scene.zones.filter(zone => zone.zone.parent === slab.representationId)
-        .map(zone => zoneGroup(zone, scene.view, zoom)),
+        .map(zone => zoneGroup(zone, scene.view, zoom, still)),
     ])
   })
 }

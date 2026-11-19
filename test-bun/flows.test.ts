@@ -93,3 +93,14 @@ test.concurrent('flow authoring edits steps and blocks removal of referenced end
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test.concurrent('a flow takes no color: the edit is refused, and the same wording alone is stored', async () => {
+  await withFixture(fixture, async root => {
+    const { flows } = await loadAnnotatedArchitecture(root)
+    const wording = { id: flows[0]!.id, title: 'Revised flow' }
+    await expect(writes.edit(root, { ...wording, color: 'blue' })).rejects.toThrow()
+    await writes.edit(root, wording)
+    expect((await loadAnnotatedArchitecture(root)).flows[0]!.title).toBe('Revised flow')
+  })
+})
+
