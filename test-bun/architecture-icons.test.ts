@@ -1,15 +1,15 @@
 import { expect, test } from 'bun:test'
 import type { IconName } from '../src/icons.ts'
-import { COMPONENT_FONT, roofIconSlot } from '../src/sheet/measure.ts'
+import { COMPONENT_FONT, CONTAINER_FONT, GROUP_FONT, ICON_SIDE, ISLAND_FONT, PLANE, TITLE_ICON_CLEARANCE, labelBand, roofIconSlot } from '../src/sheet/measure.ts'
 import { sheetScene } from '../src/sheet/scene.ts'
 import type { AnnotatedElement, ArchitectureGraph, C4Kind } from '../src/types.ts'
 import { iconObjects } from '../src/viewers/web/icons/objects.ts'
-import { box, cylinder, type IconPart } from '../src/viewers/web/icons/parts.ts'
+import { box, cylinder } from '../src/viewers/web/icons/parts.ts'
 import { buildingsSvg } from '../src/viewers/web/iso/painting/buildings.ts'
 import { slabsSvg } from '../src/viewers/web/iso/painting/ground.ts'
-import { solidFaces } from '../src/viewers/web/iso/painting/icon-faces.ts'
+import { boundsOf, prismFaces } from '../src/viewers/web/iso/painting/icon-faces.ts'
 import type { SvgNode } from '../src/viewers/web/iso/painting/svg.ts'
-import { DEFAULT_PROJECTION, projectScene } from '../src/viewers/web/iso/projection/project.ts'
+import { CELL_HEIGHT, DEFAULT_PROJECTION, projectScene } from '../src/viewers/web/iso/projection/project.ts'
 
 function element(id: string, kind: C4Kind, parent: string | null, children: string[], icon?: IconName): AnnotatedElement {
   return {
@@ -53,38 +53,52 @@ test.concurrent('a roof name starts after its icon slot, and the building grows 
   expect(scene.buildings[0]!.building.rect.w).toBeGreaterThan(plain.rect.w)
 })
 
-test.concurrent('a container icon is a landmark and a component icon is not', () => {
-  const scene = projectScene(sheetScene(world({ container: 'browser', component: 'database' })))
-  expect(iconOf(slabsSvg(scene)[0]!)!.attributes.class).toBe('icon landmark')
-  expect(iconOf(buildingsSvg(scene)[0]!)!.attributes.class).toBe('icon')
-})
-
-/** The ground rectangle a part stands on, as its two opposite corners. */
-function groundCorners(part: IconPart): number[][] {
-  if (part.shape === 'ball') return [[part.x - part.r, part.y - part.r], [part.x + part.r, part.y + part.r]]
-  if (part.axis === 'z') return part.outline.map(([x, y]) => [x, y])
-  const across = part.outline.map(([a]) => a)
-  const along = [part.from, part.from + part.length]
-  return part.axis === 'y'
-    ? [[Math.min(...across), Math.min(...along)], [Math.max(...across), Math.max(...along)]]
-    : [[Math.min(...along), Math.min(...across)], [Math.max(...along), Math.max(...across)]]
+function hasClass(item: SvgNode, name: string): boolean {
+  return item.attributes.class?.split(' ').includes(name) ?? false
 }
+
+test.concurrent('a title icon can lie flat beside its title while the map is tilted, and a roof icon cannot', () => {
+  const scene = projectScene(sheetScene(world({ container: 'browser', component: 'database' })))
+  const lying = (icon: SvgNode): boolean => childrenOf(icon).some(child => hasClass(child, 'icon-glyph'))
+  expect(lying(iconOf(slabsSvg(scene)[0]!)!)).toBe(true)
+  expect(lying(iconOf(buildingsSvg(scene)[0]!)!)).toBe(false)
+})
 
 test.concurrent('every icon object stays inside its footprint, so it never stands on the name beside it', () => {
   for (const [name, parts] of Object.entries(iconObjects)) {
     for (const part of parts) {
-      for (const [x, y] of groundCorners(part)) {
-        expect(x! >= -1e-9 && x! <= 1 + 1e-9 && y! >= -1e-9 && y! <= 1 + 1e-9, `${name} leaves its footprint at ${x}, ${y}`).toBe(true)
+      const { min, max } = boundsOf(part)
+      for (const [x, y] of [min, max]) {
+        expect(x >= -1e-9 && x <= 1 + 1e-9 && y >= -1e-9 && y <= 1 + 1e-9, `${name} leaves its footprint at ${x}, ${y}`).toBe(true)
       }
     }
   }
 })
 
-test.concurrent('a solid shows the faces turned to the reader, and a curved wall is one face', () => {
-  expect(solidFaces(box(0, 0, 0, 1, 1, 1), DEFAULT_PROJECTION).map(face => face.tone).sort()).toEqual(['east', 'south', 'top'])
-  // Seen from the opposite side the box still shows two walls and its top: the north and west ones.
-  const behind = solidFaces(box(0, 0, 0, 1, 1, 1), { ...DEFAULT_PROJECTION, yaw: DEFAULT_PROJECTION.yaw + 180 })
+test.concurrent('no icon object covers the surface behind its title, and every title band holds the slot with its clear ground', () => {
+  for (const [name, parts] of Object.entries(iconObjects)) {
+    for (const part of parts) {
+      const { min, max } = boundsOf(part)
+      // In the default view a point at height z hides the ground z * CELL_HEIGHT / 2 slot sides behind it.
+      const reach = max[2] * CELL_HEIGHT / 2 - min[1]
+      expect(reach, `${name} reaches ${reach.toFixed(2)} slot sides behind its slot`).toBeLessThanOrEqual(TITLE_ICON_CLEARANCE)
+    }
+  }
+  for (const font of [GROUP_FONT, CONTAINER_FONT, ISLAND_FONT]) {
+    expect(labelBand(font) * PLANE).toBeGreaterThanOrEqual(ICON_SIDE * (TITLE_ICON_CLEARANCE + 1))
+  }
+})
+
+test.concurrent('a prism shows the faces turned to the reader, and a curved wall is one face', () => {
+  const cube = box(0, 0, 0, 1, 1, 1)
+  const touches = (faces: ReturnType<typeof prismFaces>, corner: readonly number[]): boolean =>
+    faces.flatMap(face => face.points).some(point => point.every((value, axis) => value === corner[axis]))
+  const front = prismFaces(cube, DEFAULT_PROJECTION)
+  expect(front.map(face => face.tone).sort()).toEqual(['left', 'right', 'top'])
+  // The reader stands past the corner (1, 1, 0) and never sees the far corner (0, 0, 0); from the opposite side it is the other way round.
+  expect(touches(front, [0, 0, 0])).toBe(false)
+  const behind = prismFaces(cube, { ...DEFAULT_PROJECTION, yaw: DEFAULT_PROJECTION.yaw + 180 })
   expect(behind).toHaveLength(3)
-  expect(behind.flatMap(face => face.points).some(([x, y, z]) => x === 1 && y === 1 && z === 0)).toBe(false)
-  expect(solidFaces(cylinder(0.5, 0.5, 0.5, 0, 1), DEFAULT_PROJECTION)).toHaveLength(2)
+  expect(touches(behind, [1, 1, 0])).toBe(false)
+  expect(prismFaces(cylinder(0.5, 0.5, 0.5, 0, 1), DEFAULT_PROJECTION)).toHaveLength(2)
 })

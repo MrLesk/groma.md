@@ -19,16 +19,19 @@ export const ISLAND_SPACING = 0.14
 export const CONTAINER_FONT = 36
 export const GROUP_FONT = 28
 
-/** An icon stands in a square slot before its element's name: this many font sizes wide on a roof. */
-const ROOF_ICON_RATIO = 2.25
-/** The smallest roof slot in plane pixels, so an actor's small name still gets a readable icon. */
-const MIN_ROOF_ICON = 30
-/** The slot before a surface's title in its front band, in font sizes; the band's depth caps it at the largest titles. */
-export const TITLE_ICON_RATIO = 2
+/**
+ * Every icon stands in a square slot of this side in plane pixels, on a roof or before a title, so icons are one
+ * size wherever they stand. Three cells: a title's icon keeps the same room again between its slot and its
+ * surface (TITLE_ICON_CLEARANCE), and both together still fit the shallowest title band, a group's.
+ */
+export const ICON_SIDE = 3 * PLANE
+/**
+ * Slot sides of clear ground a title's icon keeps on the side of its surface. An object covers the ground behind
+ * it on screen; no object reaches further than this, so a title's icon never covers its surface or what stands on it.
+ */
+export const TITLE_ICON_CLEARANCE = 1
 /** The gap between a slot and the name, in font sizes. */
-const ICON_GAP_RATIO = 0.4
-/** Font sizes a title's icon slot and its gap take before the title. */
-export const TITLE_ICON_LEAD = TITLE_ICON_RATIO + ICON_GAP_RATIO
+export const ICON_GAP_RATIO = 0.4
 
 /** A roof line wider than this wraps, when the name has a space to wrap at. */
 const MAX_LINE_CELLS = 4
@@ -69,8 +72,7 @@ export function buildingFont(element: Pick<AnnotatedElement, 'kind' | 'external'
  */
 export function roofIconSlot(size: number): { x: number; y: number; side: number; lead: number } {
   const padding = textPadding(size)
-  const side = Math.max(MIN_ROOF_ICON, ROOF_ICON_RATIO * size)
-  return { x: padding, y: padding / 2, side, lead: side + Math.ceil(size * ICON_GAP_RATIO) }
+  return { x: padding, y: padding / 2, side: ICON_SIDE, lead: ICON_SIDE + Math.ceil(size * ICON_GAP_RATIO) }
 }
 
 /** Roof insets and line spacing grow with the title size. */
@@ -92,9 +94,12 @@ export function labelBand(size: number): number {
   return Math.ceil(labelHeight(size * 3) / PLANE)
 }
 
+/** Plane pixels a title's icon needs along its band before the gap to the title: its clear ground, then its slot. */
+export const TITLE_ICON_ROOM = ICON_SIDE * (TITLE_ICON_CLEARANCE + 1)
+
 /** Cells a surface needs along +gx so its own name, and its icon when it has one, fit in its front band. */
 export function nameCells(name: string, size: number, spacing = 0, icon = false): number {
-  const lead = icon ? TITLE_ICON_LEAD * size : 0
+  const lead = icon ? TITLE_ICON_ROOM + size * ICON_GAP_RATIO : 0
   return Math.ceil((textWidth(name, size, spacing) + lead + 2 * SURFACE_PAD) / PLANE)
 }
 

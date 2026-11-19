@@ -3,25 +3,25 @@
  * map's gx (towards the east corner), y along gy (towards the west corner), z is up, all in one unit.
  * In the default view the reader sees every part's top, its wall towards +x (east) and its wall towards +y (south).
  *
- * An object is drawn in quiet lines. One part or mark of it is the accent: the thing that says what the object
- * is, such as a database's top disc or a terminal's prompt. The accent is drawn in ink, or in the color its
- * element was given.
+ * An object is drawn in quiet lines. Its accent is the one thing that says what the object is, such as a
+ * database's top disc or a terminal's prompt: one part, or the few marks that draw that thing. The accent is
+ * drawn in ink, or in the color its element was given.
  */
-export type IconPart = Solid | Ball
+export type IconPart = Prism | Ball
 
-/** The axis a solid's outline is pushed along. */
-export type Axis = 'x' | 'y' | 'z'
+/** The axis a prism's outline is pushed along. */
+export type Axis = 'y' | 'z'
 
 /**
  * A flat outline pushed straight along one axis. Pushed along z it stands upright on its ground outline: a box,
- * a cylinder, a rounded plate. Pushed along y it is an upright panel facing south, pushed along x one facing east.
+ * a cylinder, a rounded plate. Pushed along y it is an upright panel that faces south.
  */
-export interface Solid {
-  shape: 'solid'
+export interface Prism {
+  shape: 'prism'
   axis: Axis
-  /** The outline across the axis, as pairs: x, y for the z axis; x, z for the y axis; y, z for the x axis. */
+  /** The outline across the axis, as pairs: x, y for the z axis; x, z for the y axis. */
   outline: readonly Spot[]
-  /** Where the solid starts on its axis and how far it reaches from there. */
+  /** Where the prism starts on its axis and how far it reaches from there. */
   from: number
   length: number
   marks: readonly IconMark[]
@@ -57,31 +57,31 @@ export interface IconMark {
   accent: boolean
 }
 
-/** The same part or mark as the object's accent. */
+/** The same part or mark as part of the object's accent. */
 export function accent<Item extends IconPart | IconMark>(item: Item): Item {
   return { ...item, accent: true }
 }
 
 /** An upright shape with the ground outline `outline`, from height `z` up by `h`. */
-export function prism(outline: readonly Spot[], z: number, h: number, ...marks: IconMark[]): Solid {
-  return { shape: 'solid', axis: 'z', outline, from: z, length: h, marks, accent: false }
+export function upright(outline: readonly Spot[], z: number, h: number, ...marks: IconMark[]): Prism {
+  return { shape: 'prism', axis: 'z', outline, from: z, length: h, marks, accent: false }
 }
 
-export function box(x: number, y: number, z: number, w: number, d: number, h: number, ...marks: IconMark[]): Solid {
-  return prism(rectangle(x, y, x + w, y + d), z, h, ...marks)
+export function box(x: number, y: number, z: number, w: number, d: number, h: number, ...marks: IconMark[]): Prism {
+  return upright(rectangle(x, y, x + w, y + d), z, h, ...marks)
 }
 
 /** An upright cylinder around (x, y). */
-export function cylinder(x: number, y: number, r: number, z: number, h: number, ...marks: IconMark[]): Solid {
-  return prism(circle(x, y, r), z, h, ...marks)
+export function cylinder(x: number, y: number, r: number, z: number, h: number, ...marks: IconMark[]): Prism {
+  return upright(circle(x, y, r), z, h, ...marks)
 }
 
 /**
  * An upright panel that faces south: its outline is given as x, z pairs, its back is at `y` and it is `d` thick.
  * A screen, a clock face and a cloud are panels.
  */
-export function panel(outline: readonly Spot[], y: number, d: number, ...marks: IconMark[]): Solid {
-  return { shape: 'solid', axis: 'y', outline, from: y, length: d, marks, accent: false }
+export function panel(outline: readonly Spot[], y: number, d: number, ...marks: IconMark[]): Prism {
+  return { shape: 'prism', axis: 'y', outline, from: y, length: d, marks, accent: false }
 }
 
 export function ball(x: number, y: number, z: number, r: number): Ball {
@@ -99,7 +99,7 @@ export function frame(on: MarkFace, outline: readonly Spot[]): IconMark {
 }
 
 /** A small shape filled with the line color, such as a light or a key. */
-export function solid(on: MarkFace, outline: readonly Spot[]): IconMark {
+export function block(on: MarkFace, outline: readonly Spot[]): IconMark {
   return { on, line: outline.flat(), kind: 'solid', accent: false }
 }
 
@@ -127,7 +127,7 @@ export function circle(a: number, b: number, r: number): Spot[] {
   return arc(a, b, r, 0, 360)
 }
 
-/** Degrees between two points drawn along a curve. */
+/** Degrees between two points drawn along a curve. The painter takes a turn of up to twice this for a curve, not an edge. */
 export const ARC_STEP = 15
 
 /** Points along a circle around (a, b) from one angle to another, in degrees; 0 points along +a and 90 along +b. */
@@ -138,5 +138,5 @@ export function arc(a: number, b: number, r: number, from: number, to: number): 
     return [a + r * Math.cos(angle), b + r * Math.sin(angle)] as const
   })
   // A full circle ends where it starts; an outline lists that point once.
-  return Math.abs(to - from) === 360 ? points.slice(0, steps) : points
+  return to - from === 360 ? points.slice(0, steps) : points
 }
