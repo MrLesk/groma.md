@@ -61,10 +61,9 @@ const GATE: Spot[] = [
  * draw that thing. The painter draws parts back to front and a part over whatever it stands on, so their order
  * here does not matter; parts that stand side by side must not overlap.
  *
- * Keep every object inside the 1 × 1 footprint, and low towards its back. An object covers the ground behind it
- * on screen: a part whose top is at height z and whose back is at y covers it up to about 1.22 z - y slot sides
- * behind the slot. Before a title the slot has TITLE_ICON_CLEARANCE slot sides of clear ground there, and a test
- * holds every object to that, so no icon covers its surface.
+ * Keep every object inside the 1 × 1 footprint, and low: an object rises on screen over what lies behind it. The
+ * painter centres the drawing on its name's line, and a test holds every drawing short of what stands on the
+ * surface behind a title.
  */
 export const iconObjects: Record<IconName, readonly IconPart[]> = {
   person: [
@@ -111,13 +110,13 @@ export const iconObjects: Record<IconName, readonly IconPart[]> = {
       line('top', 0.22, 0.78, 0.78, 0.78), line('top', 0.22, 0.86, 0.78, 0.86)),
   ],
   service: [
-    box(0.2, 0.2, 0, 0.6, 0.6, 0.8,
-      line('south', 0.2, 0.2, 0.8, 0.2), line('south', 0.2, 0.4, 0.8, 0.4), line('south', 0.2, 0.6, 0.8, 0.6),
-      accent(light('south', 0.7, 0.1)), accent(light('south', 0.7, 0.3)),
-      accent(light('south', 0.7, 0.5)), accent(light('south', 0.7, 0.7)),
-      line('south', 0.28, 0.1, 0.48, 0.1), line('south', 0.28, 0.3, 0.48, 0.3),
-      line('south', 0.28, 0.5, 0.48, 0.5), line('south', 0.28, 0.7, 0.48, 0.7),
-      line('east', 0.2, 0.2, 0.8, 0.2), line('east', 0.2, 0.4, 0.8, 0.4), line('east', 0.2, 0.6, 0.8, 0.6)),
+    box(0.2, 0.2, 0, 0.6, 0.6, 0.72,
+      line('south', 0.2, 0.18, 0.8, 0.18), line('south', 0.2, 0.36, 0.8, 0.36), line('south', 0.2, 0.54, 0.8, 0.54),
+      accent(light('south', 0.7, 0.09)), accent(light('south', 0.7, 0.27)),
+      accent(light('south', 0.7, 0.45)), accent(light('south', 0.7, 0.63)),
+      line('south', 0.28, 0.09, 0.48, 0.09), line('south', 0.28, 0.27, 0.48, 0.27),
+      line('south', 0.28, 0.45, 0.48, 0.45), line('south', 0.28, 0.63, 0.48, 0.63),
+      line('east', 0.2, 0.18, 0.8, 0.18), line('east', 0.2, 0.36, 0.8, 0.36), line('east', 0.2, 0.54, 0.8, 0.54)),
   ],
   worker: [
     upright(gear(0.47, 0.35, 8), 0, 0.16),
@@ -134,9 +133,9 @@ export const iconObjects: Record<IconName, readonly IconPart[]> = {
       accent(line('south', C, 0.72, C, 0.5, 0.66, 0.4))),
   ],
   database: [
-    cylinder(C, C, 0.38, 0, 0.2),
-    cylinder(C, C, 0.38, 0.26, 0.2),
-    accent(cylinder(C, C, 0.38, 0.52, 0.2)),
+    cylinder(C, C, 0.38, 0, 0.18),
+    cylinder(C, C, 0.38, 0.24, 0.18),
+    accent(cylinder(C, C, 0.38, 0.48, 0.18)),
   ],
   cache: [
     pin(0.3, 0.1), pin(0.62, 0.1), pin(0.3, 0.82), pin(0.62, 0.82),
@@ -151,9 +150,9 @@ export const iconObjects: Record<IconName, readonly IconPart[]> = {
     accent(box(0.7, 0.4, 0.06, 0.2, 0.2, 0.2)),
   ],
   storage: [
-    box(0.22, 0.24, 0, 0.56, 0.52, 0.81,
-      line('south', 0.22, 0.27, 0.78, 0.27), line('south', 0.22, 0.54, 0.78, 0.54),
-      accent(line('south', 0.42, 0.14, 0.58, 0.14)), accent(line('south', 0.42, 0.41, 0.58, 0.41)), accent(line('south', 0.42, 0.68, 0.58, 0.68))),
+    box(0.22, 0.24, 0, 0.56, 0.52, 0.75,
+      line('south', 0.22, 0.25, 0.78, 0.25), line('south', 0.22, 0.5, 0.78, 0.5),
+      accent(line('south', 0.42, 0.125, 0.58, 0.125)), accent(line('south', 0.42, 0.375, 0.58, 0.375)), accent(line('south', 0.42, 0.625, 0.58, 0.625))),
   ],
   document: [
     upright(sheet(0.1, 0.14), 0, 0.03),

@@ -1,15 +1,17 @@
 import { expect, test } from 'bun:test'
 import type { IconName } from '../src/icons.ts'
-import { COMPONENT_FONT, CONTAINER_FONT, GROUP_FONT, ICON_SIDE, ISLAND_FONT, PLANE, TITLE_ICON_CLEARANCE, labelBand, roofIconSlot } from '../src/sheet/measure.ts'
+import { NESTED_CONTENT_PAD } from '../src/sheet/forces.ts'
+import { CAPITAL_MIDDLE, COMPONENT_FONT, CONTAINER_FONT, GROUP_FONT, ICON_RATIO, ISLAND_FONT, PLANE, labelBand, roofIconSlot } from '../src/sheet/measure.ts'
 import { sheetScene } from '../src/sheet/scene.ts'
 import type { AnnotatedElement, ArchitectureGraph, C4Kind } from '../src/types.ts'
 import { iconObjects } from '../src/viewers/web/icons/objects.ts'
 import { box, cylinder } from '../src/viewers/web/icons/parts.ts'
 import { buildingsSvg } from '../src/viewers/web/iso/painting/buildings.ts'
-import { slabsSvg } from '../src/viewers/web/iso/painting/ground.ts'
-import { boundsOf, prismFaces } from '../src/viewers/web/iso/painting/icon-faces.ts'
+import { boundsOf, drawingSpan, prismFaces } from '../src/viewers/web/iso/painting/icon-faces.ts'
+import { iconSvg } from '../src/viewers/web/iso/painting/icons.ts'
 import type { SvgNode } from '../src/viewers/web/iso/painting/svg.ts'
-import { CELL_HEIGHT, DEFAULT_PROJECTION, projectScene } from '../src/viewers/web/iso/projection/project.ts'
+import { surfaceLabelLayout } from '../src/viewers/web/iso/painting/text.ts'
+import { DEFAULT_PROJECTION, projectScene } from '../src/viewers/web/iso/projection/project.ts'
 
 function element(id: string, kind: C4Kind, parent: string | null, children: string[], icon?: IconName): AnnotatedElement {
   return {
@@ -53,15 +55,34 @@ test.concurrent('a roof name starts after its icon slot, and the building grows 
   expect(scene.buildings[0]!.building.rect.w).toBeGreaterThan(plain.rect.w)
 })
 
-function hasClass(item: SvgNode, name: string): boolean {
-  return item.attributes.class?.split(' ').includes(name) ?? false
+/** The class names of the drawings inside an icon: its object, its flat glyph, or both between two views. */
+function drawingsOf(icon: SvgNode): string[] {
+  return childrenOf(icon).map(child => child.attributes.class!)
 }
 
-test.concurrent('a title icon can lie flat beside its title while the map is tilted, and a roof icon cannot', () => {
-  const scene = projectScene(sheetScene(world({ container: 'browser', component: 'database' })))
-  const lying = (icon: SvgNode): boolean => childrenOf(icon).some(child => hasClass(child, 'icon-glyph'))
-  expect(lying(iconOf(slabsSvg(scene)[0]!)!)).toBe(true)
-  expect(lying(iconOf(buildingsSvg(scene)[0]!)!)).toBe(false)
+/** A title's band as the packing reserves it for a surface of this font, wide enough that width never limits the title. */
+function wideBand(font: number): { width: number; band: { width: number; height: number } } {
+  return { width: 400, band: { width: 4000, height: labelBand(font) * PLANE } }
+}
+
+/** One zoom inside each of the title's size steps. */
+const TITLE_ZOOMS = [0.1, 0.3, 0.7, 2]
+
+test.concurrent('an icon follows the view of the map: its object on a tilted map, its flat glyph in the plan view', () => {
+  const box = { name: 'database' as const, corner: { x: 0, y: 0 }, side: 24 }
+  expect(drawingsOf(iconSvg(box, DEFAULT_PROJECTION))).toEqual(['icon-object'])
+  expect(drawingsOf(iconSvg(box, { ...DEFAULT_PROJECTION, pitch: 90 }))).toEqual(['icon-glyph'])
+})
+
+test.concurrent('an icon is sized from the letters of its name and lies on the name\'s line, at every size of a title', () => {
+  expect(roofIconSlot(COMPONENT_FONT).side).toBe(COMPONENT_FONT * ICON_RATIO)
+  for (const zoom of TITLE_ZOOMS) {
+    const layout = surfaceLabelLayout(wideBand(CONTAINER_FONT), CONTAINER_FONT, zoom, DEFAULT_PROJECTION, true)
+    expect(layout.icon.side).toBeCloseTo(layout.fontSize * ICON_RATIO)
+    // The box's middle is the middle of the capitals: the line's top is 0.9 font sizes above the baseline.
+    const capitalMiddle = layout.baseline - layout.fontSize * 0.9 + layout.fontSize * CAPITAL_MIDDLE
+    expect(layout.icon.y + layout.icon.side / 2).toBeCloseTo(capitalMiddle)
+  }
 })
 
 test.concurrent('every icon object stays inside its footprint, so it never stands on the name beside it', () => {
@@ -75,17 +96,19 @@ test.concurrent('every icon object stays inside its footprint, so it never stand
   }
 })
 
-test.concurrent('no icon object covers the surface behind its title, and every title band holds the slot with its clear ground', () => {
-  for (const [name, parts] of Object.entries(iconObjects)) {
-    for (const part of parts) {
-      const { min, max } = boundsOf(part)
-      // In the default view a point at height z hides the ground z * CELL_HEIGHT / 2 slot sides behind it.
-      const reach = max[2] * CELL_HEIGHT / 2 - min[1]
-      expect(reach, `${name} reaches ${reach.toFixed(2)} slot sides behind its slot`).toBeLessThanOrEqual(TITLE_ICON_CLEARANCE)
-    }
-  }
+test.concurrent('no icon drawing before a title reaches what stands on the surface behind it', () => {
+  // The packing keeps this much empty ground between a surface's edge and what stands on it.
+  const emptyGround = NESTED_CONTENT_PAD * PLANE
   for (const font of [GROUP_FONT, CONTAINER_FONT, ISLAND_FONT]) {
-    expect(labelBand(font) * PLANE).toBeGreaterThanOrEqual(ICON_SIDE * (TITLE_ICON_CLEARANCE + 1))
+    for (const zoom of TITLE_ZOOMS) {
+      const { icon } = surfaceLabelLayout(wideBand(font), font, zoom, DEFAULT_PROJECTION, true)
+      for (const [name, parts] of Object.entries(iconObjects)) {
+        const { back, front } = drawingSpan(parts)
+        // The drawing is centred on the box; 0 is the surface's edge and a negative depth lies on the surface.
+        const reaches = icon.y + icon.side / 2 - (front - back) * icon.side / 2
+        expect(reaches, `${name} at font ${font} and zoom ${zoom}`).toBeGreaterThan(-emptyGround)
+      }
+    }
   }
 })
 
