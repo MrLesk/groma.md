@@ -114,11 +114,12 @@ operation before opening a map.
      field is changed separately with `--description`. `--title` renames a
      part or a draft record while its id and file stay; `--technology` sets or
      clears an element's technology, `--tags` replaces or clears its
-     [OKF tags](component-markdown.md#tags), and `--color` sets or clears its
-     [named map color](component-markdown.md#colors). In the web map the
+     [OKF tags](component-markdown.md#tags), `--color` sets or clears its
+     [named map color](component-markdown.md#colors), and `--icon` sets or clears
+     its [named map icon](component-markdown.md#icons). In the web map the
      [Edit form](viewers/web/index.md#reading-and-editing) of the details pane
-     changes title, description, overview, technology, tags and color; Save
-     posts the input `groma edit` takes.
+     changes title, description, overview, technology, tags, color and icon;
+     Save posts the input `groma edit` takes.
    - Atomic scan evidence is curated with `groma edit`: combine empty scan
      records, including two systems into one product, move an empty scanned
      component to another container or a container to another system, detach

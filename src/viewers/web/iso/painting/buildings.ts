@@ -1,9 +1,10 @@
 import { buildingFont } from '../../../../sheet/measure.ts'
 import type { BuildingFloor } from '../../../../sheet/types.ts'
 import type { Plane, ProjectedBuilding, ProjectedScene } from '../projection/project.ts'
+import type { Still } from './icon-camera.ts'
+import { roofName } from './names.ts'
 import { facadePattern, facadePatternId } from './style.ts'
 import { colorAttribute, node, pointsAttribute, type SvgNode } from './svg.ts'
-import { surfaceText } from './text.ts'
 
 function classOf(projected: ProjectedBuilding): string {
   const { building } = projected
@@ -45,13 +46,16 @@ function floorSvg(
     : [node('g', { 'data-files': floor.files.join('\n'), 'data-file-type': floor.facadeFileType }, 'floor', body)]
 }
 
-/** Buildings back to front: visible floors, patterned side faces and names on the final roofs. */
-export function buildingsSvg(scene: ProjectedScene): SvgNode[] {
+/**
+ * Buildings back to front: visible floors, patterned side faces, and on the final roofs the name with its icon
+ * before it. `still` is set for a drawing without a live stylesheet, such as a cover; the live map passes none.
+ */
+export function buildingsSvg(scene: ProjectedScene, still?: Still): SvgNode[] {
   return scene.buildings.map(projected => {
     const { building, floors, text } = projected
     return node('g', { 'aria-label': building.title, 'data-id': building.representationId, ...colorAttribute(building) }, classOf(projected), [
       ...floors.flatMap((faces, index) => floorSvg(projected, faces, building.floors[index])),
-      surfaceText(text, buildingFont(building), 'label', scene.view),
+      ...roofName(text, buildingFont(building), scene.view, building.icon, still),
     ])
   })
 }

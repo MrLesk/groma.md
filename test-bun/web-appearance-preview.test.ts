@@ -18,14 +18,16 @@ function shopSheet() {
   ]))
 }
 
-test.concurrent('a picked color shows on the edited element and leaves the others as saved', () => {
-  const shown = withAppearance(shopSheet(), { id: 'cart', color: 'blue' })
+test.concurrent('a picked color and icon show on the edited element and leave the others as saved', () => {
+  const shown = withAppearance(shopSheet(), { id: 'cart', color: 'blue', icon: 'database' })
   const building = (id: string) => shown.buildings.find(item => item.id === id)!
   assert.equal(building('cart').color, 'blue')
+  assert.equal(building('cart').icon, 'database')
   assert.equal(building('stock').color, 'red')
+  assert.equal(building('stock').icon, undefined)
 })
 
 test.concurrent('picking no color shows the element without its saved color', () => {
-  const shown = withAppearance(shopSheet(), { id: 'stock', color: '' })
+  const shown = withAppearance(shopSheet(), { id: 'stock', color: '', icon: '' })
   assert.equal(shown.buildings.find(item => item.id === 'stock')!.color, undefined)
 })

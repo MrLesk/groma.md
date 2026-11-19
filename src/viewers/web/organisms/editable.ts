@@ -17,7 +17,12 @@ export const editableCss = `
   }
   #details .edit-form textarea { min-height: 140px; resize: vertical; }
   #details .edit-form :is(input, textarea, select):focus { outline: 2px solid var(--highlight); }
-  #details .edit-form .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  /* Save and Cancel stay at the bottom of the pane, across its padding, while a taller form scrolls under them. */
+  #details .edit-form .actions {
+    position: sticky; bottom: -22px; display: flex; justify-content: flex-end; gap: 8px;
+    margin: 12px -24px -22px; padding: 12px 24px 14px;
+    border-top: 1px solid var(--hairline); background: var(--chrome-surface); backdrop-filter: blur(14px);
+  }
   #details .edit-form .error { margin: 0; color: var(--highlight-text); }
   #details .edit-form .error:empty { display: none; }
 `

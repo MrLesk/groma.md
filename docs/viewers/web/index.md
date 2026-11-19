@@ -174,13 +174,13 @@ takes what the pane reads and the write hooks
 and hands the hooks only to the controls that write.
 
 - **Element fields:** `title`, `description`, `overview`, `technology`, `parent`
-  (where the component can move), `tags`, and `color`. Empty optional values
-  clear the field. The Tags field is one box that holds the pending tags as
-  chips and the text being typed: Enter or a comma turns the typed text into a
-  chip, Backspace in the empty text takes the last chip off, and the × on a chip
-  takes that one off. The tags already in use are offered under the box,
+  (where the component can move), `tags`, `color`, and `icon`. Empty optional
+  values clear the field. The Tags field is one box that holds the pending tags
+  as chips and the text being typed: Enter or a comma turns the typed text into
+  a chip, Backspace in the empty text takes the last chip off, and the × on a
+  chip takes that one off. The tags already in use are offered under the box,
   narrowed by what is typed. The Color field offers no color and each named
-  color.
+  color; the Icon field offers no icon and each named icon.
 - **Relationship fields:** `description` and `technology`.
 - **Draft acceptance and removal:** A matched draft element or a draft relationship
   exposes **Accept** (`groma accept`). **Remove** appears only where `groma remove`
@@ -232,6 +232,28 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   stored only by **Save**, and stays on the map from the pick until the saved
   map arrives
   ([`editing/appearance-preview.ts`](../../../src/viewers/web/editing/appearance-preview.ts)).
+- **Icons:** The Edit form of an element has an **Icon** field: no icon, then
+  each [named icon](../../component-markdown.md#icons). The element's name makes
+  room for the saved icon, so the map lays itself out again. While the form is
+  open the map shows the picked icon in the room the element has now.
+  - In the Iso and Layers views the icon is a small object standing before the
+    name: on the roof of an actor, external system or component, and on the
+    ground before the title of a system or container. Objects are built from
+    the map's own boxes and cylinders, so they turn with the map, take the
+    element's authored color and follow selection.
+  - In the 2D view the object gives way to the icon's flat glyph, which also
+    marks the element's row in the hierarchy and its title in the details.
+  - The icon before a system's or container's title is a landmark: it never
+    gets smaller than a readable size on screen, so a zoomed-out map still
+    shows what its large parts are. An icon on a roof shrinks with the map
+    and fades out when it would be a smudge; its inner lines fade out first.
+  - [`icons/objects.ts`](../../../src/viewers/web/icons/objects.ts) holds the
+    objects, [`icons/glyphs.ts`](../../../src/viewers/web/icons/glyphs.ts) the
+    glyphs, and [`iso/painting/icons.ts`](../../../src/viewers/web/iso/painting/icons.ts)
+    draws both; [`iso/painting/icon-camera.ts`](../../../src/viewers/web/iso/painting/icon-camera.ts)
+    holds the rules by which an icon follows the camera. Adding an icon means
+    adding its name to [`src/icons.ts`](../../../src/icons.ts), one object, one
+    glyph, and its name in the [contract's table](../../component-markdown.md#icons).
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
   IDs and titles from the configured work source. `Up`/`Down` preview matches;
   `Enter` opens the selected element or task; `Escape` restores the prior selection

@@ -1,19 +1,25 @@
 import { isColorName } from '../../../colors.ts'
+import { isIconName } from '../../../icons.ts'
 import type { SheetItem, SheetScene } from '../../../sheet/types.ts'
 import { EDIT_SAVED, pendingEdit } from '../organisms/editable.ts'
 
-/** The color one element is shown with before it is saved. An empty name shows none. */
+/** The color and icon one element is shown with before they are saved. An empty name shows none. */
 export interface PickedAppearance {
   id: string
   color: string
+  icon: string
 }
 
-/** The sheet with one element's color replaced by the picked one. Every other item stays as saved. */
+/** The sheet with one element's color and icon replaced by the picked ones. Every other item stays as saved. */
 export function withAppearance(sheet: SheetScene, picked: PickedAppearance): SheetScene {
   function shown<Item extends SheetItem>(item: Item): Item {
     if (item.id !== picked.id) return item
-    const { color: _savedColor, ...rest } = item
-    return { ...rest, ...(isColorName(picked.color) ? { color: picked.color } : {}) } as Item
+    const { color: _savedColor, icon: _savedIcon, ...rest } = item
+    return {
+      ...rest,
+      ...(isColorName(picked.color) ? { color: picked.color } : {}),
+      ...(isIconName(picked.icon) ? { icon: picked.icon } : {}),
+    } as Item
   }
   return {
     ...sheet,
@@ -23,16 +29,17 @@ export function withAppearance(sheet: SheetScene, picked: PickedAppearance): She
   }
 }
 
-/** True when the sheet already shows that element with that color, or does not show it at all. */
+/** True when the sheet already shows that element with that color and icon, or does not show it at all. */
 function carries(sheet: SheetScene, appearance: PickedAppearance): boolean {
   const items: SheetItem[] = [...sheet.islands.flatMap(island => island.element ?? []), ...sheet.slabs, ...sheet.buildings]
   const item = items.find(candidate => candidate.id === appearance.id)
-  return item === undefined || (item.color ?? '') === appearance.color
+  return item === undefined || ((item.color ?? '') === appearance.color && (item.icon ?? '') === appearance.icon)
 }
 
 /**
- * Shows on the map the color picked in the open Edit form, before Save stores it. What the form holds is
- * what the map shows; a closed form shows the saved color again. Nothing is stored.
+ * Shows on the map the color and icon picked in the open Edit form, before Save stores them. What the form
+ * holds is what the map shows; a closed form shows the saved ones again. Nothing is stored. The map lays
+ * itself out for an icon only once it is saved, so a previewed icon stands in the room the element has now.
  */
 export function createAppearancePreview(detailsHost: HTMLElement, repaintMap: () => void) {
   /** The appearance the map last painted, as text, so the map repaints only when it changes. */
@@ -42,7 +49,7 @@ export function createAppearancePreview(detailsHost: HTMLElement, repaintMap: ()
   function picked(): PickedAppearance | undefined {
     const edit = pendingEdit(detailsHost)
     if (edit === undefined || edit.values.color === undefined) return undefined
-    return { id: edit.key, color: edit.values.color }
+    return { id: edit.key, color: edit.values.color, icon: edit.values.icon ?? '' }
   }
   /** Repaints the map when the shown appearance changed: after a pick, and after the form closed. */
   function sync(): void {

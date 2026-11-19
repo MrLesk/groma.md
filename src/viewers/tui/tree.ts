@@ -1,3 +1,4 @@
+import type { IconName } from '../../icons.ts'
 import { compareSemanticElements } from '../../element-order.ts'
 import type { AnnotatedElement, ArchitectureGraph, C4Kind, Origin } from '../../types.ts'
 
@@ -15,6 +16,8 @@ export interface TreeRow {
   external: boolean
   depth: number
   origin: Origin
+  /** The element's authored icon name; the web hierarchy draws its glyph. */
+  icon?: IconName
   hasChildren: boolean
   expanded: boolean
   /** Direct children hidden behind a collapsed row. */
@@ -89,6 +92,7 @@ function rows<Element extends AnnotatedElement>(
       external: element.external,
       depth,
       origin: element.origin,
+      ...(element.icon === undefined ? {} : { icon: element.icon }),
       hasChildren: children.length > 0,
       expanded,
       count: children.length,
