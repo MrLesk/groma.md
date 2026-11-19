@@ -5,7 +5,7 @@ import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
 import type { Plane, ProjectionView } from '../projection/project.ts'
-import { DETAIL_OPACITY_CSS, ICON_OPACITY_CSS, ICON_STROKE_CSS } from './icon-camera.ts'
+import { DETAIL_OPACITY_CSS, ICON_STROKE_CSS } from './icon-camera.ts'
 import { COLOR_EDGE, COLOR_STRENGTH, FACADE_MARK, ICON_ACCENT_TONE, ICON_INK, ICON_TONE, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
 import type { Level } from './scale.ts'
 import { mark, node, type SvgNode } from './svg.ts'
@@ -188,7 +188,7 @@ function iconCss(palette?: Palette): string {
 
 /** How live icons follow the camera; icon-camera.ts holds each rule beside the function a still image uses. */
 const iconCameraCss = `
-  #map .icon { --icon-stroke: ${ICON_STROKE_CSS}; opacity: ${ICON_OPACITY_CSS}; }
+  #map .icon { --icon-stroke: ${ICON_STROKE_CSS}; }
   #map .icon-detail { opacity: ${DETAIL_OPACITY_CSS}; }
 `
 

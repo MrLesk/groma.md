@@ -1,5 +1,5 @@
 import { centredRect } from '../../../../sheet/grid.ts'
-import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, ISLAND_SPACING, PLANE, buildingFont, curved, labelBand, roofBlock, textWidth } from '../../../../sheet/measure.ts'
+import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, ISLAND_SPACING, PLANE, buildingFont, curved, iconAbove, labelBand, roofBlock, textWidth } from '../../../../sheet/measure.ts'
 import type {
   Building,
   CellRect,
@@ -348,7 +348,7 @@ function roofText(building: Building, view: ProjectionView): SurfaceText {
   const top = building.floors.at(-1)
   const roof = top === undefined ? building.rect : centredRect(building.rect, top.footprint)
   if (!curved(shape)) return { origin: project(roof.gx, roof.gy, heightUnits, view), lines }
-  const block = roofBlock(lines, buildingFont(building), building.icon !== undefined)
+  const block = roofBlock(lines, buildingFont(building), building.icon !== undefined, iconAbove(shape))
   return {
     origin: project(
       roof.gx + (roof.w - block.w / PLANE) / 2,
