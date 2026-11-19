@@ -21,8 +21,8 @@ export function roofName(text: SurfaceText, size: number, view: ProjectionView, 
 
 /**
  * A surface's title and icon share one slot layout in its front band. Both follow the title's zoom step.
- * `icon.landmark` is the caller's choice between the two kinds of icon in icon-camera.ts: a landmark may grow
- * beyond its slot to stay readable, any other icon stays in its slot. `still` is as for roofName.
+ * `icon.landmark` is the caller's choice between the two kinds of icon in icon-camera.ts: a landmark keeps a least
+ * size on screen, any other icon stays in its slot. `still` is as for roofName.
  */
 export function surfaceTitle(
   text: SurfaceLabel,

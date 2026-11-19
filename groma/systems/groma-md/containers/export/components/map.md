@@ -42,6 +42,8 @@ groma:
       file: src/viewers/web/iso/painting/icon-camera.ts
     - scanner: typescript
       file: src/viewers/web/iso/painting/names.ts
+    - scanner: typescript
+      file: src/viewers/web/iso/painting/icon-faces.ts
 description: Paints the browser map as SVG buildings, routes and labels
 ---
 

@@ -314,23 +314,34 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   open the map shows the picked icon in the room the name has now.
   - In the Iso and Layers views the icon is a small object standing before the
     name: on the roof of an actor, external system or component, and on the
-    ground before the title of a system or container. Objects are built from
-    the map's own boxes and cylinders, so they turn with the map, take the
-    element's authored color and follow selection.
+    ground before the title of a system, container or group. An object is a
+    fine line drawing that turns with the map: quiet lines of one width over
+    faces a little off paper.
+  - One part or mark of every object is its accent, the thing that says what
+    the object is: a database's top disc, a terminal's prompt. The accent is
+    drawn in ink. When the element or group has an authored color the accent
+    takes it, and the rest of the object stays neutral. A selected or lit
+    element draws all of its icon's lines in the highlight.
   - In the 2D view the object gives way to the icon's flat glyph, which also
     marks the element's row in the hierarchy and its title in the details.
-  - The icon before a system's or container's title is a landmark: it never
-    gets smaller than a readable size on screen, so a zoomed-out map still
+  - The icon before a system's or container's title is a landmark: its slot
+    never gets narrower than 24 pixels on screen, so a zoomed-out map still
     shows what its large parts are. A zone's icon stands before its name and follows the name's size at every zoom.
     An icon on a roof shrinks with the map. Both
-    fade out when they would be a smudge; their inner lines fade out first.
+    fade out when they would be a smudge. On every small icon the quiet inner
+    lines fade out first; the outline and the accent stay.
   - [`icons/objects.ts`](../../../src/viewers/web/icons/objects.ts) holds the
-    objects, [`icons/glyphs.ts`](../../../src/viewers/web/icons/glyphs.ts) the
-    glyphs, and [`iso/painting/icons.ts`](../../../src/viewers/web/iso/painting/icons.ts)
-    draws both; [`iso/painting/icon-camera.ts`](../../../src/viewers/web/iso/painting/icon-camera.ts)
+    objects and [`icons/parts.ts`](../../../src/viewers/web/icons/parts.ts) the
+    parts they are built from: a solid is a flat outline pushed along one
+    axis, which gives boxes, cylinders, rounded plates and upright panels.
+    [`icons/glyphs.ts`](../../../src/viewers/web/icons/glyphs.ts) holds the
+    glyphs. [`iso/painting/icon-faces.ts`](../../../src/viewers/web/iso/painting/icon-faces.ts)
+    decides which faces of an object the reader sees,
+    [`iso/painting/icons.ts`](../../../src/viewers/web/iso/painting/icons.ts)
+    draws them, and [`iso/painting/icon-camera.ts`](../../../src/viewers/web/iso/painting/icon-camera.ts)
     holds the rules by which an icon follows the camera. Adding an icon means
-    adding its name to [`src/icons.ts`](../../../src/icons.ts), one object, one
-    glyph, and its name in the [contract's table](../../component-markdown.md#icons).
+    adding its name to [`src/icons.ts`](../../../src/icons.ts), one object with
+    one accent, one glyph, and its name in the [contract's table](../../component-markdown.md#icons).
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
   IDs and titles from the configured work source. `Up`/`Down` preview matches;
   `Enter` opens the selected element or task; `Escape` restores the prior selection

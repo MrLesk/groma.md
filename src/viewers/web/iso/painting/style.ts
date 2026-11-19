@@ -5,8 +5,8 @@ import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
 import type { Plane, ProjectionView } from '../projection/project.ts'
-import { DETAIL_OPACITY_CSS, GLYPH_STROKE_CSS, LANDMARK_ZOOM_CSS, OBJECT_STROKE_CSS, ROOF_ICON_OPACITY_CSS } from './icon-camera.ts'
-import { COLOR_EDGE, COLOR_STRENGTH, FACADE_MARK, ICON_INK, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
+import { DETAIL_OPACITY_CSS, GLYPH_STROKE_CSS, LANDMARK_ZOOM_CSS, OBJECT_STROKE_CSS, SMALL_ICON_OPACITY_CSS } from './icon-camera.ts'
+import { COLOR_EDGE, COLOR_STRENGTH, FACADE_MARK, ICON_ACCENT_TONE, ICON_INK, ICON_TONE, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
 import type { Level } from './scale.ts'
 import { mark, node, type SvgNode } from './svg.ts'
 
@@ -128,7 +128,7 @@ function authoredColours(palette?: Palette): string {
     if (palette === undefined) {
       const mix = (amount: number, base: string) => `color-mix(in srgb, var(--color-${name}) ${(amount * 100).toFixed(1)}%, ${base})`
       return `${element} { --tint-top: ${mix(share(0), 'var(--paper)')}; --tint-right: ${mix(share(SIDE.right), 'var(--paper)')}; `
-        + `--tint-left: ${mix(share(SIDE.left), 'var(--paper)')}; --tint-edge: ${mix(COLOR_EDGE, 'var(--map-line)')}; }`
+        + `--tint-left: ${mix(share(SIDE.left), 'var(--paper)')}; --tint-edge: ${mix(COLOR_EDGE, 'var(--map-line)')}; --icon-accent: var(--color-${name}); }`
     }
     const color = palette.colors[name]
     const face = `${element}${own}`
@@ -136,48 +136,49 @@ function authoredColours(palette?: Palette): string {
     ${face}.right { fill: ${mixColour(palette.paper, color, share(SIDE.right))}; }
     ${face}.left { fill: ${mixColour(palette.paper, color, share(SIDE.left))}; }
     ${face}.${top}, ${face}.face { stroke: ${mixColour(palette.line, color, COLOR_EDGE)}; }
-    ${iconColour(element, palette, mixColour(palette.paper, color, share(0)), mixColour(palette.paper, color, share(SIDE.right)), mixColour(palette.line, color, COLOR_EDGE))}
+    ${accentRules(`${element} > .icon`, color, amount => mixColour(palette.paper, color, amount))}
     ${element}.ghost${own}.${top}, ${element}.ghost${own}.face { fill: none; }`
   })).join('\n  ')
 }
 
-/** Icon lines are darker than outlines, so a small object reads as a drawing: this much ink over the outline colour. */
-function iconLine(palette: Palette, outline: string): string {
-  return mixColour(outline, palette.ink, ICON_INK)
-}
-
-/** A cover's rules for the icon of one colored element: its two walls and its lines take the element's color. */
-function iconColour(element: string, palette: Palette, lightWall: string, darkWall: string, outline: string): string {
-  const line = iconLine(palette, outline)
-  return `${element} > .icon .icon-right { fill: ${lightWall}; }
-    ${element} > .icon .icon-left { fill: ${darkWall}; }
-    ${element} > .icon .icon-part { stroke: ${line}; }
-    ${element} > .icon .icon-solid { fill: ${line}; }`
+/**
+ * The rules that draw the accent of the icons under `scope` in `color`: its lines and small solid marks in the
+ * color itself, the faces of an accent part and an accent screen in the share of it that `tint` mixes into paper.
+ */
+function accentRules(scope: string, color: string, tint: (share: number) => string): string {
+  return `${scope} .icon-accent { stroke: ${color}; }
+    ${scope} .icon-accent.icon-top, ${scope} .icon-accent.icon-screen { fill: ${tint(ICON_ACCENT_TONE.top)}; }
+    ${scope} .icon-accent.icon-east { fill: ${tint(ICON_ACCENT_TONE.east)}; }
+    ${scope} .icon-accent.icon-south { fill: ${tint(ICON_ACCENT_TONE.south)}; }
+    ${scope} .icon-accent.icon-solid { fill: ${color}; }`
 }
 
 /**
  * An icon's parts have their own classes, so no rule for a building, slab or island reaches them. The object is
- * one step lighter than a building: a paper top and screen, a lighter wall with a building's roof tint and a
- * darker wall with a building's lighter wall tint. In the browser the walls and lines read the same --tint-*
- * variables as the surfaces, so the object takes its element's authored color. The glyph is ink lines.
+ * a fine line drawing: quiet lines a little brighter than the map's outlines, over faces a little off paper that
+ * are shaded by the way they are turned. Its accent is drawn in ink. In the browser an element with an authored
+ * color hands that color to the accent through --icon-accent; the rest of the object stays neutral. The glyph is
+ * ink lines.
  */
 function iconCss(palette?: Palette): string {
-  const depth = SURFACE_DEPTH.building
-  const paper = palette?.paper ?? 'var(--paper)'
-  const wall = (side: 'top' | 'right', share: number) => palette === undefined
-    ? `var(--tint-${side}, ${paintTint(share)})` : paintTint(share, palette)
   const line = palette === undefined
-    ? `color-mix(in srgb, var(--ink) ${ICON_INK * 100}%, var(--tint-edge, var(--map-line)))`
-    : iconLine(palette, palette.line)
+    ? `color-mix(in srgb, var(--ink) ${ICON_INK * 100}%, var(--map-line))`
+    : mixColour(palette.line, palette.ink, ICON_INK)
+  const accent = palette === undefined ? 'var(--icon-accent, var(--ink))' : palette.ink
+  const accentTint = (share: number) => palette === undefined
+    ? `color-mix(in srgb, ${accent} ${(share * 100).toFixed(1)}%, var(--paper))`
+    : mixColour(palette.paper, palette.ink, share)
   return `#map .icon-part, #map .icon-glyph path {
     stroke: ${line}; stroke-linejoin: round; stroke-linecap: round;
     ${palette === undefined ? 'stroke-width: var(--icon-stroke);' : ''}
   }
-  #map .icon-top, #map .icon-screen { fill: ${paper}; }
-  #map .icon-right { fill: ${wall('top', tintAt(depth))}; }
-  #map .icon-left { fill: ${wall('right', tintAt(depth + SIDE.right))}; }
+  #map .icon-top { fill: ${paintTint(ICON_TONE.top, palette)}; }
+  #map .icon-east { fill: ${paintTint(ICON_TONE.east, palette)}; }
+  #map .icon-south { fill: ${paintTint(ICON_TONE.south, palette)}; }
+  #map .icon-screen { fill: ${palette?.paper ?? 'var(--paper)'}; }
   #map .icon-line { fill: none; }
   #map .icon-solid { fill: ${line}; }
+  ${accentRules('#map', accent, accentTint)}
   #map .icon-glyph path { fill: none; stroke: ${palette?.ink ?? 'var(--ink)'}; }`
 }
 
@@ -186,11 +187,11 @@ function iconCss(palette?: Palette): string {
  * --icon-zoom is a landmark's enlargement and 1 for every other icon.
  */
 const iconCameraCss = `
-  #map .icon { --icon-zoom: 1; --icon-stroke: ${OBJECT_STROKE_CSS}; opacity: ${ROOF_ICON_OPACITY_CSS}; }
+  #map .icon { --icon-zoom: 1; --icon-stroke: ${OBJECT_STROKE_CSS}; opacity: ${SMALL_ICON_OPACITY_CSS}; }
   #map .icon.landmark { --icon-zoom: ${LANDMARK_ZOOM_CSS}; opacity: 1; }
   #map .icon.landmark > g { transform: scale(var(--icon-zoom)); }
   #map .icon-glyph { --icon-stroke: ${GLYPH_STROKE_CSS}; }
-  #map .icon-line, #map .icon-solid { opacity: ${DETAIL_OPACITY_CSS}; }
+  #map .icon-detail { opacity: ${DETAIL_OPACITY_CSS}; }
 `
 
 /** The camera attributes that stop facade and surface patterns below readable size at zoom `k`; the map and its covers set the same ones. */
@@ -211,7 +212,7 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .sheet { pointer-events: none; ${stroke('island', palette, zoom)} }
   #map .calibration-tick, #map .compass, #map .project-plate { ${stroke('building', palette, zoom)} }
   /* zones lie inside slab groups: they keep their own weight while the slab is hovered or selected, and never take its authored color */
-  #map .zone { ${stroke('building', palette, zoom)} --emphasis: 1; ${palette === undefined ? '--tint-top: initial; --tint-right: initial; --tint-left: initial; --tint-edge: initial;' : ''} }
+  #map .zone { ${stroke('building', palette, zoom)} --emphasis: 1; ${palette === undefined ? '--tint-top: initial; --tint-right: initial; --tint-left: initial; --tint-edge: initial; --icon-accent: initial;' : ''} }
   #map .island { ${stroke('island', palette, zoom)} }
   #map .slab { ${stroke('slab', palette, zoom)} }
   #map .building { ${stroke('building', palette, zoom)} }
