@@ -5,7 +5,7 @@ import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
 import type { Plane, ProjectionView } from '../projection/project.ts'
-import { DETAIL_OPACITY_CSS, GLYPH_STROKE_CSS, OBJECT_STROKE_CSS, ROOF_ICON_OPACITY_CSS, STANDING_CSS } from './icon-camera.ts'
+import { DETAIL_OPACITY_CSS, GLYPH_STROKE_CSS, ICON_OPACITY_CSS, OBJECT_STROKE_CSS } from './icon-camera.ts'
 import { COLOR_EDGE, COLOR_STRENGTH, FACADE_MARK, ICON_ACCENT_TONE, ICON_INK, ICON_TONE, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
 import type { Level } from './scale.ts'
 import { mark, node, type SvgNode } from './svg.ts'
@@ -187,17 +187,10 @@ function iconCss(palette?: Palette): string {
   #map .icon-glyph path { fill: none; stroke: ${palette?.ink ?? 'var(--ink)'}; }`
 }
 
-/**
- * How live icons follow the view and the camera; icon-camera.ts holds each scale rule beside the function a still
- * image uses. --icon-standing is the share of the standing object: 1 for a roof's icon, and for a title's icon
- * what the camera scale leaves of it. --icon-flat is how flat the view is; the painter sets it. The glyph shows
- * as far as the object does not.
- */
+/** How live icons follow the camera; icon-camera.ts holds each rule beside the function a still image uses. */
 const iconCameraCss = `
-  #map .icon { --icon-standing: 1; --icon-stroke: ${OBJECT_STROKE_CSS}; opacity: ${ROOF_ICON_OPACITY_CSS}; }
-  #map .icon.title { --icon-standing: ${STANDING_CSS}; opacity: 1; }
-  #map .icon-object { opacity: calc((1 - var(--icon-flat, 0)) * var(--icon-standing)); }
-  #map .icon-glyph { --icon-stroke: ${GLYPH_STROKE_CSS}; opacity: calc(1 - (1 - var(--icon-flat, 0)) * var(--icon-standing)); }
+  #map .icon { --icon-stroke: ${OBJECT_STROKE_CSS}; opacity: ${ICON_OPACITY_CSS}; }
+  #map .icon-glyph { --icon-stroke: ${GLYPH_STROKE_CSS}; }
   #map .icon-detail { opacity: ${DETAIL_OPACITY_CSS}; }
 `
 

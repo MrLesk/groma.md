@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-19T18:23:00Z'
-updated_date: '2026-11-19T19:21:00Z'
+updated_date: '2026-11-19T20:13:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -46,13 +46,14 @@ The owner judged the first icon artwork on the live map on 2026-11-19 and reject
 <!-- AC:BEGIN -->
 - [ ] #1 Every named icon's object is drawn in lines of one fine width over quiet faces, and one part or the few marks that draw one thing are its accent
 - [ ] #2 The accent is drawn in ink; on an element or group with an authored color the accent takes that color and the rest of the object stays neutral
-- [ ] #3 Every icon has the same slot size wherever it stands, on a roof or before a title, and no icon is drawn larger than its slot
-- [ ] #4 In the Iso view a title's object stands clear of its surface at every zoom: it covers neither the surface, nor a building on it, nor a neighbouring surface
-- [ ] #5 When a title's object would be too small to read, the icon lies flat beside the title at the title's size, and stands up again when the map is zoomed in; a roof's icon fades out instead
-- [ ] #6 On a small object the quiet inner lines fade out and the outline and the accent stay
-- [ ] #7 An object shows only the faces turned to the reader at every orbit angle, and a curved wall shows no line between its segments
-- [ ] #8 The Light, Dark and Blueprint themes and the export covers draw the same objects
-- [ ] #9 The web map documentation describes the look, the accent, the one size and the title rules
+- [ ] #3 An icon lies on the line of its name, one gap before the text, on a roof and before a title, with its drawing centred on the letters
+- [ ] #4 An icon is sized from the letters of its name and changes with them: a title's icon follows the title's size step when the map is zoomed
+- [ ] #5 An icon follows the map's view: its object in the Iso and Layers views, its flat glyph in the 2D view, and no flat glyph on a tilted map
+- [ ] #6 No icon's drawing before a title reaches a building on the surface behind it, at any size of the title
+- [ ] #7 On a small object the quiet inner lines fade out and the outline and the accent stay
+- [ ] #8 An object shows only the faces turned to the reader at every orbit angle, and a curved wall shows no line between its segments
+- [ ] #9 The Light, Dark and Blueprint themes and the export covers draw the same objects
+- [ ] #10 The web map documentation describes the look, the accent and how an icon follows its name and the view
 <!-- AC:END -->
 
 ## Definition of Done
@@ -69,13 +70,13 @@ The owner judged the first icon artwork on the live map on 2026-11-19 and reject
 1. Part model (icons/parts.ts): one prism, a flat outline pushed along one axis, replaces the box and the upright prism. Pushed along z it is a box, cylinder or rounded plate; along y an upright panel facing south. A part or mark can belong to the accent.
 2. Visible faces (iso/painting/icon-faces.ts): from the reader's direction (towardsReader, beside project() in projection/project.ts) decide which walls and which end of a prism face the reader, join walls along a curve into one face, shade a face by screen side like a building, and order parts back to front. The painter (iso/painting/icons.ts) only lays those points on the screen.
 3. Look (iso/painting/style.ts, scale.ts): quiet lines a little brighter than the map's outlines, faces a little off paper, the accent in ink. A colored element hands its color to the accent through --icon-accent in the browser and through explicit rules on a cover. One list of the authored color variables serves the zone reset and the comparison reset.
-4. One size (sheet/measure.ts): ICON_SIDE is the slot of every icon, three cells. roofIconSlot and nameCells read it, so roofs and title bands make room for it.
-5. Clear ground (sheet/measure.ts, iso/painting/text.ts): a title's slot lies TITLE_ICON_CLEARANCE slot sides in front of its surface and away from the band's west end. An object covers the ground behind it on screen by its height times CELL_HEIGHT / 2; the test holds every object under the clearance and every title band to slot plus clearance.
-6. No enlargement (iso/painting/icon-camera.ts, icons.ts, style.ts): the landmark rule is deleted. A title's icon has a second place, the mark on the title's line; below 14 to 20 screen pixels of slot the object gives way to the flat glyph there. --icon-standing (camera scale) and --icon-flat (view pitch) decide the share of object and glyph in the browser; a still computes the same numbers.
-7. Objects (icons/objects.ts): all 23 redrawn with one accent each; the three tallest lowered so every object keeps air under its surface.
-8. Tests (test-bun/architecture-icons.test.ts). Kept: a roof name starts after its slot; an object stays inside its footprint (now read from the painter's own bounds). Changed: the landmark test becomes "a title icon can lie flat beside its title and a roof icon cannot" (authority: rule 3 approved by the owner on 2026-11-19; wrong result: a title icon with no flat drawing vanishes when zoomed out, or a roof icon draws a second copy). New: "no icon object covers the surface behind its title, and every title band holds the slot with its clear ground" (authority: rule 2 approved the same day; wrong result: a taller object or a larger slot silently brings the overlap back; gap: nothing tied the artwork's height to the layout's clear ground). New: "a prism shows the faces turned to the reader, and a curved wall is one face" (authority: this task's fine line objects that turn with the map; wrong result: far walls drawn, or a line between the segments of a cylinder; gap: nothing tested which faces are drawn).
+4. An icon is part of its name (sheet/measure.ts, iso/painting/text.ts, names.ts): its box is ICON_RATIO font sizes wide and centred on the middle of the name's capitals, on a roof's first line and before a title. A title's box is laid out with the title, so it follows the title's size step. The landmark enlargement is deleted: nothing is drawn larger than its box.
+5. The view decides the drawing (iso/painting/icons.ts): the object on a tilted map, the flat glyph in the plan view, one fading into the other between the two.
+6. In line (iso/painting/icon-faces.ts drawingSpan and drawingOffset): an object rises on screen, so it stands a little in front of its box and its drawing, not its foot, is centred on the box.
+7. Objects (icons/objects.ts): all 23 redrawn with one accent each; the three tallest kept low.
+8. Tests (test-bun/architecture-icons.test.ts). Kept: a roof name starts after its icon; an object stays inside its footprint (read from the painter's own bounds). New, each from a rule the owner stated on 2026-11-19: "an icon follows the view of the map" (wrong result: a flat glyph on a tilted map, or an object in the plan view; gap: nothing tested which drawing a view gets); "an icon is sized from the letters of its name and lies on the name's line, at every size of a title" (wrong result: a fixed size, or a box off the line; gap: the layout's icon box was untested); "no icon drawing before a title reaches what stands on the surface behind it" (wrong result: a taller object or a larger ratio lets a drawing cover a building; gap: nothing tied the artwork's height to the layout's empty ground). New, from this task's fine line objects that turn with the map: "a prism shows the faces turned to the reader, and a curved wall is one face" (wrong result: far walls drawn, or a line between the segments of a cylinder).
 9. Docs: the Icons entry of docs/viewers/web/index.md.
-10. Verification: specimen sheets of every object in the three themes and from four orbit angles; groma's own map with icons on every level (uncommitted demo) at the opening zoom, mid zoom and close, Dark and Light; covers; selection; a click on a standing object; the Edit form preview; 2D and Layers views; the accent's color while comparing.
+10. Verification: specimen sheets of every object in the three themes and from four orbit angles; groma's own map with icons on every level (uncommitted demo) at the opening zoom, mid zoom and close; titles, roofs of actors, components and external systems; the 2D view; covers; selection and a click on an object; the accent's color while comparing.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -86,4 +87,7 @@ Reviews (cold simplicity review and full-context review, one round on the first 
 
 2026-11-19, own critical pass after the rules were built. Checked on groma's own map (uncommitted demo icons on every level), Dark and Light: at the opening zoom title icons lie flat and nothing is enlarged; zoomed in the objects stand in the outer band and none touches its surface, a building or a border (the zone the owner flagged included); actor, component and external icons are the size of title icons; a click on a standing object selects its surface and selection turns its lines to the highlight; the accent of a colored container turns to ink while comparing; the 2D view shows glyphs only and the Layers view objects; covers draw flat marks. bun run check: 1006 pass, 67 skip, 0 fail, no new lint warning.
 Known limits, reported to the owner. A relationship route that runs through a title band is drawn over the standing object, as it is over title letters: routes are a layer above everything on the ground, and the planner cannot avoid a slot whose place depends on the title's zoom step. The clear ground holds for the default view; an orbit in the Layers view turns the objects. An icon that is only previewed in the Edit form stands in the room its name has now, so on a roof or a narrow title it can stand over the start of the name until it is saved.
+
+2026-11-19, later. The owner saw the three rules live and rejected two of them. His words: "wait why does it change from flat to iso so weirdly?", "also it's absolutely not in line with the text", "why do we have both flat and iso versions of the icons. did I approve that?", then the model he wants: "we have an iso map and we have a 2d map. the icons should follow that switch and the icons should be in line with the text... like every other icon with their label and also follow the text size and change when text size changes. it's much easier than you think". These are his decisions: an icon follows the view (object in Iso, flat glyph in 2D); it lies in line with its text; its size follows the text size and changes with it. Removed again: the one slot size for every icon, the clear ground before a title and the flat mark on the tilted map (pushed in 42356d27), with their constants and tests.
+Built in their place, coordinator's choices: the box is 1.2 font sizes (ICON_RATIO), the largest whole tenth at which the tallest drawing stays inside the two cells of empty ground a surface keeps along its edge, at every title size (most: 33 of 48 plane pixels, a system title zoomed far out); the gap to the text is 0.4 font sizes; the drawing, not the foot, is centred on the line, because an object rises on screen (drawingOffset in icon-faces.ts); the three tallest objects stay lowered. Consequence told to the owner: a roof icon is now as small as its roof's name (an actor's name is 11 plane pixels, so its icon is about 13), smaller than the 30 he found hard to spot; the size of roof names is the lever.
 <!-- SECTION:NOTES:END -->
