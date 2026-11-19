@@ -1,5 +1,5 @@
 import type { ComponentChange } from '../../history/comparison.ts'
-import { tagsInUse } from '../../tag-selection.ts'
+import { tagFocusInUse, type TagFocus } from '../../tag-selection.ts'
 import { comparisonDefaultTab } from './comparison/details.ts'
 import type { Comparison } from '../../history/comparison.ts'
 import type { GitRevision } from '../../history/revisions.ts'
@@ -20,8 +20,8 @@ export interface ViewState extends MapControls {
   line?: number
   selection: Selection
   flows: FlowRef[]
-  /** The tags the map is focused on. */
-  focusTags: readonly string[]
+  /** The focused tags, their match mode and the excluded tags. */
+  tagFocus: TagFocus
   tab: DetailsTab
   /** Auto, or the id of an enabled theme. */
   theme: string
@@ -79,9 +79,18 @@ function activeFlows(params: URLSearchParams, world: ArchitectureGraph): FlowRef
   return flows
 }
 
-/** Repeated `tag=<tag>` entries, kept only while the world uses the tag. */
-function focusTags(params: URLSearchParams, world: ArchitectureGraph): string[] {
-  return tagsInUse(world.elements, [...new Set(params.getAll('tag'))])
+function readTagFocus(params: URLSearchParams, world: ArchitectureGraph): TagFocus {
+  return tagFocusInUse(world.elements, {
+    focused: params.getAll('tag'),
+    match: params.get('match') === 'all' ? 'all' : 'any',
+    excluded: params.getAll('not'),
+  })
+}
+
+function appendTagFocus(pairs: [string, string][], focus: TagFocus): void {
+  for (const tag of focus.focused) pairs.push(['tag', encodeURIComponent(tag)])
+  if (focus.match === 'all') pairs.push(['match', 'all'])
+  for (const tag of focus.excluded) pairs.push(['not', encodeURIComponent(tag)])
 }
 
 function sourceState(
@@ -146,7 +155,7 @@ function appendTab(pairs: [string, string][], state: ViewState, change: Componen
  * Reads the ordered architecture selection (repeated `<kind>=<id>` and
  * `relationship=<source id>/<target id>` entries) or `task=<id>`,
  * checked flows (repeated `flow=<id>`) and the last flow's one-based `step=<number>`,
- * focused tags (repeated `tag=<tag>`), `tab=how|tasks`, `view=iso|2d|layers`, `hide=<comma-separated filters>`,
+ * tag focus (repeated `tag=<tag>` and `not=<tag>`, `match=all`), `tab=how|tasks`, `view=iso|2d|layers`, `hide=<comma-separated filters>`,
  * `theme=auto|<theme id>` and `hud=off`. A query theme overrides
  * the publication path theme, then the saved default. Ids are the authored ids; anything the world
  * or the work does not know is ignored, a kind naming an element of another kind included.
@@ -184,7 +193,7 @@ export function readView(
     ...source,
     selection,
     flows,
-    focusTags: focusTags(params, world),
+    tagFocus: readTagFocus(params, world),
     tab: readTab(params, source.file, comparison?.components[selected?.id ?? '']),
     theme: readTheme(url, defaultTheme, themes),
     hudVisible: params.get('hud') !== 'off',
@@ -253,7 +262,7 @@ export function writeView(
   for (const flow of state.flows) {
     appendFlow(pairs, flow === state.flows.at(-1) ? flow : { id: flow.id }, world)
   }
-  for (const tag of state.focusTags) pairs.push(['tag', encodeURIComponent(tag)])
+  appendTagFocus(pairs, state.tagFocus)
   pairs.push(...mapControlEntries(state))
   if (state.theme !== (pathTheme(pathname, themes) ?? AUTO_THEME)) pairs.push(['theme', state.theme])
   if (!state.hudVisible) pairs.push(['hud', 'off'])

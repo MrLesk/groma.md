@@ -131,17 +131,19 @@ function paintHierarchy(
   }
   const heading = sectionHeading('Structure', unfolded, () => {
     unfolded = !unfolded
-    paintHierarchy(host, rows, selectedIds, onSelect, onToggle, comparison, changes)
+    // Keep the rows so opening Structure again preserves their current tag emphasis.
+    heading.setAttribute('aria-expanded', String(unfolded))
+    list.hidden = !unfolded
   })
   list.hidden = !unfolded
   replaceComparisonTree(host, heading, list, comparison !== undefined)
 }
 
 /** Rows the focused tags do not select recede, as their buildings do on the map. */
-function recedeRows(host: HTMLElement, focus: TagSelection | undefined): void {
+function recedeRows(host: HTMLElement, tagSelection: TagSelection | undefined): void {
   for (const row of host.querySelectorAll<HTMLElement>('.row[data-id]')) {
     const id = row.dataset.id!
-    row.classList.toggle('receded', focus !== undefined && !focus.matched.has(id) && !focus.parents.has(id))
+    row.classList.toggle('receded', tagSelection !== undefined && !tagSelection.matched.has(id) && !tagSelection.parents.has(id))
   }
 }
 
@@ -150,28 +152,29 @@ export function createHierarchy(host: HTMLElement, onSelect: (id: string, additi
   let tree = initialTree()
   let changesOnly = true
   let lastSelection = ''
+  /** Rows created by expanding a branch receive the same emphasis as the rows already on screen. */
+  let tagSelection: TagSelection | undefined
   const modes = document.createElement('div')
   modes.className = 'comparison-modes controls'
   modes.setAttribute('aria-label', 'Hierarchy view')
   const buttons = [chromeButton('Changes'), chromeButton('All')]
   modes.append(...buttons)
   document.getElementById('hierarchy-title')!.insertBefore(modes, document.getElementById('hierarchy-toggle'))
-  /** `focus` is what the focused tags select; undefined while no tag is focused. */
-  const paint = (world: ArchitectureGraph, selectedIds: readonly string[], comparison?: Comparison, enabled?: ReadonlySet<VisibleStatus>, focus?: TagSelection): void => {
+  const paint = (world: ArchitectureGraph, selectedIds: readonly string[], comparison?: Comparison, enabled?: ReadonlySet<VisibleStatus>): void => {
     modes.hidden = comparison === undefined
     document.getElementById('flows')!.hidden = comparison !== undefined && changesOnly
     const changes = comparison === undefined ? undefined : comparisonTree(world, comparison, enabled)
     buttons.forEach((button, index) => {
       button.setAttribute('aria-pressed', String(changesOnly === (index === 0)))
-      button.onclick = () => { changesOnly = index === 0; paint(world, selectedIds, comparison, enabled, focus) }
+      button.onclick = () => { changesOnly = index === 0; paint(world, selectedIds, comparison, enabled) }
     })
     const rows = changes !== undefined && changesOnly ? semanticTreeRows(changes.world, selectedIds, { expanded: new Set(changes.world.elements.map(element => element.representationId)), collapsed: tree.collapsed })
       : semanticTreeRows(world, selectedIds, tree).filter(row => row.kind !== 'actor')
     paintHierarchy(host, rows, new Set(selectedIds), onSelect, row => {
       tree = toggleExpansion(tree, row)
-      paint(world, selectedIds, comparison, enabled, focus)
+      paint(world, selectedIds, comparison, enabled)
     }, comparison, changesOnly ? changes : changes === undefined ? undefined : { ...changes, relationships: [] })
-    recedeRows(host, focus)
+    recedeRows(host, tagSelection)
     const selected = selectedIds.at(-1) ?? ''
     if (selected !== lastSelection) {
       host.querySelector<HTMLElement>('.row.selected[data-id]')?.scrollIntoView({ block: 'nearest' })
@@ -180,12 +183,19 @@ export function createHierarchy(host: HTMLElement, onSelect: (id: string, additi
   }
   return {
     paint,
+    recede(selection: TagSelection | undefined): void {
+      tagSelection = selection
+      recedeRows(host, selection)
+    },
     /** Another revision starts on its complete changes list. */
     reset(): void { tree = initialTree(); changesOnly = true; lastSelection = '' },
   }
 }
 
 export const hierarchyComparisonCss = `
+  #tree .row { transition: opacity 200ms ease; }
+  #tree .row.receded { opacity: 0.4; }
+  @media (prefers-reduced-motion: reduce) { #tree .row { transition: none; } }
   .comparison-modes { display: flex; gap: 2px; margin-right: 6px; }
   .comparison-modes[hidden] { display: none; }
   .comparison-modes .chrome-button { padding: 4px 6px; font-size: 10px; }

@@ -251,23 +251,30 @@ of non-empty strings that another OKF tool wrote.
 
 #### Focusing on tags
 
-The web map can focus on one or more tags. One rule decides what a set of tags
-selects, [`selectByTags`](../src/tag-selection.ts):
+Open **Tags** beside the web map's view switch to find, preview or focus a tag.
+A row or a details chip toggles focus. The × on a bar chip clears it.
+[`selectByTags`](../src/tag-selection.ts) reads each element's own tags and those
+on its parent system and container.
 
-- An element matches when it carries any of the tags.
-- A match takes everything inside it.
-- The systems and containers that hold a match are its parents, and stay with it.
+- **any** lights elements matching at least one focused tag.
+- **all** requires every focused tag. The switch appears with two or more.
+- **not** removes any element matching an excluded tag. With only exclusions,
+  all other elements match. Parents of the remaining matches stay as context.
 
-For example, system `shop` holds containers `checkout-api`, tagged `payments`,
-and `storefront`. Component `cart` in `storefront` is tagged `payments` too, and
-component `catalog` is not. Focusing on `payments` gives:
+In system `shop`, the `checkout-api` container carries `payments` and its
+`refunds` component carries `internal`. In the `storefront` container, `cart`
+carries `payments` and `catalog` has no tags.
 
-| Part | Result |
+| Focus | Matches |
 | --- | --- |
-| `checkout-api` and all its components | Match. |
-| `cart` | Match. |
-| `shop` and `storefront` | Parents: they stay, because they hold a match. |
-| `catalog` | Recedes. |
+| `payments` or `internal` | `checkout-api`, all its components, and `cart`. |
+| `payments` and `internal` | Only `refunds`. Its container and system stay as context. |
+| `payments`, not `internal` | `checkout-api`, its components except `refunds`, and `cart`. |
+| Only not `internal` | Everything except `refunds`. |
+
+A link carries `tag=<tag>` for each focused tag, `match=all` for **all**, and
+`not=<tag>` for each exclusion. Opening it frames the matches. For example,
+`?tag=payments&not=internal` opens the third row.
 
 The map then decides what it draws around those elements
 ([`IsoMap.focusTags`](../src/viewers/web/iso/painting/map.ts)): a group stays
@@ -283,8 +290,7 @@ architecture stay as they are.
 selection to decide what a static export contains. Include keeps the matches and
 their context. Exclude then removes its own matches and wins over include.
 
-Continue the example: component `refunds` in `checkout-api` is tagged `internal`.
-`--include-filter payments --exclude-filter internal` exports:
+In the same example, `--include-filter payments --exclude-filter internal` exports:
 
 | Part | Exported |
 | --- | --- |

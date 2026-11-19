@@ -1,4 +1,4 @@
-import { tagChips } from '../chrome/tag-focus.ts'
+import { tagChip } from '../chrome/tag-focus.ts'
 
 /**
  * An element's tags as one row of chips under a title, for reading. Pressing a chip focuses the map on its
@@ -12,10 +12,17 @@ export function tagRow(tags: readonly string[], focused: readonly string[], onTo
   const title = document.createElement('span')
   title.className = 'title'
   title.textContent = 'Tags'
-  row.append(title, tagChips(tags.map(tag => ({ tag })), focused, onToggle))
+  row.append(title)
+  for (const tag of tags) {
+    const chip = tagChip(tag, () => onToggle(tag))
+    chip.setAttribute('aria-pressed', String(focused.includes(tag)))
+    row.append(chip)
+  }
   return row
 }
 
+/** Tag chips in the reading pane wrap beside their label. */
 export const tagRowCss = `
-  #details .tag-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 12px; }
+  #details .tag-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
+  #details .tag-row .title { margin-right: 6px; }
 `

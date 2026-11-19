@@ -1,5 +1,7 @@
+/** The view and navigation actions the page offers from the keyboard. */
 export interface ShortcutActions {
   hud(): void
+  tags(): void
   layers(): void
   debug(): void
   zoomIn(): void
@@ -10,6 +12,8 @@ export interface ShortcutActions {
 
 const toggles: Record<string, keyof ShortcutActions> = { F1: 'hud', F2: 'layers', F3: 'debug' }
 const mapKeys: Record<string, keyof ShortcutActions> = {
+  t: 'tags',
+  T: 'tags',
   '+': 'zoomIn',
   '=': 'zoomIn',
   '-': 'zoomOut',
@@ -26,7 +30,7 @@ export function shortcut(key: string, typing: boolean): keyof ShortcutActions | 
 /** Radio buttons and checkboxes are controls, not text fields. */
 function isTextField(target: EventTarget | null): boolean {
   return target instanceof Element && !target.closest('input[type="radio"], input[type="checkbox"]')
-    && target.closest('input, textarea, [contenteditable]') !== null
+    && target.closest('input, textarea, select, [contenteditable]') !== null
 }
 
 /** The page's keyboard: F1 to F3 toggle chrome, the map keys move the map; browser chords stay with the browser. */
