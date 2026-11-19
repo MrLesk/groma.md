@@ -53,8 +53,12 @@ export function facadeDetailsVisible(k: number): boolean {
   return k * FACADE_MARK >= 1
 }
 
-/** Share of ink in an icon's lines; the rest is the outline colour of what it stands on. */
-export const ICON_INK = 0.6
+/** Share of ink in an icon's quiet lines; the rest is the map's line colour. */
+export const ICON_INK = 0.3
+/** Share of ink in an icon's faces by the way a face is turned: the top is nearly paper, the south wall the deepest. */
+export const ICON_TONE = { top: 0.04, east: 0.07, south: 0.1 } as const
+/** Share of the accent colour in the faces of an accent part, by the way a face is turned. */
+export const ICON_ACCENT_TONE = { top: 0.14, east: 0.2, south: 0.26 } as const
 
 /** Island dots and crosses and the group hatching repeat this many world pixels apart; slab grain is coarser. */
 export const SURFACE_TILE = 8
