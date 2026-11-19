@@ -1,4 +1,4 @@
-import { CAPITAL_MIDDLE, CONTAINER_FONT, ICON_LEAD, ICON_RATIO, PLANE, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
+import { BASELINE, CAPITAL_MIDDLE, CONTAINER_FONT, ICON_LEAD, ICON_RATIO, PLANE, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
 import type { ProjectionView, SurfaceLabel, SurfaceText } from '../projection/project.ts'
 import { planeMatrix, project } from '../projection/project.ts'
 import { node, round, type SvgNode } from './svg.ts'
@@ -55,7 +55,7 @@ export function surfaceLabelLayout(
     width: lead + width + 2 * paddingX,
     height: 3 * paddingY + fontSize * TITLE_LINE_HEIGHT,
     leader: paddingY,
-    baseline: 2 * paddingY + fontSize * 0.9,
+    baseline: 2 * paddingY + fontSize * BASELINE,
     /** Where the title is centred; an icon's box moves it along +gx. */
     centre: start + lead + width / 2,
     /** The icon's box: a square before the title, centred on the middle of the title's capitals. */
@@ -75,7 +75,7 @@ export function surfaceText(
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, className,
     text.lines.map((line, index) => node('text', {
       x: padding + lead,
-      y: padding + size * 0.9 + index * textLineHeight(size),
+      y: padding + size * BASELINE + index * textLineHeight(size),
       'font-size': size,
     }, 'text', line)))
 }

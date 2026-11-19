@@ -5,7 +5,7 @@ import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
 import type { Plane, ProjectionView } from '../projection/project.ts'
-import { DETAIL_OPACITY_CSS, GLYPH_STROKE_CSS, ICON_OPACITY_CSS, OBJECT_STROKE_CSS } from './icon-camera.ts'
+import { DETAIL_OPACITY_CSS, ICON_OPACITY_CSS, ICON_STROKE_CSS } from './icon-camera.ts'
 import { COLOR_EDGE, COLOR_STRENGTH, FACADE_MARK, ICON_ACCENT_TONE, ICON_INK, ICON_TONE, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
 import type { Level } from './scale.ts'
 import { mark, node, type SvgNode } from './svg.ts'
@@ -161,9 +161,9 @@ function accentRules(scope: string, color: string, tint: (share: number) => stri
 /**
  * An icon's parts have their own classes, so no rule for a building, slab or island reaches them. The object is
  * a fine line drawing: quiet lines a little brighter than the map's outlines, over faces a little off paper that
- * are shaded like a building's, by the side they are turned to. Its accent is drawn in ink. In the browser an element with an authored
- * color hands that color to the accent through --icon-accent; the rest of the object stays neutral. The glyph is
- * ink lines.
+ * are shaded like a building's, by the side they are turned to. Its accent is drawn in ink. In the browser an
+ * element with an authored color hands that color to the accent through --icon-accent; the rest of the object
+ * stays neutral. The flat drawing of the 2D view is made of the same parts, so it takes the same rules.
  */
 function iconCss(palette?: Palette): string {
   const line = palette === undefined
@@ -173,7 +173,7 @@ function iconCss(palette?: Palette): string {
   const accentTint = (share: number) => palette === undefined
     ? `color-mix(in srgb, ${accent} ${(share * 100).toFixed(1)}%, var(--paper))`
     : mixColour(palette.paper, palette.ink, share)
-  return `#map .icon-part, #map .icon-glyph path {
+  return `#map .icon-part {
     stroke: ${line}; stroke-linejoin: round; stroke-linecap: round;
     ${palette === undefined ? 'stroke-width: var(--icon-stroke);' : ''}
   }
@@ -183,14 +183,12 @@ function iconCss(palette?: Palette): string {
   #map .icon-screen { fill: ${palette?.paper ?? 'var(--paper)'}; }
   #map .icon-line { fill: none; }
   #map .icon-solid { fill: ${line}; }
-  ${accentRules('#map', accent, accentTint)}
-  #map .icon-glyph path { fill: none; stroke: ${palette?.ink ?? 'var(--ink)'}; }`
+  ${accentRules('#map', accent, accentTint)}`
 }
 
 /** How live icons follow the camera; icon-camera.ts holds each rule beside the function a still image uses. */
 const iconCameraCss = `
-  #map .icon { --icon-stroke: ${OBJECT_STROKE_CSS}; opacity: ${ICON_OPACITY_CSS}; }
-  #map .icon-glyph { --icon-stroke: ${GLYPH_STROKE_CSS}; }
+  #map .icon { --icon-stroke: ${ICON_STROKE_CSS}; opacity: ${ICON_OPACITY_CSS}; }
   #map .icon-detail { opacity: ${DETAIL_OPACITY_CSS}; }
 `
 
@@ -362,7 +360,7 @@ export const mapCss = `
   }
   #map :is(.island, .slab, .zone):is(.selected, .touched, .lit, .context) > .surface-label .text { fill: var(--highlight); }
   #map :is(.island, .slab, .zone):is(.selected, .touched, .lit, .context) > .surface-label .label-leader { stroke: var(--highlight); }
-  #map :is(.island, .slab, .zone, .building):is(.selected, .touched, .lit, .context) > .icon :is(.icon-part, .icon-glyph path) { stroke: var(--highlight); }
+  #map :is(.island, .slab, .zone, .building):is(.selected, .touched, .lit, .context) > .icon .icon-part { stroke: var(--highlight); }
   #map :is(.island, .slab, .zone, .building):is(.selected, .touched, .lit, .context) > .icon .icon-solid { fill: var(--highlight); }
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) { --emphasis: ${emphasis(0.5)}; }
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) .face { stroke: color-mix(in srgb, var(--highlight) 45%, var(--map-line)); }

@@ -46,25 +46,14 @@ export function detailOpacity(side: number): number {
 }
 export const DETAIL_OPACITY_CSS = rampCss(DETAIL)
 
-/** A line width that is `perPixel` of the box's screen side, kept between `min` and `max` screen pixels. */
-interface StrokeRule {
-  min: number
-  max: number
-  perPixel: number
-}
+/**
+ * An icon is a fine line drawing: its lines are this share of the box's screen side, kept between `min` and `max`
+ * screen pixels, so they stay hairlines however large it is drawn.
+ */
+const STROKE = { min: 0.6, max: 1, perPixel: 1 / 34 }
 
-/** An object is a fine line drawing: its lines stay hairlines however large it is drawn. */
-const OBJECT_STROKE: StrokeRule = { min: 0.6, max: 1, perPixel: 1 / 34 }
-/** A glyph is drawn like the name beside it, so its lines are heavier. Only the live map shows glyphs: a cover is tilted. */
-const GLYPH_STROKE: StrokeRule = { min: 0.6, max: 3, perPixel: 1 / 18 }
-
-function strokeCss(rule: StrokeRule): string {
-  return `calc(1px * clamp(${rule.min}, ${SCREEN_SIDE_CSS} * ${rule.perPixel.toFixed(4)}, ${rule.max}))`
+/** Width of an icon's lines in screen pixels, for a box `side` screen pixels wide. */
+export function iconStroke(side: number): number {
+  return Math.min(STROKE.max, Math.max(STROKE.min, side * STROKE.perPixel))
 }
-
-/** Width of an object's lines in screen pixels, for a box `side` screen pixels wide. */
-export function objectStroke(side: number): number {
-  return Math.min(OBJECT_STROKE.max, Math.max(OBJECT_STROKE.min, side * OBJECT_STROKE.perPixel))
-}
-export const OBJECT_STROKE_CSS = strokeCss(OBJECT_STROKE)
-export const GLYPH_STROKE_CSS = strokeCss(GLYPH_STROKE)
+export const ICON_STROKE_CSS = `calc(1px * clamp(${STROKE.min}, ${SCREEN_SIDE_CSS} * ${STROKE.perPixel.toFixed(4)}, ${STROKE.max}))`
