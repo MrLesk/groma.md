@@ -3,7 +3,7 @@ import type { WorkSnapshot } from '../../../types.ts'
 import type { Tip } from '../organisms/tip.ts'
 import { BACKLOG_MARK } from './backlog-mark.ts'
 import { fillWorkBadge, finishingWorkKeys, WORK_BADGE, WORK_BADGE_FINISH_MS } from './badge.ts'
-import { preservedWorkStatuses, toggleWorkStatus, workStatusFilters } from '../../../work/status-filter.ts'
+import { preservedWorkStatuses, shownWorkStatuses, toggleWorkStatus, workStatusFilters } from '../../../work/status-filter.ts'
 import type { WorkStatusFilterState } from '../../../work/status-filter.ts'
 import { createWorkSummary, workSummaryCss } from './summary.ts'
 
@@ -35,6 +35,13 @@ export const workCss = `
   #work .toggle, #work .chip { height: 38px; border-radius: 20px; }
   #work .toggle { padding: 4px 10px; border: 1px solid var(--hairline); color: var(--muted); }
   #work .toggle[aria-pressed="true"] { color: var(--highlight-text); border-color: var(--highlight); }
+  #work .toggle:disabled { opacity: 0.5; cursor: default; }
+  /*
+   * The tasks switch is the Backlog mark as a button. While tasks are on the mark is lit: its image
+   * only gives the shape, and the theme's highlight colour fills it. While they are off it is the grey image.
+   */
+  #work .tasks-switch { padding: 0; border-radius: 6px; }
+  #work .tasks-switch[aria-pressed="true"] .backlog-mark { background: var(--highlight); mask: var(--backlog-mark-image) center / contain no-repeat; filter: none; }
   #work .strip { display: flex; align-items: flex-start; gap: 8px; overflow-x: auto; overflow-y: hidden; box-sizing: border-box; height: 54px; padding: 5px 0 0; min-width: 0; }
   #work .chip {
     flex: none; gap: 8px; padding: 4px 10px 4px 4px; border: 1px solid var(--hairline);
@@ -62,6 +69,18 @@ export interface WorkIsland {
   paint(pins: readonly WorkPin[], work: WorkSnapshot): void
   /** Colours the chips of the active tasks, greyscale otherwise, marks those of the selected task (always one of the active ones) and scrolls the first into view. */
   activate(active: readonly string[], selected: string | undefined): void
+  /** False while the tasks switch is off: the map then draws no pin and no task highlight. */
+  readonly tasksShown: boolean
+}
+
+/** What the task island asks of the map it floats over. */
+export interface WorkIslandMap {
+  /** Activates the task of a clicked chip, or deactivates it. */
+  toggleTask(taskId: string): void
+  /** Shows the pins in these statuses and hides the rest; no status while the tasks switch is off. */
+  showStatuses(statuses: readonly string[]): void
+  /** Paints the task highlights again after the tasks switch turned them off or on. */
+  paintTaskHighlights(): void
 }
 
 function button(className: string, html: string, onClick: () => void): HTMLButtonElement {
@@ -88,15 +107,13 @@ function chip(pin: WorkPin, finishingAt: number | undefined, onToggle: (id: stri
  * the label, the configured statuses that have pins and the chip strip. It starts
  * folded with the workflow statuses other than the default and terminal ones
  * shown, and keeps its fold and filters across repaints;
- * clicking a chip toggles its task. The persistent fold control turns while
- * final-size content is clipped out and back in, so text is never scaled.
+ * clicking a chip toggles its task. The Backlog mark, in the pill and in the
+ * label, is the tasks switch: one click takes every task off the map and the
+ * next brings them back with the status filters as they were. The persistent
+ * fold control turns while final-size content is clipped out and back in, so
+ * text is never scaled.
  */
-export function createWorkIsland(
-  host: HTMLElement,
-  onToggle: (taskId: string) => void,
-  onShow: (statuses: readonly string[]) => void,
-  tip: Tip,
-): WorkIsland {
+export function createWorkIsland(host: HTMLElement, map: WorkIslandMap, tip: Tip): WorkIsland {
   const island = document.createElement('div')
   island.id = 'work'
   island.className = 'floating-map-bar'
@@ -107,6 +124,8 @@ export function createWorkIsland(
   let work: WorkSnapshot = { statuses: [], defaultStatus: '', items: [] }
   const summary = createWorkSummary(tip)
   let statusFilters: WorkStatusFilterState | undefined
+  /** The tasks switch. It stands beside the status filters and never changes them, so they are still there when tasks return. */
+  let tasksShown = true
   /** Completion start times keep the flip, hold and fade continuous across rebuilds. */
   const finishing = new Map<string, number>()
   let open = false
@@ -115,36 +134,71 @@ export function createWorkIsland(
   let foldRevision = 0
   let foldAnimation: Animation | undefined
 
+  /** The statuses whose pins and chips are shown now. */
+  const shownStatuses = (): readonly string[] => shownWorkStatuses(statusFilters?.enabled ?? [], tasksShown)
+  /** Tells the map which pins to show. A status filter click, a tasks switch click and a live work update all end here. */
+  const showOnMap = (): void => map.showStatuses(shownStatuses())
+
   const toggle = (status: string): HTMLButtonElement => {
     const pressed = statusFilters?.enabled.includes(status) ?? false
     const node = button('toggle', `${EYE_MARK}${status}`, () => {
       statusFilters = toggleWorkStatus(statusFilters!, status)
-      onShow(statusFilters.enabled)
+      showOnMap()
       rebuild()
     })
     node.setAttribute('aria-pressed', String(pressed))
+    // While tasks are off a status filter shows its saved choice and cannot change it.
+    node.disabled = !tasksShown
     return node
+  }
+  /** A click on the tasks switch: every task leaves the map, or returns to it. The status filters are not touched. */
+  const toggleTasksShown = (): void => {
+    tasksShown = !tasksShown
+    showOnMap()
+    rebuild()
+    map.paintTaskHighlights()
+  }
+  /** A tasks switch without its mark; foldedSwitch and openLabel put the Backlog mark in. */
+  const tasksSwitch = (): HTMLButtonElement => {
+    const node = button('tasks-switch', '', toggleTasksShown)
+    node.setAttribute('aria-pressed', String(tasksShown))
+    return node
+  }
+  /** The folded island's switch holds the mark with its count. */
+  const foldedSwitch = (): HTMLButtonElement => {
+    const node = tasksSwitch()
+    node.append(summary.element)
+    return node
+  }
+  /** The open island's label; its Backlog mark is the same switch. */
+  const openLabel = (): HTMLElement => {
+    const node = tasksSwitch()
+    node.innerHTML = BACKLOG_MARK
+    node.setAttribute('aria-label', 'Backlog.md Tasks')
+    const label = document.createElement('span')
+    label.className = 'label'
+    label.innerHTML = '<span>Backlog.md<br>Tasks</span>'
+    label.prepend(node)
+    return label
   }
   /** The island's changing content for the folded pill or open row. */
   const parts = (): Node[] => {
     const divider = document.createElement('span')
     divider.className = 'divider'
-    if (!open) return [summary.element, divider]
-    const label = document.createElement('span')
-    label.className = 'label'
-    label.innerHTML = `${BACKLOG_MARK}<span>Backlog.md<br>Tasks</span>`
+    if (!open) return [foldedSwitch(), divider]
     const strip = document.createElement('div')
     strip.className = 'strip'
     const order = new Map(work.statuses.map((status, index) => [status, index]))
-    const shown = pins.filter(pin => statusFilters!.enabled.includes(pin.status) || finishing.has(pin.key))
+    const statuses = shownStatuses()
+    const shown = pins.filter(pin => statuses.includes(pin.status) || finishing.has(pin.key))
     shown.sort((left, right) => order.get(left.status)! - order.get(right.status)!)
     strip.append(...shown.map(pin => {
-      const node = chip(pin, finishing.get(pin.key), onToggle, tip)
-      node.classList.toggle('work-disappearing', finishing.has(pin.key) && !statusFilters!.enabled.includes(pin.status))
+      const node = chip(pin, finishing.get(pin.key), map.toggleTask, tip)
+      node.classList.toggle('work-disappearing', finishing.has(pin.key) && !statuses.includes(pin.status))
       return node
     }))
     return [
-      label,
+      openLabel(),
       ...statusFilters!.available.map(toggle),
       divider,
       strip,
@@ -176,7 +230,7 @@ export function createWorkIsland(
     // the strip stays where it was, so a repaint moves it only to reveal a selected chip
     island.querySelector('.strip')?.scrollTo(scrolled, 0)
     mark()
-    summary.update(pins, work, statusFilters?.enabled ?? [], !open)
+    summary.update(pins, work, { enabled: statusFilters?.enabled ?? [], folded: !open, tasksShown })
   }
   const fold = button('fold', CHEVRON, () => {
     open = !open
@@ -215,9 +269,10 @@ export function createWorkIsland(
   host.append(island)
   return {
     paint(nextPins, nextWork) {
+      const statuses = shownStatuses()
       const visible = new Set(open
         ? pins
-          .filter(pin => statusFilters?.enabled.includes(pin.status) || finishing.has(pin.key))
+          .filter(pin => statuses.includes(pin.status) || finishing.has(pin.key))
           .map(pin => pin.key)
         : [])
       const started = finishingWorkKeys(pins, nextPins)
@@ -235,7 +290,7 @@ export function createWorkIsland(
         pins.map(pin => pin.status),
         enabled,
       )
-      onShow(statusFilters.enabled)
+      showOnMap()
       rebuild()
       if (started.size > 0) setTimeout(() => {
         for (const key of started) finishing.delete(key)
@@ -247,5 +302,6 @@ export function createWorkIsland(
       selected = nextSelected
       mark()
     },
+    get tasksShown() { return tasksShown },
   }
 }

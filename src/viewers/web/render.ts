@@ -82,7 +82,7 @@ if (data.add !== undefined) createAddControl(document.getElementById('add')!, da
 const shell = createWebShell(document.body, hierarchyContent, hierarchyToggle, detailsHost, map.svg)
 const tip = createTip(host)
 const pins = createPins(host, id => map.anchorOf(id), id => toggleTask(id, false), tip)
-const island = createWorkIsland(host, id => toggleTask(id), pins.show, tip)
+const island = createWorkIsland(host, { toggleTask: id => toggleTask(id), showStatuses: pins.show, paintTaskHighlights: paintMapState }, tip)
 const hierarchy = createHierarchy(treeHost, select)
 const themeControl = bindThemeControl(document.getElementById('theme') as HTMLDetailsElement, opened.theme, syncUrl)
 let hudVisible = opened.hudVisible
@@ -173,7 +173,8 @@ function rememberMapControls(): void {
 function paintMapState(): void {
   const task = selection.kind === 'task' ? workItem(selection.id) : undefined
   map.changes(changes.marks())
-  highlights.paint(selection, world, activeFlows, activeTaskIds.map(id => workItem(id)).filter((item): item is WorkItem => item !== undefined))
+  const highlighted = island.tasksShown ? activeTaskIds : [] // The task island's switch takes task highlights off the map with the pins.
+  highlights.paint(selection, world, activeFlows, highlighted.map(id => workItem(id)).filter((item): item is WorkItem => item !== undefined))
   pins.activate(activeTaskIds, task?.id)
   island.activate(activeTaskIds, task?.id)
 }
