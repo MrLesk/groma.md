@@ -20,18 +20,16 @@ export const CONTAINER_FONT = 36
 export const GROUP_FONT = 28
 
 /**
- * Every icon stands in a square slot of this side in plane pixels, on a roof or before a title, so icons are one
- * size wherever they stand. Three cells: a title's icon keeps the same room again between its slot and its
- * surface (TITLE_ICON_CLEARANCE), and both together still fit the shallowest title band, a group's.
+ * An icon is part of its name, like the icon of any label: its box is a square on the name's line, this many
+ * font sizes wide, so it follows the size of the name wherever the name is and whenever the name's size changes.
  */
-export const ICON_SIDE = 3 * PLANE
-/**
- * Slot sides of clear ground a title's icon keeps on the side of its surface. An object covers the ground behind
- * it on screen; no object reaches further than this, so a title's icon never covers its surface or what stands on it.
- */
-export const TITLE_ICON_CLEARANCE = 1
-/** The gap between a slot and the name, in font sizes. */
-export const ICON_GAP_RATIO = 0.4
+export const ICON_RATIO = 1.2
+/** The gap between an icon's box and the name, in font sizes. */
+const ICON_GAP_RATIO = 0.4
+/** Font sizes an icon's box and its gap take before a name. */
+export const ICON_LEAD = ICON_RATIO + ICON_GAP_RATIO
+/** The middle of a line's capital letters lies this many font sizes below the top of the line; an icon's box is centred on it. */
+export const CAPITAL_MIDDLE = 0.54
 
 /** A roof line wider than this wraps, when the name has a space to wrap at. */
 const MAX_LINE_CELLS = 4
@@ -66,13 +64,14 @@ export function buildingFont(element: Pick<AnnotatedElement, 'kind' | 'external'
 }
 
 /**
- * The icon slot on a roof whose name has this font size, in plane pixels: where the square lies from the name
- * block's north corner, its side, and how far the name moves along +gx to leave it free. roofBlock sizes the
- * block with it and the painter draws with it, so the two always agree.
+ * The icon's box on a roof whose name has this font size, in plane pixels: a square on the name's first line.
+ * Where it lies from the name block's north corner, its side, and how far the name moves along +gx to leave it
+ * free. roofBlock sizes the block with it and the painter draws with it, so the two always agree.
  */
 export function roofIconSlot(size: number): { x: number; y: number; side: number; lead: number } {
   const padding = textPadding(size)
-  return { x: padding, y: padding / 2, side: ICON_SIDE, lead: ICON_SIDE + Math.ceil(size * ICON_GAP_RATIO) }
+  const side = size * ICON_RATIO
+  return { x: padding, y: padding + size * CAPITAL_MIDDLE - side / 2, side, lead: Math.ceil(size * ICON_LEAD) }
 }
 
 /** Roof insets and line spacing grow with the title size. */
@@ -94,12 +93,9 @@ export function labelBand(size: number): number {
   return Math.ceil(labelHeight(size * 3) / PLANE)
 }
 
-/** Plane pixels a title's icon needs along its band before the gap to the title: its clear ground, then its slot. */
-export const TITLE_ICON_ROOM = ICON_SIDE * (TITLE_ICON_CLEARANCE + 1)
-
 /** Cells a surface needs along +gx so its own name, and its icon when it has one, fit in its front band. */
 export function nameCells(name: string, size: number, spacing = 0, icon = false): number {
-  const lead = icon ? TITLE_ICON_ROOM + size * ICON_GAP_RATIO : 0
+  const lead = icon ? ICON_LEAD * size : 0
   return Math.ceil((textWidth(name, size, spacing) + lead + 2 * SURFACE_PAD) / PLANE)
 }
 
@@ -252,14 +248,12 @@ export const curved = (shape: Shape): boolean => shape.kind === 'round' || shape
 
 /**
  * The name's block on a roof in plane pixels: the longest line with ROOF_PAD around it, one ROOF_LINE_HEIGHT per line.
- * With an icon the block starts with the icon's slot and is at least deep enough to hold it.
+ * With an icon the block starts with the icon's box, which lies on the first line.
  */
 export function roofBlock(lines: readonly string[], size = ROOF_FONT, icon = false): { w: number; d: number } {
   const padding = textPadding(size)
   const text = { w: Math.max(...lines.map(line => textWidth(line, size))), d: lines.length * textLineHeight(size) }
-  if (!icon) return { w: text.w + 2 * padding, d: text.d + 2 * padding }
-  const slot = roofIconSlot(size)
-  return { w: slot.lead + text.w + 2 * padding, d: Math.max(text.d + 2 * padding, 2 * slot.y + slot.side) }
+  return { w: (icon ? roofIconSlot(size).lead : 0) + text.w + 2 * padding, d: text.d + 2 * padding }
 }
 
 /** The roof holds its name and every wall has room for the building's connection ports. */

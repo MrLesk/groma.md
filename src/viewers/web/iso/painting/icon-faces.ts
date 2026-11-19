@@ -1,6 +1,6 @@
 import { ARC_STEP } from '../../icons/parts.ts'
 import type { Axis, IconMark, IconPart, Prism, Spot } from '../../icons/parts.ts'
-import { towardsReader } from '../projection/project.ts'
+import { CELL_HEIGHT, towardsReader } from '../projection/project.ts'
 import type { ProjectionView } from '../projection/project.ts'
 
 /**
@@ -139,6 +139,26 @@ export function boundsOf(part: IconPart): { min: IconPoint; max: IconPoint } {
     min: lift(part.axis, [Math.min(...as), Math.min(...bs)], Math.min(...ends)),
     max: lift(part.axis, [Math.max(...as), Math.max(...bs)], Math.max(...ends)),
   }
+}
+
+/**
+ * The ground an object's drawing covers from back to front, in footprint sides from the footprint's north edge.
+ * An object rises on screen: in the map's home view a point at height z is drawn over the ground
+ * z * CELL_HEIGHT / 2 behind it, so the drawing of a tall object starts well behind its foot.
+ */
+export function drawingSpan(parts: readonly IconPart[]): { back: number; front: number } {
+  const behind = CELL_HEIGHT / 2
+  const bounds = parts.map(boundsOf)
+  return {
+    back: Math.min(...bounds.map(({ min, max }) => min[1] - max[2] * behind)),
+    front: Math.max(...bounds.map(({ min, max }) => max[1] - min[2] * behind)),
+  }
+}
+
+/** How far an object stands in front of its box, in box sides, so that its drawing, not its foot, is centred on the box. */
+export function drawingOffset(parts: readonly IconPart[]): number {
+  const { back, front } = drawingSpan(parts)
+  return 0.5 - (back + front) / 2
 }
 
 /**
