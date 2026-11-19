@@ -5,7 +5,7 @@ import { iconObjects, type IconObject } from '../../icons/objects.ts'
 import type { IconMark, IconPart, Prism } from '../../icons/parts.ts'
 import { CELL_HEIGHT, CELL_LENGTH, planeMatrix, project } from '../projection/project.ts'
 import type { ProjectionView } from '../projection/project.ts'
-import { detailOpacity, iconOpacity, iconStroke, type Still } from './icon-camera.ts'
+import { detailOpacity, iconStroke, type Still } from './icon-camera.ts'
 import { backToFront, boundsOf, frontOf, markPoints, prismFaces, type IconPoint } from './icon-faces.ts'
 import { node, pointsAttribute, round, type SvgNode } from './svg.ts'
 
@@ -115,17 +115,13 @@ export function flatSvg(name: IconName, side: number, detail?: number): SvgNode[
 /**
  * What the camera scale decides about one icon; icon-camera.ts holds the rules. On the live map the stylesheet
  * applies them while the camera moves, so the icon only carries its box's side. A still is drawn once, so the
- * painter applies them here: the fading of a tiny icon, the line width and the opacity of the quiet inner lines.
- * A still's renderer scales lines with the drawing, hence the division.
+ * painter applies them here: the line width and the opacity of the quiet inner lines. A still's renderer scales
+ * lines with the drawing, hence the division.
  */
 function cameraLook(box: IconBox, still: Still | undefined): { style: string; detail: number | undefined } {
   if (still === undefined) return { style: `--icon-side: ${round(box.side)}`, detail: undefined }
   const side = box.side * still.zoom
-  const opacity = iconOpacity(side)
-  return {
-    style: `stroke-width: ${round(iconStroke(side) / still.zoom)}${opacity === 1 ? '' : `; opacity: ${round(opacity)}`}`,
-    detail: detailOpacity(side),
-  }
+  return { style: `stroke-width: ${round(iconStroke(side) / still.zoom)}`, detail: detailOpacity(side) }
 }
 
 /**
