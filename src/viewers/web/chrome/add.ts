@@ -1,4 +1,5 @@
 import type { AddInput } from '../../../authoring.ts'
+import { approvalBar } from '../atoms/write-form.ts'
 
 export const addDialogCss = `
   /* Hidden while creation controls are unfinished. */
@@ -23,26 +24,6 @@ export const addDialogCss = `
   .verb-dialog::backdrop { background: color-mix(in srgb, var(--ink) 8%, transparent); }
   .verb-dialog form { display: grid; gap: 12px; padding: 20px; }
   .verb-dialog h1 { margin: 0; font-size: 18px; line-height: 1.3; }
-  .verb-dialog label { display: grid; gap: 6px; color: var(--muted); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
-  .verb-dialog label[hidden] { display: none; }
-  .verb-dialog input, .verb-dialog select, .verb-dialog textarea {
-    width: 100%;
-    border: 1px solid var(--hairline);
-    border-radius: 6px;
-    padding: 9px 10px;
-    color: var(--ink);
-    background: color-mix(in srgb, var(--paper) 72%, transparent);
-    font: 12px/1.5 'SF Mono', ui-monospace, Menlo, monospace;
-    resize: none;
-  }
-  .verb-dialog textarea { height: 120px; }
-  .verb-dialog input:focus, .verb-dialog select:focus, .verb-dialog textarea:focus { outline: 2px solid var(--highlight); outline-offset: -1px; }
-  .verb-dialog .error { min-height: 1.5em; margin: -6px 0 0; color: var(--highlight-text); font-size: 11px; }
-  .verb-dialog .error:empty { display: none; }
-  .verb-dialog .actions { display: flex; justify-content: flex-end; gap: 8px; }
-  .verb-dialog button { border: 1px solid var(--hairline); border-radius: 6px; padding: 7px 12px; background: transparent; }
-  .verb-dialog button[type="submit"] { border-color: var(--accent); color: var(--accent-text); }
-  .verb-dialog button:disabled { opacity: 0.5; cursor: wait; }
 `
 
 /** The plus button of the hierarchy pane: one dialog declares a person, an external system, or a draft. */
@@ -50,13 +31,11 @@ export function createAddControl(button: HTMLElement, add: (input: AddInput) => 
   const dialog = document.createElement('dialog')
   dialog.id = 'add-dialog'
   dialog.className = 'verb-dialog'
-  dialog.innerHTML = '<form><h1>Add</h1>'
+  dialog.innerHTML = '<form class="write-form"><h1>Add</h1>'
     + '<label>What<select name="thing"><option value="actor">Person</option><option value="external">External system</option><option value="draft">Draft</option></select></label>'
     + '<label>Name<input name="name" required></label>'
     + '<label class="technology" hidden>Technology<input name="technology"></label>'
-    + '<label>Overview<textarea name="overview" required></textarea></label>'
-    + '<p class="error" role="status"></p>'
-    + '<div class="actions"><button type="button" data-cancel>Cancel</button><button type="submit">Add</button></div></form>'
+    + '<label>Overview<textarea name="overview" required></textarea></label></form>'
   document.body.append(dialog)
 
   const form = dialog.querySelector('form')!
@@ -65,35 +44,27 @@ export function createAddControl(button: HTMLElement, add: (input: AddInput) => 
   const technology = form.elements.namedItem('technology') as HTMLInputElement
   const technologyField = form.querySelector<HTMLElement>('.technology')!
   const overview = form.elements.namedItem('overview') as HTMLTextAreaElement
-  const error = form.querySelector<HTMLElement>('.error')!
-  const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!
+  const approval = approvalBar('Add')
+  form.append(approval.bar)
 
   const showFields = (): void => {
     technologyField.hidden = thing.value !== 'external'
   }
   thing.addEventListener('change', showFields)
-  form.querySelector('[data-cancel]')!.addEventListener('click', () => dialog.close())
+  approval.cancel.addEventListener('click', () => dialog.close())
   form.addEventListener('submit', async event => {
     event.preventDefault()
-    submit.disabled = true
-    error.textContent = ''
-    try {
-      await add({
-        thing: thing.value,
-        name: name.value,
-        overview: overview.value,
-        ...(thing.value === 'external' && technology.value !== '' ? { technology: technology.value } : {}),
-      })
-      dialog.close()
-    } catch (cause) {
-      error.textContent = cause instanceof Error ? cause.message : String(cause)
-    } finally {
-      submit.disabled = false
-    }
+    const outcome = await approval.approve(() => add({
+      thing: thing.value,
+      name: name.value,
+      overview: overview.value,
+      ...(thing.value === 'external' && technology.value !== '' ? { technology: technology.value } : {}),
+    }))
+    if (outcome === 'stored') dialog.close()
   })
   button.addEventListener('click', () => {
     form.reset()
-    error.textContent = ''
+    approval.clear()
     showFields()
     dialog.showModal()
     name.focus()

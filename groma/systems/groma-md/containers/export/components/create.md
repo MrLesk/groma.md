@@ -18,8 +18,6 @@ groma:
     - scanner: typescript
       file: src/viewers/web/chrome/relate.ts
     - scanner: typescript
-      file: src/viewers/web/organisms/remove.ts
-    - scanner: typescript
       file: src/viewers/web/organisms/writes.ts
     - scanner: typescript
       file: src/viewers/web/organisms/tip.ts
@@ -27,6 +25,10 @@ groma:
       file: src/viewers/web/project/editor.ts
     - scanner: typescript
       file: src/viewers/web/editing/appearance-preview.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/commands.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/write-view.ts
 description: Turns browser gestures and forms into architecture write actions
 ---
 

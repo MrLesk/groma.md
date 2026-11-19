@@ -26,14 +26,10 @@ import { iconChoices } from './icon-picker.ts'
 import { glyphElement } from '../icons/glyph-element.ts'
 import type { IconName } from '../../../icons.ts'
 import { heading, paragraph } from '../atoms/text.ts'
-import { editButton, isEditing, type EditField } from './editable.ts'
+import { acceptEntry, editEntry, removeEntry, type EditField } from './commands.ts'
+import { isWriteViewOpen, paintWriteEntries, type WriteEntry } from './write-view.ts'
 import { tagRow } from './tag-row.ts'
 import type { PaneWrites, ParentOption } from './writes.ts'
-import {
-  paintAcceptControl,
-  paintSelectionControls,
-} from './writes.ts'
-import { paintRemoveControl } from './remove.ts'
 import { relationshipCard, relationshipPairCard, type RelationshipPairData } from './relationship-card.ts'
 import {
   parentOfElements,
@@ -45,6 +41,8 @@ export interface InspectedChild {
   title: string
   kind: C4Kind
   external: boolean
+  /** A short fact shown after the title, such as the group a selected component is in. */
+  note?: string
 }
 
 export interface Inspected {
@@ -217,21 +215,30 @@ function chipList(labels: readonly string[], name: string): HTMLUListElement {
   return list
 }
 
-function marked(
-  kind: C4Kind | null,
-  external: boolean,
-  text: string,
-): HTMLElement {
-  const row = document.createElement('span')
-  if (kind !== null) {
+/** Elements as a list of links, each with its kind mark. A click selects it; a shift-click adds or drops it. */
+export function elementLinks(elements: readonly InspectedChild[], onSelect: (id: string, additive: boolean) => void): HTMLUListElement {
+  const list = document.createElement('ul')
+  for (const element of elements) {
     const mark = document.createElement('span')
     mark.className = 'mark'
-    mark.textContent = kindGlyph(kind)
-    if (external) mark.classList.add('ghost')
-    row.append(mark, ' ')
+    mark.textContent = kindGlyph(element.kind)
+    if (element.external) mark.classList.add('ghost')
+    const link = document.createElement('button')
+    link.type = 'button'
+    link.className = 'link'
+    link.append(mark, ' ', element.title)
+    if (element.note !== undefined) {
+      const note = document.createElement('span')
+      note.className = 'note'
+      note.textContent = element.note
+      link.append(note)
+    }
+    link.addEventListener('click', event => onSelect(element.id, event.shiftKey))
+    const item = document.createElement('li')
+    item.append(link)
+    list.append(item)
   }
-  row.append(text)
-  return row
+  return list
 }
 
 /** What the pane reads and where its clicks navigate. It carries no write hook: reading never writes. */
@@ -303,12 +310,12 @@ function paintComparedRelationships(list: HTMLElement, pair: RelationshipPairDat
 }
 
 /**
- * Paints the pane of one element. Its sections only read and navigate, from `options`. The controls that
- * write (Edit, Accept, Remove and the actions on several selected components) are painted last, from `writes`.
+ * Paints the pane of one element. Its sections only read and navigate, from `options`. The one control that
+ * leads to writing, the Edit entry, is painted last, from `writes`.
  */
 export function paintDetails(host: HTMLElement, inspected: Inspected, options: DetailsOptions, writes: PaneWrites): void {
   const { onSelect, onToggleFlow, activeFlows, tab, onTab, code, onSource, workGroups, onTask } = options
-  if (writes.onEdit !== undefined && isEditing(host, inspected.id)) return
+  if (writes.onEdit !== undefined && isWriteViewOpen(host, inspected.id)) return
   const title = host.querySelector('h1')!
   const meta = host.querySelector('.meta')!
   const tabsHost = host.querySelector<HTMLElement>('.tabs')!
@@ -356,19 +363,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
 
     children: () => {
       if (inspected.children.length === 0) return
-      body.append(heading('Children'))
-      const list = document.createElement('ul')
-      for (const child of inspected.children) {
-        const item = document.createElement('li')
-        const link = document.createElement('button')
-        link.type = 'button'
-        link.className = 'link'
-        link.append(marked(child.kind, child.external, child.title))
-        link.addEventListener('click', event => onSelect(child.id, event.shiftKey))
-        item.append(link)
-        list.append(item)
-      }
-      body.append(list)
+      body.append(heading('Children'), elementLinks(inspected.children, onSelect))
     },
 
     technology: () => {
@@ -385,21 +380,26 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
     },
 
   }
-  if (shownTab === 'what' && writes.selection !== undefined) paintSelectionControls(body, writes.selection)
   if (shownTab === 'tasks') paintElementWork(body, workGroups, onTask)
   else for (const key of tabSections(shownTab)) sections[key]()
-  paintEditingControls(host, body, inspected, writes, shownTab, knownTags(options.world.elements))
+  paintEditEntry(host, inspected, writes, knownTags(options.world.elements))
 }
 
-function paintEditingControls(
-  host: HTMLElement, body: Element, inspected: Inspected, writes: PaneWrites, tab: DetailsTab, tagsInUse: readonly string[],
-): void {
-  const { onAccept, onEdit, onRead, onRemove } = writes
-  if (tab === 'what' && inspected.matchedGhost && onAccept !== undefined) paintAcceptControl(body, onAccept)
-  if (onEdit !== undefined && onRead !== undefined) {
-    body.prepend(editButton(host, inspected.id, elementFields(inspected, writes.parents ?? [], tagsInUse), onEdit, onRead))
-  }
-  if (tab === 'what' && inspected.removable && onRemove !== undefined) paintRemoveControl(body, inspected.title, onRemove)
+/** Paints Edit, the pane's only write entry: its view holds the element's fields and offers its other writes. */
+function paintEditEntry(host: HTMLElement, inspected: Inspected, writes: PaneWrites, tagsInUse: readonly string[]): void {
+  const { onEdit, onRead } = writes
+  if (onEdit === undefined || onRead === undefined) return
+  const fields = elementFields(inspected, writes.parents ?? [], tagsInUse)
+  paintWriteEntries(host, inspected.id, [editEntry(fields, onEdit, otherWrites(inspected, writes))], onRead)
+}
+
+/** The other writes one element takes: Accept on a matched draft, Remove where `groma remove` would succeed. */
+function otherWrites(inspected: Inspected, writes: PaneWrites): WriteEntry[] {
+  const { onAccept, onRemove } = writes
+  return [
+    ...(inspected.matchedGhost && onAccept !== undefined ? [acceptEntry(inspected.title, onAccept)] : []),
+    ...(inspected.removable && onRemove !== undefined ? [removeEntry(inspected.title, onRemove)] : []),
+  ]
 }
 
 /** Empties the pane while nothing is selected. */
@@ -408,8 +408,8 @@ export function clearDetails(host: HTMLElement): void {
 }
 
 /**
- * Every field a person can set on an element, in the order the Edit form shows them. A new editable field
- * is one entry here; nothing outside the Edit form changes an element's fields.
+ * Every field a person can set on an element, in the order the Edit view shows them. A new editable field
+ * is one entry here; nothing outside the Edit view changes an element's fields.
  */
 function elementFields(inspected: Inspected, parents: readonly ParentOption[], tagsInUse: readonly string[]): EditField[] {
   return [

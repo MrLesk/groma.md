@@ -225,9 +225,15 @@ is necessary to prevent misunderstanding or error, and never use it to restate t
 
 ## Web map writes
 
-Reading never writes, and a record's fields change only in its Edit form. Before designing or changing a control that
-writes from the web map, read [Reading and editing](docs/viewers/web/index.md#reading-and-editing) and place the write
-by that rule. Do not add a control that stores a change from a reading view, and do not give reading code a write hook.
+Reading never writes. A pane writes only from a write view the person opens, and every write view is approved the
+same way: what the write needs, then Cancel and the button that approves it, which says Save unless another word tells
+better what happens. Before designing or changing a control that writes from the web map, read
+[Reading and editing](docs/viewers/web/index.md#reading-and-editing) and place the write by that rule. Describe a new
+pane write as data in `src/viewers/web/organisms/commands.ts`; do not build controls, a confirmation step, or a button
+that writes for it. A dialog that writes is a write form (`src/viewers/web/atoms/write-form.ts`): its form carries the
+class `write-form` and ends with the shared approval bar, and it styles no field and builds no Cancel or approving
+button of its own. Do not add a control that stores a change from a reading view, and do not give reading code a write
+hook.
 
 ## Product-first scope
 

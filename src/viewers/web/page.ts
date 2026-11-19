@@ -33,10 +33,11 @@ import { motionCss } from './chrome/motion.ts'
 import { detailsPanelCss } from './chrome/shell.ts'
 import { flowRowCss } from './flow/row.ts'
 import { mapCss } from './iso/painting/style.ts'
-import { editableCss } from './organisms/editable.ts'
+import { writeFormCss } from './atoms/write-form.ts'
+import { writeViewCss } from './organisms/write-view.ts'
 import { tagRowCss } from './organisms/tag-row.ts'
 import { tagsFieldCss } from './organisms/tags-field.ts'
-import { removeCss } from './organisms/remove.ts'
+import { selectionDetailsCss } from './organisms/selection-details.ts'
 import { relationshipCardCss } from './organisms/relationship-card.ts'
 import { tipCss } from './organisms/tip.ts'
 import type { WebBootPayload } from './payload.ts'
@@ -287,13 +288,6 @@ const style = `
   #details h1 { font-size: 21px; font-weight: 600; line-height: 1.3; margin: 0 0 16px; overflow-wrap: anywhere; }
   #details h1 .glyph { margin: 0 8px -3px 0; }
   #details .description { margin: 0 0 10px; color: var(--muted); }
-  #details .selection-writes { display: grid; gap: 8px; margin: 0 0 16px; }
-  #details .selection-writes form { display: flex; gap: 8px; }
-  #details .selection-writes input, #details .selection-writes select { flex: 1; min-width: 0; border: 1px solid var(--hairline); border-radius: 4px; padding: 4px 6px; color: var(--ink); background: color-mix(in srgb, var(--paper) 72%, transparent); font: inherit; }
-  #details .selection-writes button { border: 1px solid var(--hairline); border-radius: 6px; padding: 4px 10px; background: transparent; color: var(--muted); white-space: nowrap; }
-  #details .selection-writes button:hover { color: var(--ink); background: var(--hover); }
-  #details .selection-writes .error { margin: 0; color: var(--highlight-text); font-size: 11px; }
-  #details .selection-writes .error:empty { display: none; }
   #details .overview { margin: 0 0 10px; line-height: 1.65; }
   #hierarchy .section, #details .section { padding-bottom: 6px; border-bottom: 1px solid var(--hairline); }
   #details .section {
@@ -391,7 +385,7 @@ const style = `
 ${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
 ${emptyStateCss}
 ${addDialogCss}${editorCss}
-${relationshipCardCss}${removeCss}${editableCss}${tagRowCss}${tagsFieldCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}${tagFocusCss}${choiceFieldCss}${colorSwatchesCss}${iconPickerCss}${glyphCss}`
+${relationshipCardCss}${selectionDetailsCss}${writeFormCss}${writeViewCss}${tagRowCss}${tagsFieldCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}${tagFocusCss}${choiceFieldCss}${colorSwatchesCss}${iconPickerCss}${glyphCss}`
 
 function legend(): string {
   return legendKinds.map(line => {

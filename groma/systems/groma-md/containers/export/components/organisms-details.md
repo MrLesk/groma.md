@@ -17,8 +17,6 @@ groma:
       file: src/viewers/web/organisms/relationship-details.ts
       symbol: paintRelationship
     - scanner: typescript
-      file: src/viewers/web/organisms/editable.ts
-    - scanner: typescript
       file: src/viewers/web/organisms/sidebar-section.ts
       symbol: sectionHeading
     - scanner: typescript
@@ -33,6 +31,8 @@ groma:
       file: src/viewers/web/organisms/choice-field.ts
     - scanner: typescript
       file: src/viewers/web/organisms/icon-picker.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/selection-details.ts
 description: Shows the selected element, its source and its relationships
 ---
 
