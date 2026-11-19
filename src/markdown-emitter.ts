@@ -4,6 +4,7 @@ import { renderFrontmatter } from 'comark/render'
 import { GromaFileSystem } from './groma-filesystem.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { requireText } from './naming.ts'
+import { parseTags } from './tags.ts'
 import { DRAFT_TYPE, c4Type, requireGromaMapping } from './okf-profile.ts'
 import type { ArchitectureDocument, C4Kind, CodeReference, ElementStatus } from './types.ts'
 
@@ -19,6 +20,8 @@ export interface MeaningChanges {
   overview?: string
   description?: string
   technology?: string
+  /** Comma-separated OKF tags that replace the element's list; empty text removes it. */
+  tags?: string
   draft?: string
 }
 
@@ -28,6 +31,7 @@ export function withMeaning(source: string, input: MeaningChanges): string {
   if (input.overview !== undefined) source = replaceLeadProse(source, input.overview)
   source = withDescription(source, input.description)
   if (input.technology !== undefined) source = withGromaField(source, 'technology', input.technology || undefined)
+  if (input.tags !== undefined) source = withTags(source, parseTags(input.tags))
   if (input.draft !== undefined) source = withGromaField(source, 'draft', input.draft || undefined)
   return source
 }
@@ -87,6 +91,18 @@ export function withGromaField(
 export function withTitle(source: string, title: string): string {
   const { content, data } = documentParts(source)
   return sourceWithFrontmatter({ ...data, title }, content)
+}
+
+/** OKF tags go just ahead of the nested groma mapping; every other field keeps its place. */
+function withTags(source: string, tags: readonly string[]): string {
+  const { content, data } = documentParts(source)
+  const frontmatter: Record<string, unknown> = {}
+  for (const [field, value] of Object.entries(data)) {
+    if (field === 'tags') continue
+    if (field === 'groma' && tags.length > 0) frontmatter.tags = [...tags]
+    frontmatter[field] = value
+  }
+  return sourceWithFrontmatter(frontmatter, content)
 }
 
 export function withStatus(source: string, status: ElementStatus): string {

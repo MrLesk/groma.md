@@ -124,13 +124,37 @@ Open Graph generation for both export and live delivery.
   prompt pointing to `groma agent-instructions`. It disappears once any element
   has a description or overview.
 
-### In-place editing
+### Reading and editing
 
-On a live current map, **Edit** switches the selected element or relationship
-from reading to a form:
+One rule decides where a write lives in the web map:
 
-- **Element fields:** `title`, `description`, `overview`, `technology`, and `parent`
-  (where the component can move). Empty optional values clear the field.
+- **Reading never writes.** Whatever a person clicks or types while reading the
+  map or a pane only selects, navigates, or changes the view: selection, lit
+  flows, filters, theme, and camera. That state lives in the URL or the browser,
+  never in the architecture.
+- **A record's fields change in its Edit form, and nowhere else.** On a live
+  current map, **Edit** switches the pane of the selected element or
+  relationship from reading to a form that holds every field a person can set on
+  it. Picking and typing in the form store nothing. **Save** sends the changed
+  fields as one `groma edit`; **Cancel** and Escape leave the saved data alone.
+- **Every other write is a command:** one button named by its CLI verb that
+  writes once. These are **Accept**, **Remove**, **Group as**, and **Combine
+  into**, described below.
+
+A new editable field is one entry in the form's field list (`elementFields` in
+[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts)). The
+code that paints what a person reads receives no write hook: `paintDetails`
+takes what the pane reads and the write hooks
+([`PaneWrites`](../../../src/viewers/web/organisms/writes.ts)) as two arguments,
+and hands the hooks only to the controls that write.
+
+- **Element fields:** `title`, `description`, `overview`, `technology`, `parent`
+  (where the component can move), and `tags`. Empty optional values clear the
+  field. The Tags field is one box that holds the pending tags as chips and the
+  text being typed: Enter or a comma turns the typed text into a chip, Backspace
+  in the empty text takes the last chip off, and the × on a chip takes that one
+  off. The tags already in use are offered under the box, narrowed by what is
+  typed.
 - **Relationship fields:** `description` and `technology`.
 - **Draft acceptance and removal:** A matched draft element or a draft relationship
   exposes **Accept** (`groma accept`). **Remove** appears only where `groma remove`

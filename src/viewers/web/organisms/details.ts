@@ -12,6 +12,7 @@ import type { ElementWorkGroup } from '../../../work/pins.ts'
 import type { Zone } from '../../../sheet/types.ts'
 import { findingsForOwner } from '../../../architecture-findings.ts'
 import { removalBlocker } from '../../../removable.ts'
+import { formatTags, knownTags } from '../../../tags.ts'
 import { flowsThrough } from '../../flows.ts'
 import type { FlowRef } from '../../flows.ts'
 import { kindGlyph, kindLabel } from '../../atoms/kind.ts'
@@ -22,7 +23,8 @@ import { paintElementWork } from '../work/component-tasks.ts'
 import { codeList } from './code-lists.ts'
 import { heading, paragraph } from '../atoms/text.ts'
 import { editButton, isEditing, type EditField } from './editable.ts'
-import type { PaneWrites } from './writes.ts'
+import { tagRow } from './tag-row.ts'
+import type { PaneWrites, ParentOption } from './writes.ts'
 import {
   paintAcceptControl,
   paintSelectionControls,
@@ -48,6 +50,7 @@ export interface Inspected {
   kindLabel: string
   origin: Origin
   overview: string
+  tags: string[]
   relationships: RelationshipPairData[]
   flows: FlowRowData[]
   children: InspectedChild[]
@@ -152,6 +155,7 @@ export function inspectDetails(
     kindLabel: kindLabel(element.kind, element.external),
     origin: element.origin,
     overview: element.overview,
+    tags: element.tags ?? [],
     relationships,
     flows: flowsThrough(element.representationId, world).map(flow => ({
       flow: { id: flow.id }, title: flow.title,
@@ -184,9 +188,23 @@ export function inspectUnidentifiedContainer(zone: Zone, world: ArchitectureGrap
     children: world.elements.filter(element => members.has(element.representationId)).map(element => ({
       id: element.representationId, title: element.title, kind: element.kind, external: element.external,
     })),
-    relationships: [], flows: [], technology: '', files: [], findings: [],
+    tags: [], relationships: [], flows: [], technology: '', files: [], findings: [],
     removable: false, matchedGhost: false, movable: false, parent: zone.parent,
   }
+}
+
+/** Short authored labels, such as technology parts, as one wrapping row of chips. */
+function chipList(labels: readonly string[], name: string): HTMLUListElement {
+  const list = document.createElement('ul')
+  list.className = 'chips'
+  list.setAttribute('aria-label', name)
+  for (const label of labels) {
+    const chip = document.createElement('li')
+    chip.className = 'chip'
+    chip.textContent = label
+    list.append(chip)
+  }
+  return list
 }
 
 function marked(
@@ -206,7 +224,8 @@ function marked(
   return row
 }
 
-export interface DetailsOptions extends PaneWrites {
+/** What the pane reads and where its clicks navigate. It carries no write hook: reading never writes. */
+export interface DetailsOptions {
   world: ArchitectureGraph
   comparison?: Comparison
   onSelect: (id: string, additive: boolean) => void,
@@ -270,9 +289,13 @@ function paintComparedRelationships(list: HTMLElement, pair: RelationshipPairDat
   }
 }
 
-export function paintDetails(host: HTMLElement, inspected: Inspected, options: DetailsOptions): void {
-  const { onSelect, onToggleFlow, activeFlows, tab, onTab, code, onSource, workGroups, onTask, onEdit, selection } = options
-  if (onEdit !== undefined && isEditing(host, inspected.id)) return
+/**
+ * Paints the pane of one element. Its sections only read and navigate, from `options`. The controls that
+ * write (Edit, Accept, Remove and the actions on several selected components) are painted last, from `writes`.
+ */
+export function paintDetails(host: HTMLElement, inspected: Inspected, options: DetailsOptions, writes: PaneWrites): void {
+  const { onSelect, onToggleFlow, activeFlows, tab, onTab, code, onSource, workGroups, onTask } = options
+  if (writes.onEdit !== undefined && isEditing(host, inspected.id)) return
   const title = host.querySelector('h1')!
   const meta = host.querySelector('.meta')!
   const tabsHost = host.querySelector<HTMLElement>('.tabs')!
@@ -297,6 +320,7 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
       if (change !== undefined) { comparisonOverview(body, change, options.world); return }
       if (inspected.description !== '') body.append(paragraph('description', inspected.description))
       if (inspected.overview !== '') body.append(paragraph('overview', inspected.overview))
+      if (inspected.tags.length > 0) body.append(tagRow(inspected.tags))
     },
 
     relationships: () => {
@@ -338,16 +362,8 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
     technology: () => {
       if (change !== undefined) { comparisonTechnology(body, change); return }
       if (inspected.technology.length === 0) return
-      body.append(heading('Technology'))
-      const list = document.createElement('ul')
-      list.className = 'chips'
-      for (const part of inspected.technology.split(',').map(part => part.trim()).filter(Boolean)) {
-        const chip = document.createElement('li')
-        chip.className = 'chip'
-        chip.textContent = part
-        list.append(chip)
-      }
-      body.append(list)
+      const parts = inspected.technology.split(',').map(part => part.trim()).filter(Boolean)
+      body.append(heading('Technology'), chipList(parts, 'Technology'))
     },
 
     code: () => {
@@ -357,16 +373,20 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
     },
 
   }
-  if (shownTab === 'what' && selection !== undefined) paintSelectionControls(body, selection)
+  if (shownTab === 'what' && writes.selection !== undefined) paintSelectionControls(body, writes.selection)
   if (shownTab === 'tasks') paintElementWork(body, workGroups, onTask)
   else for (const key of tabSections(shownTab)) sections[key]()
-  paintEditingControls(host, body, inspected, options, shownTab)
+  paintEditingControls(host, body, inspected, writes, shownTab, knownTags(options.world.elements))
 }
 
-function paintEditingControls(host: HTMLElement, body: Element, inspected: Inspected, options: DetailsOptions, tab: DetailsTab): void {
-  const { onAccept, onEdit, onRead, onRemove } = options
+function paintEditingControls(
+  host: HTMLElement, body: Element, inspected: Inspected, writes: PaneWrites, tab: DetailsTab, tagsInUse: readonly string[],
+): void {
+  const { onAccept, onEdit, onRead, onRemove } = writes
   if (tab === 'what' && inspected.matchedGhost && onAccept !== undefined) paintAcceptControl(body, onAccept)
-  if (onEdit !== undefined && onRead !== undefined) body.prepend(editButton(host, inspected.id, elementFields(inspected, options), onEdit, onRead))
+  if (onEdit !== undefined && onRead !== undefined) {
+    body.prepend(editButton(host, inspected.id, elementFields(inspected, writes.parents ?? [], tagsInUse), onEdit, onRead))
+  }
   if (tab === 'what' && inspected.removable && onRemove !== undefined) paintRemoveControl(body, inspected.title, onRemove)
 }
 
@@ -375,15 +395,17 @@ export function clearDetails(host: HTMLElement): void {
   for (const part of ['h1', '.meta', '.tabs', '.body']) host.querySelector(part)!.replaceChildren()
 }
 
-function elementFields(inspected: Inspected, options: PaneWrites): EditField[] {
-  const fields: EditField[] = [
+/**
+ * Every field a person can set on an element, in the order the Edit form shows them. A new editable field
+ * is one entry here; nothing outside the Edit form changes an element's fields.
+ */
+function elementFields(inspected: Inspected, parents: readonly ParentOption[], tagsInUse: readonly string[]): EditField[] {
+  return [
     { name: 'title', label: 'Title', value: inspected.title, required: true },
     { name: 'description', label: 'Description', value: inspected.description },
     { name: 'overview', label: 'Overview', value: inspected.overview, multiline: true },
     { name: 'technology', label: 'Technology', value: inspected.technology },
+    ...(inspected.movable ? [{ name: 'parent' as const, label: 'Parent', value: inspected.parent ?? '', options: parents }] : []),
+    { name: 'tags', label: 'Tags', value: formatTags(inspected.tags), suggestions: tagsInUse },
   ]
-  if (inspected.movable) fields.push({
-    name: 'parent', label: 'Parent', value: inspected.parent ?? '', options: options.parents ?? [],
-  })
-  return fields
 }

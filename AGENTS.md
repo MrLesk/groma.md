@@ -223,6 +223,12 @@ Do not add subtitles, helper text, or descriptive copy beneath headings, labels,
 one concise, self-explanatory heading or label. Only add supporting copy when the user explicitly asks for it or when it
 is necessary to prevent misunderstanding or error, and never use it to restate the heading.
 
+## Web map writes
+
+Reading never writes, and a record's fields change only in its Edit form. Before designing or changing a control that
+writes from the web map, read [Reading and editing](docs/viewers/web/index.md#reading-and-editing) and place the write
+by that rule. Do not add a control that stores a change from a reading view, and do not give reading code a write hook.
+
 ## Product-first scope
 
 Treat the explicit request and current task as the scope. Background, examples, and product vision help explain that

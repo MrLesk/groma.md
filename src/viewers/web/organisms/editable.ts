@@ -1,4 +1,5 @@
 import { changedEdit, type EditValues } from '../../../authoring-conflict.ts'
+import { tagsField } from './tags-field.ts'
 
 export const editableCss = `
   #details .edit-entry, #details .edit-form button { border: 1px solid var(--hairline); border-radius: 6px;
@@ -24,13 +25,16 @@ export function message(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause)
 }
 
+/** One field of an edit form. Its name is a value the edit conflict check knows, so no form field escapes it. */
 export interface EditField {
-  name: string
+  name: keyof EditValues
   label: string
   value: string
   multiline?: boolean
   required?: boolean
   options?: readonly { id: string; title: string }[]
+  /** Makes this a tags field: the tags already in use, offered while a tag is typed. */
+  suggestions?: readonly string[]
 }
 
 /** A repaint of the same selection keeps its unsaved form. Another selection replaces it. */
@@ -38,7 +42,10 @@ export function isEditing(host: HTMLElement, key: string): boolean {
   return host.querySelector<HTMLFormElement>('.edit-form')?.dataset.editKey === key
 }
 
-/** One explicit edit session. Only Save calls the shared writer; Cancel and Escape leave saved data alone. */
+/**
+ * One explicit edit session, the only place a record's fields change in the web map. Picking and typing in
+ * the form store nothing: only Save calls the shared writer, and Cancel and Escape leave saved data alone.
+ */
 export function editButton(
   host: HTMLElement,
   key: string,
@@ -97,7 +104,8 @@ export function editButton(
   return button
 }
 
-function editField(field: EditField): HTMLLabelElement {
+function editField(field: EditField): HTMLElement {
+  if (field.suggestions !== undefined) return tagsField(field.name, field.label, field.value, field.suggestions)
   const label = document.createElement('label')
   label.textContent = field.label
   const input = field.options !== undefined ? document.createElement('select')

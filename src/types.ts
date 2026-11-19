@@ -39,6 +39,7 @@ export interface ArchitectureFrontmatter extends Record<string, unknown> {
   type?: unknown
   title?: unknown
   description?: unknown
+  tags?: unknown
   groma?: unknown
 }
 
@@ -96,6 +97,8 @@ export interface ArchitectureElement {
   external: boolean
   group?: string
   technology?: string
+  /** OKF tags: authored categories that cut across the hierarchy. Omitted when the element has none. */
+  tags?: string[]
   code: CodeReference[]
   status: ElementStatus
   /** The draft record this element belongs to; a stable element may carry it too. */
@@ -142,6 +145,8 @@ export interface AnnotatedElement {
   external: boolean
   group?: string
   technology?: string
+  /** OKF tags: authored categories that cut across the hierarchy. Omitted when the element has none. */
+  tags?: string[]
   code: CodeReference[]
   /** Total lines across the code files; absent only in hand-built worlds. */
   codeLines?: number
