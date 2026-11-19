@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-19T18:23:00Z'
-updated_date: '2026-11-19T20:39:00Z'
+updated_date: '2026-11-19T21:10:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -37,6 +37,7 @@ modified_files:
   - docs/component-markdown.md
   - src/icons.ts
   - src/viewers/tui/tree.ts
+  - src/viewers/web/iso/painting/buildings.ts
 type: enhancement
 ordinal: 714000
 ---
@@ -51,14 +52,15 @@ The owner judged the first icon artwork on the live map on 2026-11-19 and reject
 <!-- AC:BEGIN -->
 - [ ] #1 Every named icon's object is drawn in lines of one fine width over quiet faces, and one part or the few marks that draw one thing are its accent
 - [ ] #2 The accent is drawn in ink; on an element or group with an authored color the accent takes that color and the rest of the object stays neutral
-- [ ] #3 An icon lies on the line of its name, one gap before the text, on a roof and before a title: a standing object stands on the name's baseline and a lying one is centred on the name's line
+- [ ] #3 An icon lies on the line of its name, one gap before the text, on a roof and before a title: a standing object stands on the name's baseline and a lying one is centred on the name's line. On an actor's round roof the icon lies above the name, centred over it
 - [ ] #4 An icon is sized from the letters of its name and changes with them: a title's icon follows the title's size step when the map is zoomed
-- [ ] #5 An icon has one drawing, its object: it stands on a tilted map, and the same object is drawn flat in the 2D view, the hierarchy rows, the details title and the Icon field
-- [ ] #6 No icon's drawing before a title reaches a building on the surface behind it, at any size of the title
-- [ ] #7 On a small object the quiet inner lines fade out and the outline and the accent stay
-- [ ] #8 An object shows only the faces turned to the reader at every orbit angle, and a curved wall shows no line between its segments
-- [ ] #9 The Light, Dark and Blueprint themes and the export covers draw the same objects
-- [ ] #10 The web map documentation describes the look, the accent and how an icon follows its name and the view
+- [ ] #5 An icon is drawn whenever its name is drawn, at every zoom
+- [ ] #6 An icon has one drawing, its object: it stands on a tilted map, and the same object is drawn flat in the 2D view, the hierarchy rows, the details title and the Icon field
+- [ ] #7 No icon's drawing before a title reaches a building on the surface behind it, at any size of the title
+- [ ] #8 On a small object the quiet inner lines fade out and the outline and the accent stay
+- [ ] #9 An object shows only the faces turned to the reader at every orbit angle, and a curved wall shows no line between its segments
+- [ ] #10 The Light, Dark and Blueprint themes and the export covers draw the same objects
+- [ ] #11 The web map documentation describes the look, the accent and how an icon follows its name and the view
 <!-- AC:END -->
 
 ## Definition of Done
@@ -72,16 +74,16 @@ The owner judged the first icon artwork on the live map on 2026-11-19 and reject
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-1. Part model (icons/parts.ts): one prism, a flat outline pushed along one axis, replaces the box and the upright prism. Pushed along z it is a box, cylinder or rounded plate; along y an upright panel facing south. A part or mark can belong to the accent.
+1. Part model (icons/parts.ts): one prism, a flat outline pushed along one axis. Pushed along z it is a box, cylinder or rounded plate; along y an upright panel facing south. A ball is the only other part. A part or a mark can belong to the accent.
 2. Visible faces (iso/painting/icon-faces.ts): from the reader's direction (towardsReader, beside project() in projection/project.ts) decide which walls and which end of a prism face the reader, join walls along a curve into one face, shade a face by screen side like a building, and order parts back to front. The painter (iso/painting/icons.ts) only lays those points on the screen.
 3. Look (iso/painting/style.ts, scale.ts): quiet lines a little brighter than the map's outlines, faces a little off paper, the accent in ink. A colored element hands its color to the accent through --icon-accent in the browser and through explicit rules on a cover. One list of the authored color variables serves the zone reset and the comparison reset.
-4. An icon is part of its name (sheet/measure.ts, iso/painting/text.ts, names.ts): its box is ICON_RATIO font sizes wide and centred on the middle of the name's capitals, on a roof's first line and before a title. A title's box is laid out with the title, so it follows the title's size step. The landmark enlargement is deleted: nothing is drawn larger than its box.
-5. The view decides the drawing (iso/painting/icons.ts): the object on a tilted map, the flat glyph in the plan view, one fading into the other between the two.
-6. In line (iso/painting/icon-faces.ts drawingSpan and drawingOffset): an object rises on screen, so it stands a little in front of its box and its drawing, not its foot, is centred on the box.
-7. Objects (icons/objects.ts): all 23 redrawn with one accent each; the three tallest kept low.
-8. Tests (test-bun/architecture-icons.test.ts). Kept: a roof name starts after its icon; an object stays inside its footprint (read from the painter's own bounds). New, each from a rule the owner stated on 2026-11-19: "an icon follows the view of the map" (wrong result: a flat glyph on a tilted map, or an object in the plan view; gap: nothing tested which drawing a view gets); "an icon is sized from the letters of its name and lies on the name's line, at every size of a title" (wrong result: a fixed size, or a box off the line; gap: the layout's icon box was untested); "no icon drawing before a title reaches what stands on the surface behind it" (wrong result: a taller object or a larger ratio lets a drawing cover a building; gap: nothing tied the artwork's height to the layout's empty ground). New, from this task's fine line objects that turn with the map: "a prism shows the faces turned to the reader, and a curved wall is one face" (wrong result: far walls drawn, or a line between the segments of a cylinder).
-9. Docs: the Icons entry of docs/viewers/web/index.md.
-10. Verification: specimen sheets of every object in the three themes and from four orbit angles; groma's own map with icons on every level (uncommitted demo) at the opening zoom, mid zoom and close; titles, roofs of actors, components and external systems; the 2D view; covers; selection and a click on an object; the accent's color while comparing.
+4. An icon is part of its name (sheet/measure.ts, iso/painting/text.ts, names.ts): its box is ICON_RATIO (0.9) font sizes wide, centred on the middle of the name's capitals, one gap before the text, on a roof's first line and before a title. A title's box is laid out with the title, so it follows the title's size step. A round roof centres its name, so there the box lies above the name, centred over it (iconAbove and roofIconSlot in sheet/measure.ts own that rule; the footprint, the name's place and the painter all read it). Nothing is drawn larger than its box, and no rule hides an icon while its name is drawn.
+5. One drawing per icon (icons/objects.ts, iso/painting/icons.ts): its object. objects.ts says whether an object stands or lies. On a tilted map it is drawn in the box and turns with the map; a standing object has its front on the name's baseline (ICON_BASELINE in sheet/measure.ts, standsForward in icons.ts) and a lying one is centred. In the 2D view and in the panes flatSvg draws the same parts from the front (a standing object) or from above (a lying one), centred in the box. Between a tilted view and the plan view one drawing fades into the other.
+6. Camera (iso/painting/icon-camera.ts): two rules follow the camera scale, each written once as a function for a still and once as the stylesheet expression for the live map: the line width, and the opacity of the quiet inner lines of a small object.
+7. Objects (icons/objects.ts): all 23, one accent each.
+8. Tests (test-bun/architecture-icons.test.ts), each with its rule, the wrong result it detects and the gap it closes. Kept: a roof name starts after its icon; an object stays inside its footprint. From rules the owner stated on 2026-11-19: "an icon follows the view of the map" (wrong: the flat drawing on a tilted map, or the object in the plan view; nothing tested which drawing a view gets); "the flat drawing of every icon is its own object and shows the accent" (wrong: a flat drawing that loses the accent; the flat drawings were untested); "an icon is sized from the letters of its name and lies on the name's line, at every size of a title" (wrong: a fixed size, or a box off the line; the layout's icon box was untested); "no icon drawing before a title reaches what stands on the surface behind it" (wrong: a taller object or a larger ratio lets a drawing cover a building; nothing tied the artwork's height to the layout's empty ground); "on a round roof the icon lies above the name, centred over it" (rule: his words about the actors, "the icons could go below or above the text here"; wrong: the name's letters under the icon, or the icon off centre; the existing roof test covered only the row layout of a box roof; checked that it fails when the name is not moved down and when the box is not centred). From this task's objects that turn with the map: "a prism shows the faces turned to the reader, and a curved wall is one face" (wrong: far walls drawn, or a line between the segments of a cylinder).
+9. Docs: the Icons entry of docs/viewers/web/index.md and the icon wording in docs/component-markdown.md.
+10. Verification: a specimen sheet of every object standing and flat; groma's own map with an icon on every element and group (uncommitted demo data) in the Iso, 2D and Layers views, Dark and Light, from the opening zoom to roofs up close; actors, external systems, components, titles of groups, containers and the system; the hierarchy rows and details title; selection and a click on an icon; the Edit form; covers.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -98,4 +100,8 @@ Built in their place, coordinator's choices: the box is 1.2 font sizes (ICON_RAT
 
 2026-11-19, the owner on the label model. "yes but in iso is still not in line. 2d is perfectly aligned except idk why you are not using the same icon but flatten it. you went to create a separate icon for 2d for no reason when you can just rotate the iso one", then "the icon in the iso sits on a line below the \"browser\". given that when we switch between 2d and iso we just rotate, you shouldn't do anything special to have the icon aligned with the text correctly". His decisions: one icon, the 2D one is the same object flattened; in the Iso view the icon sits on the text's line with no special placement. Built: the hand-drawn glyph set (icons/glyphs.ts) is deleted; flatSvg in iso/painting/icons.ts draws an object from its front (an object that stands) or from above (one that lies), with the same parts, marks and accent, for the 2D view and the panes; objects.ts says for each object whether it stands or lies. The centring of an object's drawing that I had added (the cause of "sits on a line below") is removed. A standing object now stands with its front on the name's baseline (ICON_BASELINE in sheet/measure.ts, from the same line metrics as the text), which is my reading of "sits on the line" and needs his eyes. The box is 0.9 font sizes (my number): the largest tenth at which every object stays inside the empty ground behind a title at every title size.
 Verification of this round: bun run check 1008 pass, 67 skip, 0 fail; the Browser map and Groma application titles in the Iso view (foot on the baseline) and the 2D view (same drawing, flat); hierarchy rows with the flat drawings; external systems and actors.
+
+2026-11-19, the owner on the actors in the 2D view, where names were drawn without their icons: "why do we remove the icons while the text stays. you must understand the icons should follow the same rule of the text. I still see that you have differences. the icons could go below or above the text here". Then: "can you add correct icons to all groma components and verify everything yourself?". His decisions: an icon follows the same rule as its text, so it is drawn whenever the name is; on an actor's roof it may lie above or below the name. Cause: icons had their own fade below 8 screen pixels, and an actor's name is 11 plane pixels, so its icon was gone at zooms where the name was still drawn. Built: that fade is removed (icon-camera.ts, style.ts, icons.ts), and no rule hides an icon while its name is drawn; on a round roof the icon lies above the name, centred over it, and the roof grows to hold both (iconAbove and roofIconSlot in sheet/measure.ts). Coordinator's choices: above, not below; the gap between icon and name is the one used before a name; only a round roof does this, a pill keeps its icon before the name.
+Verification of this round. Every element and group of groma's own map got a fitting icon through groma edit (155 records, 21 of the 23 names; uncommitted demo data in the review copy). Walked on the exported map and the live review map: Iso, 2D and Layers views, Dark and Light, from the opening zoom to roofs up close; actors (icon above the name in every view), external systems, component roofs with one and two lines, titles of groups, containers and the system; a specimen sheet of all 23 objects standing and flat at three sizes; hierarchy rows and the details title; a click on an icon hits its own element; a selected component draws its icon in the highlight like its name; the Edit form offers no icon and the 23 flat drawings and previews a pick on the actor's roof; the cover draws. bun run check: 1009 pass, 67 skip, 0 fail, the lint output unchanged.
+Not committed: the icons on groma's own records. The Groma architecture workflow reads a pull request's groma folder with a released groma.md, and no release knows groma.icon yet.
 <!-- SECTION:NOTES:END -->

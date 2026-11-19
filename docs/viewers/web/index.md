@@ -313,12 +313,15 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   room for the saved icon, so the map lays itself out again. While the form is
   open the map shows the picked icon in the room the name has now.
   - An icon is part of its name, like the icon of any label. It lies on the
-    name's line, one gap before the text: on the roof of an actor, external
-    system or component, and before the title of a system, container or group.
+    name's line, one gap before the text: on the roof of an external system or
+    component, and before the title of a system, container or group. An
+    actor's round roof centres its name, so there the icon lies above the
+    name, centred over it.
   - Its size comes from the name's letters: its box is 0.9 times the font
     size. So it follows its name: a title's icon changes with the title's size
     step when the map is zoomed, and a small roof name has a small icon. No
-    icon is drawn larger than that, and a tiny icon fades out.
+    icon is drawn larger than that. An icon is drawn whenever its name is:
+    like the name it only gets small when the map is zoomed out.
   - An icon has one drawing, its object, and follows the map's view. In the Iso
     and Layers views the object stands in the icon's box and turns with the
     map. In the 2D view the same object is drawn flat in the box: its front
@@ -341,7 +344,7 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
     objects and [`icons/parts.ts`](../../../src/viewers/web/icons/parts.ts) the
     parts they are built from: a prism is a flat outline pushed along one
     axis, which gives boxes, cylinders, rounded plates and upright panels. The
-    size of an icon's box is in
+    size of an icon's box and its place on a roof are in
     [`sheet/measure.ts`](../../../src/sheet/measure.ts);
     [`iso/painting/text.ts`](../../../src/viewers/web/iso/painting/text.ts)
     places it on a title's line.

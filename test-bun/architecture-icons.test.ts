@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import type { IconName } from '../src/icons.ts'
 import { NESTED_CONTENT_PAD } from '../src/sheet/forces.ts'
-import { CAPITAL_MIDDLE, COMPONENT_FONT, CONTAINER_FONT, GROUP_FONT, ICON_RATIO, ISLAND_FONT, PLANE, labelBand, roofIconSlot } from '../src/sheet/measure.ts'
+import { BASELINE, CAPITAL_MIDDLE, COMPONENT_FONT, CONTAINER_FONT, GROUP_FONT, ICON_RATIO, ISLAND_FONT, PLANE, buildingFont, iconAbove, labelBand, roofIconSlot, textWidth } from '../src/sheet/measure.ts'
 import { sheetScene } from '../src/sheet/scene.ts'
 import type { AnnotatedElement, ArchitectureGraph, C4Kind } from '../src/types.ts'
 import { iconObjects } from '../src/viewers/web/icons/objects.ts'
@@ -50,9 +50,25 @@ test.concurrent('a roof name starts after its icon slot, and the building grows 
   expect(iconOf(buildingsSvg(projectScene(sheetScene(world())))[0]!)).toBeUndefined()
 
   const name = childrenOf(childrenOf(building).find(child => child.attributes.class === 'label')!)[0]!
-  const slot = roofIconSlot(COMPONENT_FONT)
+  const slot = roofIconSlot(['orders'], COMPONENT_FONT, false)
   expect(Number(name.attributes.x)).toBeGreaterThanOrEqual(slot.x + slot.side)
   expect(scene.buildings[0]!.building.rect.w).toBeGreaterThan(plain.rect.w)
+})
+
+test.concurrent('on a round roof the icon lies above the name, centred over it', () => {
+  // An actor's building is round and centres its name.
+  const graph = world()
+  const scene = projectScene(sheetScene({ ...graph, elements: [...graph.elements, element('buyer', 'actor', null, [], 'person')] }))
+  const actor = scene.buildings.findIndex(({ building }) => building.kind === 'actor')
+  const { building } = scene.buildings[actor]!
+  const font = buildingFont(building)
+  const name = childrenOf(childrenOf(buildingsSvg(scene)[actor]!).find(child => child.attributes.class === 'label')!)[0]!
+  const slot = roofIconSlot(building.lines, font, iconAbove(building.shape))
+
+  // The top of the name's line, BASELINE font sizes above its baseline, is below the icon's box.
+  expect(Number(name.attributes.y) - font * BASELINE).toBeGreaterThanOrEqual(slot.y + slot.side)
+  const nameMiddle = Number(name.attributes.x) + textWidth(building.lines[0]!, font) / 2
+  expect(slot.x + slot.side / 2).toBeCloseTo(nameMiddle)
 })
 
 /** The class names of the drawings inside an icon: its standing object, the same object flat, or both between two views. */
@@ -82,7 +98,7 @@ test.concurrent('the flat drawing of every icon is its own object and shows the 
 })
 
 test.concurrent('an icon is sized from the letters of its name and lies on the name\'s line, at every size of a title', () => {
-  expect(roofIconSlot(COMPONENT_FONT).side).toBe(COMPONENT_FONT * ICON_RATIO)
+  expect(roofIconSlot(['orders'], COMPONENT_FONT, false).side).toBe(COMPONENT_FONT * ICON_RATIO)
   for (const zoom of TITLE_ZOOMS) {
     const layout = surfaceLabelLayout(wideBand(CONTAINER_FONT), CONTAINER_FONT, zoom, DEFAULT_PROJECTION, true)
     expect(layout.icon.side).toBeCloseTo(layout.fontSize * ICON_RATIO)

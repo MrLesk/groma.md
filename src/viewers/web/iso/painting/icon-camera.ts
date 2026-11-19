@@ -5,7 +5,7 @@
  * `--icon-side`, the side of the icon's box in plane pixels, on every live icon.
  *
  * An icon is as large as its box, and the box follows the letters of its name. So it is never drawn larger, and
- * like its name it gets small when the map is zoomed out, until it fades away.
+ * it is drawn whenever its name is: like its name it only gets small when the map is zoomed out.
  */
 const SCREEN_SIDE_CSS = 'var(--icon-side) * var(--camera-scale, 1)'
 
@@ -27,15 +27,6 @@ function rampAt(ramp: Ramp, side: number): number {
 function rampCss(ramp: Ramp): string {
   return `clamp(0, calc((${SCREEN_SIDE_CSS} - ${ramp.from}) / ${ramp.to - ramp.from}), 1)`
 }
-
-/** An icon fades out below these sizes instead of staying on the map as a smudge. */
-const ICON: Ramp = { from: 5, to: 8 }
-
-/** Opacity of an icon whose box is `side` screen pixels wide. */
-export function iconOpacity(side: number): number {
-  return rampAt(ICON, side)
-}
-export const ICON_OPACITY_CSS = rampCss(ICON)
 
 /** An object's quiet inner lines fade in between these sizes: a smaller object shows its outline and its accent alone. */
 const DETAIL: Ramp = { from: 14, to: 26 }

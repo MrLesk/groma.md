@@ -63,19 +63,23 @@ export function surfaceLabelLayout(
   }
 }
 
-/** Building names stay inset on their own roofs, laid out in plane pixels; `lead` leaves an icon's slot free before them. */
+/**
+ * Building names stay inset on their own roofs, laid out in plane pixels. `lead` and `drop` leave an icon's box
+ * free: before the lines, or above them.
+ */
 export function surfaceText(
   text: SurfaceText,
   size: number,
   className: string,
   view: ProjectionView,
   lead = 0,
+  drop = 0,
 ): SvgNode {
   const padding = textPadding(size)
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, className,
     text.lines.map((line, index) => node('text', {
       x: padding + lead,
-      y: padding + size * BASELINE + index * textLineHeight(size),
+      y: padding + drop + size * BASELINE + index * textLineHeight(size),
       'font-size': size,
     }, 'text', line)))
 }

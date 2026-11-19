@@ -1,4 +1,4 @@
-import { buildingFont } from '../../../../sheet/measure.ts'
+import { buildingFont, iconAbove } from '../../../../sheet/measure.ts'
 import type { BuildingFloor } from '../../../../sheet/types.ts'
 import type { Plane, ProjectedBuilding, ProjectedScene } from '../projection/project.ts'
 import type { Still } from './icon-camera.ts'
@@ -47,15 +47,15 @@ function floorSvg(
 }
 
 /**
- * Buildings back to front: visible floors, patterned side faces, and on the final roofs the name with its icon
- * before it. `still` is set for a drawing without a live stylesheet, such as a cover; the live map passes none.
+ * Buildings back to front: visible floors, patterned side faces, and on the final roofs the name with its icon.
+ * `still` is set for a drawing without a live stylesheet, such as a cover; the live map passes none.
  */
 export function buildingsSvg(scene: ProjectedScene, still?: Still): SvgNode[] {
   return scene.buildings.map(projected => {
     const { building, floors, text } = projected
     return node('g', { 'aria-label': building.title, 'data-id': building.representationId, ...colorAttribute(building) }, classOf(projected), [
       ...floors.flatMap((faces, index) => floorSvg(projected, faces, building.floors[index])),
-      ...roofName(text, buildingFont(building), scene.view, building.icon, still),
+      ...roofName(text, buildingFont(building), scene.view, iconAbove(building.shape), building.icon, still),
     ])
   })
 }
