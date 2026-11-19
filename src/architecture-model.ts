@@ -1,8 +1,8 @@
 import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
-import { COLOR_NAMES, isColorName, type ColorName } from './colors.ts'
-import { ICON_NAMES, isIconName, type IconName } from './icons.ts'
+import { COLOR_NAMES, isColorName } from './colors.ts'
+import { ICON_NAMES, isIconName } from './icons.ts'
 import { isArchitectureId, isReservedId, kebabCase } from './naming.ts'
 import { DRAFT_TYPE, c4Kind, requireGromaMapping } from './okf-profile.ts'
 import { storedConnections } from './relationship-markdown.ts'
@@ -91,16 +91,17 @@ export function tagsOf(value: unknown, sourceFilename: string): string[] | undef
   return value.length === 0 ? undefined : [...value]
 }
 
-function colorOf(value: unknown, sourceFilename: string): ColorName | undefined {
-  if (value === undefined) return undefined
-  if (!isColorName(value)) invalidElement(sourceFilename, `color must be one of ${COLOR_NAMES.join(', ')}`)
-  return value
-}
-
-function iconOf(value: unknown, sourceFilename: string): IconName | undefined {
-  if (value === undefined) return undefined
-  if (!isIconName(value)) invalidElement(sourceFilename, `icon must be one of ${ICON_NAMES.join(', ')}`)
-  return value
+/** Reads the optional map color and icon of an element or a group. `invalid` refuses an unknown name in the words of the calling reader. */
+export function appearanceOf(
+  groma: Record<string, unknown>, invalid: (message: string) => never,
+): Pick<ArchitectureElement, 'color' | 'icon'> {
+  const { color, icon } = groma
+  if (color !== undefined && !isColorName(color)) invalid(`color must be one of ${COLOR_NAMES.join(', ')}`)
+  if (icon !== undefined && !isIconName(icon)) invalid(`icon must be one of ${ICON_NAMES.join(', ')}`)
+  return {
+    ...(color === undefined ? {} : { color }),
+    ...(icon === undefined ? {} : { icon }),
+  }
 }
 
 function requireId(value: unknown, sourceFilename: string, label: string): string {
@@ -160,8 +161,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
   const parent = optionalText(groma.parent, 'parent', sourceFilename)
   const technology = optionalText(groma.technology, 'technology', sourceFilename)
   const tags = tagsOf(document.frontmatter.tags, sourceFilename)
-  const color = colorOf(groma.color, sourceFilename)
-  const icon = iconOf(groma.icon, sourceFilename)
+  const appearance = appearanceOf(groma, message => invalidElement(sourceFilename, message))
   const draft = draftOf(groma, sourceFilename)
 
   return {
@@ -176,8 +176,7 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     external,
     ...(technology === undefined ? {} : { technology }),
     ...(tags === undefined ? {} : { tags }),
-    ...(color === undefined ? {} : { color }),
-    ...(icon === undefined ? {} : { icon }),
+    ...appearance,
     code: codeReferencesOf(groma.code, kind, message => {
       throw new ArchitectureModelError('INVALID_ELEMENT', sourceFilename, message)
     }),

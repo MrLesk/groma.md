@@ -223,6 +223,22 @@ test.concurrent('a group becomes a zone around its members on the parent surface
   }
 })
 
+test.concurrent("a zone carries its group's color and icon, and the icon widens its name band", () => {
+  const world = worldOf([
+    box('shop', 'system', unit),
+    box('api', 'container', unit, { parent: 'observed:shop' }),
+    box('stock', 'component', unit, { parent: 'observed:api', group: 'checks' }),
+  ])
+  // A long name sets the width of this zone even before the icon needs room.
+  const group = { id: 'checks', title: 'Availability checks before placing an order', overview: '', color: 'blue' as const }
+  const withoutIcon = sheetScene({ ...world, groups: [group] })
+  const scene = sheetScene({ ...world, groups: [{ ...group, icon: 'board' }] })
+  const zone = scene.zones[0]!
+  assert.equal(zone.color, 'blue')
+  assert.equal(zone.icon, 'board')
+  assert.ok(zone.rect.w > withoutIcon.zones[0]!.rect.w)
+})
+
 test.concurrent('the same world gives the same sheet and the world is untouched', async () => {
   const fixture = await loadAnnotatedArchitecture(viewerFixtureRoot)
   const before = structuredClone(fixture)

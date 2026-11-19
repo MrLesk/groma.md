@@ -41,6 +41,10 @@ export interface Zone {
   name: string
   /** The id of the stored group this zone draws, when it draws one. */
   groupId?: string
+  /** The group's authored color name. It paints the zone's ground and outline, never the members. */
+  color?: ColorName
+  /** The group's authored icon name; the zone's name makes room for the icon's slot. */
+  icon?: IconName
   /** Derived display group for components whose system is known but container is not. */
   unidentifiedContainer?: true
   /** Island key or slab representation id the zone lies on. */

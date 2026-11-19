@@ -2,6 +2,8 @@ import { changedEdit, type EditValues } from '../../../authoring-conflict.ts'
 import { carriedTags, knownTags } from '../../../tags.ts'
 import type { AnnotatedGroup, ArchitectureFlow, ArchitectureGraph } from '../../../types.ts'
 import { tagChanges, type TagsField } from '../tags/tags-field.ts'
+import { colorChoices } from './color-swatches.ts'
+import { iconChoices } from './icon-picker.ts'
 import { isTagsField, type ValueField, type WriteEntry } from './write-view.ts'
 import type { ComponentWrites, FlowWrites, GroupWrites, MeaningEdit, PaneWrites } from './writes.ts'
 
@@ -87,7 +89,7 @@ export function removeEntry(title: string, remove: () => Promise<void>, whatStay
   return { label: 'Remove', view: { approveLabel: 'Remove', fields: [], question, write: remove } }
 }
 
-/** A field of a group's or a flow's Edit view. The core refuses any other field on these two records. */
+/** The wording and tag fields that both a group and a flow accept. */
 type WordingField = (ValueField & { name: 'title' | 'description' | 'overview' }) | TagsField
 
 /**
@@ -105,10 +107,25 @@ function wordingAndTagFields(
   ]
 }
 
-/** Edit of a group: its wording and tags. Remove, which deletes the group and leaves its members, is offered above the fields. */
+/** A shared empty value selects "none". Different values leave every radio button unchecked. */
+function sharedChoice(values: readonly (string | undefined)[]): string | undefined {
+  const first = values[0] ?? ''
+  return values.every(value => (value ?? '') === first) ? first : undefined
+}
+
+/** Color and Icon for a group or one or more elements. Each field opens with the value the records share. */
+export function colorAndIconFields(records: readonly { color?: string; icon?: string }[]): EditField[] {
+  return [
+    { name: 'color', label: 'Color', value: sharedChoice(records.map(record => record.color)), choices: colorChoices() },
+    { name: 'icon', label: 'Icon', value: sharedChoice(records.map(record => record.icon)), choices: iconChoices() },
+  ]
+}
+
+/** Edit of a group's wording, tags and appearance. Remove above the fields deletes the group and leaves its members. */
 export function groupEditEntry(group: AnnotatedGroup, world: ArchitectureGraph, writes: GroupWrites): WriteEntry {
   const others = writes.onRemove === undefined ? [] : [removeEntry(group.title, writes.onRemove, 'Its components stay.')]
-  return editEntry(wordingAndTagFields(group, world, { overviewRequired: false }), writes.onEdit, others)
+  const fields = [...wordingAndTagFields(group, world, { overviewRequired: false }), ...colorAndIconFields([group])]
+  return editEntry(fields, writes.onEdit, others)
 }
 
 /** Edit of a flow: its wording and tags. A flow cannot lose its overview. */
