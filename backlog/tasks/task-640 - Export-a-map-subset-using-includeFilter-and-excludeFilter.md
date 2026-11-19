@@ -1,11 +1,11 @@
 ---
 id: TASK-640
 title: Export a map subset using includeFilter and excludeFilter
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T22:48:00Z'
+updated_date: '2026-11-19T22:32:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -47,7 +47,7 @@ Before implementation, confirm one filtered-export example covering parent conte
 <!-- AC:BEGIN -->
 - [x] #1 The supported map export entry point accepts includeFilter and excludeFilter, separately and together.
 - [x] #2 Exports contain the selected subset according to the same tag matching rules as the web map; excluded architecture is absent rather than merely dimmed.
-- [ ] #3 One approved example documents include/exclude overlap, required parent context, and which relationships remain.
+- [x] #3 One approved example documents include/exclude overlap, required parent context, and which relationships remain.
 - [x] #4 Retained architecture keeps its authored metadata, and exporting does not modify the source architecture.
 <!-- AC:END -->
 
@@ -81,6 +81,8 @@ Verification: bun run check passed (28 Node tests, 1014 Bun tests, 64 environmen
 Automated PR review, applied: a comparison export read the union of both commits owned files for each snapshot, so a component excluded in the newer commit still published its newer source. A filtered snapshot now reads only the files its own subset owns; a two-commit export test fails without the fix. Criterion 3 is unchecked and the task is back in progress: the worked example is the implementer proposal and waits for Alex to approve it.
 
 Cold simplicity review (one round), applied: the filter is built once in the command as a TagFilter and is absent when both flags are empty, so filtered has one meaning from the command to the source reads; the guard against an empty result now checks the exported commit only and says the filter leaves no element, so a comparison whose older commit lacks the tag no longer fails and the message is true when include and exclude name the same tag; the worked example excludes internal instead of legacy, which the Tags sample puts on the container itself; the subset comment states that draft ids pass through.
+
+Criterion 3: Alex approved the worked example on 2026-11-19 ("I approve the example"), shown to him as the table of the section Exporting a subset in docs/component-markdown.md. The table has the same rows on this branch and at the top of the stack; later pull requests only extend the prose above it for groups and flows.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
