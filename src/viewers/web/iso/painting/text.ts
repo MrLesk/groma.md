@@ -1,4 +1,4 @@
-import { CONTAINER_FONT, PLANE, TITLE_ICON_LEAD, TITLE_ICON_RATIO, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
+import { CONTAINER_FONT, ICON_GAP_RATIO, ICON_SIDE, PLANE, TITLE_ICON_CLEARANCE, TITLE_ICON_ROOM, textLineHeight, textPadding } from '../../../../sheet/measure.ts'
 import type { ProjectionView, SurfaceLabel, SurfaceText } from '../projection/project.ts'
 import { planeMatrix, project } from '../projection/project.ts'
 import { node, round, type SvgNode } from './svg.ts'
@@ -12,6 +12,10 @@ const TITLE_STEPS = [
 ]
 /** Include the map font's full ascent and descent, not only its visible capital height. */
 const TITLE_LINE_HEIGHT = 1.3
+/** The middle of a title's capital letters lies this many font sizes below the top of its line. */
+const TITLE_MIDDLE = 0.54
+/** A title's icon lying flat before the title is this many font sizes wide, so its drawing is about as tall as the letters. */
+const TITLE_MARK_RATIO = 1.2
 
 /** The map only needs title updates when this index changes, or when it paints a new scene. */
 export function surfaceLabelStep(zoom: number): number {
@@ -19,8 +23,17 @@ export function surfaceLabelStep(zoom: number): number {
 }
 
 /**
- * Fit a fixed preset inside the packed band, including its leader and hit area. With an icon the title
- * shares the band with the icon's slot: slot, gap and title are centred together.
+ * Fit a fixed preset inside the packed band, including its leader and hit area. With an icon the title shares
+ * the band with the icon's room, and slot, gap and title are centred together.
+ *
+ * The icon has two places. As an object it stands in `icon`: a slot before the title, kept
+ * TITLE_ICON_CLEARANCE slot sides away from the surface and from the band's west end, because an object covers the
+ * ground behind it on screen. So it covers neither the surface nor a neighbour. Lying flat it needs no such room:
+ * `mark` is a square before the title on the title's own line, at the title's size.
+ *
+ * The packing reserves TITLE_ICON_ROOM for a saved icon (nameCells). An icon that is only previewed in the Edit
+ * form stands in the room its name has now, which may be less: then the clear ground shrinks first, and the
+ * title keeps at least half the band.
  */
 export function surfaceLabelLayout(
   text: Pick<SurfaceLabel, 'width' | 'band'>,
@@ -37,17 +50,24 @@ export function surfaceLabelLayout(
   }
   const paddingX = Math.min(step.padding / length(1, 0), text.band.width / 20)
   const paddingY = Math.min(step.padding / length(0, 1), text.band.height / 20)
-  /** Font sizes the slot and its gap take before the title. */
-  const leadShare = icon ? TITLE_ICON_LEAD : 0
+  const available = text.band.width - 2 * paddingX
+  const room = icon ? Math.min(TITLE_ICON_ROOM, available / 2) : 0
+  const clearance = Math.max(0, room - ICON_SIDE)
+  const gapShare = icon ? ICON_GAP_RATIO : 0
   const fontSize = Math.min(
     step.size * size / CONTAINER_FONT,
-    size * (text.band.width - 2 * paddingX) / (text.width + leadShare * size),
+    // The widest font at which the icon's room, the gap and the title fit along the band.
+    (available - room) / (text.width / size + gapShare),
     (text.band.height - 3 * paddingY) / TITLE_LINE_HEIGHT,
   )
   const width = text.width * fontSize / size
-  const lead = leadShare * fontSize
-  const start = (text.width - width - lead) / 2
-  const iconSide = Math.min(fontSize * TITLE_ICON_RATIO, text.band.height - 2 * paddingY)
+  const lead = room - clearance + gapShare * fontSize
+  // Slot, gap and title are centred under the surface, unless that leaves the slot less clear ground than it needs at the band's west end.
+  const west = (text.width - text.band.width) / 2
+  const start = Math.max((text.width - width - lead) / 2, west + paddingX + clearance)
+  /** Where the slot and the mark end: one gap before the title. */
+  const iconEnd = start + room - clearance
+  const markSide = fontSize * TITLE_MARK_RATIO
   return {
     fontSize,
     x: start - paddingX,
@@ -57,12 +77,8 @@ export function surfaceLabelLayout(
     baseline: 2 * paddingY + fontSize * 0.9,
     /** Where the title is centred; an icon's slot moves it along +gx. */
     centre: start + lead + width / 2,
-    /** The icon's slot ends one gap before the title, starts at the top of the band and never leaves it. */
-    icon: {
-      x: start + fontSize * TITLE_ICON_RATIO - iconSide,
-      y: paddingY,
-      side: iconSide,
-    },
+    icon: { x: iconEnd - ICON_SIDE, y: ICON_SIDE * TITLE_ICON_CLEARANCE, side: ICON_SIDE },
+    mark: { x: iconEnd - markSide, y: 2 * paddingY + fontSize * TITLE_MIDDLE - markSide / 2, side: markSide },
   }
 }
 

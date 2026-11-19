@@ -15,14 +15,14 @@ export function roofName(text: SurfaceText, size: number, view: ProjectionView, 
   const slot = roofIconSlot(size)
   return [
     surfaceText(text, size, 'label', view, slot.lead),
-    iconSvg({ name: icon, corner: onPlane(text.origin, slot.x, slot.y, view), side: slot.side, landmark: false }, view, still),
+    iconSvg({ name: icon, slot: { corner: onPlane(text.origin, slot.x, slot.y, view), side: slot.side } }, view, still),
   ]
 }
 
 /**
- * A surface's title and icon share one slot layout in its front band. Both follow the title's zoom step.
- * `icon.landmark` is the caller's choice between the two kinds of icon in icon-camera.ts: a landmark keeps a least
- * size on screen, any other icon stays in its slot. `still` is as for roofName.
+ * A surface's title and icon share one layout in its front band. The icon's object stands in its slot, clear of
+ * the surface; its flat glyph lies in the mark on the title's line and follows the title's zoom step.
+ * `still` is as for roofName.
  */
 export function surfaceTitle(
   text: SurfaceLabel,
@@ -30,13 +30,12 @@ export function surfaceTitle(
   view: ProjectionView,
   spacing: number,
   zoom: number,
-  icon: { name?: IconName; landmark: boolean },
+  icon: IconName | undefined,
   still?: Still,
 ): SvgNode[] {
-  const layout = surfaceLabelLayout(text, size, zoom, view, icon.name !== undefined)
+  const layout = surfaceLabelLayout(text, size, zoom, view, icon !== undefined)
   const label = surfaceLabel(text, layout, view, spacing)
-  if (icon.name === undefined) return [label]
-  const slot = layout.icon
-  const corner = onPlane(text.origin, slot.x, slot.y, view)
-  return [label, iconSvg({ name: icon.name, corner, side: slot.side, landmark: icon.landmark }, view, still)]
+  if (icon === undefined) return [label]
+  const square = (place: { x: number; y: number; side: number }) => ({ corner: onPlane(text.origin, place.x, place.y, view), side: place.side })
+  return [label, iconSvg({ name: icon, slot: square(layout.icon), mark: square(layout.mark) }, view, still)]
 }
