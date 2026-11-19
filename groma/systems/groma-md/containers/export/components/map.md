@@ -30,8 +30,6 @@ groma:
     - scanner: typescript
       file: src/viewers/web/iso/painting/layer-planes.ts
     - scanner: typescript
-      file: src/viewers/web/icons/glyphs.ts
-    - scanner: typescript
       file: src/viewers/web/icons/objects.ts
       symbol: iconObjects
     - scanner: typescript

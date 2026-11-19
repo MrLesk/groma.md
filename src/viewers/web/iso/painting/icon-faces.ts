@@ -141,24 +141,17 @@ export function boundsOf(part: IconPart): { min: IconPoint; max: IconPoint } {
   }
 }
 
-/**
- * The ground an object's drawing covers from back to front, in footprint sides from the footprint's north edge.
- * An object rises on screen: in the map's home view a point at height z is drawn over the ground
- * z * CELL_HEIGHT / 2 behind it, so the drawing of a tall object starts well behind its foot.
- */
-export function drawingSpan(parts: readonly IconPart[]): { back: number; front: number } {
-  const behind = CELL_HEIGHT / 2
-  const bounds = parts.map(boundsOf)
-  return {
-    back: Math.min(...bounds.map(({ min, max }) => min[1] - max[2] * behind)),
-    front: Math.max(...bounds.map(({ min, max }) => max[1] - min[2] * behind)),
-  }
+/** The front of an object: how far its foremost part reaches towards the reader, in footprint sides from the north edge. */
+export function frontOf(parts: readonly IconPart[]): number {
+  return Math.max(...parts.map(part => boundsOf(part).max[1]))
 }
 
-/** How far an object stands in front of its box, in box sides, so that its drawing, not its foot, is centred on the box. */
-export function drawingOffset(parts: readonly IconPart[]): number {
-  const { back, front } = drawingSpan(parts)
-  return 0.5 - (back + front) / 2
+/**
+ * How far behind its footprint an object's drawing reaches, in footprint sides. An object rises on screen: in the
+ * map's home view a point at height z is drawn over the ground z * CELL_HEIGHT / 2 behind it.
+ */
+export function reachBehind(parts: readonly IconPart[]): number {
+  return Math.max(...parts.map(boundsOf).map(({ min, max }) => max[2] * CELL_HEIGHT / 2 - min[1]))
 }
 
 /**

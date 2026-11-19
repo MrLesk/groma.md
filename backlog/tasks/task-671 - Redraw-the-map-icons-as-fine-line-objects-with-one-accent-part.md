@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-19T18:23:00Z'
-updated_date: '2026-11-19T20:13:00Z'
+updated_date: '2026-11-19T20:39:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -32,6 +32,11 @@ modified_files:
   - src/sheet/measure.ts
   - src/viewers/web/iso/painting/text.ts
   - src/viewers/web/iso/painting/ground.ts
+  - src/viewers/web/icons/glyphs.ts
+  - src/viewers/web/icons/glyph-element.ts
+  - docs/component-markdown.md
+  - src/icons.ts
+  - src/viewers/tui/tree.ts
 type: enhancement
 ordinal: 714000
 ---
@@ -46,9 +51,9 @@ The owner judged the first icon artwork on the live map on 2026-11-19 and reject
 <!-- AC:BEGIN -->
 - [ ] #1 Every named icon's object is drawn in lines of one fine width over quiet faces, and one part or the few marks that draw one thing are its accent
 - [ ] #2 The accent is drawn in ink; on an element or group with an authored color the accent takes that color and the rest of the object stays neutral
-- [ ] #3 An icon lies on the line of its name, one gap before the text, on a roof and before a title, with its drawing centred on the letters
+- [ ] #3 An icon lies on the line of its name, one gap before the text, on a roof and before a title: a standing object stands on the name's baseline and a lying one is centred on the name's line
 - [ ] #4 An icon is sized from the letters of its name and changes with them: a title's icon follows the title's size step when the map is zoomed
-- [ ] #5 An icon follows the map's view: its object in the Iso and Layers views, its flat glyph in the 2D view, and no flat glyph on a tilted map
+- [ ] #5 An icon has one drawing, its object: it stands on a tilted map, and the same object is drawn flat in the 2D view, the hierarchy rows, the details title and the Icon field
 - [ ] #6 No icon's drawing before a title reaches a building on the surface behind it, at any size of the title
 - [ ] #7 On a small object the quiet inner lines fade out and the outline and the accent stay
 - [ ] #8 An object shows only the faces turned to the reader at every orbit angle, and a curved wall shows no line between its segments
@@ -90,4 +95,7 @@ Known limits, reported to the owner. A relationship route that runs through a ti
 
 2026-11-19, later. The owner saw the three rules live and rejected two of them. His words: "wait why does it change from flat to iso so weirdly?", "also it's absolutely not in line with the text", "why do we have both flat and iso versions of the icons. did I approve that?", then the model he wants: "we have an iso map and we have a 2d map. the icons should follow that switch and the icons should be in line with the text... like every other icon with their label and also follow the text size and change when text size changes. it's much easier than you think". These are his decisions: an icon follows the view (object in Iso, flat glyph in 2D); it lies in line with its text; its size follows the text size and changes with it. Removed again: the one slot size for every icon, the clear ground before a title and the flat mark on the tilted map (pushed in 42356d27), with their constants and tests.
 Built in their place, coordinator's choices: the box is 1.2 font sizes (ICON_RATIO), the largest whole tenth at which the tallest drawing stays inside the two cells of empty ground a surface keeps along its edge, at every title size (most: 33 of 48 plane pixels, a system title zoomed far out); the gap to the text is 0.4 font sizes; the drawing, not the foot, is centred on the line, because an object rises on screen (drawingOffset in icon-faces.ts); the three tallest objects stay lowered. Consequence told to the owner: a roof icon is now as small as its roof's name (an actor's name is 11 plane pixels, so its icon is about 13), smaller than the 30 he found hard to spot; the size of roof names is the lever.
+
+2026-11-19, the owner on the label model. "yes but in iso is still not in line. 2d is perfectly aligned except idk why you are not using the same icon but flatten it. you went to create a separate icon for 2d for no reason when you can just rotate the iso one", then "the icon in the iso sits on a line below the \"browser\". given that when we switch between 2d and iso we just rotate, you shouldn't do anything special to have the icon aligned with the text correctly". His decisions: one icon, the 2D one is the same object flattened; in the Iso view the icon sits on the text's line with no special placement. Built: the hand-drawn glyph set (icons/glyphs.ts) is deleted; flatSvg in iso/painting/icons.ts draws an object from its front (an object that stands) or from above (one that lies), with the same parts, marks and accent, for the 2D view and the panes; objects.ts says for each object whether it stands or lies. The centring of an object's drawing that I had added (the cause of "sits on a line below") is removed. A standing object now stands with its front on the name's baseline (ICON_BASELINE in sheet/measure.ts, from the same line metrics as the text), which is my reading of "sits on the line" and needs his eyes. The box is 0.9 font sizes (my number): the largest tenth at which every object stays inside the empty ground behind a title at every title size.
+Verification of this round: bun run check 1008 pass, 67 skip, 0 fail; the Browser map and Groma application titles in the Iso view (foot on the baseline) and the 2D view (same drawing, flat); hierarchy rows with the flat drawings; external systems and actors.
 <!-- SECTION:NOTES:END -->

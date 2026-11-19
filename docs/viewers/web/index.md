@@ -336,40 +336,44 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   - An icon is part of its name, like the icon of any label. It lies on the
     name's line, one gap before the text: on the roof of an actor, external
     system or component, and before the title of a system, container or group.
-  - Its size comes from the name's letters, 1.2 times the font size. So it
-    follows its name: a title's icon changes with the title's size step when
-    the map is zoomed, and a small roof name has a small icon. No icon is drawn
-    larger than that, and a tiny icon fades out.
-  - The icon follows the map's view. In the Iso and Layers views it is a small
-    object that turns with the map: a fine line drawing, quiet lines of one
-    width over faces a little off paper, shaded like a building's. In the 2D
-    view it is the icon's flat glyph, which also marks the element's row in
-    the hierarchy and its title in the details.
-  - An object rises on screen, so the map centres its drawing, not its foot,
-    on the name's line. Before a title the drawing stays within the empty
-    ground every surface keeps along its edge, so it never covers a building.
-  - Every object has one accent, the thing that says what the object is: a
-    database's top disc, a terminal's prompt. The accent is drawn in ink. When
-    the element or group has an authored color the accent takes it, and the
-    rest of the object stays neutral. A selected or lit element draws all of
-    its icon's lines in the highlight. On a small object the quiet inner lines
-    fade out first; the outline and the accent stay.
+  - Its size comes from the name's letters: its box is 0.9 times the font
+    size. So it follows its name: a title's icon changes with the title's size
+    step when the map is zoomed, and a small roof name has a small icon. No
+    icon is drawn larger than that, and a tiny icon fades out.
+  - An icon has one drawing, its object, and follows the map's view. In the Iso
+    and Layers views the object stands in the icon's box and turns with the
+    map. In the 2D view the same object is drawn flat in the box: its front
+    when it is an object that stands, its top when it is one that lies. The
+    hierarchy rows, the details title and the Icon field show that flat
+    drawing too.
+  - On a tilted map an object that stands has its front on the baseline of its
+    name, where the name's letters stand; one that lies is centred on the
+    name's line. Before a title an object rises a little over the edge of its
+    surface, within the empty ground every surface keeps along its edge, so it
+    never covers a building.
+  - An object is a fine line drawing: quiet lines of one width over faces a
+    little off paper, shaded like a building's. It has one accent, the thing
+    that says what the object is: a database's top disc, a terminal's prompt.
+    The accent is drawn in ink. When the element or group has an authored color
+    the accent takes it, and the rest of the object stays neutral. A selected
+    or lit element draws all of its icon's lines in the highlight. On a small
+    icon the quiet inner lines fade out first; the outline and the accent stay.
   - [`icons/objects.ts`](../../../src/viewers/web/icons/objects.ts) holds the
     objects and [`icons/parts.ts`](../../../src/viewers/web/icons/parts.ts) the
     parts they are built from: a prism is a flat outline pushed along one
-    axis, which gives boxes, cylinders, rounded plates and upright panels.
-    [`icons/glyphs.ts`](../../../src/viewers/web/icons/glyphs.ts) holds the
-    glyphs. The size of an icon's box is in
+    axis, which gives boxes, cylinders, rounded plates and upright panels. The
+    size of an icon's box is in
     [`sheet/measure.ts`](../../../src/sheet/measure.ts);
     [`iso/painting/text.ts`](../../../src/viewers/web/iso/painting/text.ts)
     places it on a title's line.
     [`iso/painting/icon-faces.ts`](../../../src/viewers/web/iso/painting/icon-faces.ts)
     decides which faces of an object the reader sees,
     [`iso/painting/icons.ts`](../../../src/viewers/web/iso/painting/icons.ts)
-    draws object and glyph, and [`iso/painting/icon-camera.ts`](../../../src/viewers/web/iso/painting/icon-camera.ts)
+    draws the object standing and flat, and
+    [`iso/painting/icon-camera.ts`](../../../src/viewers/web/iso/painting/icon-camera.ts)
     holds the rules by which an icon follows the camera. Adding an icon means
     adding its name to [`src/icons.ts`](../../../src/icons.ts), one object with
-    its accent, one glyph, and its name in the [contract's table](../../component-markdown.md#icons).
+    its accent, and its name in the [contract's table](../../component-markdown.md#icons).
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements and stored groups
   together with task IDs and titles from the configured work source. A group is
   found by its title or id and is listed with the path of its members' container.
