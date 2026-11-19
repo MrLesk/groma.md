@@ -1,7 +1,7 @@
 /**
  * The named icons an author can give an architecture element. A document stores only the name.
- * The web map draws each name twice: as a small object standing on the element in the tilted views,
- * and as a flat glyph in the 2D view, the hierarchy and the details.
+ * The web map draws each name as one small object on the line of the element's name: standing in the tilted
+ * views, and the same object drawn flat in the 2D view, the hierarchy and the details.
  */
 export const ICON_NAMES = [
   'person', 'agent',

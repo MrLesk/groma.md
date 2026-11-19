@@ -1,22 +1,24 @@
 import type { IconName } from '../../../icons.ts'
-import { GLYPH_SIZE, iconGlyphs } from './glyphs.ts'
+import { flatSvg } from '../iso/painting/icons.ts'
+import { patch, svg } from '../iso/painting/svg.ts'
 
-const NAMESPACE = 'http://www.w3.org/2000/svg'
+/** The side of the square an icon is drawn flat in, in drawing units; the element scales it to its size. */
+const SIDE = 24
 
+/**
+ * In a pane an icon is drawn in the colour of the text around it, in outlines only: its small marks would be
+ * noise at this size, so only the accent's marks stay.
+ */
 export const glyphCss = `
-  .glyph { flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .glyph { flex: none; overflow: visible; }
+  .glyph .icon-part { fill: none; stroke: currentColor; stroke-width: 1.2px; stroke-linecap: round; stroke-linejoin: round; }
+  .glyph .icon-solid { fill: currentColor; }
+  .glyph .icon-detail { display: none; }
 `
 
-/** An icon's flat glyph as an inline drawing `size` pixels wide, in the colour of the text around it. */
+/** An icon as an inline drawing `size` pixels wide: the same object the map shows, drawn flat. */
 export function glyphElement(name: IconName, size: number): SVGSVGElement {
-  const svg = document.createElementNS(NAMESPACE, 'svg')
-  svg.setAttribute('class', 'glyph')
-  svg.setAttribute('viewBox', `0 0 ${GLYPH_SIZE} ${GLYPH_SIZE}`)
-  svg.setAttribute('width', String(size))
-  svg.setAttribute('height', String(size))
-  svg.setAttribute('aria-hidden', 'true')
-  const path = document.createElementNS(NAMESPACE, 'path')
-  path.setAttribute('d', iconGlyphs[name])
-  svg.append(path)
-  return svg
+  const element = svg('svg', { viewBox: `0 0 ${SIDE} ${SIDE}`, width: size, height: size, 'aria-hidden': 'true' }, 'glyph')
+  patch(element, flatSvg(name, SIDE))
+  return element
 }

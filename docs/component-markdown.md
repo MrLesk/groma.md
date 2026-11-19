@@ -382,9 +382,10 @@ form offers the same names as its Icon field. No icon is assigned
 automatically, an icon is not inherited by what the element contains, and scans
 keep it. The icon on a [group](#groups) record stands before its zone's name, and each member keeps its own icon.
 
-The [web map](viewers/web/index.md) draws each name twice: as a small object
-standing beside the element's name in the tilted views, and as a flat glyph in
-the 2D view, the hierarchy and the details. Plain terminal output prints the name.
+The [web map](viewers/web/index.md) draws each name as one small object on the
+line of the element's name: standing in the tilted views, and the same object
+drawn flat in the 2D view, the hierarchy and the details. Plain terminal output
+prints the name.
 
 ### Code references
 
