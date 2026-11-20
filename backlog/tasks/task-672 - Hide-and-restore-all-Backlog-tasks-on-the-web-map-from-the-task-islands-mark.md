@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-19T22:43:00Z'
-updated_date: '2026-11-20T20:39:00Z'
+updated_date: '2026-11-20T20:51:00Z'
 labels: []
 dependencies: []
 references:
@@ -23,6 +23,7 @@ modified_files:
   - test-bun/work-status-filter.test.ts
   - docs/product-model.md
   - docs/viewers/web/index.md
+  - src/viewers/web/work/pins.ts
 type: enhancement
 ordinal: 709000
 ---
@@ -99,6 +100,8 @@ Environment, not part of the change: this worktree's installed dependencies were
 Non-blocking observations: keyboard focus leaves the switch after a click because the island rebuilds its content, as it already does for the status filters. Backlog stamps updates to the minute, so a second notes-only edit within one minute produces no live update on the map.
 
 Review: Alex looked at the lit-mark pictures and the live map on 2026-11-20, approved the result and asked for the pull request. He did not comment separately on the choices listed above. bun run check passed on the final version: 959 tests passed, 0 failed.
+
+Review fix, 2026-11-20 (Codex finding on the pull request, citing AC 1): a pin that was playing its completion animation stayed up to 3.3 s after the switch went off, and so did its chip. Reproduced on the live map before the fix: a visible task set to Done, switch clicked during the animation, 1 pin and 1 chip remained. The pin layer's show() now also receives tasksShown and keeps no pin while it is false; the island's chip strip follows the same rule through hasChip. After the fix the same walk left 0 pins and 0 chips at once; the five acceptance criteria were walked again and hold. Turning tasks on again inside the animation's time shows the finishing pin for the rest of its animation, as a finishing pin behaves under the status filters.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

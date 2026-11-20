@@ -77,8 +77,11 @@ export interface WorkIsland {
 export interface WorkIslandMap {
   /** Activates the task of a clicked chip, or deactivates it. */
   toggleTask(taskId: string): void
-  /** Shows the pins in these statuses and hides the rest; no status while the tasks switch is off. */
-  showStatuses(statuses: readonly string[]): void
+  /**
+   * Shows the pins in these statuses and hides the rest. While the tasks switch is off there is no status and
+   * `tasksShown` is false, which also takes off a pin that is still finishing.
+   */
+  showStatuses(statuses: readonly string[], tasksShown: boolean): void
   /** Paints the task highlights again after the tasks switch turned them off or on. */
   paintTaskHighlights(): void
 }
@@ -137,7 +140,9 @@ export function createWorkIsland(host: HTMLElement, map: WorkIslandMap, tip: Tip
   /** The statuses whose pins and chips are shown now. */
   const shownStatuses = (): readonly string[] => shownWorkStatuses(statusFilters?.enabled ?? [], tasksShown)
   /** Tells the map which pins to show. A status filter click, a tasks switch click and a live work update all end here. */
-  const showOnMap = (): void => map.showStatuses(shownStatuses())
+  const showOnMap = (): void => map.showStatuses(shownStatuses(), tasksShown)
+  /** Whether a pin has a chip: its status is shown, or it is finishing. While tasks are off no pin has one. */
+  const hasChip = (pin: WorkPin): boolean => tasksShown && (shownStatuses().includes(pin.status) || finishing.has(pin.key))
 
   const toggle = (status: string): HTMLButtonElement => {
     const pressed = statusFilters?.enabled.includes(status) ?? false
@@ -190,7 +195,7 @@ export function createWorkIsland(host: HTMLElement, map: WorkIslandMap, tip: Tip
     strip.className = 'strip'
     const order = new Map(work.statuses.map((status, index) => [status, index]))
     const statuses = shownStatuses()
-    const shown = pins.filter(pin => statuses.includes(pin.status) || finishing.has(pin.key))
+    const shown = pins.filter(hasChip)
     shown.sort((left, right) => order.get(left.status)! - order.get(right.status)!)
     strip.append(...shown.map(pin => {
       const node = chip(pin, finishing.get(pin.key), map.toggleTask, tip)
@@ -269,12 +274,7 @@ export function createWorkIsland(host: HTMLElement, map: WorkIslandMap, tip: Tip
   host.append(island)
   return {
     paint(nextPins, nextWork) {
-      const statuses = shownStatuses()
-      const visible = new Set(open
-        ? pins
-          .filter(pin => statuses.includes(pin.status) || finishing.has(pin.key))
-          .map(pin => pin.key)
-        : [])
+      const visible = new Set(open ? pins.filter(hasChip).map(pin => pin.key) : [])
       const started = finishingWorkKeys(pins, nextPins)
       for (const key of started) {
         if (visible.has(key)) {
