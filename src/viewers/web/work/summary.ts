@@ -65,6 +65,23 @@ export function latestWorkChange(previous: WorkSummary | undefined, next: WorkSu
     || b.item.updatedAt.localeCompare(a.item.updatedAt))[0]
 }
 
+/** What the mark needs to know about the task island it stands on. */
+export interface WorkSummaryView {
+  /** The enabled status filters. They give the count while tasks are off too, so the mark keeps its number. */
+  enabled: readonly string[]
+  /** Task activity animates the mark only on the folded island. */
+  folded: boolean
+  /** False while the tasks switch is off. */
+  tasksShown: boolean
+}
+
+/** The mark's tip: the count the status filters select, each status with mapped tasks, and the latest task event. */
+function summaryTip(summary: WorkSummary, tasksShown: boolean, latest: WorkChange | undefined): string {
+  const breakdown = summary.counts.filter(row => row.count > 0).map(row => `${row.count} ${row.status}`).join(' · ')
+  const event = latest === undefined ? '' : ` · ${latest.item.id} ${latest.kind}: ${latest.item.title}`
+  return `${summary.count} ${tasksShown ? 'shown' : 'hidden'} · ${breakdown || 'No mapped tasks'}${event}`
+}
+
 /** A persistent folded badge: repaints and filter changes cannot replay task events. */
 export function createWorkSummary(tip: Tip) {
   const element = document.createElement('span')
@@ -98,7 +115,7 @@ export function createWorkSummary(tip: Tip) {
 
   return {
     element,
-    update(pins: readonly WorkPin[], work: WorkSnapshot, enabled: readonly string[], folded: boolean) {
+    update(pins: readonly WorkPin[], work: WorkSnapshot, { enabled, folded, tasksShown }: WorkSummaryView) {
       if (work.statuses.length === 0) {
         previous = undefined
         latest = undefined
@@ -109,9 +126,7 @@ export function createWorkSummary(tip: Tip) {
       latest = change ?? latest
       count.textContent = String(next.count)
       element.classList.toggle('empty', next.count === 0)
-      const breakdown = next.counts.filter(row => row.count > 0).map(row => `${row.count} ${row.status}`).join(' · ')
-      const event = latest === undefined ? '' : ` · ${latest.item.id} ${latest.kind}: ${latest.item.title}`
-      element.dataset.tip = `${next.count} shown · ${breakdown || 'No mapped tasks'}${event}`
+      element.dataset.tip = summaryTip(next, tasksShown, latest)
       element.setAttribute('aria-label', element.dataset.tip)
       if (folded && (change !== undefined || delta !== 0)) animate(change, delta)
       // The empty boot snapshot precedes the first real work snapshot.
