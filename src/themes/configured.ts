@@ -25,7 +25,16 @@ export async function loadTheme(repositoryRoot: string, entry: ConfiguredTheme):
   } catch {
     throw new Error(`theme file is missing: ${entry.source}`)
   }
-  return themeDefinition(entry.id, JSON.parse(text), entry.source)
+  return themeDefinition(entry.id, parsedThemeFile(text, entry.source), entry.source)
+}
+
+/** The value a theme file holds. A slip in its JSON names the file, because a project can have several theme files. */
+function parsedThemeFile(text: string, source: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch (error) {
+    throw new Error(`${source}: ${error instanceof Error ? error.message : String(error)}`)
+  }
 }
 
 /** The themes a project enables, in config.json order. Bundled and custom themes come through the same path. */
