@@ -2,7 +2,7 @@ import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
 import { COLOR_NAMES, isColorName } from './colors.ts'
-import { ICON_NAMES, isIconName } from './icons.ts'
+import { isIconName } from './icons.ts'
 import { isArchitectureId, isReservedId, kebabCase } from './naming.ts'
 import { DRAFT_TYPE, c4Kind, requireGromaMapping } from './okf-profile.ts'
 import { storedConnections } from './relationship-markdown.ts'
@@ -97,7 +97,7 @@ export function appearanceOf(
 ): Pick<ArchitectureElement, 'color' | 'icon'> {
   const { color, icon } = groma
   if (color !== undefined && !isColorName(color)) invalid(`color must be one of ${COLOR_NAMES.join(', ')}`)
-  if (icon !== undefined && !isIconName(icon)) invalid(`icon must be one of ${ICON_NAMES.join(', ')}`)
+  if (icon !== undefined && !isIconName(icon)) invalid('icon must be one of the names groma edit --help lists')
   return {
     ...(color === undefined ? {} : { color }),
     ...(icon === undefined ? {} : { icon }),

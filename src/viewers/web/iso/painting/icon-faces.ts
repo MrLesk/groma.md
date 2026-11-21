@@ -141,6 +141,51 @@ export function boundsOf(part: IconPart): { min: IconPoint; max: IconPoint } {
   }
 }
 
+/** An upright panel: a prism pushed along y, which faces south. */
+function isPanel(part: IconPart): part is Prism {
+  return part.shape === 'prism' && part.axis === 'y'
+}
+
+/**
+ * The same parts as the plan view shows them. A part that stands on its ground outline stays as it is: from above
+ * its top is seen. An upright panel faces south, so from above only its edge would be seen; it is laid flat
+ * instead, face up and its top towards the north. All panels of one object are laid around one line and one
+ * height, so together they keep the picture their fronts make.
+ *
+ * A laid panel lies at the height of its lowest point, like a part that stands, and one whole unit higher for
+ * every panel that stood behind it. So a panel that stood in front of another lies on it, and the plan shows the
+ * same panel in front as the tilted views do. Among panels at one depth the one that starts higher lies on top.
+ *
+ * A laid panel keeps the marks of its south face, which is now its top; a mark on another face of a panel is not
+ * seen from above.
+ */
+export function laidFlat(parts: readonly IconPart[]): IconPart[] {
+  const panels = parts.filter(isPanel)
+  if (panels.length === 0) return [...parts]
+  const heights = panels.flatMap(panel => panel.outline.map(([, z]) => z))
+  const middle = (Math.min(...heights) + Math.max(...heights)) / 2
+  const backs = panels.map(panel => panel.from)
+  const fronts = panels.map(panel => panel.from + panel.length)
+  const line = (Math.min(...backs) + Math.max(...fronts)) / 2
+  // A point of a face at height z lands this far north or south of the line.
+  const lay = (x: number, z: number): Spot => [x, line + middle - z]
+  const laid = (pairs: readonly number[]): number[] =>
+    Array.from({ length: pairs.length / 2 }, (_, index) => lay(pairs[2 * index]!, pairs[2 * index + 1]!)).flat()
+  /** How many panels stood wholly behind `panel`: its back is at or south of their fronts. */
+  const panelsBehind = (panel: Prism): number =>
+    panels.filter(other => other !== panel && other.from + other.length <= panel.from + TOUCH).length
+  return parts.map((part): IconPart => {
+    if (!isPanel(part)) return part
+    return {
+      ...part,
+      axis: 'z',
+      outline: part.outline.map(([x, z]) => lay(x, z)),
+      from: Math.min(...part.outline.map(([, z]) => z)) + panelsBehind(part),
+      marks: part.marks.filter(mark => mark.on === 'south').map(mark => ({ ...mark, on: 'top', line: laid(mark.line) })),
+    }
+  })
+}
+
 /** The front of an object: how far its foremost part reaches towards the reader, in footprint sides from the north edge. */
 export function frontOf(parts: readonly IconPart[]): number {
   return Math.max(...parts.map(part => boundsOf(part).max[1]))
@@ -192,7 +237,7 @@ export function backToFront(parts: readonly IconPart[], view: ProjectionView): I
   while (waiting.length > 0) {
     const next = waiting.findIndex(candidate =>
       !waiting.some(other => other !== candidate && hides(candidate.bounds, other.bounds, reader)))
-    // Two parts that each hide the other cannot be ordered; draw the first and go on.
+    // Parts that hide each other in a circle (two, or three in a ring) cannot be ordered; draw the first of the list and go on.
     drawn.push(waiting.splice(Math.max(next, 0), 1)[0]!.part)
   }
   return drawn

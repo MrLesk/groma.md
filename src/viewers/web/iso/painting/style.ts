@@ -5,7 +5,7 @@ import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
 import type { Plane, ProjectionView } from '../projection/project.ts'
-import { DETAIL_OPACITY_CSS, ICON_STROKE_CSS } from './icon-camera.ts'
+import { ICON_STROKE_CSS } from './icon-camera.ts'
 import { COLOR_EDGE, COLOR_STRENGTH, FACADE_MARK, ICON_ACCENT_TONE, ICON_INK, ICON_TONE, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
 import type { Level } from './scale.ts'
 import { mark, node, type SvgNode } from './svg.ts'
@@ -163,9 +163,11 @@ function accentRules(scope: string, color: string, tint: (share: number) => stri
  * a fine line drawing: quiet lines a little brighter than the map's outlines, over faces a little off paper that
  * are shaded like a building's, by the side they are turned to. Its accent is drawn in ink. In the browser an
  * element with an authored color hands that color to the accent through --icon-accent; the rest of the object
- * stays neutral. The flat drawing of the 2D view is made of the same parts, so it takes the same rules.
+ * stays neutral. The plan the 2D view draws is made of the same parts, so it takes the same rules. `scope`
+ * is the selector the icons are drawn under: the map, or a pane's icon. A pane shows the plan with these same
+ * rules and sets --icon-stroke on each icon itself, as the map's camera rule does on the map.
  */
-function iconCss(palette?: Palette): string {
+export function iconCss(scope: string, palette?: Palette): string {
   const line = palette === undefined
     ? `color-mix(in srgb, var(--ink) ${ICON_INK * 100}%, var(--map-line))`
     : mixColour(palette.line, palette.ink, ICON_INK)
@@ -173,23 +175,22 @@ function iconCss(palette?: Palette): string {
   const accentTint = (share: number) => palette === undefined
     ? `color-mix(in srgb, ${accent} ${(share * 100).toFixed(1)}%, var(--paper))`
     : mixColour(palette.paper, palette.ink, share)
-  return `#map .icon-part {
+  return `${scope} .icon-part {
     stroke: ${line}; stroke-linejoin: round; stroke-linecap: round;
     ${palette === undefined ? 'stroke-width: var(--icon-stroke);' : ''}
   }
-  #map .icon-top { fill: ${paintTint(ICON_TONE.top, palette)}; }
-  #map .icon-right { fill: ${paintTint(ICON_TONE.right, palette)}; }
-  #map .icon-left { fill: ${paintTint(ICON_TONE.left, palette)}; }
-  #map .icon-screen { fill: ${palette?.paper ?? 'var(--paper)'}; }
-  #map .icon-line { fill: none; }
-  #map .icon-solid { fill: ${line}; }
-  ${accentRules('#map', accent, accentTint)}`
+  ${scope} .icon-top { fill: ${paintTint(ICON_TONE.top, palette)}; }
+  ${scope} .icon-right { fill: ${paintTint(ICON_TONE.right, palette)}; }
+  ${scope} .icon-left { fill: ${paintTint(ICON_TONE.left, palette)}; }
+  ${scope} .icon-screen { fill: ${palette?.paper ?? 'var(--paper)'}; }
+  ${scope} .icon-line { fill: none; }
+  ${scope} .icon-solid { fill: ${line}; }
+  ${accentRules(scope, accent, accentTint)}`
 }
 
-/** How live icons follow the camera; icon-camera.ts holds each rule beside the function a still image uses. */
+/** How live icons follow the camera; icon-camera.ts holds the rule beside the function a still image uses. */
 const iconCameraCss = `
   #map .icon { --icon-stroke: ${ICON_STROKE_CSS}; }
-  #map .icon-detail { opacity: ${DETAIL_OPACITY_CSS}; }
 `
 
 /** The camera attributes that stop facade and surface patterns below readable size at zoom `k`; the map and its covers set the same ones. */
@@ -261,7 +262,7 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
     ? `#map .actor .top { fill: var(--tint-top, ${paper}); } #map .actor .right { fill: var(--tint-right, ${paper}); } #map .actor .left { fill: var(--tint-left, ${paper}); }`
     : `#map .actor .face { fill: ${paper}; }`}
   ${authoredColours(palette)}
-  ${iconCss(palette)}
+  ${iconCss('#map', palette)}
   #map .zone > .ground { fill: ${palette === undefined ? 'var(--tint-top, transparent)' : 'transparent'}; }
   #map .pattern { stroke: none; pointer-events: none; }
   #map .island.actors .pattern { fill: url(#dots); }
