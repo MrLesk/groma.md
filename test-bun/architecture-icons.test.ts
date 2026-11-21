@@ -6,8 +6,9 @@ import { sheetScene } from '../src/sheet/scene.ts'
 import type { AnnotatedElement, ArchitectureGraph, C4Kind } from '../src/types.ts'
 import { iconObjects } from '../src/viewers/web/icons/objects.ts'
 import { box, cylinder } from '../src/viewers/web/icons/parts.ts'
+import type { IconPart } from '../src/viewers/web/icons/parts.ts'
 import { buildingsSvg } from '../src/viewers/web/iso/painting/buildings.ts'
-import { boundsOf, prismFaces, reachBehind } from '../src/viewers/web/iso/painting/icon-faces.ts'
+import { backToFront, boundsOf, prismFaces, reachBehind } from '../src/viewers/web/iso/painting/icon-faces.ts'
 import { iconSvg, planSvg } from '../src/viewers/web/iso/painting/icons.ts'
 import type { SvgNode } from '../src/viewers/web/iso/painting/svg.ts'
 import { surfaceLabelLayout } from '../src/viewers/web/iso/painting/text.ts'
@@ -99,6 +100,31 @@ test.concurrent('the plan of every icon object shows the accent', () => {
   for (const name of Object.keys(iconObjects) as IconName[]) {
     const accents = planSvg(name, 24).filter(shape => shape.attributes.class!.split(' ').includes('icon-accent'))
     expect(accents.length, `${name} seen from above has no accent`).toBeGreaterThan(0)
+  }
+})
+
+/** True when two parts cover a common area of the footprint: their boxes on the ground overlap. */
+function overlap(one: IconPart, other: IconPart): boolean {
+  const [a, b] = [boundsOf(one), boundsOf(other)]
+  return ([0, 1] as const).every(axis => a.min[axis] < b.max[axis] - 1e-6 && b.min[axis] < a.max[axis] - 1e-6)
+}
+
+/** Every two parts of an object where the second overlaps the first and reaches higher than it. */
+function coveringPairs(parts: readonly IconPart[]): [lower: IconPart, higher: IconPart][] {
+  return parts.flatMap(lower => parts
+    .filter(higher => overlap(lower, higher) && boundsOf(higher).max[2] > boundsOf(lower).max[2])
+    .map((higher): [IconPart, IconPart] => [lower, higher]))
+}
+
+test.concurrent('where two parts of an object overlap, the one that reaches higher is drawn over the other, from above and on a tilted map', () => {
+  for (const [name, parts] of Object.entries(iconObjects)) {
+    for (const view of [DEFAULT_PROJECTION, { yaw: 0, pitch: 90 }]) {
+      const drawn = backToFront(parts, view)
+      for (const [lower, higher] of coveringPairs(parts)) {
+        const place = `${name}, pitch ${view.pitch}: part ${parts.indexOf(lower)} is drawn over part ${parts.indexOf(higher)}, which reaches higher`
+        expect(drawn.indexOf(higher) > drawn.indexOf(lower), place).toBe(true)
+      }
+    }
   }
 })
 

@@ -18,7 +18,8 @@ export interface Choice {
  *
  * Choices that name a heading make a long field, such as the icons. A long field starts with a switch of two
  * parts: the choice that clears the field ("No icon") and the list ("Icon"). The list stands under a box that
- * filters it, and both show only while the list is on, so the form stays short until the person asks for it.
+ * filters it, and both show only while Icon is on, so the form stays short until the person asks for the list.
+ * For records that differ neither part is on.
  */
 export function choiceField(name: string, label: string, value: string | undefined, choices: readonly Choice[]): HTMLElement {
   const field = document.createElement('div')
@@ -42,13 +43,9 @@ export function choiceField(name: string, label: string, value: string | undefin
     appendRows(list, name, listed, value)
     field.append(listSwitch(name, label, choices.find(choice => choice.value === '')!, value, list), list)
   }
-  const showPick = (): void => {
-    pick.textContent = pickedLabel(field, value)
-    // The button of a long field's switch is pressed while its list is on (listSwitch).
-    field.querySelector('.choice-switch button')?.setAttribute('aria-pressed', String(field.querySelector('.choice-switch :checked') === null))
-  }
-  field.addEventListener('change', showPick)
-  showPick()
+  const namePick = (): void => { pick.textContent = pickedLabel(field, value) }
+  field.addEventListener('change', namePick)
+  namePick()
   return field
 }
 
@@ -113,9 +110,10 @@ function choiceOption(name: string, choice: Choice, value: string | undefined): 
 
 /**
  * The switch of a long field: the clearing choice as a word around its radio button, then a button named like
- * the field that turns the list on. The switch keeps no state of its own: the list is on whenever the clearing
- * choice is not picked, and the stylesheet shows the list and lights the button from that alone. So the button
- * only unpicks the clearing choice: it picks the stored value again, or nothing when the record has none.
+ * the field that turns the list on. The switch has one state, whether the list is on. The button holds it as its
+ * pressed state (`aria-pressed`), and the stylesheet shows the list and lights the button from that. The list is
+ * on from the start when the records share a pick from it. Pressing the button turns it on and picks the stored
+ * value again, or nothing when the records have none in common; picking the clearing choice turns it off.
  */
 function listSwitch(name: string, label: string, clear: Choice, value: string | undefined, list: HTMLElement): HTMLElement {
   const row = document.createElement('div')
@@ -126,13 +124,17 @@ function listSwitch(name: string, label: string, clear: Choice, value: string | 
   const on = document.createElement('button')
   on.type = 'button'
   on.textContent = label
+  const stored = [...list.querySelectorAll<HTMLInputElement>('input[type="radio"]')].find(radio => radio.value === value)
+  const showList = (shown: boolean): void => on.setAttribute('aria-pressed', String(shown))
+  showList(stored !== undefined)
+  clearing.addEventListener('change', () => showList(false))
   on.addEventListener('click', () => {
-    if (!clearing.checked) return
-    const stored = [...list.querySelectorAll<HTMLInputElement>('input[type="radio"]')].find(radio => radio.value === value)
+    if (on.getAttribute('aria-pressed') === 'true') return
     if (stored === undefined) clearing.checked = false
     else stored.checked = true
+    showList(true)
     // A script that changes a radio button fires no event; the title and the map's preview listen for these two.
-    for (const type of ['input', 'change']) clearing.dispatchEvent(new Event(type, { bubbles: true }))
+    for (const type of ['input', 'change']) on.dispatchEvent(new Event(type, { bubbles: true }))
   })
   row.append(off, on)
   return row
@@ -192,11 +194,11 @@ export const choiceFieldCss = `
     white-space: nowrap; cursor: pointer; transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
   }
   #details .choice-field .choice-switch :is(label, button):hover { color: var(--ink); background: var(--hover); }
-  /* The clearing choice is on while it is picked, and the list is on whenever it is not. */
+  /* The clearing choice is on while it is picked, and the list while its button is pressed. */
   #details .choice-field .choice-switch label:has(:checked),
-  #details .choice-field:not(:has(.choice-switch :checked)) .choice-switch button { color: var(--ink); border-color: var(--ink); }
+  #details .choice-field .choice-switch button[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
   #details .choice-field .choice-list { display: grid; gap: 6px; transition: opacity 160ms ease, translate 160ms ease; }
-  #details .choice-field:has(.choice-switch :checked) .choice-list { display: none; }
+  #details .choice-field .choice-switch:not(:has(button[aria-pressed="true"])) + .choice-list { display: none; }
   @starting-style { #details .choice-field .choice-list { opacity: 0; translate: 0 -4px; } }
   @media (prefers-reduced-motion: reduce) {
     #details .choice-field .choice-switch :is(label, button), #details .choice-field .choice-list { transition: none; }

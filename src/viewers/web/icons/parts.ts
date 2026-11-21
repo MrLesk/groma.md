@@ -66,8 +66,9 @@ export function accent<Item extends IconPart | IconMark>(item: Item): Item {
 }
 
 /**
- * A shape with the ground outline `outline`, from height `z` up by `h`. A sheet that lies on the ground is 0.08
- * high, like the sheet of the map icon; a detail that lies on it is thinner.
+ * A shape with the ground outline `outline`, from height `z` up by `h`. The objects use few heights, so they
+ * look like one set: on the ground a sheet is 0.08 high, a thick plate 0.12 and a thing with a body 0.16; a
+ * detail that lies on a part is 0.05 high, or 0.1 when it is the thing the object is about.
  */
 export function prism(outline: readonly Spot[], z: number, h: number, ...marks: IconMark[]): Prism {
   return { shape: 'prism', outline, z, h, marks, accent: false }
