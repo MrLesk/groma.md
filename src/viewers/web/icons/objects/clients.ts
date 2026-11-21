@@ -1,5 +1,5 @@
 import type { ICON_KINDS } from '../../../../icons.ts'
-import { accent, box, circle, frame, line, panel, rectangle, rounded, screen, upright } from '../parts.ts'
+import { accent, box, circle, frame, line, prism, rectangle, rounded, screen } from '../parts.ts'
 import type { IconPart, Spot } from '../parts.ts'
 import { C, light } from './shared-outlines.ts'
 
@@ -8,83 +8,79 @@ function pin(x: number, y: number): IconPart {
   return box(x, y, 0, 0.08, 0.08, 0.08)
 }
 
-/** A camera body seen from the front, as x, z pairs: a box with a raised viewfinder. */
-const CAMERA: Spot[] = [[0.08, 0], [0.92, 0], [0.92, 0.5], [0.7, 0.5], [0.64, 0.6], [0.36, 0.6], [0.3, 0.5], [0.08, 0.5]]
+/** A camera body lying on its back, seen from above, as x, y pairs: a box with a raised viewfinder to the north. */
+const CAMERA: Spot[] = [[0.08, 1], [0.92, 1], [0.92, 0.5], [0.7, 0.5], [0.64, 0.4], [0.36, 0.4], [0.3, 0.5], [0.08, 0.5]]
 
-/** A pointer arrow seen from the front, as x, z pairs: its tip is up and to the west, its tail down and to the east. */
-const POINTER: Spot[] = [[0.2, 0.9], [0.78, 0.4], [0.53, 0.4], [0.67, 0.1], [0.55, 0.04], [0.41, 0.34], [0.2, 0.18]]
+/** A pointer arrow seen from above, as x, y pairs: its tip is to the north-west, its tail to the south-east. */
+const POINTER: Spot[] = [[0.2, 0.1], [0.78, 0.6], [0.53, 0.6], [0.67, 0.9], [0.55, 0.96], [0.41, 0.66], [0.2, 0.82]]
 
-/** A car seen from the side, as x, z pairs: a low body under a cabin. */
-const CAR: Spot[] = [[0.04, 0.2], [0.96, 0.2], [0.96, 0.4], [0.82, 0.44], [0.68, 0.66], [0.3, 0.66], [0.18, 0.44], [0.04, 0.4]]
+/** A car lying on its side, seen from above, as x, y pairs: a low body with its cabin to the north. */
+const CAR: Spot[] = [[0.04, 0.8], [0.96, 0.8], [0.96, 0.6], [0.82, 0.56], [0.68, 0.34], [0.3, 0.34], [0.18, 0.56], [0.04, 0.6]]
 
 /** Clients and devices: what people hold or look at, and hardware. */
 export const clientsIcons: Record<(typeof ICON_KINDS.clients)[number], readonly IconPart[]> = {
   browser: [
-    panel(rounded(0.04, 0, 0.96, 0.7, 0.07), 0.47, 0.06,
-      line('south', 0.04, 0.52, 0.96, 0.52),
-      light('south', 0.12, 0.61, 0.022), light('south', 0.2, 0.61, 0.022), light('south', 0.28, 0.61, 0.022),
-      accent(screen('south', rounded(0.38, 0.575, 0.9, 0.645, 0.03))),
-      frame('south', rounded(0.12, 0.1, 0.46, 0.42, 0.03)),
-      line('south', 0.56, 0.38, 0.88, 0.38), line('south', 0.56, 0.26, 0.88, 0.26), line('south', 0.56, 0.14, 0.76, 0.14)),
+    prism(rounded(0.04, 0.3, 0.96, 1, 0.07), 0, 0.08,
+      line('top', 0.04, 0.48, 0.96, 0.48),
+      light('top', 0.12, 0.39, 0.022), light('top', 0.2, 0.39, 0.022), light('top', 0.28, 0.39, 0.022),
+      accent(screen('top', rounded(0.38, 0.355, 0.9, 0.425, 0.03))),
+      frame('top', rounded(0.12, 0.58, 0.46, 0.9, 0.03)),
+      line('top', 0.56, 0.62, 0.88, 0.62), line('top', 0.56, 0.74, 0.88, 0.74), line('top', 0.56, 0.86, 0.76, 0.86)),
   ],
   mobile: [
-    upright(rounded(0.24, 0.04, 0.76, 0.96, 0.1), 0, 0.08, line('top', 0.45, 0.9, 0.55, 0.9)),
-    accent(upright(rounded(0.3, 0.12, 0.7, 0.82, 0.05), 0.2, 0.02,
+    prism(rounded(0.24, 0.04, 0.76, 0.96, 0.1), 0, 0.08, line('top', 0.45, 0.9, 0.55, 0.9)),
+    accent(prism(rounded(0.3, 0.12, 0.7, 0.82, 0.05), 0.2, 0.02,
       line('top', 0.38, 0.26, 0.62, 0.26), line('top', 0.38, 0.38, 0.54, 0.38))),
   ],
   desktop: [
-    upright(rounded(0.3, 0.34, 0.7, 0.66, 0.06), 0, 0.04),
-    box(0.46, 0.47, 0.04, 0.08, 0.06, 0.2),
-    panel(rounded(0.04, 0.22, 0.96, 0.86, 0.06), 0.45, 0.07,
-      accent(screen('south', rounded(0.1, 0.28, 0.9, 0.8, 0.03))),
-      accent(line('south', 0.2, 0.44, 0.36, 0.6, 0.52, 0.5, 0.8, 0.7))),
+    prism(rounded(0.04, 0.14, 0.96, 0.78, 0.06), 0, 0.08,
+      accent(screen('top', rounded(0.1, 0.2, 0.9, 0.72, 0.03))),
+      accent(line('top', 0.2, 0.56, 0.36, 0.4, 0.52, 0.5, 0.8, 0.3))),
   ],
   terminal: [
-    panel(rounded(0.06, 0, 0.94, 0.68, 0.07), 0.44, 0.12,
-      line('south', 0.06, 0.54, 0.94, 0.54),
-      accent(line('south', 0.2, 0.4, 0.32, 0.31, 0.2, 0.22)),
-      accent(line('south', 0.4, 0.22, 0.6, 0.22))),
+    prism(rounded(0.06, 0.32, 0.94, 1, 0.07), 0, 0.12,
+      line('top', 0.06, 0.46, 0.94, 0.46),
+      accent(line('top', 0.2, 0.6, 0.32, 0.69, 0.2, 0.78)),
+      accent(line('top', 0.4, 0.78, 0.6, 0.78))),
   ],
   chip: [
     pin(0.3, 0.1), pin(0.62, 0.1), pin(0.3, 0.82), pin(0.62, 0.82),
     pin(0.1, 0.3), pin(0.1, 0.62), pin(0.82, 0.3), pin(0.82, 0.62),
-    upright(rounded(0.18, 0.18, 0.82, 0.82, 0.06), 0.04, 0.14),
-    accent(upright(rounded(0.36, 0.36, 0.64, 0.64, 0.04), 0.18, 0.06)),
+    prism(rounded(0.18, 0.18, 0.82, 0.82, 0.06), 0.04, 0.14),
+    accent(prism(rounded(0.36, 0.36, 0.64, 0.64, 0.04), 0.18, 0.06)),
   ],
   camera: [
-    panel(CAMERA, 0.34, 0.3, light('south', 0.8, 0.4)),
-    accent(panel(circle(C, 0.25, 0.17), 0.64, 0.08, frame('south', circle(C, 0.25, 0.09)))),
+    prism(CAMERA, 0, 0.16, light('top', 0.8, 0.6)),
+    accent(prism(circle(C, 0.75, 0.17), 0.16, 0.06, frame('top', circle(C, 0.75, 0.09)))),
   ],
   laptop: [
-    upright(rounded(0.06, 0.44, 0.94, 0.92, 0.05), 0, 0.05,
-      line('top', 0.14, 0.56, 0.86, 0.56), line('top', 0.14, 0.66, 0.86, 0.66), frame('top', rectangle(0.4, 0.74, 0.6, 0.86))),
-    panel(rounded(0.1, 0.05, 0.9, 0.6, 0.04), 0.4, 0.04, accent(screen('south', rounded(0.16, 0.11, 0.84, 0.54, 0.02)))),
+    prism(rounded(0.06, 0.405, 0.94, 0.885, 0.05), 0, 0.05,
+      line('top', 0.14, 0.525, 0.86, 0.525), line('top', 0.14, 0.625, 0.86, 0.625), frame('top', rectangle(0.4, 0.705, 0.6, 0.825))),
+    prism(rounded(0.1, 0.11, 0.9, 0.66, 0.04), 0, 0.08, accent(screen('top', rounded(0.16, 0.17, 0.84, 0.6, 0.02)))),
   ],
   display: [
-    box(0.2, 0.42, 0, 0.06, 0.16, 0.14),
-    box(0.74, 0.42, 0, 0.06, 0.16, 0.14),
-    panel(rounded(0.02, 0.14, 0.98, 0.72, 0.04), 0.46, 0.06, accent(screen('south', rounded(0.07, 0.19, 0.93, 0.67, 0.02)))),
+    prism(rounded(0.02, 0.28, 0.98, 0.86, 0.04), 0, 0.08, accent(screen('top', rounded(0.07, 0.33, 0.93, 0.81, 0.02)))),
   ],
   device: [
-    box(0.2, 0.34, 0, 0.6, 0.4, 0.24,
-      accent(light('top', 0.36, 0.54, 0.05)), line('top', 0.5, 0.46, 0.7, 0.46), line('top', 0.5, 0.62, 0.7, 0.62),
+    prism(rectangle(0.7, 0.19, 0.74, 0.45), 0, 0.05),
+    prism(circle(0.72, 0.145, 0.045), 0, 0.05),
+    box(0.2, 0.45, 0, 0.6, 0.4, 0.24,
+      accent(light('top', 0.36, 0.65, 0.05)), line('top', 0.5, 0.57, 0.7, 0.57), line('top', 0.5, 0.73, 0.7, 0.73),
       accent(light('south', 0.3, 0.12))),
-    panel(rectangle(0.7, 0.24, 0.74, 0.68), 0.36, 0.04),
-    panel(circle(0.72, 0.73, 0.045), 0.35, 0.06),
   ],
   router: [
-    box(0.08, 0.4, 0, 0.84, 0.34, 0.14,
+    prism(rectangle(0.16, 0.2, 0.2, 0.52), 0, 0.05),
+    prism(rectangle(0.8, 0.2, 0.84, 0.52), 0, 0.05),
+    box(0.08, 0.52, 0, 0.84, 0.34, 0.14,
       accent(light('south', 0.24, 0.07)), light('south', 0.36, 0.07), light('south', 0.48, 0.07),
-      accent(light('top', 0.24, 0.57, 0.04)), light('top', 0.4, 0.57), light('top', 0.56, 0.57)),
-    panel(rectangle(0.16, 0.14, 0.2, 0.64), 0.42, 0.04),
-    panel(rectangle(0.8, 0.14, 0.84, 0.64), 0.42, 0.04),
+      accent(light('top', 0.24, 0.69, 0.04)), light('top', 0.4, 0.69), light('top', 0.56, 0.69)),
   ],
   pointer: [
-    accent(panel(POINTER, 0.46, 0.08)),
+    accent(prism(POINTER, 0, 0.08)),
   ],
   vehicle: [
-    panel(circle(0.26, 0.12, 0.1), 0.4, 0.2),
-    panel(circle(0.74, 0.12, 0.1), 0.4, 0.2),
-    panel(CAR, 0.35, 0.3, accent(screen('south', [[0.3, 0.46], [0.7, 0.46], [0.64, 0.6], [0.36, 0.6]]))),
+    prism(circle(0.26, 0.88, 0.1), 0, 0.08),
+    prism(circle(0.74, 0.88, 0.1), 0, 0.08),
+    prism(CAR, 0, 0.12, accent(screen('top', [[0.3, 0.54], [0.7, 0.54], [0.64, 0.4], [0.36, 0.4]]))),
   ],
 }

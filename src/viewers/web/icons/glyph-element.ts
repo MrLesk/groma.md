@@ -11,8 +11,8 @@ export const glyphCss = `
 `
 
 /**
- * An icon as an inline drawing `size` pixels wide: the object's plan, exactly as the 2D view draws it, with the
- * line width an icon of that size gets on the map.
+ * An icon as an inline drawing `size` pixels wide: the object seen from straight above, exactly as the 2D view
+ * draws it, with the line width an icon of that size gets on the map.
  */
 export function glyphElement(name: IconName, size: number): SVGSVGElement {
   const look = { viewBox: `0 0 ${size} ${size}`, width: size, height: size, 'aria-hidden': 'true', style: `--icon-stroke: ${iconStroke(size)}px` }

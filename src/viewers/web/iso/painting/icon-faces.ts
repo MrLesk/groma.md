@@ -1,5 +1,5 @@
 import { ARC_STEP } from '../../icons/parts.ts'
-import type { Axis, IconMark, IconPart, Prism, Spot } from '../../icons/parts.ts'
+import type { IconMark, IconPart, Prism, Spot } from '../../icons/parts.ts'
 import { CELL_HEIGHT, towardsReader } from '../projection/project.ts'
 import type { ProjectionView } from '../projection/project.ts'
 
@@ -33,18 +33,11 @@ function dot(left: IconPoint, right: IconPoint): number {
   return left[0] * right[0] + left[1] * right[1] + left[2] * right[2]
 }
 
-/** The point of an outline spot at `along` on the prism's axis. A direction on the outline's plane is lifted with `along` 0. */
-function lift(axis: Axis, [a, b]: Spot, along: number): IconPoint {
-  return axis === 'z' ? [a, b, along] : [a, along, b]
-}
-
-/** The shade of a face turned `outward`: the top when it mostly faces up, else the wall on the reader's left or right. */
-function toneOf(outward: IconPoint, view: ProjectionView): Tone {
-  const [x, y, z] = outward
-  if (z > Math.max(Math.abs(x), Math.abs(y))) return 'top'
+/** The shade of a wall turned `outward` on the ground: the wall on the reader's left or right. */
+function wallTone(outward: IconPoint, view: ProjectionView): Tone {
   const yaw = view.yaw * RAD
   // The ground direction that runs to the right on screen is (cos yaw, -sin yaw).
-  return x * Math.cos(yaw) - y * Math.sin(yaw) > HEAD_ON ? 'right' : 'left'
+  return outward[0] * Math.cos(yaw) - outward[1] * Math.sin(yaw) > HEAD_ON ? 'right' : 'left'
 }
 
 /** An outline without points that repeat their neighbour, so every edge has a length. */
@@ -69,7 +62,7 @@ interface Wall {
   creased: boolean
 }
 
-function walls(prism: Prism, outline: readonly Spot[], reader: IconPoint): Wall[] {
+function walls(outline: readonly Spot[], reader: IconPoint): Wall[] {
   const next = (index: number): Spot => outline[(index + 1) % outline.length]!
   // Twice the outline's area. Its sign is the way round the outline runs, which tells the outer side of an edge.
   const winding = Math.sign(outline.reduce((sum, [a, b], index) => sum + a * next(index)[1] - next(index)[0] * b, 0))
@@ -77,7 +70,7 @@ function walls(prism: Prism, outline: readonly Spot[], reader: IconPoint): Wall[
   return outline.map(([a, b], index) => {
     const [c, d] = next(index)
     const length = Math.hypot(c - a, d - b)
-    const outward = lift(prism.axis, [winding * (d - b) / length, -winding * (c - a) / length], 0)
+    const outward: IconPoint = [winding * (d - b) / length, -winding * (c - a) / length, 0]
     const before = heading[(index + outline.length - 1) % outline.length]!
     return { outward, seen: dot(outward, reader) > SEEN, creased: turnBetween(heading[index]!, before) > CREASE }
   })
@@ -100,32 +93,28 @@ function wallRuns(all: readonly Wall[]): number[][] {
 }
 
 /**
- * The faces of a prism that are turned to the reader, back to front: its walls, then the end that faces the
- * reader. Walls along a curve form one face, so a cylinder shows no line between them.
+ * The faces of a prism that are turned to the reader, back to front: its walls, then its top. Walls along a curve
+ * form one face, so a cylinder shows no line between them. Seen from straight above a prism shows its top alone.
  */
 export function prismFaces(prism: Prism, view: ProjectionView): IconFace[] {
   const reader = towardsReader(view)
   const outline = distinct(prism.outline)
-  const ends = [prism.from, prism.from + prism.length]
-  const all = walls(prism, outline, reader)
+  const [bottom, top] = [prism.z, prism.z + prism.h]
+  const all = walls(outline, reader)
   const depth = (face: IconFace): number => face.points.reduce((sum, point) => sum + dot(point, reader), 0) / face.points.length
   const seenWalls = wallRuns(all).map((run): IconFace => {
     const spots = [...run, (run.at(-1)! + 1) % outline.length].map(index => outline[index]!)
     const facing = run.reduce<IconPoint>((sum, index) => {
-      const [x, y, z] = all[index]!.outward
-      return [sum[0] + x, sum[1] + y, sum[2] + z]
+      const [x, y] = all[index]!.outward
+      return [sum[0] + x, sum[1] + y, 0]
     }, [0, 0, 0])
     return {
-      points: [...spots.map(spot => lift(prism.axis, spot, ends[0]!)), ...spots.map(spot => lift(prism.axis, spot, ends[1]!)).reverse()],
-      tone: toneOf(facing, view),
+      points: [...spots.map(([x, y]): IconPoint => [x, y, bottom]), ...spots.map(([x, y]): IconPoint => [x, y, top]).reverse()],
+      tone: wallTone(facing, view),
     }
   }).sort((left, right) => depth(left) - depth(right))
-  // The end at `from + length` faces along the axis, the end at `from` against it.
-  const axis = lift(prism.axis, [0, 0], 1)
-  const along = dot(axis, reader)
-  if (Math.abs(along) <= SEEN) return seenWalls
-  const [end, outward]: [number, IconPoint] = along > 0 ? [ends[1]!, axis] : [ends[0]!, [-axis[0], -axis[1], -axis[2]]]
-  return [...seenWalls, { points: outline.map(spot => lift(prism.axis, spot, end)), tone: toneOf(outward, view) }]
+  if (reader[2] <= SEEN) return seenWalls
+  return [...seenWalls, { points: outline.map(([x, y]) => [x, y, top]), tone: 'top' }]
 }
 
 /** The box around a part: its least and greatest x, y and z. */
@@ -133,70 +122,25 @@ export function boundsOf(part: IconPart): { min: IconPoint; max: IconPoint } {
   if (part.shape === 'ball') {
     return { min: [part.x - part.r, part.y - part.r, part.z - part.r], max: [part.x + part.r, part.y + part.r, part.z + part.r] }
   }
-  const [as, bs] = [part.outline.map(([a]) => a), part.outline.map(([, b]) => b)]
-  const ends = [part.from, part.from + part.length]
-  return {
-    min: lift(part.axis, [Math.min(...as), Math.min(...bs)], Math.min(...ends)),
-    max: lift(part.axis, [Math.max(...as), Math.max(...bs)], Math.max(...ends)),
-  }
+  const [xs, ys] = [part.outline.map(([x]) => x), part.outline.map(([, y]) => y)]
+  return { min: [Math.min(...xs), Math.min(...ys), part.z], max: [Math.max(...xs), Math.max(...ys), part.z + part.h] }
 }
 
-/** An upright panel: a prism pushed along y, which faces south. */
-function isPanel(part: IconPart): part is Prism {
-  return part.shape === 'prism' && part.axis === 'y'
-}
-
-/**
- * The same parts as the plan view shows them. A part that stands on its ground outline stays as it is: from above
- * its top is seen. An upright panel faces south, so from above only its edge would be seen; it is laid flat
- * instead, face up and its top towards the north. All panels of one object are laid around one line and one
- * height, so together they keep the picture their fronts make.
- *
- * A laid panel lies at the height of its lowest point, like a part that stands, and one whole unit higher for
- * every panel that stood behind it. So a panel that stood in front of another lies on it, and the plan shows the
- * same panel in front as the tilted views do. Among panels at one depth the one that starts higher lies on top.
- *
- * A laid panel keeps the marks of its south face, which is now its top; a mark on another face of a panel is not
- * seen from above.
- */
-export function laidFlat(parts: readonly IconPart[]): IconPart[] {
-  const panels = parts.filter(isPanel)
-  if (panels.length === 0) return [...parts]
-  const heights = panels.flatMap(panel => panel.outline.map(([, z]) => z))
-  const middle = (Math.min(...heights) + Math.max(...heights)) / 2
-  const backs = panels.map(panel => panel.from)
-  const fronts = panels.map(panel => panel.from + panel.length)
-  const line = (Math.min(...backs) + Math.max(...fronts)) / 2
-  // A point of a face at height z lands this far north or south of the line.
-  const lay = (x: number, z: number): Spot => [x, line + middle - z]
-  const laid = (pairs: readonly number[]): number[] =>
-    Array.from({ length: pairs.length / 2 }, (_, index) => lay(pairs[2 * index]!, pairs[2 * index + 1]!)).flat()
-  /** How many panels stood wholly behind `panel`: its back is at or south of their fronts. */
-  const panelsBehind = (panel: Prism): number =>
-    panels.filter(other => other !== panel && other.from + other.length <= panel.from + TOUCH).length
-  return parts.map((part): IconPart => {
-    if (!isPanel(part)) return part
-    return {
-      ...part,
-      axis: 'z',
-      outline: part.outline.map(([x, z]) => lay(x, z)),
-      from: Math.min(...part.outline.map(([, z]) => z)) + panelsBehind(part),
-      marks: part.marks.filter(mark => mark.on === 'south').map(mark => ({ ...mark, on: 'top', line: laid(mark.line) })),
-    }
-  })
-}
-
-/** The front of an object: how far its foremost part reaches towards the reader, in footprint sides from the north edge. */
-export function frontOf(parts: readonly IconPart[]): number {
-  return Math.max(...parts.map(part => boundsOf(part).max[1]))
+/** The middle of the ground an object covers, along x and along y. The painter lays it on the middle of the icon's box. */
+export function groundMiddle(parts: readonly IconPart[]): readonly [x: number, y: number] {
+  const bounds = parts.map(boundsOf)
+  const middle = (axis: 0 | 1): number =>
+    (Math.min(...bounds.map(({ min }) => min[axis])) + Math.max(...bounds.map(({ max }) => max[axis]))) / 2
+  return [middle(0), middle(1)]
 }
 
 /**
- * How far behind its footprint an object's drawing reaches, in footprint sides. An object rises on screen: in the
- * map's home view a point at height z is drawn over the ground z * CELL_HEIGHT / 2 behind it.
+ * How far behind the middle of its ground an object's drawing reaches, in footprint sides. An object rises on
+ * screen: in the map's home view a point at height z is drawn over the ground z * CELL_HEIGHT / 2 behind it.
  */
 export function reachBehind(parts: readonly IconPart[]): number {
-  return Math.max(...parts.map(boundsOf).map(({ min, max }) => max[2] * CELL_HEIGHT / 2 - min[1]))
+  const [, middle] = groundMiddle(parts)
+  return Math.max(...parts.map(boundsOf).map(({ min, max }) => max[2] * CELL_HEIGHT / 2 + middle - min[1]))
 }
 
 /**
@@ -214,8 +158,8 @@ export function markPoints(part: Prism, mark: IconMark, view: ProjectionView): I
 
 /**
  * True when `front` hides part of `back`, so it is drawn later. Where the two footprints overlap, the higher
- * part stands on the lower one. Where a ground axis separates them, the part on the reader's side of that axis
- * is the nearer one. A part that is nearer on one axis and farther on the other stands beside the other on
+ * part lies on the lower one. Where a ground axis separates them, the part on the reader's side of that axis
+ * is the nearer one. A part that is nearer on one axis and farther on the other lies beside the other on
  * screen, so neither hides the other.
  */
 function hides(front: { min: IconPoint; max: IconPoint }, back: { min: IconPoint; max: IconPoint }, reader: IconPoint): boolean {

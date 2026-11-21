@@ -403,10 +403,11 @@ In the web map the Edit form offers the same names as its Icon field, kind by
 kind. No icon is assigned automatically, an icon is not inherited by what the element contains, and scans
 keep it. The icon on a [group](#groups) record stands before its zone's name, and each member keeps its own icon.
 
-The [web map](viewers/web/index.md) draws each name as one small object with
-the element's name. The tilted views look at the object from the map's
-angle; the 2D view, the hierarchy and the details look at it from straight
-above. Plain terminal output prints the name.
+The [web map](viewers/web/index.md) draws each name as one small object that
+lies on the map beside the element's name. The 2D view, the hierarchy and the
+details look at the object from straight above; the tilted views look at the
+same object from the map's angle, where its height shows. Plain terminal
+output prints the name.
 
 ### Code references
 

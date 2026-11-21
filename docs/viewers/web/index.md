@@ -253,8 +253,9 @@ button is pressed and a failed action shows above the plugin list.
   chip takes that one off. The tags already in use are offered under the box,
   narrowed by what is typed. Save sends the tags added and the tags removed
   (`addTags`, `removeTags`), not the list. The Color field offers no color and
-  each named color; the Icon field offers no icon and each named icon under the
-  name of its kind. The title of either field names the pick.
+  each named color; the Icon field offers **No icon** or **Icon**, and under
+  **Icon** each named icon under the name of its kind. The title of either
+  field names the pick.
 - **Relationship fields:** `description` and `technology`.
 - **Flow steps** are edited with `groma edit <flow-id> --steps`.
 - **Acceptance and removal:** The Edit view of a matched draft element or
@@ -330,13 +331,15 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   stored only by **Save**, and stays on the map from the pick until the saved
   map arrives
   ([`editing/appearance-preview.ts`](../../../src/viewers/web/editing/appearance-preview.ts)).
-- **Icons:** The Edit form of an element or group has an **Icon** field: no icon, then
-  each [named icon](../../component-markdown.md#icons) under the name of its
-  kind. The box above the icons filters them: an icon stays while its name or
-  the name of its kind contains the typed text. A picked icon stays picked
-  while the filter hides it, and the field's title names it. The name makes
-  room for the saved icon, so the map lays itself out again. While the form is
-  open the map shows the picked icon in the room the name has now.
+- **Icons:** The Edit form of an element or group has an **Icon** field with
+  two parts, **No icon** and **Icon**. While **No icon** is on, the field
+  shows nothing else. **Icon** lists each
+  [named icon](../../component-markdown.md#icons) under the name of its kind,
+  below a box that filters them: an icon stays while its name or the name of
+  its kind contains the typed text. A picked icon stays picked while the
+  filter hides it, and the field's title names it. The name makes room for
+  the saved icon, so the map lays itself out again. While the form is open
+  the map shows the picked icon in the room the name has now.
   - An icon is part of its name, like the icon of any label. It lies on the
     name's line, one gap before the text: on the roof of an external system or
     component, and before the title of a system, container or group. An
@@ -347,21 +350,19 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
     step when the map is zoomed, and a small roof name has a small icon. No
     icon is drawn larger than that. An icon is drawn whenever its name is:
     like the name it only gets small when the map is zoomed out.
-  - An icon has one drawing, its object, built like the map itself: parts that
-    stand on a footprint. Each view looks at that object the way it looks at
-    the map. The Iso and Layers views see it from the map's angle, so it stands
-    in the icon's box and turns with the map. The 2D view sees it from straight
-    above: a part that stands on the ground shows its top, and an upright
-    panel, which would show only its edge, is laid flat with its face up. A
-    panel that stood in front of another lies on it, so both views show the
-    same panel in front. The hierarchy rows, the details title and the Icon
-    field show the drawing of the 2D view. When the map turns between a tilted
-    view and the 2D view, the icon switches at once.
-  - On a tilted map an object stands with its front on the baseline of its
-    name, where the name's letters stand. Before a title an object rises a
-    little over the edge of its surface, within the empty ground every surface
-    keeps along its edge, so it never covers a building. Seen from above, the
-    drawing is centred in the icon's box.
+  - An icon has one drawing, its object, built like the map itself: flat
+    shapes with a height that lie on a footprint, like a small relief. Nothing
+    in it stands upright as a thin sheet: a window, a document or a sign lies
+    face up, and is thick enough to show a wall. Each view looks at that
+    object the way it looks at the map. The 2D view sees it from straight
+    above. The Iso and Layers views see the same object from the map's angle,
+    so the heights of its parts show as walls and it turns with the map. The
+    hierarchy rows, the details title and the Icon field show the drawing of
+    the 2D view.
+  - The object lies with the middle of its ground on the middle of the icon's
+    box, in every view. Before a title a high object rises a little over the
+    edge of its surface, within the empty ground every surface keeps along its
+    edge, so it never covers a building.
   - An object is a fine line drawing: quiet lines of one width over faces a
     little off paper, shaded like a building's. It has one accent, the thing
     that says what the object is: a database's top disc, a terminal's prompt.
@@ -375,23 +376,23 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
     [`src/icons.ts`](../../../src/icons.ts) names, and
     [`icons/objects.ts`](../../../src/viewers/web/icons/objects.ts) joins them.
     [`icons/parts.ts`](../../../src/viewers/web/icons/parts.ts) holds the
-    parts they are built from: a prism is a flat outline pushed along one
-    axis, which gives boxes, cylinders, rounded plates and upright panels. The
+    parts they are built from: a prism is a flat outline on the footprint
+    raised straight up, which gives sheets, plates, boxes and cylinders. The
     size of an icon's box and its place on a roof are in
     [`sheet/measure.ts`](../../../src/sheet/measure.ts);
     [`iso/painting/text.ts`](../../../src/viewers/web/iso/painting/text.ts)
     places it on a title's line.
     [`iso/painting/icon-faces.ts`](../../../src/viewers/web/iso/painting/icon-faces.ts)
-    decides which faces of an object the reader sees and lays its panels flat
-    for the view from above,
+    decides which faces of an object the reader sees,
     [`iso/painting/icons.ts`](../../../src/viewers/web/iso/painting/icons.ts)
-    draws the object from either view, and
+    draws the object from any view, and
     [`iso/painting/icon-camera.ts`](../../../src/viewers/web/iso/painting/icon-camera.ts)
     holds the rule by which an icon's lines follow the camera. Adding an icon
     means adding its name to its kind in [`src/icons.ts`](../../../src/icons.ts),
     its object with one accent to that kind's file, and its name to the
-    [contract's table](../../component-markdown.md#icons). Draw the accent on
-    a face that both views show, and look at the object from both.
+    [contract's table](../../component-markdown.md#icons). Draw the object as
+    its picture from above, give its parts a height, put the accent on a top,
+    and look at it from both views.
 - **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements and stored groups
   together with task IDs and titles from the configured work source. A group is
   found by its title or id and is listed with the path of its members' container.

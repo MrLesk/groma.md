@@ -1,7 +1,13 @@
 /**
- * The parts an icon object is built from. An object stands inside a 1 × 1 footprint: x runs along the
- * map's gx (towards the east corner), y along gy (towards the west corner), z is up, all in one unit.
- * In the default view the reader sees every part's top, its wall towards +x (east) and its wall towards +y (south).
+ * The parts an icon object is built from. An object lies on a 1 × 1 footprint like a small relief: x runs along
+ * the map's gx (to the right when north is up), y along gy (to the south, down the page), and z is up, all in one
+ * unit. Every part is a flat shape on the footprint with a height: a sheet, a card on that sheet, a box, a cylinder.
+ *
+ * Nothing stands upright as a thin sheet. A picture that has a top, such as a window or a document, lies face up
+ * with its top to the north (small y), the way the 2D view reads it, and is thick enough to show a wall on a
+ * tilted map. The 2D view and the panes see an object from straight above; a tilted map sees the same object from
+ * the map's angle. In the default view the reader sees every part's top, its wall towards +x (east) and its wall
+ * towards +y (south).
  *
  * An object is drawn in quiet lines. Its accent is the one thing that says what the object is, such as a
  * database's top disc or a terminal's prompt: one part, or the few marks that draw that thing. The accent is
@@ -9,21 +15,15 @@
  */
 export type IconPart = Prism | Ball
 
-/** The axis a prism's outline is pushed along. */
-export type Axis = 'y' | 'z'
-
-/**
- * A flat outline pushed straight along one axis. Pushed along z it stands upright on its ground outline: a box,
- * a cylinder, a rounded plate. Pushed along y it is an upright panel that faces south.
- */
+/** A flat outline on the footprint, raised straight up: a sheet, a plate, a box, a cylinder. */
 export interface Prism {
   shape: 'prism'
-  axis: Axis
-  /** The outline across the axis, as pairs: x, y for the z axis; x, z for the y axis. */
+  /** The outline seen from above, as x, y pairs. */
   outline: readonly Spot[]
-  /** Where the prism starts on its axis and how far it reaches from there. */
-  from: number
-  length: number
+  /** The height its underside lies at. A part that lies on another starts at the other's top. */
+  z: number
+  /** How far it rises from there. */
+  h: number
   marks: readonly IconMark[]
   accent: boolean
 }
@@ -38,10 +38,13 @@ export interface Ball {
   accent: boolean
 }
 
-/** A point of an outline, on the plane the outline lies in. */
+/** A point of an outline or of a mark, on the plane it lies in: x, y on the footprint or on a top. */
 export type Spot = readonly [a: number, b: number]
 
-/** The face a mark is drawn on: the part's top, its wall towards +y (south) or its wall towards +x (east). */
+/**
+ * The face a mark is drawn on: the part's top, its wall towards +y (south) or its wall towards +x (east). A mark
+ * on a wall shows on a tilted map only, so what says what the object is belongs on a top.
+ */
 export type MarkFace = 'top' | 'south' | 'east'
 
 /** A line drawn on one flat face of a part. */
@@ -62,27 +65,21 @@ export function accent<Item extends IconPart | IconMark>(item: Item): Item {
   return { ...item, accent: true }
 }
 
-/** An upright shape with the ground outline `outline`, from height `z` up by `h`. */
-export function upright(outline: readonly Spot[], z: number, h: number, ...marks: IconMark[]): Prism {
-  return { shape: 'prism', axis: 'z', outline, from: z, length: h, marks, accent: false }
+/**
+ * A shape with the ground outline `outline`, from height `z` up by `h`. A sheet that lies on the ground is 0.08
+ * high, like the sheet of the map icon; a detail that lies on it is thinner.
+ */
+export function prism(outline: readonly Spot[], z: number, h: number, ...marks: IconMark[]): Prism {
+  return { shape: 'prism', outline, z, h, marks, accent: false }
 }
 
 export function box(x: number, y: number, z: number, w: number, d: number, h: number, ...marks: IconMark[]): Prism {
-  return upright(rectangle(x, y, x + w, y + d), z, h, ...marks)
+  return prism(rectangle(x, y, x + w, y + d), z, h, ...marks)
 }
 
 /** An upright cylinder around (x, y). */
 export function cylinder(x: number, y: number, r: number, z: number, h: number, ...marks: IconMark[]): Prism {
-  return upright(circle(x, y, r), z, h, ...marks)
-}
-
-/**
- * An upright panel that faces south: its outline is given as x, z pairs, its back is at `y` and it is `d` thick.
- * A screen, a clock face and a cloud are panels. Draw a panel's marks on its south face: the view from above
- * lays the panel flat with that face up and shows no other mark of it.
- */
-export function panel(outline: readonly Spot[], y: number, d: number, ...marks: IconMark[]): Prism {
-  return { shape: 'prism', axis: 'y', outline, from: y, length: d, marks, accent: false }
+  return prism(circle(x, y, r), z, h, ...marks)
 }
 
 export function ball(x: number, y: number, z: number, r: number): Ball {
