@@ -11,6 +11,12 @@ function pin(x: number, y: number): IconPart {
 /** A camera body seen from the front, as x, z pairs: a box with a raised viewfinder. */
 const CAMERA: Spot[] = [[0.08, 0], [0.92, 0], [0.92, 0.5], [0.7, 0.5], [0.64, 0.6], [0.36, 0.6], [0.3, 0.5], [0.08, 0.5]]
 
+/** A pointer arrow seen from the front, as x, z pairs: its tip is up and to the west, its tail down and to the east. */
+const POINTER: Spot[] = [[0.2, 0.9], [0.78, 0.4], [0.53, 0.4], [0.67, 0.1], [0.55, 0.04], [0.41, 0.34], [0.2, 0.18]]
+
+/** A car seen from the side, as x, z pairs: a low body under a cabin. */
+const CAR: Spot[] = [[0.04, 0.2], [0.96, 0.2], [0.96, 0.4], [0.82, 0.44], [0.68, 0.66], [0.3, 0.66], [0.18, 0.44], [0.04, 0.4]]
+
 /** Clients and devices: what people hold or look at, and hardware. */
 export const clientsIcons: Record<(typeof ICON_KINDS.clients)[number], readonly IconPart[]> = {
   browser: [
@@ -72,5 +78,13 @@ export const clientsIcons: Record<(typeof ICON_KINDS.clients)[number], readonly 
       accent(light('top', 0.24, 0.57, 0.04)), light('top', 0.4, 0.57), light('top', 0.56, 0.57)),
     panel(rectangle(0.16, 0.14, 0.2, 0.64), 0.42, 0.04),
     panel(rectangle(0.8, 0.14, 0.84, 0.64), 0.42, 0.04),
+  ],
+  pointer: [
+    accent(panel(POINTER, 0.46, 0.08)),
+  ],
+  vehicle: [
+    panel(circle(0.26, 0.12, 0.1), 0.4, 0.2),
+    panel(circle(0.74, 0.12, 0.1), 0.4, 0.2),
+    panel(CAR, 0.35, 0.3, accent(screen('south', [[0.3, 0.46], [0.7, 0.46], [0.64, 0.6], [0.36, 0.6]]))),
   ],
 }

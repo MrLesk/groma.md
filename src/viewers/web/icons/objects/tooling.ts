@@ -215,4 +215,12 @@ export const toolingIcons: Record<(typeof ICON_KINDS.tooling)[number], readonly 
       accent(block('south', [[0.22, 0.08], [0.78, 0.08], [0.7, 0.28], [0.3, 0.28]])), light('south', 0.46, 0.4),
       line('south', 0.36, 0.9, 0.64, 0.9)),
   ],
+  diff: [
+    panel(rounded(0.16, 0, 0.84, 0.88, 0.05), 0.45, 0.05,
+      line('south', 0.26, 0.68, 0.36, 0.68), line('south', 0.44, 0.68, 0.72, 0.68),
+      line('south', 0.44, 0.5, 0.64, 0.5),
+      accent(screen('south', rounded(0.2, 0.16, 0.8, 0.38, 0.02))),
+      accent(line('south', 0.26, 0.27, 0.36, 0.27)), accent(line('south', 0.31, 0.22, 0.31, 0.32)),
+      accent(line('south', 0.44, 0.27, 0.72, 0.27))),
+  ],
 }
