@@ -21,8 +21,8 @@ The package bundles the TypeScript 6.0 compiler, whose parser reads
 JavaScript, including JSX in `.js` and `.jsx` files, and includes its license
 notices. Every file is parsed on its own, so no project configuration, module
 resolution or other file changes what a file reports. The compiler's declaration
-libraries are not shipped: only a compiler program reads them, and this scanner
-creates none. A file the parser cannot read, such as one using a future language
+libraries are not shipped: the compiler resolves each file's names without them.
+A file the parser cannot read, such as one using a future language
 proposal, keeps its place in the inventory but contributes no declarations,
 operations, calls or HTTP facts, and gets a `JAVASCRIPT_SOURCE_INVALID` warning
 at its first parse error; the rest of the scan proceeds. The source outline
@@ -30,6 +30,17 @@ still lists the declarations the parser recovers from such a file.
 TypeScript-style type annotations, as in many Flow-typed files, still parse, and
 octal literals and escapes that only strict mode rejects, such as `0755`, are not
 parse errors.
+
+A file that parses can still be too deep to read. To name what a member call
+such as `host.send(url)` calls, the compiler infers the type of `host`, and
+because JavaScript states no return types it infers each one from the function's
+body, which calls the next function. A large generated bundle can nest those
+inferences deeper than the call stack allows. Such a file is treated like one
+that does not parse: it keeps its place in the inventory, contributes no
+declarations, operations, calls or HTTP facts, and gets a
+`JAVASCRIPT_SOURCE_TOO_DEEP` warning, while the rest of the scan proceeds. The
+source outline still lists its declarations. A file close to the limit can fit
+in one scan and not in another, because the room left on the stack varies.
 
 ## Included and excluded files
 
@@ -285,7 +296,8 @@ minified names excluded by the default exclusions, exact source positions,
 unresolved calls, the source outline with its visibility rules, one body that
 tokenizes identically in JavaScript and in TypeScript, identical and
 near-duplicate bodies found by `groma lint`, a file that does not parse next to
-one that does, and each supported HTTP client and router with every case that
-reports nothing. The fresh-checkout package check removes language tools from
-PATH and blocks JavaScript network access.
+one that does, a generated file too deep to read next to one that is read, and
+each supported HTTP client and router with every case that reports nothing. The
+fresh-checkout package check removes language tools from PATH and blocks
+JavaScript network access.
 See [local qualification](validation.md).
