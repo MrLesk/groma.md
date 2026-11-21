@@ -365,22 +365,30 @@ groma:
 ```
 
 The document stores only the name. A name is a generic kind of part that any
-architecture can have, never a vendor, a product or a programming language. The
-names are listed in kinds. A kind only orders the list and is not stored:
+architecture can have, never a vendor, a product or a programming language.
+
+Choose the icon for the area a part is about, not for what the part does to it.
+A group named Map drawing takes `map`, not `palette`; an order service takes
+`order`. What a part does is read by opening it. A part that is itself a
+well-known kind of thing, such as a database or a queue, takes that thing's
+icon. An activity such as `search` or `sync` fits only a part whose whole area
+is that activity.
+
+The names are listed in kinds. A kind only orders the list and is not stored:
 
 | Kind | Names |
 | --- | --- |
-| people | `person`, `admin`, `developer`, `agent`, `team`, `guest`, `support`, `organization` |
-| clients | `browser`, `mobile`, `desktop`, `terminal`, `chip`, `camera`, `laptop`, `display`, `device`, `router` |
+| people | `person`, `admin`, `developer`, `agent`, `team`, `guest`, `support`, `organization`, `face` |
+| clients | `browser`, `mobile`, `desktop`, `terminal`, `chip`, `camera`, `laptop`, `display`, `device`, `router`, `pointer`, `vehicle` |
 | compute | `service`, `server`, `worker`, `scheduler`, `cloud`, `function`, `pipeline`, `workflow`, `crate`, `sandbox`, `cluster`, `datacenter` |
 | traffic | `gateway`, `route`, `globe`, `cdn`, `network`, `balancer`, `firewall`, `dns`, `vpn` |
-| data | `database`, `cache`, `storage`, `backup`, `document`, `search`, `migration`, `disk`, `warehouse`, `table`, `directory`, `registry`, `log`, `feed`, `folder`, `index`, `vector`, `calendar` |
+| data | `database`, `cache`, `storage`, `backup`, `document`, `search`, `migration`, `disk`, `warehouse`, `table`, `directory`, `registry`, `log`, `feed`, `folder`, `index`, `vector`, `calendar`, `tree`, `history`, `copy` |
 | messaging | `mail`, `queue`, `stream`, `notification`, `webhook`, `broker`, `chat`, `inbox`, `broadcast` |
 | security | `lock`, `key`, `identity`, `certificate`, `shield`, `fingerprint`, `vault`, `policy` |
-| watching | `chart`, `gauge`, `pulse`, `dashboard`, `bug`, `eye`, `radar`, `funnel`, `trace`, `alert` |
-| tooling | `settings`, `plugin`, `integration`, `api`, `tools`, `blocks`, `repository`, `package`, `board`, `code`, `checklist`, `palette`, `form`, `edit`, `power`, `release`, `sync`, `download`, `cleanup`, `timer`, `wand`, `check`, `ticket`, `blueprint`, `upload`, `link`, `tag`, `book`, `test` |
+| watching | `chart`, `gauge`, `pulse`, `dashboard`, `bug`, `eye`, `radar`, `funnel`, `trace`, `alert`, `target` |
+| tooling | `settings`, `plugin`, `integration`, `api`, `tools`, `blocks`, `repository`, `package`, `board`, `code`, `checklist`, `palette`, `form`, `edit`, `power`, `release`, `sync`, `download`, `cleanup`, `timer`, `wand`, `check`, `ticket`, `blueprint`, `upload`, `link`, `tag`, `book`, `test`, `diff` |
 | ai | `model`, `ai` |
-| media | `image`, `video`, `play`, `location`, `audio`, `translate`, `map`, `home` |
+| media | `image`, `video`, `play`, `location`, `audio`, `translate`, `map`, `home`, `text`, `motion` |
 | commerce | `payment`, `store`, `cart`, `order`, `money`, `discount`, `delivery`, `pos`, `inventory`, `bank`, `contract` |
 | shapes | `layers`, `grid`, `cube`, `star`, `flag`, `trigger`, `core` |
 

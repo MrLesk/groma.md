@@ -1,7 +1,7 @@
 import type { ICON_KINDS } from '../../../../icons.ts'
 import { accent, arc, box, circle, frame, line, panel, rectangle, rounded, screen, upright } from '../parts.ts'
 import type { IconPart, Spot } from '../parts.ts'
-import { C, light, gear } from './shared-outlines.ts'
+import { C, light, gear, ellipse } from './shared-outlines.ts'
 
 /** A headset's band seen from the front, as x, z pairs: an arch from ear to ear. */
 const HEADBAND: Spot[] = [...arc(C, 0.42, 0.38, 0, 180), ...arc(C, 0.42, 0.32, 180, 0)]
@@ -63,5 +63,10 @@ export const peopleIcons: Record<(typeof ICON_KINDS.people)[number], readonly Ic
     panel(rectangle(0.2, 0, 0.8, 0.86), 0.3, 0.4,
       accent(screen('south', rectangle(0.44, 0, 0.56, 0.14))),
       ...[0.22, 0.4, 0.58].flatMap(z => [0.28, 0.45, 0.62].map(x => frame('south', rectangle(x, z, x + 0.1, z + 0.1))))),
+  ],
+  face: [
+    panel(ellipse(C, 0.45, 0.36, 0.43), 0.45, 0.06,
+      accent(light('south', 0.36, 0.54, 0.05)), accent(light('south', 0.64, 0.54, 0.05)),
+      accent(line('south', ...arc(C, 0.42, 0.2, 205, 335).flat()))),
   ],
 }
