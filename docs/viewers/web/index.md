@@ -332,8 +332,9 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   map arrives
   ([`editing/appearance-preview.ts`](../../../src/viewers/web/editing/appearance-preview.ts)).
 - **Icons:** The Edit form of an element or group has an **Icon** field with
-  two parts, **No icon** and **Icon**. While **No icon** is on, the field
-  shows nothing else. **Icon** lists each
+  two parts, **No icon** and **Icon**. The field shows nothing else until
+  **Icon** is on; for several elements whose icons differ, neither part is on
+  when the form opens. **Icon** lists each
   [named icon](../../component-markdown.md#icons) under the name of its kind,
   below a box that filters them: an icon stays while its name or the name of
   its kind contains the typed text. A picked icon stays picked while the

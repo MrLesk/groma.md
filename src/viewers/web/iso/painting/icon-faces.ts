@@ -157,17 +157,17 @@ export function markPoints(part: Prism, mark: IconMark, view: ProjectionView): I
 }
 
 /**
- * True when `front` hides part of `back`, so it is drawn later. Where the two footprints overlap, the higher
- * part lies on the lower one. Where a ground axis separates them, the part on the reader's side of that axis
- * is the nearer one. A part that is nearer on one axis and farther on the other lies beside the other on
- * screen, so neither hides the other.
+ * True when `front` hides part of `back`, so it is drawn later. Where the two footprints overlap, the part that
+ * reaches higher covers the other: it lies on it, or it starts on the ground beside it and rises over it. Where
+ * a ground axis separates them, the part on the reader's side of that axis is the nearer one. A part that is
+ * nearer on one axis and farther on the other lies beside the other on screen, so neither hides the other.
  */
 function hides(front: { min: IconPoint; max: IconPoint }, back: { min: IconPoint; max: IconPoint }, reader: IconPoint): boolean {
   const eastOf = front.min[0] >= back.max[0] - TOUCH
   const westOf = back.min[0] >= front.max[0] - TOUCH
   const southOf = front.min[1] >= back.max[1] - TOUCH
   const northOf = back.min[1] >= front.max[1] - TOUCH
-  if (!eastOf && !westOf && !southOf && !northOf) return front.min[2] > back.min[2]
+  if (!eastOf && !westOf && !southOf && !northOf) return front.max[2] > back.max[2]
   const [nearerX, fartherX] = reader[0] > 0 ? [eastOf, westOf] : [westOf, eastOf]
   const [nearerY, fartherY] = reader[1] > 0 ? [southOf, northOf] : [northOf, southOf]
   return (nearerX && !fartherY) || (nearerY && !fartherX)
