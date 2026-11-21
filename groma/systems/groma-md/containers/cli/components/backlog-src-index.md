@@ -20,4 +20,4 @@ Reads tasks through the Backlog CLI. Watches the CLI output and reports task cha
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [plugins/work-sources/backlog/src/index.ts](../../../../../../plugins/work-sources/backlog/src/index.ts) | [backlog-md](../../../../../externals/backlog-md.md) | Reads and watches tasks | Backlog CLI and JSON |
+| [plugins/work-sources/backlog/src/index.ts](../../../../../../plugins/work-sources/backlog/src/index.ts) | [Backlog.md](../../../../../externals/backlog-md.md "backlog-md") | Reads and watches tasks | Backlog CLI and JSON |

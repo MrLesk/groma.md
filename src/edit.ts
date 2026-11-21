@@ -4,9 +4,11 @@ import {
   requireDraftRecord,
 } from './architecture-model.ts'
 import type { DraftRecord } from './architecture-model.ts'
+import { collectNodes, relationshipTargetFilename } from './architecture-markdown.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { curateElement } from './curate.ts'
 import type { StructuralResult } from './curate.ts'
+import { elementsByDocument, withElementLinks } from './element-links.ts'
 import {
   readDocument,
   replaceLeadProse,
@@ -18,11 +20,12 @@ import {
 import type { MeaningChanges } from './markdown-emitter.ts'
 import { requireText } from './naming.ts'
 import { loadProjectProfile, saveProjectProfile } from './project-profile.ts'
-import { assignGroup, editGroup, groupContext, groupFields, relistedWrites, writeGroups } from './group.ts'
+import { assignGroup, editGroup, groupContext, groupFields, membersSection } from './group.ts'
 import { editRelation } from './relation.ts'
-import { editFlow } from './flow-authoring.ts'
+import { relationshipSections } from './relationship-storage.ts'
+import { editFlow, stepsSection } from './flow-authoring.ts'
 import { requireGromaMapping } from './okf-profile.ts'
-import type { ArchitectureElement, ArchitectureModel, ArchitectureRecords } from './types.ts'
+import type { ArchitectureDocument, ArchitectureElement, ArchitectureModel, ArchitectureRecords } from './types.ts'
 import { checkEdit, type EditValues } from './authoring-conflict.ts'
 import { resolveFlows } from './flow-model.ts'
 
@@ -254,8 +257,6 @@ async function editElement(
     return editMembership(repositoryRoot, records, model, input)
   }
   const source = hasMeaning ? await elementMeaning(repositoryRoot, records, element, input) : undefined
-  // Only a component can be a member of a group, and a member's link shows its title.
-  const retitlesComponent = input.title !== undefined && element.kind === 'component'
 
   if (movesOrReshapes(input)) {
     const result = await curateElement(repositoryRoot, records, model, {
@@ -274,26 +275,49 @@ async function editElement(
       detach: input.detach,
       newId: input.newId,
     })
-    if (!retitlesComponent) return result
-    // A rename already rewrote the group's record, so its document must not be named twice.
-    const changed = new Set([...result.changed, ...await relistInGroups(repositoryRoot, result.id)])
-    return { ...result, changed: [...changed] }
+    if (input.title === undefined && input.newId === undefined) return result
+    // A record the edit itself created or changed is named once.
+    const named = new Set([...result.created, ...result.changed])
+    const relinked = (await relinkElement(repositoryRoot, result.id)).filter(filename => !named.has(filename))
+    return { ...result, changed: [...result.changed, ...relinked] }
   }
 
   await writeDocument(repositoryRoot, element.sourceFilename, source!)
-  const relisted = retitlesComponent ? await relistInGroups(repositoryRoot, element.id) : []
-  if (relisted.length === 0) return element.id
-  return { id: element.id, created: [], changed: relisted, removed: [], affectedIds: [element.id], replacements: [] }
+  const relinked = input.title === undefined ? [] : await relinkElement(repositoryRoot, element.id)
+  if (relinked.length === 0) return element.id
+  return { id: element.id, created: [], changed: relinked, removed: [], affectedIds: [element.id], replacements: [] }
+}
+
+/** Whether this record has a link that leads to the document at this path. */
+function linksTo(record: ArchitectureDocument, sourceFilename: string): boolean {
+  return record.nodes.some(node => collectNodes(node, 'a')
+    .some(link => relationshipTargetFilename(record.sourceFilename, link[1]?.href) === sourceFilename))
 }
 
 /**
- * A group's member links show titles. Once a component's new title is stored, the Members list of each group
- * that lists it is written again from the stored records. Returns the group documents written.
+ * The links that group members, relationship rows and flow steps keep to an element show its title and
+ * carry its id. Once a new title or id is stored, every record that links the element has those links
+ * written again. Only the text and the title of links change, never a target, so what loads stays the
+ * same. Returns the records written.
  */
-async function relistInGroups(repositoryRoot: string, componentId: string): Promise<string[]> {
+async function relinkElement(repositoryRoot: string, elementId: string): Promise<string[]> {
   const records = await loadArchitecture(repositoryRoot)
-  const context = groupContext(repositoryRoot, records, buildArchitectureModel(records.documents))
-  const writes = await relistedWrites(context, [componentId])
-  await writeGroups(context, writes)
-  return writes.map(write => write.sourceFilename)
+  const element = buildArchitectureModel(records.documents).elements.find(candidate => candidate.id === elementId)!
+  const linked = elementsByDocument([element])
+  const kept: [readonly ArchitectureDocument[], ReadonlySet<string>][] = [
+    [records.documents, relationshipSections],
+    [records.flows, stepsSection],
+    [records.groups, membersSection],
+  ]
+  const written: string[] = []
+  for (const [stored, sections] of kept) {
+    for (const record of stored.filter(candidate => linksTo(candidate, element.sourceFilename))) {
+      const before = await readDocument(repositoryRoot, record.sourceFilename)
+      const source = withElementLinks(before, record.sourceFilename, sections, linked)
+      if (source === before) continue
+      await writeDocument(repositoryRoot, record.sourceFilename, source)
+      written.push(record.sourceFilename)
+    }
+  }
+  return written
 }

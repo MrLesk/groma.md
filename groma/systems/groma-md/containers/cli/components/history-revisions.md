@@ -21,4 +21,4 @@ Reads architecture revisions from Git. Loads the selected revision for a viewer 
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [src/history/revisions.ts](../../../../../../src/history/revisions.ts) | [git](../../../../../externals/git.md) | Reads past revisions | Git CLI |
+| [src/history/revisions.ts](../../../../../../src/history/revisions.ts) | [Git](../../../../../externals/git.md "git") | Reads past revisions | Git CLI |

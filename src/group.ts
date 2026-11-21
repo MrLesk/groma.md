@@ -1,9 +1,9 @@
 import { renderFrontmatter } from 'comark/render'
 
-import { markdownHref } from './architecture-markdown.ts'
 import { freeId } from './architecture-model.ts'
 import { checkEdit, type EditValues } from './authoring-conflict.ts'
 import type { StructuralResult } from './curate.ts'
+import { elementLink } from './element-links.ts'
 import { resolveGroups } from './group-model.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
 import {
@@ -36,17 +36,14 @@ export function groupContext(repositoryRoot: string, records: ArchitectureRecord
   return { repositoryRoot, records, model, groups: resolveGroups(records.groups, model) }
 }
 
-const membersHeading = /^## Members[ \t]*$/m
+/** The section of a group record that lists its members. */
+export const membersSection: ReadonlySet<string> = new Set(['## Members'])
 
-/** A title as the text of a Markdown link: the characters that would start or end markup are escaped. */
-function linkText(title: string): string {
-  return title.replace(/[\\[\]`*_<]/g, character => `\\${character}`)
-}
+const membersHeading = /^## Members[ \t]*$/m
 
 /**
  * Rewrites the "## Members" section as one link per member; a group without members has no such section.
- * A link shows its member's title, so a Markdown reader sees the names the map shows. The link target alone
- * is membership.
+ * Each link shows its member's title and carries its id (elementLink). The link target alone is membership.
  */
 function withMembers(source: string, sourceFilename: string, members: readonly ArchitectureElement[]): string {
   const start = source.search(membersHeading)
@@ -54,7 +51,7 @@ function withMembers(source: string, sourceFilename: string, members: readonly A
   const stored = start === -1 ? '' : source.slice(start).replace(membersHeading, '')
   const nextHeading = stored.search(/^## /m)
   const after = nextHeading === -1 ? '' : stored.slice(nextHeading)
-  const links = members.map(member => `- [${linkText(member.title)}](${markdownHref(sourceFilename, member.sourceFilename)})`)
+  const links = members.map(member => `- ${elementLink(sourceFilename, member)}`)
   const section = links.length === 0 ? '' : `## Members\n\n${links.join('\n')}`
   return `${[before, section, after].map(part => part.trim()).filter(part => part !== '').join('\n\n')}\n`
 }
@@ -75,23 +72,6 @@ export async function leavingWrites(context: GroupContext, componentIds: readonl
       membersOf(context, group).filter(member => !leaving.has(member.id)),
     ),
   })))
-}
-
-/**
- * The rewritten document of each group that lists one of these components and whose Members section no
- * longer shows its members' titles as they are now. A component that takes a new title has its groups
- * written again this way.
- */
-export async function relistedWrites(context: GroupContext, componentIds: readonly string[]): Promise<GroupWrite[]> {
-  const retitled = new Set(componentIds)
-  const listing = context.groups.filter(group => group.memberIds.some(id => retitled.has(id)))
-  const writes: GroupWrite[] = []
-  for (const group of listing) {
-    const stored = await readDocument(context.repositoryRoot, group.sourceFilename)
-    const source = withMembers(stored, group.sourceFilename, membersOf(context, group))
-    if (source !== stored) writes.push({ sourceFilename: group.sourceFilename, source })
-  }
-  return writes
 }
 
 /**
@@ -116,8 +96,9 @@ async function joiningWrites(
 }
 
 /**
- * The one way to write group documents: loads the groups as these writes would leave them, then writes.
- * A refused change writes nothing.
+ * The one way to write a group's meaning and members: loads the groups as these writes would leave them,
+ * then writes. A refused change writes nothing. (relinkElement in element-links.ts writes again the text of
+ * member links, which no load reads.)
  */
 export async function writeGroups(context: GroupContext, writes: readonly GroupWrite[]): Promise<void> {
   const written = new Set(writes.map(write => write.sourceFilename))

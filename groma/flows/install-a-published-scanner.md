@@ -11,6 +11,6 @@ A developer runs groma scanner add with a published package name. Groma resolves
 
 | From | To | Action |
 | --- | --- | --- |
-| [Developer](../actors/developer.md) | [Command interface](../systems/groma-md/containers/cli/components/src-cli.md) | Run groma scanner add with a published package name |
-| [Command interface](../systems/groma-md/containers/cli/components/src-cli.md) | [Plugin packages](../systems/groma-md/containers/cli/components/package.md) | Resolve and install the requested scanner |
-| [Plugin packages](../systems/groma-md/containers/cli/components/package.md) | [Scanner package registry](../externals/scanner-package-registry.md) | Read compatible releases, then download the selected package and dependencies |
+| [Developer](../actors/developer.md "developer") | [Command interface](../systems/groma-md/containers/cli/components/src-cli.md "src-cli") | Run groma scanner add with a published package name |
+| [Command interface](../systems/groma-md/containers/cli/components/src-cli.md "src-cli") | [Plugin packages](../systems/groma-md/containers/cli/components/package.md "package") | Resolve and install the requested scanner |
+| [Plugin packages](../systems/groma-md/containers/cli/components/package.md "package") | [Scanner package registry](../externals/scanner-package-registry.md "scanner-package-registry") | Read compatible releases, then download the selected package and dependencies |

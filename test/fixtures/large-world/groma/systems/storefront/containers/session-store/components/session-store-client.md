@@ -29,4 +29,4 @@ Session Store client of Session Store.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [session-store-client](session-store-client.md) | [payments](../../../../../externals/payments.md) | Charges cards | HTTP |
+| [Session Store client](session-store-client.md "session-store-client") | [Payments](../../../../../externals/payments.md "payments") | Charges cards | HTTP |

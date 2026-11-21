@@ -453,6 +453,24 @@ These level-two sections are supported:
 Other named sections remain authored Markdown. groma.md preserves them when it
 edits overview or owned metadata.
 
+## Element links
+
+Relationship rows, a flow's Steps and a group's Members name elements by
+ordinary Markdown links. groma.md writes each of these links in one form:
+
+```markdown
+[Release approval](release-approval.md "release-approval")
+```
+
+The text is the element's title, so an ordinary Markdown or OKF reader sees the
+names the map shows. The link title is the element's ID: Markdown viewers show
+it on hover, and it is the ID that commands take. groma.md reads only the link
+target; the text and the title carry no meaning for it. It writes them, and
+writes them again in every record that links an element when
+`groma edit <id> --title` or `--id` gives that element a new title or ID.
+A reference-style link stays as its author typed it. The form lives in
+[`src/element-links.ts`](../src/element-links.ts).
+
 ## Relationships
 
 Authored and automatically derived outgoing relationships live in the source
@@ -468,10 +486,12 @@ For example, a component document may contain:
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [Checkout client](../../../../../../src/checkout-client.ts) | [Payment endpoint](../../../../../../src/payment-endpoint.ts) | Requests payment authorization | HTTPS |
-| [Release](../../../../../../src/release.ts) | [Release approval](release-approval.md) | Requests approval | Review form |
+| [src/checkout-client.ts](../../../../../../src/checkout-client.ts) | [src/payment-endpoint.ts](../../../../../../src/payment-endpoint.ts) | Requests payment authorization | HTTPS |
+| [src/release.ts](../../../../../../src/release.ts) | [Release approval](release-approval.md "release-approval") | Requests approval | Review form |
 ```
 
+An endpoint that names a source file shows the file's repository-relative path.
+One that names an element is an [element link](#element-links).
 An actor document stores its outgoing concept-addressed declarations in the
 same table, with links relative to that actor document. Both endpoints remain
 explicit even when the source file belongs to the containing component.
@@ -602,16 +622,14 @@ The customer submits an order. Ordering checks the payment before recording it.
 
 | From | To | Action |
 | --- | --- | --- |
-| [Customer](../actors/customer.md) | [Ordering][ordering] | Submit the order |
-| [Ordering][ordering] | [Payments][payments] | Authorize this payment |
-
-[ordering]: ../systems/shop/containers/api/components/ordering.md
-[payments]: ../systems/shop/containers/api/components/payments.md
+| [Customer](../actors/customer.md "customer") | [Ordering](../systems/shop/containers/api/components/ordering.md "ordering") | Submit the order |
+| [Ordering](../systems/shop/containers/api/components/ordering.md "ordering") | [Payments](../systems/shop/containers/api/components/payments.md "payments") | Authorize this payment |
 ```
 
 `title`, a unique stable `groma.id`, overview prose, and the Steps table are
 required. `description` is optional. From and To accept normal inline or
-reference-style Markdown links to C4 documents. Each row must resolve exactly
+reference-style Markdown links to C4 documents, with any text. groma.md stores
+each inline one as an [element link](#element-links). Each row must resolve exactly
 one existing directed relationship in the loaded revision. Missing endpoints,
 missing relationships, and ambiguous endpoint pairs are errors.
 
@@ -652,17 +670,16 @@ Both checks must pass before Ordering records an order.
 
 ## Members
 
-- [Stock](../systems/shop/containers/api/components/stock.md)
-- [Fraud check](../systems/shop/containers/api/components/fraud-check.md)
+- [Stock](../systems/shop/containers/api/components/stock.md "stock")
+- [Fraud check](../systems/shop/containers/api/components/fraud-check.md "fraud-check")
 ```
 
 `title` and a unique stable `groma.id` are required. `description` and the
 overview prose are optional. The Members section holds one bullet list and
-nothing else, and each bullet is one normal Markdown link to a component
-document. The text of a link is the member's title, so an ordinary Markdown or
-OKF reader sees a titled page that names its members as the map does. groma.md
-writes that text, and writes it again when a member takes a new title. It reads
-only the link targets as membership and applies these rules:
+nothing else, and each bullet is one [element link](#element-links) to a
+component document. An ordinary Markdown or OKF reader sees a titled page that
+names its members as the map does. groma.md reads the link targets as
+membership and applies these rules:
 
 | Rule | Reason |
 | --- | --- |
@@ -697,14 +714,15 @@ Other commands keep every group loadable and its Members list current:
 | --- | --- |
 | `groma remove <component-id>` | The component leaves its group. |
 | `groma edit <component-id> --title <text>` | The member's link shows the new title. |
-| `groma edit <id> --id <new-id>` | Member links follow the renamed component or container. |
+| `groma edit <id> --id <new-id>` | Member links follow the renamed component or container, and a renamed member's link carries the new ID. |
 | `groma edit <container-id> --parent <system-id>` | Member links follow the components that move with their container. |
 | `groma edit <component-id> --parent <container-id>` | The component leaves its group, which stays in its container. |
 | `groma edit <id> --combine <component-id>` | Refused while a group lists the absorbed component. |
 
 The group commands live in [`src/group.ts`](../src/group.ts). The effects in
 the table live where each command is implemented: `leavingWrites` in that file
-serves removal and moves, `relistedWrites` serves a new title, and
+serves removal and moves, `relinkElement` in [`src/edit.ts`](../src/edit.ts)
+serves a new title or ID, and
 `groupWritesForMoves` in [`src/curate.ts`](../src/curate.ts) decides between
 leaving and following.
 

@@ -12,4 +12,4 @@ Pays for goods.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [buyer](buyer.md) | [shop](../systems/shop/system.md) | uses | Browser |
+| [Buyer](buyer.md "buyer") | [Shop](../systems/shop/system.md "shop") | uses | Browser |

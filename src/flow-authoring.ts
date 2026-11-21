@@ -1,6 +1,7 @@
 import { renderFrontmatter } from 'comark/render'
 import { buildArchitectureModel, freeId } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
+import { elementsByDocument, withElementLinks } from './element-links.ts'
 import { resolveFlows } from './flow-model.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
 import { parsedDocument, readDocument, replaceLeadProse, type TagChanges, withDescription, withTags, withTitle, writeDocument } from './markdown-emitter.ts'
@@ -17,9 +18,24 @@ export interface FlowChanges extends TagChanges {
   steps?: string
 }
 
-async function writeFlow(repositoryRoot: string, records: ArchitectureRecords, filename: string, source: string): Promise<void> {
+/** The section of a flow record that holds its steps. */
+export const stepsSection: ReadonlySet<string> = new Set(['## Steps'])
+
+/**
+ * Checks the flow against the stored elements and writes it. When the author supplied the steps, their
+ * endpoint links are stored as elementLink writes them, whatever text the author typed.
+ */
+async function writeFlow(
+  repositoryRoot: string,
+  records: ArchitectureRecords,
+  filename: string,
+  authored: string,
+  hasNewSteps: boolean,
+): Promise<void> {
+  const model = buildArchitectureModel(records.documents)
+  const source = hasNewSteps ? withElementLinks(authored, filename, stepsSection, elementsByDocument(model.elements)) : authored
   const document = await parsedDocument(filename, source)
-  resolveFlows([...records.flows.filter(flow => flow.sourceFilename !== filename), document], buildArchitectureModel(records.documents))
+  resolveFlows([...records.flows.filter(flow => flow.sourceFilename !== filename), document], model)
   await writeDocument(repositoryRoot, filename, source)
 }
 
@@ -31,7 +47,7 @@ export async function addFlow(repositoryRoot: string, title: string, input: Pick
     type: FLOW_TYPE, title, ...(input.description === undefined ? {} : { description: input.description }), groma: { id },
   })}\n---\n\n${requireText(input.overview, '--overview')}\n\n## Steps\n\n${requireText(input.steps, '--steps')}\n`
   const filename = GromaFileSystem.open(repositoryRoot).sourceFilename(`flows/${id}.md`)
-  await writeFlow(repositoryRoot, records, filename, source)
+  await writeFlow(repositoryRoot, records, filename, source, true)
   return id
 }
 
@@ -45,6 +61,6 @@ export async function editFlow(repositoryRoot: string, records: ArchitectureReco
   if (input.steps !== undefined) {
     source = source.replace(/\n## Steps\s*\n[\s\S]*$/, `\n## Steps\n\n${requireText(input.steps, '--steps')}\n`)
   }
-  await writeFlow(repositoryRoot, records, document.sourceFilename, source)
+  await writeFlow(repositoryRoot, records, document.sourceFilename, source, input.steps !== undefined)
   return String((document.frontmatter.groma as { id: string }).id)
 }

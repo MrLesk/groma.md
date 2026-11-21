@@ -109,16 +109,18 @@ test.concurrent('links follow the rename whatever spelling they use', async () =
   try {
     await addThing(root, { thing: 'actor', name: 'Buyer', overview: 'Buys goods.' })
     await addRelation(root, { source: 'buyer', target: 'a', description: 'Places an order', technology: 'Browser' })
-    // The loader accepts a relative prefix and a link title; the stored row is written without them.
+    // The loader accepts a relative prefix and any link title; the stored row is written without the prefix
+    // and with the element's id as the title.
     const record = path.join(root, (await documentOf(root, 'buyer'))!)
     const stored = await readFile(record, 'utf8')
     const link = path.posix.relative('groma/actors', (await documentOf(root, 'a'))!)
-    await writeFile(record, stored.replace(`(${link})`, `(./${link} "The order entry")`))
+    await writeFile(record, stored.replace(`(${link} "a")`, `(./${link} "The order entry")`))
+    expect(await readFile(record, 'utf8')).toContain('"The order entry"')
 
     await editArchitecture(root, { id: 'a', newId: 'order-entry' })
     const after = await loadAnnotatedArchitecture(root)
     expect(after.relationships.some(item => item.source === 'buyer' && item.target === 'order-entry')).toBe(true)
-    expect(await readFile(record, 'utf8')).toContain('"The order entry"')
+    expect(await readFile(record, 'utf8')).toContain('"order-entry"')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
@@ -128,7 +130,8 @@ async function referenceRows(root: string, definitions: (link: (id: string) => s
   const stored = await readFile(record, 'utf8')
   const documents = new Map([['a', (await documentOf(root, 'a'))!], ['b', (await documentOf(root, 'b'))!]])
   const link = (id: string) => path.posix.relative('groma/actors', documents.get(id)!)
-  const rows = stored.replace(`(${link('a')})`, '[a]').replace(`(${link('b')})`, '[b]')
+  const rows = stored.replace(`(${link('a')} "a")`, '[a]').replace(`(${link('b')} "b")`, '[b]')
+  if (rows.includes('"a"') || rows.includes('"b"')) throw new Error('the rows of a and b are not reference links')
   await writeFile(record, `${rows}\n${definitions(link)}\n`)
 }
 
