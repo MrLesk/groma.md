@@ -1,11 +1,11 @@
 ---
 id: TASK-675
 title: Show titles in the element links groma writes, with the id on hover
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-21T19:18:00Z'
-updated_date: '2026-11-21T21:43:00Z'
+updated_date: '2026-11-21T21:46:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -162,7 +162,7 @@ This task gives every link to an element that groma keeps one form: the element'
 - [x] #3 After groma edit <id> --title or --id, every such link to that element shows the new title or id
 - [x] #4 groma's own records are stored in that form
 - [x] #5 docs/component-markdown.md states the form and that groma reads membership, relationship ends and step ends from the link target alone
-- [ ] #6 On the web map, a name that stands for an element in a list shows the element's id on hover: hierarchy rows, the actors of the flow list, the element lists of the details pane, relationship ends, flow step ends, search results and the elements a task names
+- [x] #6 On the web map, a name that stands for an element in a list shows the element's id on hover: hierarchy rows, the actors of the flow list, the element lists of the details pane, relationship ends, flow step ends, search results and the elements a task names
 <!-- AC:END -->
 
 ## Definition of Done
@@ -202,10 +202,14 @@ Reviews, one round, run in parallel on commit 566bf631 (cold simplicity review a
 Verification. By hand on copies of test/fixtures/edit: a relationship row, a group and a flow written with other link texts are stored as [Title](target "id"); groma edit --title names the records it changed and they show the new title; groma edit --id leaves the new id on hover in rows, members and steps; a reference-style end, a link in the Action cell and a title with a line break behave as the criteria say. groma's own 29 records and 60 fixture records were written again with withElementLinks over every element (scratch tool); a second pass changes nothing, and no line outside a table or a list changed. test/fixtures/flows/groma/flows/process-request.md stays hand-authored with reference links. The new file src/element-links.ts was scanned as a stand-alone component and folded into Markdown storage (src-architecture-reader). bun run check: 28 Node tests and 1012 Bun tests pass, 67 skip, 0 fail; the 2 lint warnings are older and in other files.
 
 Open with the owner (not built): whether the web map's lists should show the id on hover too; whether groma should store reference-style step ends inline. Outside this task: scripts/large-world-fixture.ts still writes groma.group and a three-column relationship table, so running it would replace that fixture with records the loader refuses; a source-file endpoint's path is written unescaped, so a path such as src/__tests__/a.test.ts renders with bold text.
+
+2026-11-21, the owner on "The map's own lists show titles with no id on hover. Should they show the id on hover too: yes, or records only?": "Yes, on the map too". Built: showIdOnHover in src/viewers/web/atoms/text.ts, called by sidebarRow (hierarchy rows and the flow list's actors), elementLinks (children, group members, the selection), the ends of a relationship card, the ends of a flow step, an element's search result, and a task's reference when it reads as the element's title. Not changed: the pane's own heading, the names drawn on the map, and the rows of flows and groups, which are not elements (a flow row keeps its own hover text, its title). Verified on the live review map by reading the hover text of the names: group members (Camera control: camera, Map fonts: fonts-index), hierarchy rows (Groma: groma-md, Browser map: export, Backlog.md: backlog-md), actors (Developer: developer), the children of a container, relationship ends (Groma application: cli), flow step ends (Command interface: src-cli) and search results (Map painting: map). No new test: the web viewer has no DOM harness for these builders. bun run check: 28 Node tests and 1012 Bun tests pass, 0 fail.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
 Every link to an element that groma keeps in its records, in a group's Members, in relationship rows and in a flow's Steps, is written as [Title](target "id"): the title as the text and the id as the link title, which Markdown viewers show on hover. A relationship end that names a source file keeps its path. The form has one writer, elementLink in src/element-links.ts; withElementLinks writes it again in place for the two cells or the list item that name an element, and leaves the author's cells, prose and reference-style links as typed. groma edit <id> --title or --id reaches every record that links the element through relinkElement in src/edit.ts and names the records it changed. Loading still reads the link target alone. groma's own records and the fixture records are stored in the form; docs/component-markdown.md has an Element links section. bun run check passes. Open with the owner: the id on hover in the web map's lists, and reference-style step ends.
+
+On the web map, a name that stands for an element in a list shows the element's id on hover (showIdOnHover in src/viewers/web/atoms/text.ts).
 <!-- SECTION:FINAL_SUMMARY:END -->
