@@ -14,8 +14,8 @@ export const iconPickerCss = `
 `
 
 /**
- * The choices of the Icon field of an edit form: no icon, then every named icon as its plan, under the name of
- * its kind. The headings make the field a long one, so it shows "No icon" and "Icon" and lists the icons only
+ * The choices of the Icon field of an edit form: no icon, then every named icon as it looks from above, under
+ * the name of its kind. The headings make the field a long one, so it shows "No icon" and "Icon" and lists the icons only
  * while Icon is on (choiceField).
  */
 export function iconChoices(): Choice[] {

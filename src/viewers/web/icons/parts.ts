@@ -1,7 +1,8 @@
 /**
  * The parts an icon object is built from. An object lies on a 1 × 1 footprint like a small relief: x runs along
  * the map's gx (to the right when north is up), y along gy (to the south, down the page), and z is up, all in one
- * unit. Every part is a flat shape on the footprint with a height: a sheet, a card on that sheet, a box, a cylinder.
+ * unit. A part is a flat shape on the footprint with a height: a sheet, a card on that sheet, a box, a cylinder.
+ * The one other part is a ball.
  *
  * Nothing stands upright as a thin sheet. A picture that has a top, such as a window or a document, lies face up
  * with its top to the north (small y), the way the 2D view reads it, and is thick enough to show a wall on a
@@ -20,7 +21,7 @@ export interface Prism {
   shape: 'prism'
   /** The outline seen from above, as x, y pairs. */
   outline: readonly Spot[]
-  /** The height its underside lies at. A part that lies on another starts at the other's top. */
+  /** The height its underside lies at: 0 on the ground, or the top of the part it lies on. */
   z: number
   /** How far it rises from there. */
   h: number
@@ -38,7 +39,7 @@ export interface Ball {
   accent: boolean
 }
 
-/** A point of an outline or of a mark, on the plane it lies in: x, y on the footprint or on a top. */
+/** A point of an outline, as x, y on the footprint. */
 export type Spot = readonly [a: number, b: number]
 
 /**
@@ -78,7 +79,7 @@ export function box(x: number, y: number, z: number, w: number, d: number, h: nu
   return prism(rectangle(x, y, x + w, y + d), z, h, ...marks)
 }
 
-/** An upright cylinder around (x, y). */
+/** A cylinder that stands on the circle around (x, y). */
 export function cylinder(x: number, y: number, r: number, z: number, h: number, ...marks: IconMark[]): Prism {
   return prism(circle(x, y, r), z, h, ...marks)
 }

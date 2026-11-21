@@ -19,10 +19,13 @@ import type { IconPart } from './parts.ts'
  * like the rest of the map: it lies on the map's surface. The 2D view and the panes look at it from straight
  * above, and a tilted map looks at the same object from the map's own angle, where the heights of its parts show
  * as walls. So draw an object as its picture from above, and give each part a height. Its accent is the one thing
- * that says what it is: one part, or the few marks that draw that thing, on a top, so every view shows it.
+ * that says what it is: one part, or the few marks that draw that thing, on a top, so every view shows it. The
+ * painter lays the middle of the ground an object covers on the middle of the icon's box, so where an object lies
+ * inside its footprint does not matter.
  *
  * A part lies on the ground, or wholly on the parts under it, and then starts at their top. A part that covers
  * another and reaches past it would float there: it starts on the ground too and is higher than what it covers.
+ * A few objects let a part hover over another on purpose, such as the sheets of `layers` and the screen of `mobile`.
  * The painter draws parts back to front, and where two parts overlap it draws the one that reaches higher over
  * the other, so a part that should cover another must reach higher than it. Where it cannot tell which of two
  * parts is in front (two overlapping parts of one height, or parts that hide each other in a ring) it keeps the

@@ -75,7 +75,7 @@ const FROM_ABOVE: ProjectionView = { yaw: 0, pitch: 90 }
  * The same object as the panes show it: seen from straight above, in a square `side` pixels wide whose corner is
  * at 0, 0. It is the drawing the 2D view shows.
  */
-export function planSvg(name: IconName, side: number): SvgNode[] {
+export function fromAboveSvg(name: IconName, side: number): SvgNode[] {
   return objectSvg(name, side / CELL_LENGTH, FROM_ABOVE)
 }
 

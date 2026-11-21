@@ -54,8 +54,7 @@ export const clientsIcons: Record<(typeof ICON_KINDS.clients)[number], readonly 
     accent(prism(circle(C, 0.75, 0.17), 0.16, 0.06, frame('top', circle(C, 0.75, 0.09)))),
   ],
   laptop: [
-    prism(rounded(0.06, 0.405, 0.94, 0.885, 0.05), 0, 0.05,
-      line('top', 0.14, 0.525, 0.86, 0.525), line('top', 0.14, 0.625, 0.86, 0.625), frame('top', rectangle(0.4, 0.705, 0.6, 0.825))),
+    prism(rounded(0.06, 0.405, 0.94, 0.885, 0.05), 0, 0.05, frame('top', rectangle(0.4, 0.705, 0.6, 0.825))),
     prism(rounded(0.1, 0.11, 0.9, 0.66, 0.04), 0, 0.08, accent(screen('top', rounded(0.16, 0.17, 0.84, 0.6, 0.02)))),
   ],
   display: [

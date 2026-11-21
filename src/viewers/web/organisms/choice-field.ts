@@ -19,7 +19,8 @@ export interface Choice {
  * Choices that name a heading make a long field, such as the icons. A long field starts with a switch of two
  * parts: the choice that clears the field ("No icon") and the list ("Icon"). The list stands under a box that
  * filters it, and both show only while Icon is on, so the form stays short until the person asks for the list.
- * For records that differ neither part is on.
+ * For records that differ neither part is on. A long field needs the clearing choice, and each of its other
+ * choices needs a heading.
  */
 export function choiceField(name: string, label: string, value: string | undefined, choices: readonly Choice[]): HTMLElement {
   const field = document.createElement('div')
