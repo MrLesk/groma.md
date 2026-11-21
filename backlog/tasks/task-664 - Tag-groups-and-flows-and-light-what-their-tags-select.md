@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-18T21:25:00Z'
-updated_date: '2026-11-18T21:59:00Z'
+updated_date: '2026-11-21T15:20:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -84,6 +84,7 @@ Tags name cross-cutting categories such as a team, a business slice or a complia
 - [x] #6 The flow pane of the web map shows the flow's tags as its Tags row, and a tag there toggles the focus
 - [x] #7 A filtered export reads the same rule. Include keeps the members of a group and the ends of the steps of a flow that carry an included tag, with their parents. Exclude removes the members of a group that carries an excluded tag and leaves that group out, and leaves out a flow that carries one while its ends stay
 - [x] #8 docs/component-markdown.md (Tags, Flows, Groups), docs/agent-instructions and groma agent-instructions say that groups and flows carry tags, how to write them and what a focus and a filtered export do with them
+- [x] #9 The row of an actor under Actors recedes when the focus does not light the actor, as the actor does on the map
 <!-- AC:END -->
 
 ## Definition of Done
@@ -107,6 +108,8 @@ Tags name cross-cutting categories such as a team, a business slice or a complia
 8. Tests. Authority: the owner's decision of 2026-11-18 that groups and flows carry tags and that relationships light when both ends do, and acceptance criteria 2, 3, 4 and 7. test-bun/tag-selection.test.ts: (a) a group's tag selects its members only; wrong result: the tag is ignored or lights the whole container; no test has a group. (b) a flow's tag lights the ends of its steps and all across a flow tag and an end's tag selects nothing; wrong result: nothing lights, or the ends are treated as carriers. (c) an excluded flow tag takes out no element and an excluded end stays out of a lit flow; wrong result: inheritance, which would drop public components from a filtered export. test-bun/tag-subset.test.ts: (d) an excluded flow tag leaves the flow out and keeps its ends; (e) an excluded group tag leaves out the group and its members, wrong result: the group's title is published; (f) an included flow tag keeps its ends with their parents. Editing tests: (g) tags added to and removed from a group and a flow document, color refused on a group; wrong result: the option is refused or writes nothing. No DOM tests.
 
 9. Added by the review round, in test-bun/tag-subset.test.ts: (h) a group none of whose members are exported is not exported. Authority: a reproduced failure of the filtered export, which published the title and tags of such a group. Wrong result: the group's record in the exported payload. Gap: the only assertion on groups pinned the leak; it is replaced.
+
+Actor rows (flow/list.ts, flow/row.ts): the flow list keeps the row of each listed actor and recedes it when the focus does not light the actor, in the same recede step as its flow rows. No test: the repository has no browser test harness; the rows were walked on the live map.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -117,6 +120,10 @@ Rule decisions I made without the owner, to confirm: a group's tag reaches its m
 Review round (cold simplicity review and full-context review in parallel, one merged list, applied by me). Both reproduced one failure that predates this task and that group tags made worse: a filtered export published every group, with title, description, overview and now tags, also when none of its members was exported. Fixed: a group is exported when one of its members is, which also covers a group with an excluded tag. Other items applied: TagSelection.matched is now lit and flows is matchingFlows, because lit elements include flow ends that match nothing; the pins, the hierarchy and the flow rows each take the whole selection, so two sets of ids cannot be swapped; editSeveralElements builds the fields it writes from the list that decides them; the receded look of flow rows lives in flow/row.ts; one test line that pinned the leak removed; docs say the flows under Actors, as the screen does. Declined: reading a step's ends from the step, because a selection holds representation ids and those differ from element ids in a comparison (src/history/comparison.ts). Follow-ups recorded, not done: actor headings above the flows do not recede; a malformed tags list in a group or flow file is reported with the element error code.
 Live checks on the final code (own architecture, 1600 by 1000, dark theme): with the Plugins group tagged extensions, a link with tag=extensions lights its three members and its zone only, and all six flows recede. With the flow Install a published scanner tagged onboarding, tag=onboarding lights its four step ends (an actor, two components, an external system), their three routes, their island and slab, and five of six flows recede at opacity 0.4; 222 of 238 task pins recede. not=onboarding alone lights all 129 buildings and recedes only that flow. Pointing at a row of the Tags list previews the same without changing the URL, and Escape restores the map. The flow pane shows its Tags row; a real click on the tag focuses the map and the URL gains tag=onboarding. The Tags list counts both new tags. Command line: tags added to and removed from a group and a flow; color on a group, icon on a flow, a group among several ids and tags on the project are refused. All test tags were removed again; git shows no leftover.
 Checks: bun run check passed on the final code (982 Bun tests and 28 Node tests, 0 failures).
+
+2026-11-21, the owner walking tag focus on the review map. Found by the coordinator while walking it for him: with a tag focused the two actors recede on the map and their flows recede under Actors, but the rows of the actors stay lit, because only the rows under Structure and the flow rows were told to recede. The owner: "Yes, fix it".
+
+Fixed in the flow list, which owns the rows under Actors: recede now also dims the row of an actor the focus does not light (flow/list.ts), with the same look and motion as a receded flow row (flow/row.ts). Verified on the review map in the dark theme: with map focused both actor rows recede like the actors on the map (row opacity 0.4, building 0.3); with scanning focused, the Developer is an end of the matching flow Scan project source, is lit on the map and keeps its row lit while the Coding agent recedes; opening a branch repaints the list and keeps the rows receded; clearing the chip restores every row. bun run check on this branch: 996 pass, 67 skip, 0 fail. The pull requests above this one do not have the commit until the stack is restacked.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
