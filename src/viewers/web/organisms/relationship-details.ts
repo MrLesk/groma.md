@@ -5,6 +5,11 @@ import { isWriteViewOpen, paintWriteEntries } from './write-view.ts'
 import { relationshipCard } from './relationship-card.ts'
 import type { RelationWrites } from './writes.ts'
 
+/** How many file interactions the scanners derived between two elements, as the pane says it. */
+function derivedInteractions(count: number): string {
+  return `${count} derived file ${count === 1 ? 'interaction' : 'interactions'}`
+}
+
 /** A map connection bundles claims; authoring always addresses an exact endpoint pair. */
 export function paintRelationship(
   host: HTMLElement,
@@ -26,7 +31,7 @@ export function paintRelationship(
   for (const row of related) {
     const count = new Set((row.connections ?? []).filter(connection => !connection.authored)
       .map(connection => `${connection.source}\0${connection.target}`)).size
-    if (count) body.append(paragraph('relationship-count', `${byId.get(row.source)!.title} → ${byId.get(row.target)!.title}: ${count} derived file interactions`))
+    if (count) body.append(paragraph('relationship-count', `${byId.get(row.source)!.title} → ${byId.get(row.target)!.title}: ${derivedInteractions(count)}`))
   }
   body.append(relationshipCard({ ...relationship, source: byId.get(relationship.source)!, target: byId.get(relationship.target)! }, onSelect))
   const connection = connections[0]
