@@ -29,7 +29,7 @@ function hierarchyRow(
   counts?: ChangeCounts,
   former = false,
 ): HTMLButtonElement {
-  const button = sidebarRow(row.title, row.kind, row.hasChildren
+  const button = sidebarRow(row.id, row.title, row.kind, row.hasChildren
     ? { expanded: row.expanded, count: row.count, toggle: () => onToggle(row) }
     : undefined, row.icon)
   button.dataset.id = row.id

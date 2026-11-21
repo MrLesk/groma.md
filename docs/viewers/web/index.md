@@ -444,6 +444,13 @@ names the group, and that name selects the group.
 Opening a group link frames its members. A group without members draws no zone; its link or its search result opens it
 ([`organisms/group-details.ts`](../../../src/viewers/web/organisms/group-details.ts)).
 
+A name that stands for an element in a list shows the element's ID while the
+pointer rests on it, as a link to an element does in the stored records: a
+hierarchy row, an actor of the flow list, a child, a group member, a selected
+element, an end of a relationship or of a flow step, a search result, and an
+element a task names
+([`showIdOnHover`](../../../src/viewers/web/atoms/text.ts)).
+
 The right details pane opens when an element, relationship, group, flow, or task is
 selected (and can be expanded for wider source and diff reading):
 

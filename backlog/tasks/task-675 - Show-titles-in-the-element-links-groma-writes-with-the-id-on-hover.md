@@ -1,11 +1,11 @@
 ---
 id: TASK-675
 title: Show titles in the element links groma writes, with the id on hover
-status: Done
+status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-11-21T19:18:00Z'
-updated_date: '2026-11-21T19:56:00Z'
+updated_date: '2026-11-21T21:43:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -131,6 +131,16 @@ modified_files:
   - src/architecture-markdown.ts
   - groma/systems/groma-md/containers/cli/components/src-architecture-reader.md
   - src/curate-rename.ts
+  - src/viewers/web/atoms/text.ts
+  - src/viewers/web/organisms/sidebar-row.ts
+  - src/viewers/web/organisms/hierarchy.ts
+  - src/viewers/web/flow/list.ts
+  - src/viewers/web/organisms/details.ts
+  - src/viewers/web/organisms/relationship-card.ts
+  - src/viewers/web/flow/reader.ts
+  - src/viewers/web/search/view.ts
+  - src/viewers/web/task-diff/view.ts
+  - docs/viewers/web/index.md
 type: feature
 ordinal: 715000
 ---
@@ -152,6 +162,7 @@ This task gives every link to an element that groma keeps one form: the element'
 - [x] #3 After groma edit <id> --title or --id, every such link to that element shows the new title or id
 - [x] #4 groma's own records are stored in that form
 - [x] #5 docs/component-markdown.md states the form and that groma reads membership, relationship ends and step ends from the link target alone
+- [ ] #6 On the web map, a name that stands for an element in a list shows the element's id on hover: hierarchy rows, the actors of the flow list, the element lists of the details pane, relationship ends, flow step ends, search results and the elements a task names
 <!-- AC:END -->
 
 ## Definition of Done
@@ -175,6 +186,8 @@ This task gives every link to an element that groma keeps one form: the element'
 Changed while building: withElementLinks takes the sections of the record at hand, and each domain names its own (relationshipSections in src/relationship-storage.ts, stepsSection in src/flow-authoring.ts, membersSection in src/group.ts), so a section of the same name that an author wrote in another kind of record is left alone. sectionOfEachLine in src/architecture-markdown.ts says which section a line belongs to and ignores headings in fenced code; withoutRelationshipSections uses it too. relinkElement lives in src/edit.ts, beside the edit that calls it, and src/element-links.ts reads no files. Fixtures: every stored fixture record is written in the form as well, except test/fixtures/flows/groma/flows/process-request.md, which is hand-authored with reference-style links on purpose.
 
 After the review round: withElementLinks writes again only the links that name an element, a list item and the first two cells of a table row (endsAndRest), so an Action or Description cell and prose in the section stay the author's; linkText writes a title on one line; the target part of an inline link is one pattern shared with the rename (inlineLinkTarget in src/architecture-markdown.ts). Tests extended in the same two cases: (a) the author's own links in an Action cell and under the table keep their text and get no title (wrong result: groma rewrites the author's sentence; gap: the first version of the case had no such link); (b) a title with a line break (wrong result: the row breaks and no load succeeds afterwards; gap: the odd title had no line break).
+
+Web map (the owner, 2026-11-21, to "Should the map's own lists show the id on hover too?": "Yes, on the map too"). showIdOnHover in src/viewers/web/atoms/text.ts sets a name's hover text to the element's id, the way panes already show hover text. Every builder of a list that names elements calls it: sidebarRow (hierarchy rows and the flow list's actors), elementLinks (children, group members, the selection), the ends of a relationship card, the ends of a flow step, an element's search result and the elements a task names. The pane's own heading and the names drawn on the map are not lists and stay as they are. No new test: the web viewer has no DOM harness for these builders, so the names' hover texts are read on the live review map.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes

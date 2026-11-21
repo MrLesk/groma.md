@@ -1,5 +1,5 @@
 import type { ArchitectureFlow, ArchitectureGraph } from '../../../types.ts'
-import { paragraph } from '../atoms/text.ts'
+import { paragraph, showIdOnHover } from '../atoms/text.ts'
 import { chromeButton } from '../atoms/button.ts'
 import type { FlowRef } from '../../flows.ts'
 import { flowEditEntry } from '../organisms/commands.ts'
@@ -73,8 +73,12 @@ export function paintFlowDetails(
     action.setAttribute('aria-current', active.step === index ? 'step' : 'false')
     const ends = document.createElement('div')
     ends.className = 'flow-ends'
-    ends.append(button(names.get(step.source) ?? step.source, () => onInspect(step.source)), '→',
-      button(names.get(step.target) ?? step.target, () => onInspect(step.target)))
+    const end = (id: string): HTMLButtonElement => {
+      const name = button(names.get(id) ?? id, () => onInspect(id))
+      showIdOnHover(name, id)
+      return name
+    }
+    ends.append(end(step.source), '→', end(step.target))
     row.append(action, ends)
     list.append(row)
   })

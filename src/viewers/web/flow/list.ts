@@ -83,7 +83,7 @@ export function createFlowList() {
       expanded: boolean,
       toggle: () => void,
     ) => {
-      const heading = sidebarRow(actor.title, 'actor', { expanded, count: actorFlows.length, toggle }, actor.icon)
+      const heading = sidebarRow(actor.id, actor.title, 'actor', { expanded, count: actorFlows.length, toggle }, actor.icon)
       heading.dataset.id = actor.id
       actorHeadings.set(actor.id, heading)
       heading.classList.toggle('selected', options.selectedIds?.includes(actor.id) === true)

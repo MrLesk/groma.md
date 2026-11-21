@@ -1,5 +1,6 @@
 import type { WebSearchResult } from './model.ts'
 import { kindGlyph, kindLabel } from '../../atoms/kind.ts'
+import { showIdOnHover } from '../atoms/text.ts'
 
 export const searchCss = `
   #web-search {
@@ -122,6 +123,7 @@ export function paintSearchResults(
     row.dataset.searchResult = String(index)
     row.setAttribute('role', 'option')
     row.setAttribute('aria-selected', String(index === activeIndex))
+    if (result.kind === 'architecture') showIdOnHover(row, result.element.id)
 
     const rank = document.createElement('span')
     rank.className = 'search-rank'

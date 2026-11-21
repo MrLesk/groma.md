@@ -23,7 +23,7 @@ import { paintElementWork } from '../work/component-tasks.ts'
 import { codeList } from './code-lists.ts'
 import type { IconName } from '../../../icons.ts'
 import { factRow } from '../atoms/fact-row.ts'
-import { heading, paintPaneTitle, paragraph } from '../atoms/text.ts'
+import { heading, paintPaneTitle, paragraph, showIdOnHover } from '../atoms/text.ts'
 import { acceptEntry, addComponentEntry, colorAndIconFields, editEntry, removeEntry, type EditField } from './commands.ts'
 import { isWriteViewOpen, paintWriteEntries, type WriteEntry } from './write-view.ts'
 import { tagRow } from '../tags/tag-row.ts'
@@ -232,6 +232,7 @@ export function elementLinks(elements: readonly InspectedChild[], onSelect: (id:
     link.type = 'button'
     link.className = 'link'
     link.append(mark, ' ', element.title)
+    showIdOnHover(link, element.id)
     if (element.note !== undefined) {
       const note = document.createElement('span')
       note.className = 'note'
