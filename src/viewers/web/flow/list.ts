@@ -21,17 +21,24 @@ function groupedTitle(title: string, actorTitle: string): string {
   return actor === prefix || actor.endsWith(` ${prefix}`) ? title.slice(separator + 2) : title
 }
 
-/** Each list keeps its open branches and the flows selected by a tag focus across repaints. */
+/** Each list keeps its open branches and what a tag focus selects across repaints. */
 export function createFlowList() {
   let unfolded = true
   const expandedActors = new Set<string>()
+  /** The row of each listed flow, by the flow's id. */
   const rows = new Map<string, HTMLButtonElement>()
+  /** The row of each listed actor, by the actor's id. */
+  const actorHeadings = new Map<string, HTMLElement>()
   let tagSelection: TagSelection | undefined
 
-  /** Flows that a tag focus does not match recede, as rows do in the hierarchy; undefined ends it. */
+  /**
+   * What a tag focus does not select recedes, as rows do in the hierarchy: a flow the focus does not match, and
+   * an actor it does not light, like the actor on the map. Undefined ends the focus.
+   */
   function recede(selection: TagSelection | undefined): void {
     tagSelection = selection
     for (const [id, row] of rows) row.classList.toggle('receded', selection !== undefined && !selection.matchingFlows.has(id))
+    for (const [id, heading] of actorHeadings) heading.classList.toggle('receded', selection !== undefined && !selection.lit.has(id))
   }
 
   function paintFlows(
@@ -42,6 +49,7 @@ export function createFlowList() {
     options: FlowListOptions,
   ): void {
     rows.clear()
+    actorHeadings.clear()
     host.classList.add('flow-tree')
     const { title, visibleFlows } = options
     const visibleIds = visibleFlows && new Set(visibleFlows.map(row => row.flow.id))
@@ -77,6 +85,7 @@ export function createFlowList() {
     ) => {
       const heading = sidebarRow(actor.title, 'actor', { expanded, count: actorFlows.length, toggle }, actor.icon)
       heading.dataset.id = actor.id
+      actorHeadings.set(actor.id, heading)
       heading.classList.toggle('selected', options.selectedIds?.includes(actor.id) === true)
       heading.prepend(...sidebarBranches([followingActor]))
       const selectActor = options.onSelectActor

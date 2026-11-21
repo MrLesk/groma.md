@@ -282,7 +282,7 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   - **not** excludes a tag. With just **not internal**, everything outside
     `internal` stays lit. The bar shows a filled chip for each focused tag and
     an outlined chip for each exclusion. Click × to remove one.
-  - The map, the hierarchy rows, the flows under **Actors** and the task pins recede together. A group's
+  - The map, the hierarchy rows, the actors and flows under **Actors** and the task pins recede together. A group's
     tag lights its members. A flow's tag lights its step ends. A preview leaves
     the camera and URL in place. Clearing the last chip frames the current selection.
     [Tag matching and example](../../component-markdown.md#focusing-on-tags).
