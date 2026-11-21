@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-16T17:02:00Z'
-updated_date: '2026-11-16T22:13:00Z'
+updated_date: '2026-11-21T22:05:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -76,6 +76,7 @@ The web map rule for writes (docs/viewers/web/index.md, "Reading and editing") s
 - [x] #9 Every write of a pane is approved the same way: its view shows the fields the write needs or, for a write that needs none, one line that says what it will do, then the approval bar at the bottom of the pane with Cancel and the verb. Edit, Accept, Remove, Group and Combine all use it, and none has controls or a confirmation step of its own
 - [x] #10 The dialogs of the web map that write (Add, a draft or a group drawn on the map, a drafted relationship, the project editor) end with the same approval bar as a pane's write view, built by one shared atom: the message of a failed write, Cancel, then the verb of the write
 - [x] #11 The fields of a pane's write view look like the fields of the dialogs: a small caps label over a control of the same size, radius and background. One shared style, the class write-form of atoms/write-form.ts, gives both their look
+- [x] #12 The relationship pane counts one derived file interaction in the singular
 <!-- AC:END -->
 
 ## Definition of Done
@@ -121,6 +122,10 @@ Reviews: one cold simplicity review and one full-context review on the same snap
 2026-11-16, seventh round. Alex answered "Yes, do it" to "Give the pane's forms the dialogs' field style (small caps labels, larger inputs)?". The dialogs' field rules moved out of chrome/add.ts and project/editor.ts into the shared atom, which is now atoms/write-form.ts (renamed from approval-bar.ts, because it holds the field look and the approval bar of every form that writes). A form that writes carries the class write-form: the pane's form already did, the four dialogs' forms now do. The pane's own label and input rules are gone; it keeps only its taller, resizable text area. The Tags and choice fields give their title the class field-title and the Tags box takes the inputs' radius, height and background. Kept exactly as the dialogs had it, including their input font stack. Live checks on the final code, 1920x907: Edit view in the dark and light themes (small caps labels, 38 px inputs, 6 px radius, Tags box and Color and Icon titles in the same look, content as wide as the pane), Group and Combine views, and the Add, Draft and project editor dialogs, whose computed label and input styles are the same as before the move.
 
 2026-11-16, eighth round. Alex, on a screenshot of the Group view's footer: "footer is not reaching the edge for me. seems like it's until scrollbar". Cause: the approval bar was a sticky child of the pane's scroll area, and a scroll area cannot paint into the room it keeps for a classic scrollbar (11 px here), so the band stopped that far from the pane's right edge. The same gap is visible in my own earlier screenshots; I did not look at the edge. Change (write-view.ts only): an open write view lays the pane out as header, fields and footer. The fields scroll in their own box (.write-fields) and the bar is the pane's footer, no longer sticky. While a view is open the pane itself does not scroll and keeps no scrollbar room; that room becomes padding, so the header, the fields and the buttons stay where they were. The fields box reaches the pane's right edge, so its scrollbar stands where the pane's did. Measured on the live map, dark theme, 1920x907, classic scrollbars (--details-gutter 11px): Group view: bar left, right and bottom equal the pane's inner edges (1489, 1907, 894), buttons and the input end at the same x as before (1872), the close button and the title do not move between reading and the view; Edit view: bar edge to edge, the fields box scrolls (685 over 649), its scrollbar is at the pane's edge, the last field ends 16 px above the bar when scrolled to the end, the title field keeps its width; after Cancel the reading pane scrolls again with its scrollbar room (clientWidth 407 equals scrollWidth).
+
+2026-11-22, walk of this pull request with the owner, on the review map in the dark theme. Every write was opened and tried: the Edit view of a component (fields, a color pick previewed on the map, Cancel, Escape, Enter in a field saves once, Save by button, the form inert while the write is in flight), the pane of several selected components (Edit, Group with Create group, Combine), a relationship, a group (Edit and Remove with its question), a flow, the refusal of a command while fields hold unsaved changes, and the project editor. The approval bar spans the pane to within its border (measured), and the pane cannot scroll sideways. Found and fixed here: the relationship pane said "1 derived file interactions"; it now counts one in the singular (derivedInteractions in src/viewers/web/organisms/relationship-details.ts). Found and fixed in the group pane's task: a group's Remove question did not say that its components stay. Raised with the owner, not changed: the plugin Add form in Settings has its own field look and button order. Not reachable on the map, as on main: the header Add and the map's draft tools are hidden as unfinished, so their dialogs could not be walked. bun run check on this branch: see the pull request.
+
+bun run check with the singular fix: 28 Node tests and 984 Bun tests pass, 0 fail; the 2 lint warnings are older and in other files.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
