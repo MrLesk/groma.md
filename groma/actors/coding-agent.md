@@ -13,4 +13,4 @@ An AI assistant that uses Groma while carrying out a developer request. Reads ar
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [coding-agent](coding-agent.md) | [src-cli](../systems/groma-md/containers/cli/components/src-cli.md) | Curates architecture | Groma CLI |
+| [Coding agent](coding-agent.md "coding-agent") | [Command interface](../systems/groma-md/containers/cli/components/src-cli.md "src-cli") | Curates architecture | Groma CLI |

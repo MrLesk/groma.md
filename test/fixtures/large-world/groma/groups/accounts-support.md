@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [Accounts mapper](../systems/identity/containers/accounts/components/accounts-mapper.md)
-- [Accounts queue](../systems/identity/containers/accounts/components/accounts-queue.md)
-- [Accounts reader](../systems/identity/containers/accounts/components/accounts-reader.md)
-- [Accounts worker](../systems/identity/containers/accounts/components/accounts-worker.md)
-- [Accounts writer](../systems/identity/containers/accounts/components/accounts-writer.md)
+- [Accounts mapper](../systems/identity/containers/accounts/components/accounts-mapper.md "accounts-mapper")
+- [Accounts queue](../systems/identity/containers/accounts/components/accounts-queue.md "accounts-queue")
+- [Accounts reader](../systems/identity/containers/accounts/components/accounts-reader.md "accounts-reader")
+- [Accounts worker](../systems/identity/containers/accounts/components/accounts-worker.md "accounts-worker")
+- [Accounts writer](../systems/identity/containers/accounts/components/accounts-writer.md "accounts-writer")

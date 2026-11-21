@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [Accounts cache](../systems/identity/containers/accounts/components/accounts-cache.md)
-- [Accounts gateway](../systems/identity/containers/accounts/components/accounts-gateway.md)
-- [Accounts router](../systems/identity/containers/accounts/components/accounts-router.md)
-- [Accounts session](../systems/identity/containers/accounts/components/accounts-session.md)
-- [Accounts validator](../systems/identity/containers/accounts/components/accounts-validator.md)
+- [Accounts cache](../systems/identity/containers/accounts/components/accounts-cache.md "accounts-cache")
+- [Accounts gateway](../systems/identity/containers/accounts/components/accounts-gateway.md "accounts-gateway")
+- [Accounts router](../systems/identity/containers/accounts/components/accounts-router.md "accounts-router")
+- [Accounts session](../systems/identity/containers/accounts/components/accounts-session.md "accounts-session")
+- [Accounts validator](../systems/identity/containers/accounts/components/accounts-validator.md "accounts-validator")

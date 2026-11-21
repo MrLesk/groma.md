@@ -79,6 +79,8 @@ groma view submit-a-request
 
 groma.md writes `<groma-root>/flows/submit-a-request.md`. Each step stores From,
 To, and Action columns and links each endpoint to its C4 Markdown document.
+Type any text for an endpoint link: groma.md stores the element's title as the
+text and its ID as the link title, and keeps both current.
 Links resolve relative to that flow document, not the shell's working
 directory, and work the same under `groma/` and `.groma/`. Table order is
 execution order, and each row must match an existing directed relationship.

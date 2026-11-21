@@ -12,7 +12,7 @@ Merchant of the shop.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [merchant](merchant.md) | [mobile-api](../systems/storefront/containers/mobile-api/container.md) | Uses mobile-api | HTTP |
-| [merchant](merchant.md) | [cart](../systems/orders/containers/cart/container.md) | Uses cart | HTTP |
-| [merchant](merchant.md) | [pricing](../systems/catalog/containers/pricing/container.md) | Uses pricing | HTTP |
-| [merchant](merchant.md) | [auth](../systems/identity/containers/auth/container.md) | Uses auth | HTTP |
+| [Merchant](merchant.md "merchant") | [Mobile Api](../systems/storefront/containers/mobile-api/container.md "mobile-api") | Uses mobile-api | HTTP |
+| [Merchant](merchant.md "merchant") | [Cart](../systems/orders/containers/cart/container.md "cart") | Uses cart | HTTP |
+| [Merchant](merchant.md "merchant") | [Pricing](../systems/catalog/containers/pricing/container.md "pricing") | Uses pricing | HTTP |
+| [Merchant](merchant.md "merchant") | [Auth](../systems/identity/containers/auth/container.md "auth") | Uses auth | HTTP |

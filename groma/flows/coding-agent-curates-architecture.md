@@ -11,6 +11,6 @@ An AI assistant uses Groma while carrying out a developer request. After inspect
 
 | From | To | Action |
 | --- | --- | --- |
-| [Coding agent](../actors/coding-agent.md) | [Command interface](../systems/groma-md/containers/cli/components/src-cli.md) | Submit an evidence-based groma edit for an existing element |
-| [Command interface](../systems/groma-md/containers/cli/components/src-cli.md) | [Architecture changes](../systems/groma-md/containers/cli/components/src-authoring.md) | Dispatch the requested architecture edit |
-| [Architecture changes](../systems/groma-md/containers/cli/components/src-authoring.md) | [Markdown storage](../systems/groma-md/containers/cli/components/src-architecture-reader.md) | Persist the validated explanation in Markdown |
+| [Coding agent](../actors/coding-agent.md "coding-agent") | [Command interface](../systems/groma-md/containers/cli/components/src-cli.md "src-cli") | Submit an evidence-based groma edit for an existing element |
+| [Command interface](../systems/groma-md/containers/cli/components/src-cli.md "src-cli") | [Architecture changes](../systems/groma-md/containers/cli/components/src-authoring.md "src-authoring") | Dispatch the requested architecture edit |
+| [Architecture changes](../systems/groma-md/containers/cli/components/src-authoring.md "src-authoring") | [Markdown storage](../systems/groma-md/containers/cli/components/src-architecture-reader.md "src-architecture-reader") | Persist the validated explanation in Markdown |

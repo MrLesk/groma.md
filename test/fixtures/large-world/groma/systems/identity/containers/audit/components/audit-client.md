@@ -29,4 +29,4 @@ Audit client of Audit.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [audit-client](audit-client.md) | [payments](../../../../../externals/payments.md) | Charges cards | HTTP |
+| [Audit client](audit-client.md "audit-client") | [Payments](../../../../../externals/payments.md "payments") | Charges cards | HTTP |

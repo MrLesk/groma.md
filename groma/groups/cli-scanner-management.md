@@ -7,5 +7,5 @@ groma:
 
 ## Members
 
-- [Scanner discovery](../systems/groma-md/containers/cli/components/modules-discovery.md)
-- [Scanner readiness](../systems/groma-md/containers/cli/components/modules-readiness.md)
+- [Scanner discovery](../systems/groma-md/containers/cli/components/modules-discovery.md "modules-discovery")
+- [Scanner readiness](../systems/groma-md/containers/cli/components/modules-readiness.md "modules-readiness")

@@ -7,6 +7,6 @@ groma:
 
 ## Members
 
-- [Task panels](../systems/groma-md/containers/export/components/island.md)
-- [Task changes panel](../systems/groma-md/containers/export/components/task-diff-control.md)
-- [Task map markers](../systems/groma-md/containers/export/components/web-work-pins.md)
+- [Task panels](../systems/groma-md/containers/export/components/island.md "island")
+- [Task changes panel](../systems/groma-md/containers/export/components/task-diff-control.md "task-diff-control")
+- [Task map markers](../systems/groma-md/containers/export/components/web-work-pins.md "web-work-pins")

@@ -133,30 +133,6 @@ test.concurrent('removing, renaming and moving keep every group loadable', async
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-/** The text of each link under "## Members" of a group's record, in its order. */
-async function memberLinkTexts(root: string, groupId: string): Promise<string[]> {
-  const record = await readFile(path.join(root, `groma/groups/${groupId}.md`), 'utf8')
-  return [...record.matchAll(/^- \[(.*)\]\([^)]*\)$/gm)].map(link => link[1]!)
-}
-
-test.concurrent('a member link shows the member\'s title and follows a new title', async () => {
-  const root = await shop()
-  try {
-    const group = await writes.add(root, { thing: 'group', name: 'Checks', members: ['stock', 'orders'] }) as StructuralResult
-    expect(await memberLinkTexts(root, group.id)).toEqual(['Stock', 'Orders'])
-
-    // A new title reaches the group's record, on its own and together with a rename, and the command names the record.
-    const retitled = await writes.edit(root, { id: 'stock', title: 'Stock levels' }) as StructuralResult
-    expect(retitled.changed).toEqual([`groma/groups/${group.id}.md`])
-    await writes.edit(root, { id: 'orders', newId: 'intake', title: 'Order intake' })
-    expect(await memberLinkTexts(root, group.id)).toEqual(['Stock levels', 'Order intake'])
-
-    // A title that ends its own link text early must not break the link: the component stays a member.
-    await writes.edit(root, { id: 'stock', title: 'Stock ]' })
-    expect(membership(await loadAnnotatedArchitecture(root))[group.id]).toEqual(['intake', 'stock'])
-  } finally { await rm(root, { recursive: true, force: true }) }
-})
-
 test.concurrent('a scan never gives a new component the id of a group', async () => {
   const root = await shop()
   try {

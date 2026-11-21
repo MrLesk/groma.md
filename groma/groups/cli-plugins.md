@@ -7,6 +7,6 @@ groma:
 
 ## Members
 
-- [Plugin packages](../systems/groma-md/containers/cli/components/package.md)
-- [Plugin settings](../systems/groma-md/containers/cli/components/plugin-settings.md)
-- [UI themes](../systems/groma-md/containers/cli/components/themes.md)
+- [Plugin packages](../systems/groma-md/containers/cli/components/package.md "package")
+- [Plugin settings](../systems/groma-md/containers/cli/components/plugin-settings.md "plugin-settings")
+- [UI themes](../systems/groma-md/containers/cli/components/themes.md "themes")

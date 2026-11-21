@@ -306,10 +306,10 @@ async function combineElements(
   const rows = storedRelationships(context.records.documents, context.model.elements, (_code, filename, message) => {
     throw new Error(`${filename}: ${message}`)
   }).filter(row => documents.has(row.document))
-  const concepts = new Map(context.model.elements.map(element => [element.id, element.sourceFilename]))
+  const elementsById = new Map(context.model.elements.map(element => [element.id, element]))
   return {
     targetSource: withStoredRelationships(withGromaCode(targetSource, combinedCode([target, ...sources])),
-      target.sourceFilename, rows, concepts),
+      target.sourceFilename, rows, elementsById),
     rewrites,
     removals: sources,
   }

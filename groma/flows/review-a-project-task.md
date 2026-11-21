@@ -11,8 +11,8 @@ In the live browser map, a developer opens a selected Backlog task. The task pan
 
 | From | To | Action |
 | --- | --- | --- |
-| [Developer](../actors/developer.md) | [Task changes panel](../systems/groma-md/containers/export/components/task-diff-control.md) | Open a selected task in the browser |
-| [Task changes panel](../systems/groma-md/containers/export/components/task-diff-control.md) | [Browser data](../systems/groma-md/containers/export/components/data.md) | Request the selected task details |
-| [Browser data](../systems/groma-md/containers/export/components/data.md) | [Web host](../systems/groma-md/containers/cli/components/web-server.md) | Send the task ID to the local task endpoint |
-| [Web host](../systems/groma-md/containers/cli/components/web-server.md) | [Backlog adapter](../systems/groma-md/containers/cli/components/backlog-src-index.md) | Ask the work-source adapter for the selected task |
-| [Backlog adapter](../systems/groma-md/containers/cli/components/backlog-src-index.md) | [Backlog.md](../externals/backlog-md.md) | Read task details using backlog task view with JSON output |
+| [Developer](../actors/developer.md "developer") | [Task changes panel](../systems/groma-md/containers/export/components/task-diff-control.md "task-diff-control") | Open a selected task in the browser |
+| [Task changes panel](../systems/groma-md/containers/export/components/task-diff-control.md "task-diff-control") | [Browser data](../systems/groma-md/containers/export/components/data.md "data") | Request the selected task details |
+| [Browser data](../systems/groma-md/containers/export/components/data.md "data") | [Web host](../systems/groma-md/containers/cli/components/web-server.md "web-server") | Send the task ID to the local task endpoint |
+| [Web host](../systems/groma-md/containers/cli/components/web-server.md "web-server") | [Backlog adapter](../systems/groma-md/containers/cli/components/backlog-src-index.md "backlog-src-index") | Ask the work-source adapter for the selected task |
+| [Backlog adapter](../systems/groma-md/containers/cli/components/backlog-src-index.md "backlog-src-index") | [Backlog.md](../externals/backlog-md.md "backlog-md") | Read task details using backlog task view with JSON output |

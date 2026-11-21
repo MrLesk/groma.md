@@ -29,4 +29,4 @@ Events client of Events.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [events-client](events-client.md) | [payments](../../../../../externals/payments.md) | Charges cards | HTTP |
+| [Events client](events-client.md "events-client") | [Payments](../../../../../externals/payments.md "payments") | Charges cards | HTTP |

@@ -20,4 +20,4 @@ Places and tracks customer orders.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [orders](orders.md) | [payments](../../../../../externals/payments.md) | Requests payment authorization | HTTPS |
+| [Orders](orders.md "orders") | [Payments](../../../../../externals/payments.md "payments") | Requests payment authorization | HTTPS |
