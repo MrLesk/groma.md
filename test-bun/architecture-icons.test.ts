@@ -9,7 +9,7 @@ import { box, cylinder } from '../src/viewers/web/icons/parts.ts'
 import type { IconPart } from '../src/viewers/web/icons/parts.ts'
 import { buildingsSvg } from '../src/viewers/web/iso/painting/buildings.ts'
 import { backToFront, boundsOf, prismFaces, reachBehind } from '../src/viewers/web/iso/painting/icon-faces.ts'
-import { iconSvg, planSvg } from '../src/viewers/web/iso/painting/icons.ts'
+import { fromAboveSvg, iconSvg } from '../src/viewers/web/iso/painting/icons.ts'
 import type { SvgNode } from '../src/viewers/web/iso/painting/svg.ts'
 import { surfaceLabelLayout } from '../src/viewers/web/iso/painting/text.ts'
 import { DEFAULT_PROJECTION, projectScene } from '../src/viewers/web/iso/projection/project.ts'
@@ -86,19 +86,20 @@ function wideBand(font: number): { width: number; band: { width: number; height:
 const TITLE_ZOOMS = [0.1, 0.3, 0.7, 2]
 
 test.concurrent('an icon lies on the map as one object: a tilted map shows the walls of its parts, the view from above only their tops', () => {
-  const box = { name: 'browser' as const, corner: { x: 0, y: 0 }, side: 24 }
+  // A document is two sheets, so the count of tops tells whether both views draw both parts.
+  const box = { name: 'document' as const, corner: { x: 0, y: 0 }, side: 24 }
   const tilted = facesOf(iconSvg(box, DEFAULT_PROJECTION))
   const above = facesOf(iconSvg(box, { ...DEFAULT_PROJECTION, pitch: 90 }))
   expect(tilted.some(face => face === 'icon-left' || face === 'icon-right')).toBe(true)
-  expect(above.length).toBeGreaterThan(0)
+  expect(above).toHaveLength(2)
   expect(above.every(face => face === 'icon-top')).toBe(true)
   // Both views draw the same parts: each top once.
   expect(tilted.filter(face => face === 'icon-top')).toHaveLength(above.length)
 })
 
-test.concurrent('the plan of every icon object shows the accent', () => {
+test.concurrent('every icon object shows its accent from above', () => {
   for (const name of Object.keys(iconObjects) as IconName[]) {
-    const accents = planSvg(name, 24).filter(shape => shape.attributes.class!.split(' ').includes('icon-accent'))
+    const accents = fromAboveSvg(name, 24).filter(shape => shape.attributes.class!.split(' ').includes('icon-accent'))
     expect(accents.length, `${name} seen from above has no accent`).toBeGreaterThan(0)
   }
 })

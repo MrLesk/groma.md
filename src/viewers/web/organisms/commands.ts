@@ -25,7 +25,8 @@ function editChanges(
   const picked: EditValues = {}
   for (const field of fields) {
     if (isTagsField(field)) continue
-    // A choice field nobody picked in has no value: its records differ (mixed) and stay as they are.
+    // A choice field without a pick has no value: its records differ (mixed), or its list was turned on and
+    // nothing picked yet. Either way the records stay as they are.
     // Do not default it to '': an empty value clears the field on every record.
     if (values[field.name] === undefined) continue
     opening[field.name] = field.value

@@ -163,9 +163,9 @@ function accentRules(scope: string, color: string, tint: (share: number) => stri
  * a fine line drawing: quiet lines a little brighter than the map's outlines, over faces a little off paper that
  * are shaded like a building's, by the side they are turned to. Its accent is drawn in ink. In the browser an
  * element with an authored color hands that color to the accent through --icon-accent; the rest of the object
- * stays neutral. The plan the 2D view draws is made of the same parts, so it takes the same rules. `scope`
- * is the selector the icons are drawn under: the map, or a pane's icon. A pane shows the plan with these same
- * rules and sets --icon-stroke on each icon itself, as the map's camera rule does on the map.
+ * stays neutral. `scope` is the selector the icons are drawn under: the map, or a pane's icon. A pane shows the
+ * object from above with these same rules and sets --icon-stroke on each icon itself, as the map's camera rule
+ * does on the map.
  */
 export function iconCss(scope: string, palette?: Palette): string {
   const line = palette === undefined

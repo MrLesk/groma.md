@@ -93,8 +93,9 @@ function wallRuns(all: readonly Wall[]): number[][] {
 }
 
 /**
- * The faces of a prism that are turned to the reader, back to front: its walls, then its top. Walls along a curve
- * form one face, so a cylinder shows no line between them. Seen from straight above a prism shows its top alone.
+ * The faces of a prism that are turned to the reader, back to front: its walls, then its top, which every view of
+ * the map sees. Walls along a curve form one face, so a cylinder shows no line between them. Seen from straight
+ * above no wall is turned to the reader, so a prism shows its top alone.
  */
 export function prismFaces(prism: Prism, view: ProjectionView): IconFace[] {
   const reader = towardsReader(view)
@@ -113,7 +114,6 @@ export function prismFaces(prism: Prism, view: ProjectionView): IconFace[] {
       tone: wallTone(facing, view),
     }
   }).sort((left, right) => depth(left) - depth(right))
-  if (reader[2] <= SEEN) return seenWalls
   return [...seenWalls, { points: outline.map(([x, y]) => [x, y, top]), tone: 'top' }]
 }
 
@@ -145,13 +145,13 @@ export function reachBehind(parts: readonly IconPart[]): number {
 
 /**
  * Where a mark's pairs lie on its part: on the part's top, or on its wall towards +y or +x. Undefined when
- * that face is turned away from the reader.
+ * that wall is turned away from the reader.
  */
 export function markPoints(part: Prism, mark: IconMark, view: ProjectionView): IconPoint[] | undefined {
   const reader = towardsReader(view)
   const { max } = boundsOf(part)
   const pairs = Array.from({ length: mark.line.length / 2 }, (_, index) => [mark.line[2 * index]!, mark.line[2 * index + 1]!] as const)
-  if (mark.on === 'top') return reader[2] > SEEN ? pairs.map(([x, y]) => [x, y, max[2]]) : undefined
+  if (mark.on === 'top') return pairs.map(([x, y]) => [x, y, max[2]])
   if (mark.on === 'south') return reader[1] > SEEN ? pairs.map(([x, z]) => [x, max[1], z]) : undefined
   return reader[0] > SEEN ? pairs.map(([y, z]) => [max[0], y, z]) : undefined
 }

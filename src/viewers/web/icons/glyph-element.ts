@@ -1,6 +1,6 @@
 import type { IconName } from '../../../icons.ts'
 import { iconStroke } from '../iso/painting/icon-camera.ts'
-import { planSvg } from '../iso/painting/icons.ts'
+import { fromAboveSvg } from '../iso/painting/icons.ts'
 import { iconCss } from '../iso/painting/style.ts'
 import { patch, svg } from '../iso/painting/svg.ts'
 
@@ -17,6 +17,6 @@ export const glyphCss = `
 export function glyphElement(name: IconName, size: number): SVGSVGElement {
   const look = { viewBox: `0 0 ${size} ${size}`, width: size, height: size, 'aria-hidden': 'true', style: `--icon-stroke: ${iconStroke(size)}px` }
   const element = svg('svg', look, 'glyph')
-  patch(element, planSvg(name, size))
+  patch(element, fromAboveSvg(name, size))
   return element
 }
