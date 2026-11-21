@@ -1,11 +1,11 @@
 ---
 id: TASK-675
 title: Show titles in the element links groma writes, with the id on hover
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-21T19:18:00Z'
-updated_date: '2026-11-21T19:32:00Z'
+updated_date: '2026-11-21T19:56:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -130,6 +130,7 @@ modified_files:
   - docs/agent-instructions/relationships.md
   - src/architecture-markdown.ts
   - groma/systems/groma-md/containers/cli/components/src-architecture-reader.md
+  - src/curate-rename.ts
 type: feature
 ordinal: 715000
 ---
@@ -146,19 +147,19 @@ This task gives every link to an element that groma keeps one form: the element'
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A link to an element in a group's Members list, in a relationship row or in a flow's Steps table shows the element's title as its text and carries the element's id as the link title; a relationship endpoint that names a source file keeps its path
-- [ ] #2 groma add flow and groma edit <flow-id> --steps store each inline endpoint link in that form whatever text the author typed; a reference-style link, the Action cells and all prose stay as typed
-- [ ] #3 After groma edit <id> --title or --id, every such link to that element shows the new title or id
-- [ ] #4 groma's own records are stored in that form
-- [ ] #5 docs/component-markdown.md states the form and that groma reads membership, relationship ends and step ends from the link target alone
+- [x] #1 A link to an element in a group's Members list, in a relationship row or in a flow's Steps table shows the element's title as its text and carries the element's id as the link title; a relationship endpoint that names a source file keeps its path
+- [x] #2 groma add flow and groma edit <flow-id> --steps store each inline endpoint link in that form whatever text the author typed; a reference-style link, the Action cells and all prose stay as typed
+- [x] #3 After groma edit <id> --title or --id, every such link to that element shows the new title or id
+- [x] #4 groma's own records are stored in that form
+- [x] #5 docs/component-markdown.md states the form and that groma reads membership, relationship ends and step ends from the link target alone
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -172,4 +173,26 @@ This task gives every link to an element that groma keeps one form: the element'
 6. Tests, in test-bun/element-links.test.ts on the edit fixture. (a) Rule: a link to an element that groma keeps shows the title and carries the id (the owner, 2026-11-21). Wrong result: a relationship row, a member or a flow step that shows an id or the author's text, a file endpoint that loses its path, or a title with a pipe that splits its table cell. Gap: no test reads the stored form of a row or a step. (b) Rule: a new title or id reaches every record that links the element. Wrong result: a row, a member or a step keeps the old title after --title or the old id after --id. Gap: the group case of TASK-657 covers members and titles only; it moves here.
 
 Changed while building: withElementLinks takes the sections of the record at hand, and each domain names its own (relationshipSections in src/relationship-storage.ts, stepsSection in src/flow-authoring.ts, membersSection in src/group.ts), so a section of the same name that an author wrote in another kind of record is left alone. sectionOfEachLine in src/architecture-markdown.ts says which section a line belongs to and ignores headings in fenced code; withoutRelationshipSections uses it too. relinkElement lives in src/edit.ts, beside the edit that calls it, and src/element-links.ts reads no files. Fixtures: every stored fixture record is written in the form as well, except test/fixtures/flows/groma/flows/process-request.md, which is hand-authored with reference-style links on purpose.
+
+After the review round: withElementLinks writes again only the links that name an element, a list item and the first two cells of a table row (endsAndRest), so an Action or Description cell and prose in the section stay the author's; linkText writes a title on one line; the target part of an inline link is one pattern shared with the rename (inlineLinkTarget in src/architecture-markdown.ts). Tests extended in the same two cases: (a) the author's own links in an Action cell and under the table keep their text and get no title (wrong result: groma rewrites the author's sentence; gap: the first version of the case had no such link); (b) a title with a line break (wrong result: the row breaks and no load succeeds afterwards; gap: the odd title had no line break).
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Decision, the owner, 2026-11-21, on "Should relationship rows show titles too?": "yes and id on hover. same for components in groups and in general". Read as: every link to an element that groma keeps in its records shows the title and carries the id as the Markdown link title. Not read as a change to the web map, whose lists show titles with no id on hover; that reading is open with the owner.
+
+Built: src/element-links.ts (elementLink, withElementLinks), the three section names in their domains, sectionOfEachLine in src/architecture-markdown.ts, relinkElement in src/edit.ts. relistedWrites and relistInGroups of TASK-657 are removed: relinkElement covers them.
+
+Reviews, one round, run in parallel on commit 566bf631 (cold simplicity review and full-context review). Both kept the approach. Defects fixed, each with a test that fails on that commit: (1) every inline link to an element in a kept section was written again, also one in an Action or Description cell or in a sentence under the table; now only a list item and the first two cells of a table row are (endsAndRest). (2) a title with a line break ended the table row and no load succeeded afterwards; linkText now writes the title on one line. Simplifications applied: the target part of an inline link is one pattern shared with the rename (inlineLinkTarget); linksTo and elementsByDocument are gone; each heading is spelled once per domain; two comments corrected. Not changed, stated in the contract: a reference-style link and an inline link whose text has brackets of its own stay as typed.
+
+Verification. By hand on copies of test/fixtures/edit: a relationship row, a group and a flow written with other link texts are stored as [Title](target "id"); groma edit --title names the records it changed and they show the new title; groma edit --id leaves the new id on hover in rows, members and steps; a reference-style end, a link in the Action cell and a title with a line break behave as the criteria say. groma's own 29 records and 60 fixture records were written again with withElementLinks over every element (scratch tool); a second pass changes nothing, and no line outside a table or a list changed. test/fixtures/flows/groma/flows/process-request.md stays hand-authored with reference links. The new file src/element-links.ts was scanned as a stand-alone component and folded into Markdown storage (src-architecture-reader). bun run check: 28 Node tests and 1012 Bun tests pass, 67 skip, 0 fail; the 2 lint warnings are older and in other files.
+
+Open with the owner (not built): whether the web map's lists should show the id on hover too; whether groma should store reference-style step ends inline. Outside this task: scripts/large-world-fixture.ts still writes groma.group and a three-column relationship table, so running it would replace that fixture with records the loader refuses; a source-file endpoint's path is written unescaped, so a path such as src/__tests__/a.test.ts renders with bold text.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Every link to an element that groma keeps in its records, in a group's Members, in relationship rows and in a flow's Steps, is written as [Title](target "id"): the title as the text and the id as the link title, which Markdown viewers show on hover. A relationship end that names a source file keeps its path. The form has one writer, elementLink in src/element-links.ts; withElementLinks writes it again in place for the two cells or the list item that name an element, and leaves the author's cells, prose and reference-style links as typed. groma edit <id> --title or --id reaches every record that links the element through relinkElement in src/edit.ts and names the records it changed. Loading still reads the link target alone. groma's own records and the fixture records are stored in the form; docs/component-markdown.md has an Element links section. bun run check passes. Open with the owner: the id on hover in the web map's lists, and reference-style step ends.
+<!-- SECTION:FINAL_SUMMARY:END -->
