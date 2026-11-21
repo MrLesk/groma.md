@@ -364,27 +364,45 @@ groma:
   icon: database
 ```
 
-The document stores only the name. The names are generic kinds of software
-parts and people, never a vendor or a programming language:
+The document stores only the name. A name is a generic kind of part that any
+architecture can have, never a vendor, a product or a programming language.
 
-| | Names |
+Choose the icon for the area a part is about, not for what the part does to it.
+A group named Map drawing takes `map`, not `palette`; an order service takes
+`order`. What a part does is read by opening it. A part that is itself a
+well-known kind of thing, such as a database or a queue, takes that thing's
+icon. An activity such as `search` or `sync` fits only a part whose whole area
+is that activity.
+
+The names are listed in kinds. A kind only orders the list and is not stored:
+
+| Kind | Names |
 | --- | --- |
-| People | `person`, `agent` |
-| Applications | `browser`, `mobile`, `desktop`, `terminal` |
-| Running parts | `service`, `worker`, `gateway`, `scheduler` |
-| Data | `database`, `cache`, `queue`, `storage`, `document`, `search` |
-| Other | `repository`, `package`, `cloud`, `lock`, `mail`, `chart`, `board` |
+| people | `person`, `admin`, `developer`, `agent`, `team`, `guest`, `support`, `organization`, `face` |
+| clients | `browser`, `mobile`, `desktop`, `terminal`, `chip`, `camera`, `laptop`, `display`, `device`, `router`, `pointer`, `vehicle` |
+| compute | `service`, `server`, `worker`, `scheduler`, `cloud`, `function`, `pipeline`, `workflow`, `crate`, `sandbox`, `cluster`, `datacenter` |
+| traffic | `gateway`, `route`, `globe`, `cdn`, `network`, `balancer`, `firewall`, `dns`, `vpn` |
+| data | `database`, `cache`, `storage`, `backup`, `document`, `search`, `migration`, `disk`, `warehouse`, `table`, `directory`, `registry`, `log`, `feed`, `folder`, `index`, `vector`, `calendar`, `tree`, `history`, `copy` |
+| messaging | `mail`, `queue`, `stream`, `notification`, `webhook`, `broker`, `chat`, `inbox`, `broadcast` |
+| security | `lock`, `key`, `identity`, `certificate`, `shield`, `fingerprint`, `vault`, `policy` |
+| watching | `chart`, `gauge`, `pulse`, `dashboard`, `bug`, `eye`, `radar`, `funnel`, `trace`, `alert`, `target` |
+| tooling | `settings`, `plugin`, `integration`, `api`, `tools`, `blocks`, `repository`, `package`, `board`, `code`, `checklist`, `palette`, `form`, `edit`, `power`, `release`, `sync`, `download`, `cleanup`, `timer`, `wand`, `check`, `ticket`, `blueprint`, `upload`, `link`, `tag`, `book`, `test`, `diff` |
+| ai | `model`, `ai` |
+| media | `image`, `video`, `play`, `location`, `audio`, `translate`, `map`, `home`, `text`, `motion` |
+| commerce | `payment`, `store`, `cart`, `order`, `money`, `discount`, `delivery`, `pos`, `inventory`, `bank`, `contract` |
+| shapes | `layers`, `grid`, `cube`, `star`, `flag`, `trigger`, `core` |
 
-[`src/icons.ts`](../src/icons.ts) holds the list. `groma edit <id> --icon
-database` sets the icon of an actor, system, external system, container,
-component, or group, and an empty value removes it. In the web map the Edit
-form offers the same names as its Icon field. No icon is assigned
-automatically, an icon is not inherited by what the element contains, and scans
+[`src/icons.ts`](../src/icons.ts) holds the list, and `groma edit --help`
+prints it. `groma edit <id> --icon database` sets the icon of an actor, system,
+external system, container, component, or group, and an empty value removes it.
+In the web map the Edit form offers the same names as its Icon field, kind by
+kind. No icon is assigned automatically, an icon is not inherited by what the element contains, and scans
 keep it. The icon on a [group](#groups) record stands before its zone's name, and each member keeps its own icon.
 
-The [web map](viewers/web/index.md) draws each name twice: as a small object
-standing beside the element's name in the tilted views, and as a flat glyph in
-the 2D view, the hierarchy and the details. Plain terminal output prints the name.
+The [web map](viewers/web/index.md) draws each name as one small object with
+the element's name. The tilted views look at the object from the map's
+angle; the 2D view, the hierarchy and the details look at it from straight
+above. Plain terminal output prints the name.
 
 ### Code references
 

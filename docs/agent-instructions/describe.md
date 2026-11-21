@@ -50,7 +50,8 @@ the group and its members. Excluding a flow tag removes the flow and leaves its
 ends eligible.
 `--color` and `--icon` each take one of the names
 `groma edit --help` lists and only change how the element or group looks on the map; set
-them when the user asks for it. `groma view` has no `project` target: the project record is
+them when the user asks for it. Pick an icon for the area the part is about, never for
+the action it performs: Map drawing takes `map`, not `palette`. `groma view` has no `project` target: the project record is
 `<groma-root>/project.md`. Read that file, and change it only through
 `groma edit project`.
 

@@ -3,7 +3,7 @@ import type { Command } from 'commander'
 import { writes } from './authoring.ts'
 import type { AddInput, EditArchitectureInput, RemoveInput } from './authoring.ts'
 import { COLOR_NAMES } from './colors.ts'
-import { ICON_NAMES } from './icons.ts'
+import { ICON_KINDS } from './icons.ts'
 import type { StructuralResult } from './curate.ts'
 import { scanRepository } from './scanner.ts'
 
@@ -48,6 +48,13 @@ function addedIds(thing: string, ids: string[]): Pick<AddInput, 'relation' | 'me
   if (thing === 'group') return { members: ids }
   if (ids.length > 0) throw new Error('add takes one name; quote a name with spaces')
   return {}
+}
+
+/** The icon names for the end of `groma edit --help`, one line per kind, under the rule for picking one. */
+function iconNamesHelp(): string {
+  const kinds = Object.entries(ICON_KINDS)
+  const width = Math.max(...kinds.map(([kind]) => kind.length))
+  return ['Icon names. Pick the area a part is about, not what it does to it:', ...kinds.map(([kind, names]) => `  ${kind.padEnd(width)}  ${names.join(', ')}`)].join('\n')
 }
 
 /** The commands that change architecture Markdown: draft, add, remove, edit, and accept. */
@@ -142,7 +149,7 @@ export function registerWriteCommands(program: Command): void {
     .option('--add-tags <tags>', 'comma-separated OKF tags to add to a group, a flow or one or more elements')
     .option('--remove-tags <tags>', 'comma-separated OKF tags to remove from a group, a flow or one or more elements')
     .option('--color <name>', `map color for a group or one or more elements, one of ${COLOR_NAMES.join(', ')} (empty removes it)`)
-    .option('--icon <name>', `map icon for a group or one or more elements, one of ${ICON_NAMES.join(', ')} (empty removes it)`)
+    .option('--icon <name>', 'map icon for a group or one or more elements, one of the icon names below (empty removes it)')
     .option('--draft <draft-id>', 'link this element to the draft that touches it')
     .option('--group <group-id>', 'put this component in a group of its container; it leaves the group it was in')
     .option('--ungroup', 'take this component out of its group')
@@ -150,7 +157,7 @@ export function registerWriteCommands(program: Command): void {
     .option('--combine <ids...>', 'combine empty sibling systems, containers or components into this one; their containers, components or files move to it')
     .option('--detach <files...>', 'detach these source files from the component')
     .option('--id <new-id>', 'rename this element; its document and the documents under it move with it')
-    .addHelpText('after', '\nAgent guides: groma agent-instructions')
+    .addHelpText('after', `\n${iconNamesHelp()}\n\nAgent guides: groma agent-instructions`)
     .action(async (id: string, ids: string[], options) => {
       try {
         const edited = await writes.edit(process.cwd(), {

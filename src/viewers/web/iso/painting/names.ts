@@ -7,22 +7,22 @@ import type { SvgNode } from './svg.ts'
 import { surfaceLabel, surfaceLabelLayout, surfaceText } from './text.ts'
 
 /**
- * A building's name on its roof, with its icon standing before it. One function draws both from one slot, so the
- * name always starts where the icon ends. `still` is set for a drawing without a live stylesheet, such as a cover.
+ * A building's name on its roof with its icon: on the name's first line, or above the name when `above` is set
+ * (measure.ts's iconAbove says for which roofs). One function draws both from one slot, so the name always starts
+ * where the icon's box ends. `still` is set for a drawing without a live stylesheet, such as a cover.
  */
-export function roofName(text: SurfaceText, size: number, view: ProjectionView, icon?: IconName, still?: Still): SvgNode[] {
+export function roofName(text: SurfaceText, size: number, view: ProjectionView, above: boolean, icon?: IconName, still?: Still): SvgNode[] {
   if (icon === undefined) return [surfaceText(text, size, 'label', view)]
-  const slot = roofIconSlot(size)
+  const slot = roofIconSlot(text.lines, size, above)
   return [
-    surfaceText(text, size, 'label', view, slot.lead),
-    iconSvg({ name: icon, corner: onPlane(text.origin, slot.x, slot.y, view), side: slot.side, landmark: false }, view, still),
+    surfaceText(text, size, 'label', view, slot.lead, slot.drop),
+    iconSvg({ name: icon, corner: onPlane(text.origin, slot.x, slot.y, view), side: slot.side }, view, still),
   ]
 }
 
 /**
- * A surface's title and icon share one slot layout in its front band. Both follow the title's zoom step.
- * `icon.landmark` is the caller's choice between the two kinds of icon in icon-camera.ts: a landmark may grow
- * beyond its slot to stay readable, any other icon stays in its slot. `still` is as for roofName.
+ * A surface's title and icon share one layout in its front band: the icon's box lies on the title's line and
+ * follows the title's zoom step. `still` is as for roofName.
  */
 export function surfaceTitle(
   text: SurfaceLabel,
@@ -30,13 +30,12 @@ export function surfaceTitle(
   view: ProjectionView,
   spacing: number,
   zoom: number,
-  icon: { name?: IconName; landmark: boolean },
+  icon: IconName | undefined,
   still?: Still,
 ): SvgNode[] {
-  const layout = surfaceLabelLayout(text, size, zoom, view, icon.name !== undefined)
+  const layout = surfaceLabelLayout(text, size, zoom, view, icon !== undefined)
   const label = surfaceLabel(text, layout, view, spacing)
-  if (icon.name === undefined) return [label]
-  const slot = layout.icon
-  const corner = onPlane(text.origin, slot.x, slot.y, view)
-  return [label, iconSvg({ name: icon.name, corner, side: slot.side, landmark: icon.landmark }, view, still)]
+  if (icon === undefined) return [label]
+  const corner = onPlane(text.origin, layout.icon.x, layout.icon.y, view)
+  return [label, iconSvg({ name: icon, corner, side: layout.icon.side }, view, still)]
 }

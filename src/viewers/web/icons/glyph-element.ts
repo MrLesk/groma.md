@@ -1,22 +1,22 @@
 import type { IconName } from '../../../icons.ts'
-import { GLYPH_SIZE, iconGlyphs } from './glyphs.ts'
+import { iconStroke } from '../iso/painting/icon-camera.ts'
+import { planSvg } from '../iso/painting/icons.ts'
+import { iconCss } from '../iso/painting/style.ts'
+import { patch, svg } from '../iso/painting/svg.ts'
 
-const NAMESPACE = 'http://www.w3.org/2000/svg'
-
+/** In a pane an icon is the drawing the 2D view shows, with the map's own icon look. */
 export const glyphCss = `
-  .glyph { flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .glyph { flex: none; overflow: visible; }
+  ${iconCss('.glyph')}
 `
 
-/** An icon's flat glyph as an inline drawing `size` pixels wide, in the colour of the text around it. */
+/**
+ * An icon as an inline drawing `size` pixels wide: the object's plan, exactly as the 2D view draws it, with the
+ * line width an icon of that size gets on the map.
+ */
 export function glyphElement(name: IconName, size: number): SVGSVGElement {
-  const svg = document.createElementNS(NAMESPACE, 'svg')
-  svg.setAttribute('class', 'glyph')
-  svg.setAttribute('viewBox', `0 0 ${GLYPH_SIZE} ${GLYPH_SIZE}`)
-  svg.setAttribute('width', String(size))
-  svg.setAttribute('height', String(size))
-  svg.setAttribute('aria-hidden', 'true')
-  const path = document.createElementNS(NAMESPACE, 'path')
-  path.setAttribute('d', iconGlyphs[name])
-  svg.append(path)
-  return svg
+  const look = { viewBox: `0 0 ${size} ${size}`, width: size, height: size, 'aria-hidden': 'true', style: `--icon-stroke: ${iconStroke(size)}px` }
+  const element = svg('svg', look, 'glyph')
+  patch(element, planSvg(name, size))
+  return element
 }

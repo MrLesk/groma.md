@@ -16,7 +16,7 @@ export interface TreeRow {
   external: boolean
   depth: number
   origin: Origin
-  /** The element's authored icon name; the web hierarchy draws its glyph. */
+  /** The element's authored icon name; the web hierarchy draws it. */
   icon?: IconName
   hasChildren: boolean
   expanded: boolean

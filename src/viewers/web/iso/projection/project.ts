@@ -1,5 +1,5 @@
 import { centredRect } from '../../../../sheet/grid.ts'
-import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, ISLAND_SPACING, PLANE, buildingFont, curved, labelBand, roofBlock, textWidth } from '../../../../sheet/measure.ts'
+import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, ISLAND_SPACING, PLANE, buildingFont, curved, iconAbove, labelBand, roofBlock, textWidth } from '../../../../sheet/measure.ts'
 import type {
   Building,
   CellRect,
@@ -51,6 +51,17 @@ export function project(gx: number, gy: number, z: number, view: ProjectionView 
     x: (gx * Math.cos(yaw) - gy * Math.sin(yaw)) * WORLD_SCALE,
     y: depth * WORLD_SCALE * Math.sin(pitch) - z * HEIGHT_SCALE * Math.cos(pitch),
   }
+}
+
+/**
+ * The direction from the scene to the reader, one unit long: along gx, along gy and up, each in cell lengths.
+ * A face is seen when it is turned this way. It follows from `project`: the reader looks from the side of
+ * greater depth, `pitch` degrees above the ground.
+ */
+export function towardsReader(view: ProjectionView = DEFAULT_PROJECTION): readonly [gx: number, gy: number, up: number] {
+  const yaw = view.yaw * RAD
+  const pitch = view.pitch * RAD
+  return [Math.sin(yaw) * Math.cos(pitch), Math.cos(yaw) * Math.cos(pitch), Math.sin(pitch)]
 }
 
 /** The planes the viewer sees. Every flat decoration (names, patterns, compass letters) is drawn in plane pixels and laid onto the screen by one matrix per plane. */
@@ -261,13 +272,13 @@ function onVisibleBuilding(
 }
 
 /**
- * The roof and the one front band of a curved building, or of any upright shape with the ring `outline`: the ring between its
+ * The roof and the one front band of a curved building with the ring `outline`: the ring between its
  * screen-left and screen-right extremes along the base and back along the
  * top. Stepping back through the ring from the left extreme reaches the right
  * extreme along the front, the part turned to the viewer. The band is the
  * left face for tint and pattern.
  */
-export function curvedFaces(
+function curvedFaces(
   outline: readonly { gx: number; gy: number }[],
   z0: number,
   z1: number,
@@ -337,7 +348,7 @@ function roofText(building: Building, view: ProjectionView): SurfaceText {
   const top = building.floors.at(-1)
   const roof = top === undefined ? building.rect : centredRect(building.rect, top.footprint)
   if (!curved(shape)) return { origin: project(roof.gx, roof.gy, heightUnits, view), lines }
-  const block = roofBlock(lines, buildingFont(building), building.icon !== undefined)
+  const block = roofBlock(lines, buildingFont(building), building.icon !== undefined, iconAbove(shape))
   return {
     origin: project(
       roof.gx + (roof.w - block.w / PLANE) / 2,

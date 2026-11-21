@@ -1,3 +1,5 @@
+import type { Tone } from './icon-faces.ts'
+
 /**
  * The map's levels from the outside in, like heading levels: each step down
  * is thinner and darker, so at any zoom the eye sorts the big outlined
@@ -53,8 +55,12 @@ export function facadeDetailsVisible(k: number): boolean {
   return k * FACADE_MARK >= 1
 }
 
-/** Share of ink in an icon's lines; the rest is the outline colour of what it stands on. */
-export const ICON_INK = 0.6
+/** Share of ink in an icon's quiet lines; the rest is the map's line colour. */
+export const ICON_INK = 0.3
+/** Share of ink in an icon's faces by the side a face is turned to: the top is nearly paper, the left wall the deepest, as on a building. */
+export const ICON_TONE: Record<Tone, number> = { top: 0.04, right: 0.07, left: 0.1 }
+/** Share of the accent colour in the faces of an accent part, by the side a face is turned to. */
+export const ICON_ACCENT_TONE: Record<Tone, number> = { top: 0.14, right: 0.2, left: 0.26 }
 
 /** Island dots and crosses and the group hatching repeat this many world pixels apart; slab grain is coarser. */
 export const SURFACE_TILE = 8
