@@ -136,8 +136,6 @@ export async function exportWebViewer(
   if (url !== undefined && !url.pathname.endsWith('/')) url.pathname += '/'
   const output = path.resolve(outputDirectory)
   const renderer = await bundleRenderer()
-  await mkdir(output, { recursive: true })
-  await replaceFile(path.join(output, 'render.js'), renderer)
 
   let generation = Date.now()
   let closed = false
@@ -147,6 +145,9 @@ export async function exportWebViewer(
   async function publish(): Promise<void> {
     const snapshot = await publishedSnapshot(repositoryRoot, revisions, ++generation, filter)
     if (closed) return
+    // Nothing is written before the snapshot exists, so an export that fails leaves no directory and no half-written site.
+    await mkdir(output, { recursive: true })
+    await replaceFile(path.join(output, 'render.js'), renderer)
     const covers = await generateCovers(snapshot)
     for (const theme of coverThemes) await replaceFile(path.join(output, coverFile(theme)), covers[theme])
     await replaceFile(path.join(output, 'snapshot.js'), snapshotScript(snapshot))

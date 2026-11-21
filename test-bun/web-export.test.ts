@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import { existsSync } from 'node:fs'
 import { cp, mkdtemp, readFile, rm, writeFile, mkdir } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -57,7 +58,10 @@ test.concurrent('a filtered export publishes neither an excluded component nor i
     const boot = await publish(root, { filter: { include: [], exclude: ['internal'] } })
     expect(boot.world.elements.map(element => element.id).sort()).toEqual(['api', 'shop'])
     expect(JSON.stringify(boot)).not.toContain('internalOnly')
-    await expect(publish(root, { filter: { include: ['missing'], exclude: [] } })).rejects.toThrow('leaves no element')
+    // A filter that leaves nothing fails and writes nothing: no directory, no half-written site.
+    const unwritten = path.join(root, 'unwritten-site')
+    await expect(exportWebViewer(root, unwritten, { filter: { include: ['missing'], exclude: [] } })).rejects.toThrow('leaves no element')
+    expect(existsSync(unwritten)).toBe(false)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
