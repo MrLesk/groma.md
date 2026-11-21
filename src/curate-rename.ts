@@ -1,6 +1,6 @@
 import { parseFrontmatter } from 'comark'
 
-import { markdownHref, relationshipTargetFilename } from './architecture-markdown.ts'
+import { inlineLinkTarget, markdownHref, relationshipTargetFilename } from './architecture-markdown.ts'
 import { freeId } from './architecture-model.ts'
 import { architectureElementPath } from './architecture-path.ts'
 import { readDocument, withGromaField } from './markdown-emitter.ts'
@@ -14,7 +14,7 @@ import type { ArchitectureElement } from './types.ts'
  * forms the reader accepts, such as a definition in a block quote or list item or an angle-bracketed
  * target with spaces, are not rewritten; requireLoadableResult in curate.ts then refuses the rename.
  */
-const inlineLink = /\]\(\s*<?((?:[^()\s<>]|\([^()\s<>]*\))+)>?((?:\s+(?:"[^"]*"|'[^']*'|\([^()]*\)))?)\s*\)/g
+const inlineLink = new RegExp(String.raw`\]${inlineLinkTarget}`, 'g')
 const linkDefinition = /^( {0,3}\[(?:\\.|[^\\\]])+\]:[ \t]*(?:\r?\n[ \t]*)?)<?([^\s<>]+)>?/gm
 const codeLiteral = /^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?^ {0,3}\1[ \t]*(?:\n|$)|(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\2(?!`)/gm
 

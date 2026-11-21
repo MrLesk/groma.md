@@ -36,10 +36,13 @@ export function groupContext(repositoryRoot: string, records: ArchitectureRecord
   return { repositoryRoot, records, model, groups: resolveGroups(records.groups, model) }
 }
 
-/** The section of a group record that lists its members. */
-export const membersSection: ReadonlySet<string> = new Set(['## Members'])
+/** The heading of the section of a group record that lists its members. */
+const MEMBERS = '## Members'
 
-const membersHeading = /^## Members[ \t]*$/m
+/** The section of a group record whose element links groma keeps. */
+export const membersSection: ReadonlySet<string> = new Set([MEMBERS])
+
+const membersHeading = new RegExp(`^${MEMBERS}[ \\t]*$`, 'm')
 
 /**
  * Rewrites the "## Members" section as one link per member; a group without members has no such section.
@@ -52,7 +55,7 @@ function withMembers(source: string, sourceFilename: string, members: readonly A
   const nextHeading = stored.search(/^## /m)
   const after = nextHeading === -1 ? '' : stored.slice(nextHeading)
   const links = members.map(member => `- ${elementLink(sourceFilename, member)}`)
-  const section = links.length === 0 ? '' : `## Members\n\n${links.join('\n')}`
+  const section = links.length === 0 ? '' : `${MEMBERS}\n\n${links.join('\n')}`
   return `${[before, section, after].map(part => part.trim()).filter(part => part !== '').join('\n\n')}\n`
 }
 
@@ -97,8 +100,8 @@ async function joiningWrites(
 
 /**
  * The one way to write a group's meaning and members: loads the groups as these writes would leave them,
- * then writes. A refused change writes nothing. (relinkElement in element-links.ts writes again the text of
- * member links, which no load reads.)
+ * then writes. A refused change writes nothing. (relinkElement in edit.ts writes again the text of member
+ * links, which no load reads.)
  */
 export async function writeGroups(context: GroupContext, writes: readonly GroupWrite[]): Promise<void> {
   const written = new Set(writes.map(write => write.sourceFilename))

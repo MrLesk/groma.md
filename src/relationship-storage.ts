@@ -17,8 +17,13 @@ export function placeRelationships(rows: readonly StoredRelationship[], elements
   return rows.map(row => ({ ...row, document: index.resolve(row.source)?.sourceFilename ?? row.document }))
 }
 
-/** The sections of an element document that hold its relationship rows. */
-export const relationshipSections: ReadonlySet<string> = new Set(['## Relationships', '## Draft relationships', '## Derived relationships'])
+/** The headings of the sections of an element document that hold its relationship rows, by who owns the rows. */
+const AUTHORED = '## Relationships'
+const DRAFTED = '## Draft relationships'
+const DERIVED = '## Derived relationships'
+
+/** The sections of an element document whose rows and element links groma keeps. */
+export const relationshipSections: ReadonlySet<string> = new Set([AUTHORED, DRAFTED, DERIVED])
 
 /** These sections belong to relationship storage; all other prose and sections stay untouched. */
 export function withoutRelationshipSections(source: string): string {
@@ -74,7 +79,7 @@ export function withStoredRelationships(
   }
   const sections = new Map<string, string[]>()
   for (const row of rows) {
-    const heading = row.authored ? (row.status === 'draft' ? '## Draft relationships' : '## Relationships') : '## Derived relationships'
+    const heading = row.authored ? (row.status === 'draft' ? DRAFTED : AUTHORED) : DERIVED
     const lines = sections.get(heading) ?? []
     lines.push(`| ${link(row.source)} | ${link(row.target)} | ${row.description} | ${row.technology} |`)
     sections.set(heading, lines)

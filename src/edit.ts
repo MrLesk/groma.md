@@ -4,11 +4,10 @@ import {
   requireDraftRecord,
 } from './architecture-model.ts'
 import type { DraftRecord } from './architecture-model.ts'
-import { collectNodes, relationshipTargetFilename } from './architecture-markdown.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { curateElement } from './curate.ts'
 import type { StructuralResult } from './curate.ts'
-import { elementsByDocument, withElementLinks } from './element-links.ts'
+import { withElementLinks } from './element-links.ts'
 import {
   readDocument,
   replaceLeadProse,
@@ -288,12 +287,6 @@ async function editElement(
   return { id: element.id, created: [], changed: relinked, removed: [], affectedIds: [element.id], replacements: [] }
 }
 
-/** Whether this record has a link that leads to the document at this path. */
-function linksTo(record: ArchitectureDocument, sourceFilename: string): boolean {
-  return record.nodes.some(node => collectNodes(node, 'a')
-    .some(link => relationshipTargetFilename(record.sourceFilename, link[1]?.href) === sourceFilename))
-}
-
 /**
  * The links that group members, relationship rows and flow steps keep to an element show its title and
  * carry its id. Once a new title or id is stored, every record that links the element has those links
@@ -303,7 +296,6 @@ function linksTo(record: ArchitectureDocument, sourceFilename: string): boolean 
 async function relinkElement(repositoryRoot: string, elementId: string): Promise<string[]> {
   const records = await loadArchitecture(repositoryRoot)
   const element = buildArchitectureModel(records.documents).elements.find(candidate => candidate.id === elementId)!
-  const linked = elementsByDocument([element])
   const kept: [readonly ArchitectureDocument[], ReadonlySet<string>][] = [
     [records.documents, relationshipSections],
     [records.flows, stepsSection],
@@ -311,9 +303,9 @@ async function relinkElement(repositoryRoot: string, elementId: string): Promise
   ]
   const written: string[] = []
   for (const [stored, sections] of kept) {
-    for (const record of stored.filter(candidate => linksTo(candidate, element.sourceFilename))) {
+    for (const record of stored) {
       const before = await readDocument(repositoryRoot, record.sourceFilename)
-      const source = withElementLinks(before, record.sourceFilename, sections, linked)
+      const source = withElementLinks(before, record.sourceFilename, sections, [element])
       if (source === before) continue
       await writeDocument(repositoryRoot, record.sourceFilename, source)
       written.push(record.sourceFilename)

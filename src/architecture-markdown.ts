@@ -75,6 +75,14 @@ export function relationshipTargetFilename(sourceFilename: string, href: unknown
 }
 
 /**
+ * The target of an inline Markdown link with its optional title, as the source of a pattern: it matches
+ * "(target)" and "(target "title")". Its two groups are the target and the title with the space before it.
+ * A rename (curate-rename.ts) and the element links (element-links.ts) both find links with it, so a
+ * change here reaches both.
+ */
+export const inlineLinkTarget = String.raw`\(\s*<?((?:[^()\s<>]|\([^()\s<>]*\))+)>?((?:\s+(?:"[^"]*"|'[^']*'|\([^()]*\)))?)\s*\)`
+
+/**
  * The level-two section each line of a Markdown source belongs to: the heading line, such as "## Steps",
  * that opened it, or undefined above the first one. A heading inside fenced code opens no section.
  */

@@ -468,8 +468,10 @@ it on hover, and it is the ID that commands take. groma.md reads only the link
 target; the text and the title carry no meaning for it. It writes them, and
 writes them again in every record that links an element when
 `groma edit <id> --title` or `--id` gives that element a new title or ID.
-A reference-style link stays as its author typed it. The form lives in
-[`src/element-links.ts`](../src/element-links.ts).
+Only a link that names a member or an end of a row is written this way. A link
+in a Description or Action cell or in prose is its author's text. So is a
+reference-style link, and an inline link whose text has brackets of its own.
+The form lives in [`src/element-links.ts`](../src/element-links.ts).
 
 ## Relationships
 
@@ -628,8 +630,8 @@ The customer submits an order. Ordering checks the payment before recording it.
 
 `title`, a unique stable `groma.id`, overview prose, and the Steps table are
 required. `description` is optional. From and To accept normal inline or
-reference-style Markdown links to C4 documents, with any text. groma.md stores
-each inline one as an [element link](#element-links). Each row must resolve exactly
+reference-style Markdown links to C4 documents. groma.md stores an inline one
+as an [element link](#element-links), whatever text was typed. Each row must resolve exactly
 one existing directed relationship in the loaded revision. Missing endpoints,
 missing relationships, and ambiguous endpoint pairs are errors.
 
