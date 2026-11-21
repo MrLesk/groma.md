@@ -591,7 +591,9 @@ The TypeScript scanner and Angular scanner identify their respective
 Code contributions as `typescript` and `angular`, even when they inspect the
 same file. Core keeps one owner for that source path.
 
-All paths are repository-relative. Root parents and file memberships must resolve
+All paths are repository-relative. Every root must have a name: when the file that
+defines a root declares none, as a `package.json` without `name` does, name the root
+after its directory. Root parents and file memberships must resolve
 inside the observation, and the root hierarchy must have no cycles. Invocation
 endpoints and HTTP facts must identify declared operations. A scanner's exclusions
 drop HTTP facts whose operation is in an excluded file. Duplicate primary keys

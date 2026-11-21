@@ -284,6 +284,19 @@ test.concurrent('Angular scans an Nx application through its solution config wit
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
 
+test.concurrent('Angular names a package whose manifest has no name after its directory', async () => {
+  const { temporary, root, scanner } = await workspace({
+    // An application's package.json may omit the name, which only publishing requires.
+    'package.json': JSON.stringify({ dependencies: { '@angular/core': '21.2.17' } }),
+    'tsconfig.json': JSON.stringify({ compilerOptions: { experimentalDecorators: true }, include: ['*.ts'] }),
+    'app.ts': "import { Component } from '@angular/core'\n\n@Component({ template: '<p>App</p>' })\nexport class App {}\n",
+  })
+  try {
+    const observation = (await scanner.scan(root, {}, await angularFiles(root)))!
+    expect(observation.roots.map(item => item.name)).toEqual([path.basename(root)])
+  } finally { await rm(temporary, { recursive: true, force: true }) }
+})
+
 test.concurrent('Angular binds directive outputs and template emits from inline templates to the parent method', async () => {
   const { temporary, root, scanner } = await workspace({
     'package.json': JSON.stringify({ dependencies: { '@angular/core': '21.2.17' } }),

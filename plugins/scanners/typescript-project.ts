@@ -13,6 +13,14 @@ export async function packageManifest(root: string, file: string): Promise<Recor
   }
 }
 
+/**
+ * The name of a package's source root: its manifest's `name`, else the name of its directory, given as an absolute
+ * path. Only publishing requires `name`, so an application's package.json often has none.
+ */
+export function packageRootName(manifest: Record<string, unknown>, directory: string): string {
+  return typeof manifest.name === 'string' ? manifest.name : path.basename(directory)
+}
+
 export function hasDependency(manifest: Record<string, unknown>, dependency: string): boolean {
   return ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
     .some(section => typeof (manifest[section] as Record<string, unknown> | undefined)?.[dependency] === 'string')
