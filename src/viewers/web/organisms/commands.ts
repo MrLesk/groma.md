@@ -62,9 +62,13 @@ export function acceptEntry(title: string, accept: () => Promise<void>): WriteEn
   return { label: 'Accept', view: { approveLabel: 'Accept', fields: [], question: `Accept ${title}?`, write: accept } }
 }
 
-/** Remove: takes the record out of the architecture. */
-export function removeEntry(title: string, remove: () => Promise<void>): WriteEntry {
-  return { label: 'Remove', view: { approveLabel: 'Remove', fields: [], question: `Remove ${title}?`, write: remove } }
+/**
+ * Remove: takes the record out of the architecture. `whatStays` is said after the question where a person
+ * could fear losing more than the record, as with the components of a group.
+ */
+export function removeEntry(title: string, remove: () => Promise<void>, whatStays?: string): WriteEntry {
+  const question = whatStays === undefined ? `Remove ${title}?` : `Remove ${title}? ${whatStays}`
+  return { label: 'Remove', view: { approveLabel: 'Remove', fields: [], question, write: remove } }
 }
 
 /** A field of a group's or a flow's Edit view. The core refuses any other field on these two records. */
@@ -87,7 +91,7 @@ function wordingAndTagFields(
 
 /** Edit of a group: its wording and tags. Remove, which deletes the group and leaves its members, is offered above the fields. */
 export function groupEditEntry(group: AnnotatedGroup, world: ArchitectureGraph, writes: GroupWrites): WriteEntry {
-  const others = writes.onRemove === undefined ? [] : [removeEntry(group.title, writes.onRemove)]
+  const others = writes.onRemove === undefined ? [] : [removeEntry(group.title, writes.onRemove, 'Its components stay.')]
   return editEntry(wordingAndTagFields(group, world, { overviewRequired: false }), writes.onEdit, others)
 }
 
