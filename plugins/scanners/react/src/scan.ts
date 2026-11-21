@@ -4,7 +4,7 @@ import { entrySourceInputs } from '../../entry-points/source.ts'
 import { classicChecker } from '../../http-checker.ts'
 import { createScanObservation, type ScanObservation, type ScannerSettings } from '@groma/scanner'
 import ts from 'typescript'
-import { frameworkProjects } from '../../typescript-project.ts'
+import { frameworkProjects, packageRootName } from '../../typescript-project.ts'
 import { typeScriptSources } from '../../typescript/src/files.ts'
 import { combineObservations } from '../../observations.ts'
 import { Evidence } from './evidence.ts'
@@ -63,7 +63,7 @@ async function scanProject(root: string, directory: string,
   const packageRoot = (file: string) => owner(file) === own ? 'react-project' : `package:${owner(file)}`
   const others = [...new Set(reported.map(owner))].filter(item => item !== own)
   return withJavaScriptEntries(root, createScanObservation({ scanner: { id: 'react', technology: 'typescript/react', engine: 'typescript-sdk', engineVersion: ts.version },
-    roots: [{ id: 'react-project', kind: 'package', name: manifest.name, file: relative(root, path.join(directory, 'package.json')) },
+    roots: [{ id: 'react-project', kind: 'package', name: packageRootName(manifest, directory), file: relative(root, path.join(directory, 'package.json')) },
       ...others.map(item => ({ id: `package:${item}`, kind: 'package', name: item || '.', file: path.posix.join(item, 'package.json') }))],
     files: reported.map(file => ({ file, symbols: [], roots: [packageRoot(file)] })),
     operations: [...evidence.operations.values()], invocations: evidence.invocations, diagnostics: [...diagnostics, ...evidence.diagnostics],

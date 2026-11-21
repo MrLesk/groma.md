@@ -6,6 +6,8 @@ without project dependencies. The scanner uses each selected project's
 `tsconfig.json`, or the nearest one above that package. A package without an
 applicable config uses the selected source with the bundled compiler's JavaScript
 and module settings. No config is written and no application code is executed.
+A `package.json` name supplies the package's root name when present; otherwise
+the directory name is used.
 
 ```sh
 bun install --frozen-lockfile --ignore-scripts

@@ -27,7 +27,8 @@ The prototype package name is not a public publication commitment.
 The scanner reads each selected project's TypeScript configs, sources and
 templates. The package supplies the compiler tools; project `node_modules`,
 application compilation and dependency installation are not required.
-Application code is never executed.
+Application code is never executed. A `package.json` name supplies the
+project's root name when present; otherwise the directory name is used.
 
 ## Compiler tooling
 

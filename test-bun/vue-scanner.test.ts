@@ -191,6 +191,16 @@ test.concurrent('Vue excludes imported callback endpoints without rejecting the 
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
 
+test.concurrent('Vue names a package whose manifest has no name after its directory', async () => {
+  const { temporary, root, scanner } = await setup()
+  try {
+    // An application's package.json may omit the name, which only publishing requires.
+    await writeFile(path.join(root, 'package.json'), JSON.stringify({ dependencies: { vue: '*' } }))
+    const observation = (await scanner.scan(root, {}, await vueFiles(root)))!
+    expect(observation.roots.map(item => item.name)).toEqual([path.basename(root)])
+  } finally { await rm(temporary, { recursive: true, force: true }) }
+})
+
 test.concurrent('Vue reads tracked components and Nuxt routes without generated TypeScript config roots', async () => {
   const { temporary, root, scanner } = await setup()
   try {
