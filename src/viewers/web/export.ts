@@ -2,11 +2,13 @@ import { mkdir, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 import { watchArchitecture } from '../../architecture-watch.ts'
+import { loadAnnotatedArchitecture } from '../../core.ts'
 import { compareArchitecture, ownedFiles, type SourceTexts } from '../../history/comparison.ts'
 import { olderFirst, readGitRevision, type GitRevision } from '../../history/revisions.ts'
 import { atRevision, readSourceTexts } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
 import type { TagFilter } from '../../tag-selection.ts'
+import { knownTags } from '../../tags.ts'
 import { outlineSourceFiles, readSnapshotCodeStructure } from '../source/structure.ts'
 import { renderPage } from './page.ts'
 import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'
@@ -69,11 +71,24 @@ function comparisonView(before: PublishedView, after: PublishedView): PublishedV
   }
 }
 
+/**
+ * Stops an export whose filter names a tag that nothing carries in the exported commits. Such a tag is most
+ * likely mistyped, and a mistyped exclude would publish what it was meant to leave out.
+ */
+async function refuseTagsNothingCarries(roots: readonly string[], filter: TagFilter | undefined): Promise<void> {
+  if (filter === undefined) return
+  const worlds = await Promise.all(roots.map(root => loadAnnotatedArchitecture(root)))
+  const carried = new Set(worlds.flatMap(world => knownTags(world.elements)))
+  const unused = [...filter.include, ...filter.exclude].filter(tag => !carried.has(tag))
+  if (unused.length > 0) throw new Error(`The export filter names ${unused.length === 1 ? 'a tag' : 'tags'} that nothing carries: ${unused.join(', ')}`)
+}
+
 /** Materialize existing viewer reads while the requested roots are available; no Git reaches the browser. */
 async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number, filter: TagFilter | undefined): Promise<WebBootPayload> {
   const to = revisions.at(-1) ?? null
   const from = revisions.length === 2 ? revisions[0]! : undefined
   return atRevision(root, to, async afterRoot => {
+    if (from === undefined) await refuseTagsNothingCarries([afterRoot], filter)
     const afterMap = await loadMapRoot(afterRoot, undefined, filter)
     // A filter that leaves nothing of the exported commit is a mistake worth stopping for, not an empty site.
     if (filter !== undefined && afterMap.world.elements.length === 0) throw new Error('The export filter leaves no element to export')
@@ -82,6 +97,8 @@ async function publishedSnapshot(root: string, revisions: GitRevision[], generat
       return { ...view.payload, delivery: { kind: 'published', views: [view] } }
     }
     return atRevision(root, from, async beforeRoot => {
+      // In a comparison a tag is carried when either commit carries it.
+      await refuseTagsNothingCarries([afterRoot, beforeRoot], filter)
       const beforeMap = await loadMapRoot(beforeRoot, undefined, filter)
       const files = [...new Set([...ownedFiles(beforeMap.world), ...ownedFiles(afterMap.world)])]
       // A filtered snapshot reads only the files its own subset owns: a part excluded in one commit publishes no source from that commit.
