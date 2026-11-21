@@ -54,10 +54,10 @@ test.concurrent('a filtered export publishes neither an excluded component nor i
     await cp(fixture, root, { recursive: true })
     await writeFile(path.join(root, 'src/orders.ts'), 'export const internalOnly = true\n')
     await writes.edit(root, { id: 'orders', addTags: 'internal' })
-    const boot = await publish(root, { filter: { include: [], exclude: ['internal'] } })
+    const boot = await publish(root, { filter: { focused: [], match: 'any', excluded: ['internal'] } })
     expect(boot.world.elements.map(element => element.id).sort()).toEqual(['api', 'shop'])
     expect(JSON.stringify(boot)).not.toContain('internalOnly')
-    await expect(publish(root, { filter: { include: ['missing'], exclude: [] } })).rejects.toThrow('leaves no element')
+    await expect(publish(root, { filter: { focused: ['missing'], match: 'any', excluded: [] } })).rejects.toThrow('leaves no element')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
@@ -81,7 +81,7 @@ test.concurrent('a filtered comparison publishes no source from the commit that 
     await writes.edit(root, { id: 'orders', addTags: 'internal' })
     await writeFile(path.join(root, 'src/orders.ts'), 'export const internalOnly = true\n')
     const internal = await commit('Orders become internal')
-    const boot = await publish(root, { from: published, revision: internal, filter: { include: [], exclude: ['internal'] } })
+    const boot = await publish(root, { from: published, revision: internal, filter: { focused: [], match: 'any', excluded: ['internal'] } })
     expect(boot.comparison?.components.orders?.status).toBe('removed')
     expect(JSON.stringify(boot)).not.toContain('internalOnly')
   } finally { await rm(root, { recursive: true, force: true }) }

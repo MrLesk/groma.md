@@ -61,6 +61,7 @@ function connectionCounts(relationships: readonly ArchitectureRelationship[]): M
 }
 
 
+/** Resolves the stored records into the elements, relationships, groups and flows a viewer reads. */
 export function annotateArchitecture(
   records: ArchitectureRecords,
 ): AnnotatedArchitectureModel {
@@ -96,8 +97,9 @@ export function annotateArchitecture(
 
   return {
     flows,
-    groups: groups.map(({ id, title, description, overview }) => ({
+    groups: groups.map(({ id, title, description, overview, tags }) => ({
       id, title, ...(description === undefined ? {} : { description }), overview,
+      ...(tags === undefined ? {} : { tags }),
     })),
     drafts: records.drafts.map(document => draftRecordOf(document).id).sort(),
     elements: withDirectChildren(elements),

@@ -8,7 +8,7 @@ import { atRevision, readSourceTexts } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
 import { loadThemes } from '../../themes/configured.ts'
 import type { ThemeDefinition } from '../../themes/definition.ts'
-import type { TagFilter } from '../../tag-selection.ts'
+import type { TagFocus } from '../../tag-selection.ts'
 import { outlineSourceFiles, readSnapshotCodeStructure } from '../source/structure.ts'
 import { renderPage } from './page.ts'
 import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'
@@ -22,12 +22,13 @@ export interface WebExportHandle {
   close(): Promise<void>
 }
 
+/** The revisions, tag focus and publication settings for a static web map. */
 export interface WebExportOptions {
   url?: string
   revision?: string
   from?: string
   /** Export only the subset these tags keep; absent exports everything. */
-  filter?: TagFilter
+  filter?: TagFocus
   watch?: boolean
   onError?: (error: unknown) => void
 }
@@ -72,7 +73,7 @@ function comparisonView(before: PublishedView, after: PublishedView): PublishedV
 }
 
 /** Materialize existing viewer reads while the requested roots are available; no Git reaches the browser. */
-async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number, filter: TagFilter | undefined, themes: ThemeDefinition[]): Promise<WebBootPayload> {
+async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number, filter: TagFocus | undefined, themes: ThemeDefinition[]): Promise<WebBootPayload> {
   const to = revisions.at(-1) ?? null
   const from = revisions.length === 2 ? revisions[0]! : undefined
   return atRevision(root, to, async afterRoot => {

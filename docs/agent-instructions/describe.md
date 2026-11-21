@@ -20,7 +20,7 @@ explain.
   helps a reader understand the element. Leave it unset when unknown.
 - Tags name the categories that cut across the hierarchy and that the project's
   people already use, such as a business area or an owning team. Reuse the tags
-  other elements carry before adding a new one, and leave an element untagged
+  other elements, groups, and flows carry before adding a new one, and leave a record untagged
   when no category applies.
 
 Use code, project documentation, and confirmed user context to support these
@@ -33,14 +33,21 @@ of writing guesses. Optional fields need content only when they add meaning.
 | --- | --- | --- |
 | `groma edit <id>` | an actor, system, external system, container, or component ID | `--title`, `--description`, `--overview`, `--technology`, `--add-tags`, `--remove-tags`, `--color`, `--icon` |
 | `groma edit <id> <ids...>` | several element IDs | `--add-tags`, `--remove-tags`, `--color`, `--icon` |
+| `groma edit <group-id>` | a group ID | `--title`, `--description`, `--overview`, `--add-tags`, `--remove-tags` |
+| `groma edit <flow-id>` | a flow ID | `--title`, `--description`, `--overview`, `--steps`, `--add-tags`, `--remove-tags` |
 | `groma edit <draft-id>` | a draft ID | `--title`, `--overview` |
 | `groma edit project` | the word `project`, meaning the project record | `--title`, `--description`, `--overview` |
 
 `--title` renames the record; its ID stays. An empty `--description` or
-`--technology` value removes that field, and an empty `--overview` clears the body.
+`--technology` value removes that field. An empty `--overview` clears the overview
+on records that allow it. A flow requires its overview.
 `--add-tags` and `--remove-tags` each take a comma-separated list. Each named
-element keeps its other tags. A tag can appear in only one of the two lists.
-Several ids take the same changes in one edit.
+record keeps its other tags. A tag can appear in only one of the two lists.
+Several element IDs take the same changes in one edit. Focusing a group's tag
+lights its members. Focusing a flow's tag lights its step ends. A filtered export
+keeps those elements and their parents on include. Excluding a group tag removes
+the group and its members. Excluding a flow tag removes the flow and leaves its
+ends eligible.
 `--color` and `--icon` each take one of the names
 `groma edit --help` lists and only change how the element looks on the map; set
 them when the user asks for it. `groma view` has no `project` target: the project record is

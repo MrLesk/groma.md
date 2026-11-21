@@ -44,7 +44,7 @@ export interface IsoMap {
   mark(ids: ReadonlySet<string>): void
   /** Gives every selected component a breathing glow and softly accents their direct component neighbors. */
   markNeighbors(selected: ReadonlySet<string>, neighbors: ReadonlySet<string>): void
-  /** Tag focus: keeps the bodies the tags match and their parents, the zones with a matched member and the routes whose two ends match; everything else recedes. Undefined clears it. */
+  /** Tag focus: keeps the lit bodies and their parents, the zones with a lit member and the routes whose two ends are lit; everything else recedes. Undefined clears it. */
   focusTags(selection: TagSelection | undefined): void
   /** Lights route ids and direct endpoints; contextual ancestors stay neutral while everything off the path dims. */
   setLitRoutes(litRouteIds: ReadonlySet<string>, onPath: (id: string) => boolean, focusedRouteId?: string): void
@@ -303,12 +303,12 @@ export function createMap(host: HTMLElement): IsoMap {
     },
     focusTags(selection) {
       cameraLayer.element.toggleAttribute('data-tag-focus', selection !== undefined)
-      const matched = selection?.matched ?? new Set<string>()
+      const lit = selection?.lit ?? new Set<string>()
       const parents = selection?.parents ?? new Set<string>()
-      for (const [itemId, node] of items) node.classList.toggle('tag-match', matched.has(itemId) || parents.has(itemId))
-      for (const zone of zones) zone.group.classList.toggle('tag-match', zone.members.some(id => matched.has(id)))
+      for (const [itemId, node] of items) node.classList.toggle('tag-match', lit.has(itemId) || parents.has(itemId))
+      for (const zone of zones) zone.group.classList.toggle('tag-match', zone.members.some(id => lit.has(id)))
       for (const route of new Set(routes.values())) {
-        route.group.classList.toggle('tag-match', matched.has(route.source) && matched.has(route.target))
+        route.group.classList.toggle('tag-match', lit.has(route.source) && lit.has(route.target))
       }
     },
     setLitRoutes(litRouteIds, onPath, focusedRouteId) {

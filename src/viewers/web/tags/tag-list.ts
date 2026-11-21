@@ -1,4 +1,5 @@
-import type { TagCount, TagFocus } from '../../../tag-selection.ts'
+import type { TagCount } from '../../../tags.ts'
+import type { TagFocus } from '../../../tag-selection.ts'
 import { bindPopover } from '../atoms/popover.ts'
 
 interface TagListActions {
@@ -19,7 +20,7 @@ function tagListRow({ tag, count }: TagCount, index: number, actions: TagListAct
   row.id = `tag-option-${index}`
   row.className = 'tag-option'
   row.setAttribute('role', 'group')
-  row.setAttribute('aria-label', `${tag}, ${count} ${count === 1 ? 'element' : 'elements'}`)
+  row.setAttribute('aria-label', `${tag}, ${count} ${count === 1 ? 'use' : 'uses'}`)
   const choice = document.createElement('button')
   choice.type = 'button'
   choice.className = 'tag-choice'
