@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-21T15:59:00Z'
+updated_date: '2026-11-21T16:46:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -50,6 +50,7 @@ Before implementation, confirm one filtered-export example covering parent conte
 - [x] #3 One approved example documents include/exclude overlap, required parent context, and which relationships remain.
 - [x] #4 Retained architecture keeps its authored metadata, and exporting does not modify the source architecture.
 - [x] #5 An export that fails says why in one line, exits with status 1 and writes nothing to the output directory
+- [x] #6 An export fails when a filter names a tag that nothing carries in the exported commits, and the message names the tag
 <!-- AC:END -->
 
 ## Definition of Done
@@ -72,6 +73,8 @@ Tests (authority: acceptance criteria 1 to 3).
 - Export: excluding the tag of the only component publishes neither the component nor its source text. Wrong result caught: an excluded part leaks into a public export. Extends the existing export test.
 
 Failing cleanly (src/cli.ts, src/viewers/web/export.ts): the export command reports a failure as the other commands do, the message alone and exit status 1. The exporter writes its first file only after the snapshot exists, so a failed export leaves nothing behind. Test, extending the existing empty-filter case of test-bun/web-export.test.ts: rule "a filter that leaves no element fails instead of writing an empty site" (the documented behaviour of this task); wrong result: the failed export leaves a directory with render.js; gap: the case only checked that the export rejects.
+
+Tags nothing carries (src/viewers/web/export.ts): before a filtered export loads its map it reads the tags the exported commit carries, both commits for a comparison, and stops when the filter names another one. Test, in the filtered-export case of test-bun/web-export.test.ts: rule "an export fails when a filter names a tag nothing carries" (the owner, 2026-11-21); wrong result: a mistyped exclude publishes the component it was meant to leave out; gap: no case named a tag the fixture does not carry except to show an empty result, which now uses two real tags.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -93,6 +96,10 @@ Fixed. The export command now reports a failure as the other commands do: the me
 Raised with the owner, not built: a filter that names a tag nothing carries is ignored without a word, so a mistyped --exclude-filter publishes the whole map with exit status 0.
 
 bun run check on this branch after the fix: 965 pass, 67 skip, 0 fail.
+
+2026-11-21, the owner on the risk raised above (a mistyped --exclude-filter exports the whole map with exit status 0): "Yes, fail".
+
+Built: before a filtered export loads its map it reads the tags carried in the exported commit, in both commits for a comparison, and stops when the filter names another one (src/viewers/web/export.ts). The message names the tags: "The export filter names a tag that nothing carries: scaning". Verified from the command line on this branch: a mistyped exclude, and an include and an exclude mistyped together, each print one line naming the tags, exit 1 and write nothing; a real include with a real exclude exports as before; a comparison of two commits with a real exclude exports as before, and with a mistyped one stops. The extended test resolves on the former code (the mistyped exclude exported everything) and rejects now. bun run check: 965 pass, 67 skip, 0 fail. At the top of the stack the same check must read groups and flows as well, through knownTags of the whole architecture; the type check fails there until the call is adapted.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

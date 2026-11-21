@@ -110,7 +110,9 @@ groma export ./site --include-filter payments --exclude-filter internal
 
 An excluded element is absent, not dimmed: the map is laid out for the subset,
 and the element's descriptions and source files are not written to the output.
-A filter that leaves no element fails instead of writing an empty site.
+A filter that leaves no element fails instead of writing an empty site. So does
+a filter that names a tag nothing carries: the tag is most likely mistyped, and
+a mistyped exclude would publish what it was meant to leave out.
 The [worked example](../../component-markdown.md#exporting-a-subset) shows the
 rule, which is `subsetByTags` in
 [`src/tag-selection.ts`](../../../src/tag-selection.ts). Exporting never changes

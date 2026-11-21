@@ -60,7 +60,9 @@ test.concurrent('a filtered export publishes neither an excluded component nor i
     expect(JSON.stringify(boot)).not.toContain('internalOnly')
     // A filter that leaves nothing fails and writes nothing: no directory, no half-written site.
     const unwritten = path.join(root, 'unwritten-site')
-    await expect(exportWebViewer(root, unwritten, { filter: { include: ['missing'], exclude: [] } })).rejects.toThrow('leaves no element')
+    await expect(exportWebViewer(root, unwritten, { filter: { include: ['internal'], exclude: ['internal'] } })).rejects.toThrow('leaves no element')
+    // A tag nothing carries is most likely mistyped: the export stops and names it, so a wrong exclude publishes nothing.
+    await expect(exportWebViewer(root, unwritten, { filter: { include: [], exclude: ['intrenal'] } })).rejects.toThrow('nothing carries: intrenal')
     expect(existsSync(unwritten)).toBe(false)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
