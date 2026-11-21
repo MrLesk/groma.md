@@ -16,7 +16,7 @@ async function project(): Promise<string> {
   return root
 }
 
-test.concurrent('a cloned theme with one changed value loads beside the bundled themes, and an incomplete theme file fails', async () => {
+test.concurrent('a cloned theme with one changed value loads beside the bundled themes, and an incomplete or malformed theme file fails', async () => {
   const root = await project()
   try {
     const cloned = await cloneTheme(root, 'dark', 'midnight')
@@ -41,6 +41,10 @@ test.concurrent('a cloned theme with one changed value loads beside the bundled 
     delete definition.palette.ink
     await writeFile(file, JSON.stringify(definition))
     await expect(loadThemes(root)).rejects.toThrow('palette.ink')
+
+    // A slip in the JSON says which file to open.
+    await writeFile(file, '{ "title": "Midnight",, }')
+    await expect(loadThemes(root)).rejects.toThrow(cloned.source!)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 

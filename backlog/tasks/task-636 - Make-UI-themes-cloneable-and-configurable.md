@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-10-28T20:33:00Z'
-updated_date: '2026-11-09T23:04:00Z'
+updated_date: '2026-11-21T17:21:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -71,6 +71,7 @@ This is application configuration, not architecture knowledge: it introduces no 
 - [x] #3 The picker lists exactly the enabled themes in config.json. Removing a bundled theme from that configuration keeps it out of the picker after reload.
 - [x] #4 Configuration associates enabled themes with system light and dark modes. Auto follows those associations when the system mode changes; an explicitly selected theme remains selected.
 - [x] #5 Theme changes affect the interface and map background without changing authored element or group icon/color assignments.
+- [x] #6 A theme file whose JSON does not parse fails to load with a message that names the file
 <!-- AC:END -->
 
 ## Definition of Done
@@ -94,6 +95,8 @@ Tests (authority: acceptance criteria 1 to 4).
 - Themes: a cloned theme with one changed palette value loads beside the bundled ones in config order; a theme file missing a palette value fails naming the field. Wrong result caught: a custom theme silently falling back to a bundled palette. Gap: no theme loading exists.
 - Picker and Auto: the page lists exactly the enabled themes, and Auto resolves to the first enabled theme of each appearance. Wrong result caught: a removed theme still offered, or Auto choosing a disabled theme. Extends the existing web theme coverage.
 No tests of palette values.
+
+Theme file that is not JSON (src/themes/configured.ts): loadTheme parses the file through one function that puts the file's path in front of the parser's message, the way the validator names the file for a missing value. Test, in the first case of test-bun/themes.test.ts: rule "a theme file that fails to load says which file" (docs/config.md, Themes; reproduced on the review map 2026-11-21 by editing a cloned theme); wrong result: a slip in one of several theme files reports only the parser's message, so nothing says which JSON file to open; gap: the case covered a missing value only.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -106,10 +109,14 @@ Verification: bun run check passed (28 Node tests, 1019 Bun tests, 64 environmen
 Automated PR review, applied: auto is reserved and cannot be a theme id, in config.json or when cloning, because the picker and Auto resolution use that word; cloning refuses a destination file that already exists, since a theme taken out of the picker keeps its file and its palette edits. Both are covered by the clone test. Also: the setup page takes its theme ids from the bundled themes, and the configuration docs say what a clone does not copy (the few line treatments that belong to the bundled Dark and Blueprint).
 
 Cold simplicity review (one round), applied: a publication path naming a theme the project does not enable is ignored when the link is written too, so Auto on such a path no longer writes theme=auto over the recipient saved theme (regression, now asserted); the saved choice is validated where it is read, so the theme control takes a checked value and the fallback helper is gone; the rule that no themes list means the bundled themes lives in one function (themeEntries); enabling a theme takes an explicit entry and one function turns command input into an entry; the plugin kind stays scanner or work source, and only a reported selection can be a theme; cloning an unknown theme says so. Kept, with the docs and the bundled-theme comment corrected to say it: a few stylesheet rules still name dark and blueprint (syntax line treatments, the Blueprint panel border and glow), so a clone takes the colours and not those; removing or generalising them changes how the bundled themes look and is Alex decision. Kept: the link readers default to the bundled themes when no list is passed, which is the project default and what the existing tests use; both production callers pass the enabled list.
+
+2026-11-21, walk of this pull request on the review map: every criterion seen live. Clone, edit the file, reload, pick; remove and add a bundled theme (an added one lands last in the list); Auto under a light and under a dark system; a theme picked by name stays; a link that names a theme the project does not list opens with Auto; an export draws one cover per enabled theme. Found: a slip in a theme file's JSON reported only the parser's message, with no file. Fixed (src/themes/configured.ts): loadTheme parses through parsedThemeFile, which puts the file's path in front, for example "./groma/midnight.theme.json: JSON Parse error: Property name must be a string literal". The extended test fails on the former loader and passes now. bun run check: 28 Node tests and 971 Bun tests pass, 67 skip, 0 fail. Not changed: a theme file that fails to load fails the whole map page with the runtime's error page, the same way a config.json that fails to load does.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
 UI themes are data. Light, Dark and Blueprint are bundled theme definitions that pass through the same validator and loader as a project own theme file. config.json lists the enabled themes; the picker, shared links and covers follow that list, and Auto shows the first listed theme of the system appearance. groma plugin clone <theme> <id> writes an editable copy of a theme and enables it, and plugin add, remove and list handle themes. Each theme defines the named colors, so authored colors keep their names and take the theme values.
+
+A theme file whose JSON does not parse fails to load with a message that starts with the file's path.
 <!-- SECTION:FINAL_SUMMARY:END -->
