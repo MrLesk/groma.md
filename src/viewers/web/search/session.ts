@@ -4,7 +4,7 @@ import type { AnnotatedElement, Point } from '../../../types.ts'
 import type { MapFrame } from '../chrome/frame.ts'
 import { pan, type Camera } from '../iso/camera/camera.ts'
 import { detailsTabAfterSelection, type DetailsTab } from '../organisms/details.ts'
-import { noSelection, primarySelection, selectArchitecture, type Selection } from '../selection.ts'
+import { primarySelection, selectOne, type Selection } from '../selection.ts'
 import { createSearchControl } from './control.ts'
 
 interface SearchViewState {
@@ -81,7 +81,7 @@ export function createSearchSession(options: SearchSessionOptions) {
       const id = result.element.representationId
       options.apply({
         ...current,
-        selection: selectArchitecture(noSelection, id, false),
+        selection: selectOne(id),
         detailsTab: detailsTabAfterSelection(current.detailsTab, primarySelection(current.selection), id),
       }, true)
     },

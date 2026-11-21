@@ -584,6 +584,7 @@ accepts `--title`, `--description`, `--overview`, `--steps`, `--add-tags`, and `
 `groma remove <flow-id>` removes it. A referenced relationship or endpoint
 cannot be removed while a flow still uses it. Live, historical, and static
 viewers all read these same records.
+On a live current web map, the flow pane edits the title, description, overview, and tags.
 
 ## Groups
 
@@ -594,6 +595,7 @@ never do, and scans keep them. A group is an OKF concept with type
 and not another containment level: it never becomes a parent, owns no Code
 references, and is never a relationship end. The maps draw it as a zone around
 its members. A group may carry `tags` in its front matter.
+Click the zone on the web map to select the group and use **Edit** in its pane on a live current map.
 
 ```markdown
 ---

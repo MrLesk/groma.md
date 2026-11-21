@@ -86,11 +86,16 @@ export function sheetSvg(scene: ProjectedScene): SvgNode[] {
   ]
 }
 
+/**
+ * A zone selects what it draws when a person clicks anywhere on it. A stored group's zone carries
+ * `data-group`, not `data-id`, so a gesture that needs the element under the pointer still finds the
+ * container the zone lies on. The zone of the placement group carries `data-id`, as an element does.
+ */
 function zoneGroup(zone: ProjectedZone, view: ProjectionView, zoom: number): SvgNode {
-  const attributes: Record<string, string> = {
-    'data-zone': zone.zone.key,
-    ...(zone.zone.unidentifiedContainer ? { 'data-id': zone.zone.key, 'aria-label': zone.zone.name } : {}),
-  }
+  const attributes: Record<string, string> = { 'data-zone': zone.zone.key }
+  if (zone.zone.unidentifiedContainer) attributes['data-id'] = zone.zone.key
+  if (zone.zone.groupId !== undefined) attributes['data-group'] = zone.zone.groupId
+  if (zone.zone.unidentifiedContainer || zone.zone.groupId !== undefined) attributes['aria-label'] = zone.zone.name
   return node('g', attributes, 'zone', [
     node('polygon', { points: pointsAttribute(zone.polygon) }, 'ground'),
     surfaceLabel(zone.text, GROUP_FONT, view, 0, zoom),

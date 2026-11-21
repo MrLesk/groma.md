@@ -37,7 +37,7 @@ export interface IsoMap {
    * read changed.
    */
   paint(scene: LayeredScene): boolean
-  /** Unions the existing selected-element and selected-route treatments across an ordered selection. */
+  /** Marks a selected group's zone, or the selected elements and routes in an ordered selection. */
   select(ids: readonly string[]): void
   changes(comparison: Comparison | undefined): void
   /** Outlines the elements the active tasks touch and uniformly accents the routes leaving them; an empty set clears both. */
@@ -48,7 +48,10 @@ export interface IsoMap {
   focusTags(selection: TagSelection | undefined): void
   /** Lights route ids and direct endpoints; contextual ancestors stay neutral while everything off the path dims. */
   setLitRoutes(litRouteIds: ReadonlySet<string>, onPath: (id: string) => boolean, focusedRouteId?: string): void
+  /** What a click on this target selects: the group whose zone it lies on, else the element, route or placement group it belongs to. */
   hitId(target: EventTarget | null): string | undefined
+  /** The element this target belongs to, for a gesture that drops onto or starts from one. A group's zone counts as the container it lies on. */
+  hitElementId(target: EventTarget | null): string | undefined
   /** True when a click hit nothing but the sheet. */
   isSheet(target: EventTarget | null): boolean
   /** True when a click or key target is the project plate's pencil action. */
@@ -188,6 +191,10 @@ export function createMap(host: HTMLElement): IsoMap {
   const index = (inputs: ReturnType<typeof highlightInputs>): void => {
     items = new Map([layers.islands, layers.slabs, layers.items].flatMap(group =>
       [...group.querySelectorAll<SVGGElement>('[data-id]')].map(item => [item.dataset.id!, item] as const)))
+    // A stored group is marked by its id on its zone.
+    for (const layer of [layers.islands, layers.slabs]) {
+      for (const zone of layer.querySelectorAll<SVGGElement>('.zone[data-group]')) items.set(zone.dataset.group!, zone)
+    }
     const groups = new Map([...layers.routes.querySelectorAll<SVGGElement>('g.route')]
       .map(group => [group.dataset.id!, group]))
     routes = new Map()
@@ -330,6 +337,11 @@ export function createMap(host: HTMLElement): IsoMap {
       updateGlows()
     },
     hitId(target) {
+      if (!(target instanceof Element)) return undefined
+      const hit = target.closest<HTMLElement>('[data-group], [data-id]')
+      return hit?.dataset.group ?? hit?.dataset.id
+    },
+    hitElementId(target) {
       if (!(target instanceof Element)) return undefined
       return target.closest<HTMLElement>('[data-id]')?.dataset.id
     },
