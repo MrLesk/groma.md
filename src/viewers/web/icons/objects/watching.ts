@@ -76,4 +76,10 @@ export const watchingIcons: Record<(typeof ICON_KINDS.watching)[number], readonl
   alert: [
     panel(WARNING, 0.44, 0.12, accent(line('south', C, 0.62, C, 0.34)), accent(light('south', C, 0.2, 0.04))),
   ],
+  target: [
+    cylinder(C, C, 0.46, 0, 0.05,
+      line('top', C, 0.05, C, 0.16), line('top', C, 0.84, C, 0.95), line('top', 0.05, C, 0.16, C), line('top', 0.84, C, 0.95, C)),
+    cylinder(C, C, 0.29, 0.05, 0.05),
+    accent(cylinder(C, C, 0.12, 0.1, 0.07)),
+  ],
 }

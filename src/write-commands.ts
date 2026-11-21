@@ -50,11 +50,11 @@ function addedIds(thing: string, ids: string[]): Pick<AddInput, 'relation' | 'me
   return {}
 }
 
-/** The icon names for the end of `groma edit --help`, one line per kind. */
+/** The icon names for the end of `groma edit --help`, one line per kind, under the rule for picking one. */
 function iconNamesHelp(): string {
   const kinds = Object.entries(ICON_KINDS)
   const width = Math.max(...kinds.map(([kind]) => kind.length))
-  return ['Icon names:', ...kinds.map(([kind, names]) => `  ${kind.padEnd(width)}  ${names.join(', ')}`)].join('\n')
+  return ['Icon names. Pick the area a part is about, not what it does to it:', ...kinds.map(([kind, names]) => `  ${kind.padEnd(width)}  ${names.join(', ')}`)].join('\n')
 }
 
 /** The commands that change architecture Markdown: draft, add, remove, edit, and accept. */

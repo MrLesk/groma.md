@@ -15,6 +15,12 @@ const MAP_SHEET: Spot[] = [[0.06, 0.24], [0.35, 0.16], [0.65, 0.24], [0.94, 0.16
 /** A house seen from the front, as x, z pairs: walls under a pitched roof with eaves. */
 const HOUSE: Spot[] = [[0.14, 0], [0.86, 0], [0.86, 0.46], [0.96, 0.46], [0.5, 0.88], [0.04, 0.46], [0.14, 0.46]]
 
+/** A capital T with serifs seen from the front, as x, z pairs. */
+const LETTER_T: Spot[] = [
+  [0.14, 0.82], [0.86, 0.82], [0.86, 0.62], [0.78, 0.62], [0.78, 0.7], [0.58, 0.7], [0.58, 0.12], [0.68, 0.12],
+  [0.68, 0.02], [0.32, 0.02], [0.32, 0.12], [0.42, 0.12], [0.42, 0.7], [0.22, 0.7], [0.22, 0.62], [0.14, 0.62],
+]
+
 /** Media and places: pictures, video, sound, maps. */
 export const mediaIcons: Record<(typeof ICON_KINDS.media)[number], readonly IconPart[]> = {
   image: [
@@ -58,5 +64,14 @@ export const mediaIcons: Record<(typeof ICON_KINDS.media)[number], readonly Icon
   home: [
     panel(HOUSE, 0.34, 0.32,
       accent(screen('south', rectangle(0.42, 0, 0.58, 0.3))), frame('south', rectangle(0.64, 0.2, 0.78, 0.34))),
+  ],
+  text: [
+    accent(panel(LETTER_T, 0.46, 0.08)),
+  ],
+  motion: [
+    panel(rectangle(0.06, 0.64, 0.38, 0.7), 0.47, 0.04),
+    panel(rectangle(0.02, 0.43, 0.4, 0.49), 0.47, 0.04),
+    panel(rectangle(0.1, 0.22, 0.38, 0.28), 0.47, 0.04),
+    accent(panel(circle(0.7, 0.46, 0.25), 0.44, 0.1)),
   ],
 }

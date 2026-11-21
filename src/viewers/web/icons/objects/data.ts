@@ -25,6 +25,15 @@ const FOLDER: Spot[] = [[0.08, 0], [0.92, 0], [0.92, 0.6], [0.5, 0.6], [0.42, 0.
 /** An index card with a tab seen from the front, as x, z pairs; it stands in its box. */
 const TABBED_CARD: Spot[] = [[0.18, 0.3], [0.82, 0.3], [0.82, 0.56], [0.6, 0.56], [0.56, 0.64], [0.4, 0.64], [0.36, 0.56], [0.18, 0.56]]
 
+/** The branches of a tree diagram seen from the front, as x, z pairs: a stem from the root down to a bar with three stems. */
+const BRANCHES: Spot[] = [
+  [0.48, 0.62], [0.52, 0.62], [0.52, 0.47], [0.82, 0.47], [0.82, 0.28], [0.78, 0.28], [0.78, 0.43], [0.52, 0.43],
+  [0.52, 0.28], [0.48, 0.28], [0.48, 0.43], [0.22, 0.43], [0.22, 0.28], [0.18, 0.28], [0.18, 0.47], [0.48, 0.47],
+]
+
+/** The head of the arrow that runs back around a clock face, as x, z pairs: it points down and to the west. */
+const BACK_ARROW: Spot[] = [[0.2, 0.57], [0.22, 0.7], [0.32, 0.61]]
+
 /** Data: where things are kept and found. */
 export const dataIcons: Record<(typeof ICON_KINDS.data)[number], readonly IconPart[]> = {
   database: [
@@ -136,5 +145,21 @@ export const dataIcons: Record<(typeof ICON_KINDS.data)[number], readonly IconPa
       ...[0.44, 0.3, 0.16].flatMap(z => [0.28, 0.43, 0.57, 0.72].map(x => light('south', x, z, 0.025)))),
     panel(rectangle(0.3, 0.74, 0.34, 0.88), 0.53, 0.03),
     panel(rectangle(0.66, 0.74, 0.7, 0.88), 0.53, 0.03),
+  ],
+  tree: [
+    panel(BRANCHES, 0.48, 0.04),
+    accent(panel(rounded(0.36, 0.62, 0.64, 0.86, 0.04), 0.47, 0.06)),
+    panel(rounded(0.06, 0.04, 0.34, 0.28, 0.04), 0.47, 0.06),
+    panel(rounded(0.36, 0.04, 0.64, 0.28, 0.04), 0.47, 0.06),
+    panel(rounded(0.66, 0.04, 0.94, 0.28, 0.04), 0.47, 0.06),
+  ],
+  history: [
+    panel(circle(C, 0.46, 0.43), 0.44, 0.1,
+      line('south', ...arc(C, 0.46, 0.3, 200, 500).flat()), block('south', BACK_ARROW),
+      accent(line('south', C, 0.64, C, 0.46, 0.62, 0.38))),
+  ],
+  copy: [
+    panel(rounded(0.34, 0.26, 0.92, 0.84, 0.08), 0.4, 0.05),
+    accent(panel(rounded(0.08, 0.02, 0.66, 0.6, 0.08), 0.5, 0.05)),
   ],
 }
