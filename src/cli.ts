@@ -275,7 +275,12 @@ program
     process.exit(0)
   })
   .action(async (directory: string, options: ExportCommandOptions) => {
-    await exportWeb(directory, options)
+    try {
+      await exportWeb(directory, options)
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error))
+      process.exitCode = 1
+    }
   })
 
 withListWindowOptions(program
