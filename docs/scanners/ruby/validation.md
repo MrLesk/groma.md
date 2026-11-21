@@ -260,3 +260,13 @@ facts can derive a row and that uncertainty blocks false rows.
 These checks qualify the documented extraction subset and its core integration.
 They do not establish complete Ruby metaprogramming support, every client-library
 API, the application's runtime route table, or runtime network behavior.
+
+## ERB qualification
+
+`test-bun/ruby-erb.test.ts` builds the package and verifies ERB selection, declarations and original source positions, outlines, cross-tag blocks, comments and escaped tags. It also checks that templates supply no launch evidence or compared-body tokens. Run it with the packaged regression checks above.
+
+The local package scanned 91 ERB templates in NomadNest on 29 October 2026. Each template retained unique source ownership, and a repeat scan created no additional records. Render relationships, partial lookup and Hotwire ownership were not inferred.
+
+The combined ERB and runtime implementation completed `bun run check` locally: lint and TypeScript passed, Node passed 26 tests, and Bun reported 908 passed, 64 skipped and 31 failed. Of those failures, 22 require unavailable JVM tools and 6 require unavailable `swiftc`. Three native npm CA-configuration failures retain an unverified underlying cause. The Ruby assertions passed; the full local suite remains non-green.
+
+The isolated ERB PR branch was then checked against upstream `b088b2eea41872ad7dd2db32a3366e4ba62c535d`: lint and TypeScript passed, Node passed 26 tests, and Bun reported 914 passed, 64 skipped and 31 failed. The same failure categories remain: 22 unavailable JVM tools, 6 unavailable `swiftc`, and 3 unresolved native npm CA-configuration failures. All Ruby/ERB assertions passed. The memory guard did not trigger; minimum sampled available memory was 4371 MiB.
