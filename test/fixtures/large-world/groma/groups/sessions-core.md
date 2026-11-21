@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [sessions-cache](../systems/identity/containers/sessions/components/sessions-cache.md)
-- [sessions-gateway](../systems/identity/containers/sessions/components/sessions-gateway.md)
-- [sessions-router](../systems/identity/containers/sessions/components/sessions-router.md)
-- [sessions-session](../systems/identity/containers/sessions/components/sessions-session.md)
-- [sessions-validator](../systems/identity/containers/sessions/components/sessions-validator.md)
+- [Sessions cache](../systems/identity/containers/sessions/components/sessions-cache.md)
+- [Sessions gateway](../systems/identity/containers/sessions/components/sessions-gateway.md)
+- [Sessions router](../systems/identity/containers/sessions/components/sessions-router.md)
+- [Sessions session](../systems/identity/containers/sessions/components/sessions-session.md)
+- [Sessions validator](../systems/identity/containers/sessions/components/sessions-validator.md)

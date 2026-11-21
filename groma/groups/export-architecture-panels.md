@@ -7,11 +7,11 @@ groma:
 
 ## Members
 
-- [create](../systems/groma-md/containers/export/components/create.md)
-- [list](../systems/groma-md/containers/export/components/list.md)
-- [organisms-details](../systems/groma-md/containers/export/components/organisms-details.md)
-- [organisms-hierarchy](../systems/groma-md/containers/export/components/organisms-hierarchy.md)
-- [review-control](../systems/groma-md/containers/export/components/review-control.md)
-- [revision-control](../systems/groma-md/containers/export/components/revision-control.md)
-- [search-control](../systems/groma-md/containers/export/components/search-control.md)
-- [source-control](../systems/groma-md/containers/export/components/source-control.md)
+- [Architecture editing](../systems/groma-md/containers/export/components/create.md)
+- [Flow reader](../systems/groma-md/containers/export/components/list.md)
+- [Architecture details](../systems/groma-md/containers/export/components/organisms-details.md)
+- [Architecture tree](../systems/groma-md/containers/export/components/organisms-hierarchy.md)
+- [Duplicate review panel](../systems/groma-md/containers/export/components/review-control.md)
+- [Revision selector](../systems/groma-md/containers/export/components/revision-control.md)
+- [Architecture search panel](../systems/groma-md/containers/export/components/search-control.md)
+- [Source panel](../systems/groma-md/containers/export/components/source-control.md)

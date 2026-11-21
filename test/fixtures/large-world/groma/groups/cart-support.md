@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [cart-mapper](../systems/orders/containers/cart/components/cart-mapper.md)
-- [cart-queue](../systems/orders/containers/cart/components/cart-queue.md)
-- [cart-reader](../systems/orders/containers/cart/components/cart-reader.md)
-- [cart-worker](../systems/orders/containers/cart/components/cart-worker.md)
-- [cart-writer](../systems/orders/containers/cart/components/cart-writer.md)
+- [Cart mapper](../systems/orders/containers/cart/components/cart-mapper.md)
+- [Cart queue](../systems/orders/containers/cart/components/cart-queue.md)
+- [Cart reader](../systems/orders/containers/cart/components/cart-reader.md)
+- [Cart worker](../systems/orders/containers/cart/components/cart-worker.md)
+- [Cart writer](../systems/orders/containers/cart/components/cart-writer.md)

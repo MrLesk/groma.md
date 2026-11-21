@@ -585,15 +585,17 @@ Both checks must pass before Ordering records an order.
 
 ## Members
 
-- [stock](../systems/shop/containers/api/components/stock.md)
-- [fraud-check](../systems/shop/containers/api/components/fraud-check.md)
+- [Stock](../systems/shop/containers/api/components/stock.md)
+- [Fraud check](../systems/shop/containers/api/components/fraud-check.md)
 ```
 
 `title` and a unique stable `groma.id` are required. `description` and the
 overview prose are optional. The Members section holds one bullet list and
 nothing else, and each bullet is one normal Markdown link to a component
-document. An ordinary Markdown or OKF reader sees a titled page that links to
-its members. groma.md reads those links as membership and applies these rules:
+document. The text of a link is the member's title, so an ordinary Markdown or
+OKF reader sees a titled page that names its members as the map does. groma.md
+writes that text, and writes it again when a member takes a new title. It reads
+only the link targets as membership and applies these rules:
 
 | Rule | Reason |
 | --- | --- |
@@ -622,11 +624,12 @@ in an existing group and takes it out of the group it was in; `--ungroup` only
 takes it out. `groma remove <group-id>` deletes the record and leaves its
 members in place. `groma view <group-id>` prints the record.
 
-Other commands keep every group loadable:
+Other commands keep every group loadable and its Members list current:
 
 | Command | Effect on groups |
 | --- | --- |
 | `groma remove <component-id>` | The component leaves its group. |
+| `groma edit <component-id> --title <text>` | The member's link shows the new title. |
 | `groma edit <id> --id <new-id>` | Member links follow the renamed component or container. |
 | `groma edit <container-id> --parent <system-id>` | Member links follow the components that move with their container. |
 | `groma edit <component-id> --parent <container-id>` | The component leaves its group, which stays in its container. |
@@ -634,8 +637,9 @@ Other commands keep every group loadable:
 
 The group commands live in [`src/group.ts`](../src/group.ts). The effects in
 the table live where each command is implemented: `leavingWrites` in that file
-serves removal and moves, and `groupWritesForMoves` in
-[`src/curate.ts`](../src/curate.ts) decides between leaving and following.
+serves removal and moves, `relistedWrites` serves a new title, and
+`groupWritesForMoves` in [`src/curate.ts`](../src/curate.ts) decides between
+leaving and following.
 
 ## Component example
 

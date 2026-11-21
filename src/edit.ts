@@ -18,7 +18,7 @@ import {
 import type { MeaningChanges } from './markdown-emitter.ts'
 import { requireText } from './naming.ts'
 import { loadProjectProfile, saveProjectProfile } from './project-profile.ts'
-import { assignGroup, editGroup, groupContext } from './group.ts'
+import { assignGroup, editGroup, groupContext, relistedWrites, writeGroups } from './group.ts'
 import { editRelation } from './relation.ts'
 import { editFlow } from './flow-authoring.ts'
 import { requireGromaMapping } from './okf-profile.ts'
@@ -208,9 +208,11 @@ async function editElement(
     return editMembership(repositoryRoot, records, model, input)
   }
   const source = hasMeaning ? await elementMeaning(repositoryRoot, records, element, input) : undefined
+  // Only a component can be a member of a group, and a member's link shows its title.
+  const retitlesComponent = input.title !== undefined && element.kind === 'component'
 
   if (movesOrReshapes(input)) {
-    return curateElement(repositoryRoot, records, model, {
+    const result = await curateElement(repositoryRoot, records, model, {
       id: input.id,
       title: input.title,
       technology: input.technology,
@@ -225,8 +227,26 @@ async function editElement(
       detach: input.detach,
       newId: input.newId,
     })
+    if (!retitlesComponent) return result
+    // A rename already rewrote the group's record, so its document must not be named twice.
+    const changed = new Set([...result.changed, ...await relistInGroups(repositoryRoot, result.id)])
+    return { ...result, changed: [...changed] }
   }
 
   await writeDocument(repositoryRoot, element.sourceFilename, source!)
-  return element.id
+  const relisted = retitlesComponent ? await relistInGroups(repositoryRoot, element.id) : []
+  if (relisted.length === 0) return element.id
+  return { id: element.id, created: [], changed: relisted, removed: [], affectedIds: [element.id], replacements: [] }
+}
+
+/**
+ * A group's member links show titles. Once a component's new title is stored, the Members list of each group
+ * that lists it is written again from the stored records. Returns the group documents written.
+ */
+async function relistInGroups(repositoryRoot: string, componentId: string): Promise<string[]> {
+  const records = await loadArchitecture(repositoryRoot)
+  const context = groupContext(repositoryRoot, records, buildArchitectureModel(records.documents))
+  const writes = await relistedWrites(context, [componentId])
+  await writeGroups(context, writes)
+  return writes.map(write => write.sourceFilename)
 }

@@ -7,6 +7,6 @@ groma:
 
 ## Members
 
-- [web-export](../systems/groma-md/containers/cli/components/web-export.md)
-- [web-page](../systems/groma-md/containers/cli/components/web-page.md)
-- [web-server](../systems/groma-md/containers/cli/components/web-server.md)
+- [Static export](../systems/groma-md/containers/cli/components/web-export.md)
+- [Web page builder](../systems/groma-md/containers/cli/components/web-page.md)
+- [Web host](../systems/groma-md/containers/cli/components/web-server.md)

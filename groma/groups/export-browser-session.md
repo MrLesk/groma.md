@@ -7,7 +7,7 @@ groma:
 
 ## Members
 
-- [data](../systems/groma-md/containers/export/components/data.md)
-- [map-sharing](../systems/groma-md/containers/export/components/map-sharing.md)
-- [render](../systems/groma-md/containers/export/components/render.md)
-- [startup-progress](../systems/groma-md/containers/export/components/startup-progress.md)
+- [Browser data](../systems/groma-md/containers/export/components/data.md)
+- [Map sharing](../systems/groma-md/containers/export/components/map-sharing.md)
+- [Browser session](../systems/groma-md/containers/export/components/render.md)
+- [Startup progress](../systems/groma-md/containers/export/components/startup-progress.md)

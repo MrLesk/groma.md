@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [auth-mapper](../systems/identity/containers/auth/components/auth-mapper.md)
-- [auth-queue](../systems/identity/containers/auth/components/auth-queue.md)
-- [auth-reader](../systems/identity/containers/auth/components/auth-reader.md)
-- [auth-worker](../systems/identity/containers/auth/components/auth-worker.md)
-- [auth-writer](../systems/identity/containers/auth/components/auth-writer.md)
+- [Auth mapper](../systems/identity/containers/auth/components/auth-mapper.md)
+- [Auth queue](../systems/identity/containers/auth/components/auth-queue.md)
+- [Auth reader](../systems/identity/containers/auth/components/auth-reader.md)
+- [Auth worker](../systems/identity/containers/auth/components/auth-worker.md)
+- [Auth writer](../systems/identity/containers/auth/components/auth-writer.md)

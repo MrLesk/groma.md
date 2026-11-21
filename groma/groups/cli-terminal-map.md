@@ -7,11 +7,11 @@ groma:
 
 ## Members
 
-- [flow](../systems/groma-md/containers/cli/components/flow.md)
-- [projection](../systems/groma-md/containers/cli/components/projection.md)
-- [screen](../systems/groma-md/containers/cli/components/screen.md)
-- [src-view-host](../systems/groma-md/containers/cli/components/src-view-host.md)
-- [tui-navigation](../systems/groma-md/containers/cli/components/tui-navigation.md)
-- [tui-paint](../systems/groma-md/containers/cli/components/tui-paint.md)
-- [tui-plugin-settings](../systems/groma-md/containers/cli/components/tui-plugin-settings.md)
-- [work-model](../systems/groma-md/containers/cli/components/work-model.md)
+- [Terminal flow reader](../systems/groma-md/containers/cli/components/flow.md)
+- [Terminal projection](../systems/groma-md/containers/cli/components/projection.md)
+- [Terminal panels](../systems/groma-md/containers/cli/components/screen.md)
+- [Terminal session](../systems/groma-md/containers/cli/components/src-view-host.md)
+- [Terminal navigation](../systems/groma-md/containers/cli/components/tui-navigation.md)
+- [Terminal drawing](../systems/groma-md/containers/cli/components/tui-paint.md)
+- [Terminal plugin settings](../systems/groma-md/containers/cli/components/tui-plugin-settings.md)
+- [Terminal task reader](../systems/groma-md/containers/cli/components/work-model.md)

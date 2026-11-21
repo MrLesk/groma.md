@@ -7,12 +7,12 @@ groma:
 
 ## Members
 
-- [curate](../systems/groma-md/containers/cli/components/curate.md)
-- [flow-model](../systems/groma-md/containers/cli/components/flow-model.md)
-- [history-revisions](../systems/groma-md/containers/cli/components/history-revisions.md)
-- [relationship-markdown](../systems/groma-md/containers/cli/components/relationship-markdown.md)
-- [src-architecture-model](../systems/groma-md/containers/cli/components/src-architecture-model.md)
-- [src-architecture-reader](../systems/groma-md/containers/cli/components/src-architecture-reader.md)
-- [src-architecture-watch](../systems/groma-md/containers/cli/components/src-architecture-watch.md)
-- [src-authoring](../systems/groma-md/containers/cli/components/src-authoring.md)
-- [src-core](../systems/groma-md/containers/cli/components/src-core.md)
+- [Architecture structure](../systems/groma-md/containers/cli/components/curate.md)
+- [Architecture flows](../systems/groma-md/containers/cli/components/flow-model.md)
+- [Revision history](../systems/groma-md/containers/cli/components/history-revisions.md)
+- [Architecture relationships](../systems/groma-md/containers/cli/components/relationship-markdown.md)
+- [Architecture model](../systems/groma-md/containers/cli/components/src-architecture-model.md)
+- [Markdown storage](../systems/groma-md/containers/cli/components/src-architecture-reader.md)
+- [Architecture watch](../systems/groma-md/containers/cli/components/src-architecture-watch.md)
+- [Architecture changes](../systems/groma-md/containers/cli/components/src-authoring.md)
+- [Architecture view model](../systems/groma-md/containers/cli/components/src-core.md)

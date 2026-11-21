@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [media-cache](../systems/catalog/containers/media/components/media-cache.md)
-- [media-gateway](../systems/catalog/containers/media/components/media-gateway.md)
-- [media-router](../systems/catalog/containers/media/components/media-router.md)
-- [media-session](../systems/catalog/containers/media/components/media-session.md)
-- [media-validator](../systems/catalog/containers/media/components/media-validator.md)
+- [Media cache](../systems/catalog/containers/media/components/media-cache.md)
+- [Media gateway](../systems/catalog/containers/media/components/media-gateway.md)
+- [Media router](../systems/catalog/containers/media/components/media-router.md)
+- [Media session](../systems/catalog/containers/media/components/media-session.md)
+- [Media validator](../systems/catalog/containers/media/components/media-validator.md)

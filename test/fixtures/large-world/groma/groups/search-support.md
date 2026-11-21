@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [search-mapper](../systems/storefront/containers/search/components/search-mapper.md)
-- [search-queue](../systems/storefront/containers/search/components/search-queue.md)
-- [search-reader](../systems/storefront/containers/search/components/search-reader.md)
-- [search-worker](../systems/storefront/containers/search/components/search-worker.md)
-- [search-writer](../systems/storefront/containers/search/components/search-writer.md)
+- [Search mapper](../systems/storefront/containers/search/components/search-mapper.md)
+- [Search queue](../systems/storefront/containers/search/components/search-queue.md)
+- [Search reader](../systems/storefront/containers/search/components/search-reader.md)
+- [Search worker](../systems/storefront/containers/search/components/search-worker.md)
+- [Search writer](../systems/storefront/containers/search/components/search-writer.md)
