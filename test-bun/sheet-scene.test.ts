@@ -297,6 +297,7 @@ test.concurrent('source files compress into nested project-relative floors witho
       parent: 'observed:api',
       code: [{ scanner: 'fixture', file: 'src/single.ts', lines: 0, dependencies: 0, dependents: 0 }],
     }),
+    box('review', 'component', unit, { parent: 'observed:api', origin: 'virtual' }),
     box('middle', 'component', unit, {
       parent: 'observed:api',
       code: code.slice(0, 4).map((reference, index) => ({ ...reference, file: `src/middle-${index}.ts` })),
@@ -307,6 +308,8 @@ test.concurrent('source files compress into nested project-relative floors witho
     }),
   ]))
   const single = scene.buildings.find(building => building.id === 'single')!
+  const plate = scene.buildings.find(building => building.id === 'review')!
+  assert.ok(plate.heightUnits > 0 && plate.heightUnits < single.heightUnits)
   const middle = scene.buildings.find(building => building.id === 'middle')!
   const tower = scene.buildings.find(building => building.id === 'tower')!
   assert.equal(single.floors.length, 1)

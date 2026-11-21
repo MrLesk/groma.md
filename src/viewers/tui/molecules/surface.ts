@@ -25,7 +25,7 @@ export function surfaceLook(item: ProjectedMapItem, theme: ViewerTheme, state: S
     color: lit ? theme.selected : resting,
     attributes: lit ? TextAttributes.BOLD : receding ? TextAttributes.DIM : 0,
     heavy: state.selected,
-    dashed: item.origin !== 'observed',
+    dashed: item.origin === 'draft',
     rounded: item.shape !== 'group',
     rank: state.selected ? 30 : lit ? 25 : RANK[item.shape],
   }

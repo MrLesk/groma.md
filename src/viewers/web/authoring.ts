@@ -9,6 +9,8 @@ export interface AuthoringDependencies {
   live: () => boolean
   world: () => AnnotatedArchitectureModel
   repaint: () => void
+  /** Empties the selection. */
+  deselect: () => void
 }
 
 /** The write hooks for the pane of an element, relationship, group, flow, or selection of elements. */
@@ -42,6 +44,7 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
     if (!deps.live() || selectedId === undefined) return {}
     return {
       onRead: deps.repaint,
+      ...(add === undefined ? {} : { onAddComponent: input => add({ thing: 'component', parent: selectedId, ...input }) }),
       ...(remove === undefined ? {} : { onRemove: () => remove({ id: selectedId }) }),
       ...(accept === undefined ? {} : { onAccept: () => accept({ id: selectedId }) }),
       ...(edit === undefined ? {} : {
@@ -75,7 +78,9 @@ export function createAuthoring(host: HTMLElement, map: IsoMap, data: WebDataSou
       onRead: deps.repaint,
       ...(accept === undefined ? {} : { onAccept: () => accept({ id: source, relation: target }) }),
       ...(edit === undefined ? {} : { onEdit: (input, original) => edit({ id: source, relation: target, ...input, original }) }),
-      ...(remove === undefined ? {} : { onRemove: () => remove({ id: source, relation: target }) }),
+      // A relationship's id is its position among the relationships. Once one is removed that id names
+      // another relationship, so the selection is emptied instead of following it.
+      ...(remove === undefined ? {} : { onRemove: () => remove({ id: source, relation: target }).then(deps.deselect) }),
     }
   }
 

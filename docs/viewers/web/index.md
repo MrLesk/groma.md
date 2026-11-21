@@ -181,8 +181,8 @@ One rule decides where a write lives in the web map:
   on the record in the web map, and nowhere else can they change. Picking and
   typing store nothing.
   **Save** sends the changed fields as one `groma edit`.
-- **A record's other writes are entries of its Edit view.** **Accept** and
-  **Remove** stand above the fields. Each opens its own write view in place of
+- **A record's other writes are entries of its Edit view.** **Accept**,
+  **Remove** and, for a container, **Add component** stand above the fields. Each opens its own write view in place of
   the Edit view. They act on the stored record: while the fields hold unsaved
   changes they do not open and ask for the changes to be saved or cancelled
   first.
@@ -192,10 +192,11 @@ One rule decides where a write lives in the web map:
 | Write | Entry | The view shows | Approving button |
 |---|---|---|---|
 | Edit an element or relationship | Edit, in its pane | the fields | Save |
+| Add a virtual component | Add component, in the container's Edit view | Name, Description and Overview | Add |
 | Edit a group or flow | Edit, in its pane | Title, Description, Overview and Tags | Save |
 | Edit several elements | Edit, in the selection pane | Tags, Color and Icon | Save |
 | Accept a draft | Accept, in the Edit view | one question | Accept |
-| Remove an element, draft relationship, or group | Remove, in its Edit view | one question | Remove |
+| Remove an element, group, draft relationship, or current relationship with a virtual component | Remove, in its Edit view | one question | Remove |
 | Group components | Group, in the pane of several components | a field for the group name | Create group |
 | Combine components | Combine, in the pane of several components | a list to pick the component that stays | Combine |
 
@@ -235,10 +236,11 @@ and hands the hooks only to the function that paints the Edit entry.
   each named color; the Icon field offers no icon and each named icon.
 - **Relationship fields:** `description` and `technology`.
 - **Flow steps** are edited with `groma edit <flow-id> --steps`.
-- **Draft acceptance and removal:** The Edit view of a matched draft element or
+- **Acceptance and removal:** The Edit view of a matched draft element or
   a draft relationship offers **Accept** (`groma accept`). **Remove** is offered
-  only where `groma remove` would succeed (an unreferenced actor, external
-  system, ghost, draft relationship, or group). Each asks in its own view and
+  only where `groma remove` would succeed: an unreferenced actor, external
+  system, ghost or virtual component, a group, and a draft relationship or a
+  current relationship with a virtual component that no flow uses. Each asks in its own view and
   writes when its approving button is pressed. Removing a group leaves its members in place.
 - **Conflict checking:** A single record's form submits changed values with
   their original values. Tag additions and removals merge with the current tags.
@@ -407,8 +409,11 @@ projects that fixed scene into SVG for **Iso**, **2D**, or **Layers**:
   lines of code map to floor height (`1-4` units); incoming and outgoing file
   interactions determine width and depth; and the dominant file extension selects
   the facade window pattern.
+- **Virtual components:** A stable component without a source file stands on
+  its container as a flat plate, lower than any building. Its details pane
+  and search results say **Component · virtual**.
 - **Origin and state:** Observed elements and current relationships use solid
-  lines; draft ghosts and draft relationships use dashed lines.
+  lines, as do virtual components. Draft ghosts and draft relationships use dashed lines.
 
 The browser keeps the viewport-sized background grid outside the moving camera
 group so pan, zoom, trackpad inertia, and smooth transitions between **Iso**,

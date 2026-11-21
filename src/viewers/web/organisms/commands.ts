@@ -3,7 +3,7 @@ import { carriedTags, knownTags } from '../../../tags.ts'
 import type { AnnotatedGroup, ArchitectureFlow, ArchitectureGraph } from '../../../types.ts'
 import { tagChanges, type TagsField } from '../tags/tags-field.ts'
 import { isTagsField, type ValueField, type WriteEntry } from './write-view.ts'
-import type { ComponentWrites, FlowWrites, GroupWrites, MeaningEdit } from './writes.ts'
+import type { ComponentWrites, FlowWrites, GroupWrites, MeaningEdit, PaneWrites } from './writes.ts'
 
 /*
  * Every write a pane of the web map offers, one function each. A function only describes its write: the
@@ -53,6 +53,22 @@ export function editEntry(
         const { changes, original } = editChanges(fields, values)
         if (Object.keys(changes).length > 0) await save(changes, original)
       },
+    },
+  }
+}
+
+/** Adds a virtual component inside the container whose pane is open. */
+export function addComponentEntry(add: NonNullable<PaneWrites['onAddComponent']>): WriteEntry {
+  return {
+    label: 'Add component',
+    view: {
+      approveLabel: 'Add',
+      fields: [
+        { name: 'name', label: 'Name', value: '', required: true },
+        { name: 'description', label: 'Description', value: '' },
+        { name: 'overview', label: 'Overview', value: '', required: true, multiline: true },
+      ],
+      write: ({ name = '', description, overview = '' }) => add({ name, description: description || undefined, overview }),
     },
   }
 }

@@ -18,7 +18,7 @@ export function routeLook(route: ProjectedMapRoute, theme: ViewerTheme, lit: boo
     color: lit ? theme.selected : theme.quiet,
     attributes: traced ? TextAttributes.BOLD : dimmed ? TextAttributes.DIM : 0,
     heavy: false,
-    dashed: route.origin !== 'observed',
+    dashed: route.origin === 'draft',
     rounded: true,
     rank: lit ? 28 : 1,
   }

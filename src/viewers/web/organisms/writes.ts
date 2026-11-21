@@ -28,6 +28,8 @@ export interface SelectionWrites {
  */
 export interface PaneWrites {
   onRead?: () => void
+  /** Adds a virtual component to the element. The pane offers it for a container only. */
+  onAddComponent?: (input: { name: string; description?: string; overview: string }) => Promise<void>
   onRemove?: () => Promise<void>
   onAccept?: () => Promise<void>
   onEdit?: (input: MeaningEdit, original: EditValues) => Promise<void>
