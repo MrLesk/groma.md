@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [session-store-cache](../systems/storefront/containers/session-store/components/session-store-cache.md)
-- [session-store-gateway](../systems/storefront/containers/session-store/components/session-store-gateway.md)
-- [session-store-router](../systems/storefront/containers/session-store/components/session-store-router.md)
-- [session-store-session](../systems/storefront/containers/session-store/components/session-store-session.md)
-- [session-store-validator](../systems/storefront/containers/session-store/components/session-store-validator.md)
+- [Session Store cache](../systems/storefront/containers/session-store/components/session-store-cache.md)
+- [Session Store gateway](../systems/storefront/containers/session-store/components/session-store-gateway.md)
+- [Session Store router](../systems/storefront/containers/session-store/components/session-store-router.md)
+- [Session Store session](../systems/storefront/containers/session-store/components/session-store-session.md)
+- [Session Store validator](../systems/storefront/containers/session-store/components/session-store-validator.md)

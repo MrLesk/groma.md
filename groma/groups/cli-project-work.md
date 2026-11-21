@@ -7,7 +7,7 @@ groma:
 
 ## Members
 
-- [backlog-src-index](../systems/groma-md/containers/cli/components/backlog-src-index.md)
-- [src-work-pins](../systems/groma-md/containers/cli/components/src-work-pins.md)
-- [work-source-src-index](../systems/groma-md/containers/cli/components/work-source-src-index.md)
-- [work-sources](../systems/groma-md/containers/cli/components/work-sources.md)
+- [Backlog adapter](../systems/groma-md/containers/cli/components/backlog-src-index.md)
+- [Task map links](../systems/groma-md/containers/cli/components/src-work-pins.md)
+- [Work source contract](../systems/groma-md/containers/cli/components/work-source-src-index.md)
+- [Work source loading](../systems/groma-md/containers/cli/components/work-sources.md)

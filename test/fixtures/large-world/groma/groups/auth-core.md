@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [auth-cache](../systems/identity/containers/auth/components/auth-cache.md)
-- [auth-gateway](../systems/identity/containers/auth/components/auth-gateway.md)
-- [auth-router](../systems/identity/containers/auth/components/auth-router.md)
-- [auth-session](../systems/identity/containers/auth/components/auth-session.md)
-- [auth-validator](../systems/identity/containers/auth/components/auth-validator.md)
+- [Auth cache](../systems/identity/containers/auth/components/auth-cache.md)
+- [Auth gateway](../systems/identity/containers/auth/components/auth-gateway.md)
+- [Auth router](../systems/identity/containers/auth/components/auth-router.md)
+- [Auth session](../systems/identity/containers/auth/components/auth-session.md)
+- [Auth validator](../systems/identity/containers/auth/components/auth-validator.md)

@@ -7,5 +7,5 @@ groma:
 
 ## Members
 
-- [orders](../systems/shop/containers/api/components/orders.md)
-- [stock](../systems/shop/containers/api/components/stock.md)
+- [Orders](../systems/shop/containers/api/components/orders.md)
+- [Stock](../systems/shop/containers/api/components/stock.md)

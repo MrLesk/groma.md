@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [catalog-api-cache](../systems/catalog/containers/catalog-api/components/catalog-api-cache.md)
-- [catalog-api-gateway](../systems/catalog/containers/catalog-api/components/catalog-api-gateway.md)
-- [catalog-api-router](../systems/catalog/containers/catalog-api/components/catalog-api-router.md)
-- [catalog-api-session](../systems/catalog/containers/catalog-api/components/catalog-api-session.md)
-- [catalog-api-validator](../systems/catalog/containers/catalog-api/components/catalog-api-validator.md)
+- [Catalog Api cache](../systems/catalog/containers/catalog-api/components/catalog-api-cache.md)
+- [Catalog Api gateway](../systems/catalog/containers/catalog-api/components/catalog-api-gateway.md)
+- [Catalog Api router](../systems/catalog/containers/catalog-api/components/catalog-api-router.md)
+- [Catalog Api session](../systems/catalog/containers/catalog-api/components/catalog-api-session.md)
+- [Catalog Api validator](../systems/catalog/containers/catalog-api/components/catalog-api-validator.md)

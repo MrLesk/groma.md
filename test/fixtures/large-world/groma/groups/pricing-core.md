@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [pricing-cache](../systems/catalog/containers/pricing/components/pricing-cache.md)
-- [pricing-gateway](../systems/catalog/containers/pricing/components/pricing-gateway.md)
-- [pricing-router](../systems/catalog/containers/pricing/components/pricing-router.md)
-- [pricing-session](../systems/catalog/containers/pricing/components/pricing-session.md)
-- [pricing-validator](../systems/catalog/containers/pricing/components/pricing-validator.md)
+- [Pricing cache](../systems/catalog/containers/pricing/components/pricing-cache.md)
+- [Pricing gateway](../systems/catalog/containers/pricing/components/pricing-gateway.md)
+- [Pricing router](../systems/catalog/containers/pricing/components/pricing-router.md)
+- [Pricing session](../systems/catalog/containers/pricing/components/pricing-session.md)
+- [Pricing validator](../systems/catalog/containers/pricing/components/pricing-validator.md)

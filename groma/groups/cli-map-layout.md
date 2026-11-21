@@ -7,5 +7,5 @@ groma:
 
 ## Members
 
-- [relationships](../systems/groma-md/containers/cli/components/relationships.md)
-- [scene](../systems/groma-md/containers/cli/components/scene.md)
+- [Map connections](../systems/groma-md/containers/cli/components/relationships.md)
+- [Map placement](../systems/groma-md/containers/cli/components/scene.md)

@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [order-db-mapper](../systems/orders/containers/order-db/components/order-db-mapper.md)
-- [order-db-queue](../systems/orders/containers/order-db/components/order-db-queue.md)
-- [order-db-reader](../systems/orders/containers/order-db/components/order-db-reader.md)
-- [order-db-worker](../systems/orders/containers/order-db/components/order-db-worker.md)
-- [order-db-writer](../systems/orders/containers/order-db/components/order-db-writer.md)
+- [Order Db mapper](../systems/orders/containers/order-db/components/order-db-mapper.md)
+- [Order Db queue](../systems/orders/containers/order-db/components/order-db-queue.md)
+- [Order Db reader](../systems/orders/containers/order-db/components/order-db-reader.md)
+- [Order Db worker](../systems/orders/containers/order-db/components/order-db-worker.md)
+- [Order Db writer](../systems/orders/containers/order-db/components/order-db-writer.md)

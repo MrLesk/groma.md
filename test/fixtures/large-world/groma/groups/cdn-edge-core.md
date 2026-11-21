@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [cdn-edge-cache](../systems/storefront/containers/cdn-edge/components/cdn-edge-cache.md)
-- [cdn-edge-gateway](../systems/storefront/containers/cdn-edge/components/cdn-edge-gateway.md)
-- [cdn-edge-router](../systems/storefront/containers/cdn-edge/components/cdn-edge-router.md)
-- [cdn-edge-session](../systems/storefront/containers/cdn-edge/components/cdn-edge-session.md)
-- [cdn-edge-validator](../systems/storefront/containers/cdn-edge/components/cdn-edge-validator.md)
+- [Cdn Edge cache](../systems/storefront/containers/cdn-edge/components/cdn-edge-cache.md)
+- [Cdn Edge gateway](../systems/storefront/containers/cdn-edge/components/cdn-edge-gateway.md)
+- [Cdn Edge router](../systems/storefront/containers/cdn-edge/components/cdn-edge-router.md)
+- [Cdn Edge session](../systems/storefront/containers/cdn-edge/components/cdn-edge-session.md)
+- [Cdn Edge validator](../systems/storefront/containers/cdn-edge/components/cdn-edge-validator.md)

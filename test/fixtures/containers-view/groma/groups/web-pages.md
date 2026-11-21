@@ -7,4 +7,4 @@ groma:
 
 ## Members
 
-- [page](../systems/shop/containers/web/components/page.md)
+- [Page](../systems/shop/containers/web/components/page.md)

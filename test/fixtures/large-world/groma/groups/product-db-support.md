@@ -7,8 +7,8 @@ groma:
 
 ## Members
 
-- [product-db-mapper](../systems/catalog/containers/product-db/components/product-db-mapper.md)
-- [product-db-queue](../systems/catalog/containers/product-db/components/product-db-queue.md)
-- [product-db-reader](../systems/catalog/containers/product-db/components/product-db-reader.md)
-- [product-db-worker](../systems/catalog/containers/product-db/components/product-db-worker.md)
-- [product-db-writer](../systems/catalog/containers/product-db/components/product-db-writer.md)
+- [Product Db mapper](../systems/catalog/containers/product-db/components/product-db-mapper.md)
+- [Product Db queue](../systems/catalog/containers/product-db/components/product-db-queue.md)
+- [Product Db reader](../systems/catalog/containers/product-db/components/product-db-reader.md)
+- [Product Db worker](../systems/catalog/containers/product-db/components/product-db-worker.md)
+- [Product Db writer](../systems/catalog/containers/product-db/components/product-db-writer.md)

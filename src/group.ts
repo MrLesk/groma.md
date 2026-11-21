@@ -39,14 +39,23 @@ export function groupContext(repositoryRoot: string, records: ArchitectureRecord
 
 const membersHeading = /^## Members[ \t]*$/m
 
-/** Rewrites the "## Members" section as one link per member; a group without members has no such section. */
+/** A title as the text of a Markdown link: the characters that would start or end markup are escaped. */
+function linkText(title: string): string {
+  return title.replace(/[\\[\]`*_<]/g, character => `\\${character}`)
+}
+
+/**
+ * Rewrites the "## Members" section as one link per member; a group without members has no such section.
+ * A link shows its member's title, so a Markdown reader sees the names the map shows. The link target alone
+ * is membership.
+ */
 function withMembers(source: string, sourceFilename: string, members: readonly ArchitectureElement[]): string {
   const start = source.search(membersHeading)
   const before = start === -1 ? source : source.slice(0, start)
   const stored = start === -1 ? '' : source.slice(start).replace(membersHeading, '')
   const nextHeading = stored.search(/^## /m)
   const after = nextHeading === -1 ? '' : stored.slice(nextHeading)
-  const links = members.map(member => `- [${member.id}](${markdownHref(sourceFilename, member.sourceFilename)})`)
+  const links = members.map(member => `- [${linkText(member.title)}](${markdownHref(sourceFilename, member.sourceFilename)})`)
   const section = links.length === 0 ? '' : `## Members\n\n${links.join('\n')}`
   return `${[before, section, after].map(part => part.trim()).filter(part => part !== '').join('\n\n')}\n`
 }
@@ -67,6 +76,23 @@ export async function leavingWrites(context: GroupContext, componentIds: readonl
       membersOf(context, group).filter(member => !leaving.has(member.id)),
     ),
   })))
+}
+
+/**
+ * The rewritten document of each group that lists one of these components and whose Members section no
+ * longer shows its members' titles as they are now. A component that takes a new title has its groups
+ * written again this way.
+ */
+export async function relistedWrites(context: GroupContext, componentIds: readonly string[]): Promise<GroupWrite[]> {
+  const retitled = new Set(componentIds)
+  const listing = context.groups.filter(group => group.memberIds.some(id => retitled.has(id)))
+  const writes: GroupWrite[] = []
+  for (const group of listing) {
+    const stored = await readDocument(context.repositoryRoot, group.sourceFilename)
+    const source = withMembers(stored, group.sourceFilename, membersOf(context, group))
+    if (source !== stored) writes.push({ sourceFilename: group.sourceFilename, source })
+  }
+  return writes
 }
 
 /**

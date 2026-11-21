@@ -7,9 +7,9 @@ groma:
 
 ## Members
 
-- [scanner-src-index](../systems/groma-md/containers/cli/components/scanner-src-index.md)
-- [scanners-http-routes](../systems/groma-md/containers/cli/components/scanners-http-routes.md)
-- [scanners-projects](../systems/groma-md/containers/cli/components/scanners-projects.md)
-- [scanners-typescript-operations](../systems/groma-md/containers/cli/components/scanners-typescript-operations.md)
-- [scanners-typescript-outline](../systems/groma-md/containers/cli/components/scanners-typescript-outline.md)
-- [workspace-packages](../systems/groma-md/containers/cli/components/workspace-packages.md)
+- [Scanner contract](../systems/groma-md/containers/cli/components/scanner-src-index.md)
+- [HTTP source analysis](../systems/groma-md/containers/cli/components/scanners-http-routes.md)
+- [Project scan support](../systems/groma-md/containers/cli/components/scanners-projects.md)
+- [Operation body analysis](../systems/groma-md/containers/cli/components/scanners-typescript-operations.md)
+- [Shared source outlines](../systems/groma-md/containers/cli/components/scanners-typescript-outline.md)
+- [Workspace packages](../systems/groma-md/containers/cli/components/workspace-packages.md)
