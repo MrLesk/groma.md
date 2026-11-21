@@ -32,8 +32,6 @@ export const ICON_LEAD = ICON_RATIO + ICON_GAP_RATIO
 export const BASELINE = 0.9
 /** The middle of a line's capital letters lies this many font sizes below the top of the line; an icon's box is centred on it. */
 export const CAPITAL_MIDDLE = 0.54
-/** Where the name's baseline crosses an icon's box, in box sides from the box's north edge: a standing object stands on it. */
-export const ICON_BASELINE = 0.5 + (BASELINE - CAPITAL_MIDDLE) / ICON_RATIO
 
 /** A roof line wider than this wraps, when the name has a space to wrap at. */
 const MAX_LINE_CELLS = 4
