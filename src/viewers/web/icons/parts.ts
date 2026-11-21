@@ -78,7 +78,8 @@ export function cylinder(x: number, y: number, r: number, z: number, h: number, 
 
 /**
  * An upright panel that faces south: its outline is given as x, z pairs, its back is at `y` and it is `d` thick.
- * A screen, a clock face and a cloud are panels.
+ * A screen, a clock face and a cloud are panels. Draw a panel's marks on its south face: the view from above
+ * lays the panel flat with that face up and shows no other mark of it.
  */
 export function panel(outline: readonly Spot[], y: number, d: number, ...marks: IconMark[]): Prism {
   return { shape: 'prism', axis: 'y', outline, from: y, length: d, marks, accent: false }
