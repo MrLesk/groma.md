@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import { scannerNotice, scannerSettingsState } from '../src/plugins/settings.ts'
-import { pluginGroups, pluginSettingAction, type ScannerSetting } from '../src/plugins/settings-model.ts'
+import { pendingPlugin, pluginGroups, pluginProgress, pluginSettingAction, type PluginSettingsAction, type ScannerSetting } from '../src/plugins/settings-model.ts'
 import type { ScannerDiscovery } from '../src/scanner/modules/discovery.ts'
 
 function setting(id: string, status: ScannerSetting['status'], match: ScannerSetting['match'] = 'matched'): ScannerSetting {
@@ -65,4 +65,36 @@ test.concurrent('an incompatible recommendation does not make a missing project 
   const removed = scannerSettingsState(proposal, [{ id: 'react', source: '@groma/scanner-react@1.0.0', status: 'missing' }], [{ id: 'react', package: 'found', project: 'ready', message: '' }])
   expect(removed.plugins[0]?.status).toBe('missing')
   expect(pluginSettingAction(state.plugins[0]!)).toEqual({ action: 'restore', id: 'react' })
+})
+
+test.concurrent('a running action marks the rows it acts on until it ends, and no other row', () => {
+  const recommended = { ...setting('swift', 'available'), installSource: 'swift@1.0.0' }
+  const missing = { ...setting('rust', 'missing'), source: 'rust@1.0.0' }
+  const blocked = { ...setting('react', 'blocked'), source: 'react@1.0.0' }
+  const before = [recommended, missing, blocked]
+  /** The ids of the rows that say what the action is doing, among the rows as they are now. */
+  const marked = (action: PluginSettingsAction, now: ScannerSetting[] = before): string[] =>
+    now.filter(row => pluginProgress({ action, before }, row) !== undefined).map(row => row.id)
+
+  expect(marked({ action: 'install', id: 'swift' })).toEqual(['swift'])
+  expect(marked({ action: 'restore', id: 'rust' })).toEqual(['rust'])
+  expect(marked({ action: 'update', id: 'react' })).toEqual(['react'])
+  expect(marked({ action: 'remove', id: 'react' })).toEqual(['react'])
+  expect(marked({ action: 'install-recommended' })).toEqual(['swift'])
+  expect(marked({ action: 'install-missing' })).toEqual(['rust'])
+  expect(marked({ action: 'retry' })).toEqual(['react'])
+  expect(marked({ action: 'automatic-updates', enabled: false })).toEqual([])
+
+  // config.json lists the new plugin while the action still scans with it: its row stays marked, so it shows no status yet.
+  const listed = [{ ...recommended, listed: true, status: 'unchecked' as const }, missing, blocked]
+  expect(marked({ action: 'install', id: 'swift' }, listed)).toEqual(['swift'])
+  expect(marked({ action: 'install-recommended' }, listed)).toEqual(['swift'])
+
+  // Add names a source, not a row. Until config.json lists the new plugin, the typed source stands for it.
+  const add: PluginSettingsAction = { action: 'add', source: 'swift@1.0.0' }
+  expect(marked(add)).toEqual([])
+  expect(pendingPlugin({ action: add, before }, before)?.source).toBe('swift@1.0.0')
+  expect(marked(add, listed)).toEqual(['swift'])
+  expect(pendingPlugin({ action: add, before }, listed)).toBeUndefined()
+  expect(pendingPlugin({ action: { action: 'install', id: 'swift' }, before }, before)).toBeUndefined()
 })

@@ -2,7 +2,7 @@ import type { WebDataSource } from '../data.ts'
 import { escaped } from '../atoms/escape.ts'
 import { scannerName } from '../scanners/name.ts'
 import { isNpmPackageName } from '../../../scanner/modules/package-name.ts'
-import { pluginGroups, pluginSettingAction, pluginUpgradeAction, scannerMatchReason, type PluginSetting, type ScannerSetting, type PluginSettings, type PluginSettingsAction } from '../../../plugins/settings-model.ts'
+import { pendingPlugin, pluginGroups, pluginProgress, pluginSettingAction, pluginUpgradeAction, scannerMatchReason, type PluginSetting, type ScannerSetting, type PluginSettings, type PluginSettingsAction, type RunningPluginAction } from '../../../plugins/settings-model.ts'
 
 export const pluginSettingsCss = `
   #scanner-settings { min-height: 0; display: flex; flex-direction: column; gap: 16px; }
@@ -24,6 +24,12 @@ export const pluginSettingsCss = `
   #scanner-settings .scanner-version { color: var(--muted); font-size: 11px; }
   #scanner-settings .scanner-status { font-size: 11px; color: var(--muted); }
   #scanner-settings .scanner-status.attention { color: var(--syntax-number); }
+  #scanner-settings .scanner-status.running { color: var(--accent-text); }
+  /* A row a running action acts on: a line runs to and fro along its bottom edge until the action ends, always in sight. */
+  #scanner-settings .scanner-row.running { position: relative; }
+  #scanner-settings .scanner-row.running::after { content: ''; position: absolute; left: 0; bottom: 0; width: 40%; height: 2px; background: var(--accent); animation: plugin-progress 1.2s ease-in-out infinite alternate; }
+  @keyframes plugin-progress { from { transform: translateX(0); } to { transform: translateX(150%); } }
+  @media (prefers-reduced-motion: reduce) { #scanner-settings .scanner-row.running::after { width: 100%; animation: none; } }
   #scanner-settings .scanner-primary:has(button) { display: flex; }
   #scanner-settings .scanner-primary button { border-color: color-mix(in srgb, var(--accent) 45%, var(--hairline)); background: var(--hover); color: var(--accent-text); }
   #scanner-settings summary { padding: 0 14px 10px; cursor: pointer; color: var(--muted); font-size: 12px; }
@@ -80,18 +86,40 @@ function detailLabel(plugin: PluginSetting): string {
   return `${count} matching ${count === 1 ? 'file' : 'files'}`
 }
 
-function settingRow(plugin: PluginSetting, upgrades: PluginSettings['upgrades']): string {
-  const { primary, more } = rowActions(plugin, upgrades)
-  const upgrade = plugin.source ? upgrades?.[plugin.source] : undefined
+/** What a row says where its status stands: what a running action is doing to it, or else its status. */
+function statusBadge(plugin: PluginSetting, progress: string | undefined): string {
+  if (progress !== undefined) return progressBadge(progress)
   const attention = plugin.status === 'blocked' || plugin.status === 'missing'
   const status = { blocked: 'Needs attention', missing: 'Needs attention', ready: 'Installed', unchecked: 'Installed', available: '' }[plugin.status]
-  const badge = status ? `<span class="scanner-status${attention ? ' attention' : ''}">${status}</span>` : ''
+  return status ? `<span class="scanner-status${attention ? ' attention' : ''}">${status}</span>` : ''
+}
+
+/** What a running action is doing to a row, where a status stands otherwise. */
+function progressBadge(progress: string): string {
+  return `<span class="scanner-status running">${progress}</span>`
+}
+
+/** The frame of a row; one a running action acts on carries the class that draws its progress line. */
+function rowFrame(inProgress: boolean, id?: string): string {
+  const scanner = id === undefined ? '' : ` data-scanner-id="${escaped(id)}"`
+  return inProgress ? `<section class="scanner-row running" aria-busy="true"${scanner}>` : `<section class="scanner-row"${scanner}>`
+}
+
+/** The row of the plugin Add is installing, until config.json lists it and its own row takes over. */
+function pendingRow(pending: { source: string; progress: string }): string {
+  return `<section class="scanner-group">${rowFrame(true)}<div class="scanner-header"><div class="scanner-heading"><strong>${escaped(pending.source)}</strong></div>${progressBadge(pending.progress)}</div></section></section>`
+}
+
+/** One plugin's row. `progress` is what a running action is doing to it: the row then shows that and no primary action. */
+function settingRow(plugin: PluginSetting, upgrades: PluginSettings['upgrades'], progress: string | undefined): string {
+  const { primary, more } = rowActions(plugin, upgrades)
+  const upgrade = plugin.source ? upgrades?.[plugin.source] : undefined
   const reason = plugin.kind === 'workSource' || plugin.match === 'matched' ? '' : `<p>${escaped(scannerMatchReason(plugin))}</p>`
   const version = [plugin.version, upgrade?.version].filter(Boolean).join(' → ')
   const metadata = [version, plugin.official ? 'Official' : 'Third-party'].filter(Boolean).join(' · ')
   const updateError = upgrade?.error ? `<p>Could not check for updates. ${escaped(upgrade.error)}</p>` : ''
   const details = detailLabel(plugin)
-  return `<section class="scanner-row" data-scanner-id="${escaped(plugin.id)}"><div class="scanner-header"><div class="scanner-heading"><strong>${escaped(plugin.kind === 'scanner' ? scannerName(plugin.id) : plugin.name)}</strong><span class="scanner-version">${escaped(metadata)}</span></div>${badge}<div class="scanner-primary">${primary}</div></div>`
+  return `${rowFrame(progress !== undefined, plugin.id)}<div class="scanner-header"><div class="scanner-heading"><strong>${escaped(plugin.kind === 'scanner' ? scannerName(plugin.id) : plugin.name)}</strong><span class="scanner-version">${escaped(metadata)}</span></div>${statusBadge(plugin, progress)}<div class="scanner-primary">${progress === undefined ? primary : ''}</div></div>`
     + `<details><summary>${details}</summary><div class="scanner-body"><code class="scanner-package">${escaped(plugin.source ?? plugin.installSource ?? plugin.name)}</code>`
     + `${reason}${plugin.message ? `<p>${escaped(plugin.message)}</p>` : ''}${plugin.kind === 'scanner' ? detectionDetails(plugin) : ''}${updateError}<div class="scanner-actions">${more}</div></div></details></section>`
 }
@@ -104,13 +132,21 @@ function filterEvidence(input: HTMLInputElement): void {
   body.querySelector<HTMLElement>('[data-no-matches]')!.hidden = items.some(item => !item.hidden)
 }
 
-function settingGroup(group: ReturnType<typeof pluginGroups>[number], showBulk: boolean, upgrades: PluginSettings['upgrades']): string {
+function settingGroup(group: ReturnType<typeof pluginGroups>[number], showBulk: boolean, upgrades: PluginSettings['upgrades'], running: RunningPluginAction | undefined): string {
   const missing = group.plugins.every(plugin => plugin.status === 'missing')
   const recommended = group.plugins.every(plugin => !plugin.listed)
   const action = missing ? 'install-missing' : recommended ? 'install-recommended' : undefined
   const installable = group.plugins.filter(plugin => plugin.status === 'missing' || plugin.installSource).length
   const bulk = showBulk && action && installable > 1 ? `<button class="chrome-button" type="button" data-group="${action}">${missing ? 'Install missing' : 'Install all'}</button>` : ''
-  return `<section class="scanner-group"><div class="scanner-group-heading"><h2>${group.title}<span class="scanner-count">${group.plugins.length}</span></h2>${bulk}</div>${group.plugins.map(plugin => settingRow(plugin, upgrades)).join('')}</section>`
+  return `<section class="scanner-group"><div class="scanner-group-heading"><h2>${group.title}<span class="scanner-count">${group.plugins.length}</span></h2>${bulk}</div>${group.plugins.map(plugin => settingRow(plugin, upgrades, running && pluginProgress(running, plugin))).join('')}</section>`
+}
+
+/** The list: the plugin Add is installing while it has no row of its own, then the groups of rows that match the search. */
+function listHtml(plugins: readonly PluginSetting[], query: string, upgrades: PluginSettings['upgrades'], running: RunningPluginAction | undefined): string {
+  const groups = pluginGroups(plugins, query)
+  const pending = running && pendingPlugin(running, plugins)
+  return (pending ? pendingRow(pending) : '')
+    + (groups.length ? groups.map(group => settingGroup(group, !query.trim(), upgrades, running)).join('') : '<p>No plugins match.</p>')
 }
 
 /** Plugin management uses the live data source inside Settings. */
@@ -129,7 +165,8 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
   let updateId: string | undefined
   let state: PluginSettings | undefined
   let upgrades: PluginSettings['upgrades']
-  let busy: PluginSettingsAction | undefined
+  /** The action that is running. The rows are painted from the settings and from it, so they say what it is doing. */
+  let running: RunningPluginAction | undefined
   let failedAction: PluginSettingsAction | undefined
 
   function showError(title: string, message: string) {
@@ -142,22 +179,20 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
     const focused = document.activeElement?.closest<HTMLElement>('[data-scanner-id]')?.dataset.scannerId
     const focusedSelector = document.activeElement?.matches('[data-evidence-search]') ? '[data-evidence-search]' : 'button'
     const filters = new Map([...rows.querySelectorAll<HTMLInputElement>('[data-evidence-search]')].map(input => [input.closest<HTMLElement>('[data-scanner-id]')!.dataset.scannerId, input.value]))
-    const groups = pluginGroups(next.plugins, search.value)
-    rows.innerHTML = groups.length ? groups.map(group => settingGroup(group, !search.value.trim(), upgrades)).join('') : '<p>No plugins match.</p>'
+    rows.innerHTML = listHtml(next.plugins, search.value, upgrades, running)
     for (const detail of rows.querySelectorAll('details')) detail.open = expanded.has(detail.closest<HTMLElement>('[data-scanner-id]')?.dataset.scannerId)
     for (const input of rows.querySelectorAll<HTMLInputElement>('[data-evidence-search]')) {
       input.value = filters.get(input.closest<HTMLElement>('[data-scanner-id]')!.dataset.scannerId) ?? ''
       filterEvidence(input)
     }
     if (focused) rows.querySelector<HTMLElement>(`[data-scanner-id="${CSS.escape(focused)}"] ${focusedSelector}`)?.focus()
+    // A row moves to another group when config.json lists or drops its plugin: the first row in progress stays in view.
+    if (running) rows.querySelector('.scanner-row.running')?.scrollIntoView({ block: 'nearest' })
   }
-  function setBusy() {
-    automatic.disabled = busy !== undefined
-    for (const button of host.querySelectorAll<HTMLButtonElement>('button')) button.disabled = busy !== undefined
-    if (!busy || !('id' in busy)) return
-    const button = rows.querySelector<HTMLButtonElement>(`[data-scanner-id="${CSS.escape(busy.id)}"] .scanner-primary button`)
-    if (!button) return
-    button.textContent = busy.action === 'remove' ? 'Removing…' : busy.action === 'update' ? 'Updating…' : 'Installing…'
+  /** No second action starts while one runs: every button and the automatic updates switch wait for it. */
+  function disableWhileRunning() {
+    automatic.disabled = running !== undefined
+    for (const button of host.querySelectorAll<HTMLButtonElement>('button')) button.disabled = running !== undefined
   }
   function paint(next: PluginSettings): void {
     state = next
@@ -169,7 +204,7 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
       : tone === 'error' ? 'Scanning needs attention. Showing saved architecture.' : next.notice.message
     notice.hidden = !notice.textContent
     paintRows(next)
-    setBusy()
+    disableWhileRunning()
     const diagnostic = tone === 'error' && !next.plugins.some(plugin => plugin.status === 'blocked') ? next.notice.message : next.limits.join('\n')
     if (!failedAction) showError('Scanner details', diagnostic)
   }
@@ -190,17 +225,17 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
     ;(next ?? search).focus()
   }
   async function change(action: PluginSettingsAction) {
-    if (busy) return
-    busy = action; failedAction = undefined; retry.hidden = true
+    if (running) return
+    running = { action, before: state?.plugins ?? [] }; failedAction = undefined; retry.hidden = true
     if (state) paint(state)
     try { paint(await data.changePluginSettings!(action)) }
     catch (cause) {
       showError('Plugin action failed', cause instanceof Error ? cause.message : String(cause))
       failedAction = action; retry.hidden = false
     } finally {
-      busy = undefined
+      running = undefined
       if (state) paintRows(state)
-      setBusy()
+      disableWhileRunning()
       focusAction(action)
     }
   }
@@ -215,7 +250,7 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
   host.querySelector('[data-add]')!.addEventListener('click', () => sourceForm())
   host.querySelector('[data-cancel]')!.addEventListener('click', () => { form.hidden = true })
   retry.addEventListener('click', () => { if (failedAction) void change(failedAction) })
-  search.addEventListener('input', () => { if (state) paintRows(state); setBusy(); rows.scrollTop = 0 })
+  search.addEventListener('input', () => { if (state) paintRows(state); disableWhileRunning(); rows.scrollTop = 0 })
   rows.addEventListener('input', event => {
     if (event.target instanceof HTMLInputElement && event.target.matches('[data-evidence-search]')) filterEvidence(event.target)
   })
@@ -247,7 +282,7 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
     if (!id) { search.focus(); return }
     search.value = ''
     if (state) paintRows(state)
-    setBusy()
+    disableWhileRunning()
     const row = rows.querySelector<HTMLElement>(`[data-scanner-id="${CSS.escape(id)}"]`)
     if (!row) { search.focus(); return }
     row.querySelector('details')!.open = true
