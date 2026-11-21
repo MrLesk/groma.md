@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-21T00:06:00Z'
-updated_date: '2026-11-21T00:29:00Z'
+updated_date: '2026-11-21T00:35:00Z'
 labels: []
 dependencies: []
 references:
@@ -32,6 +32,11 @@ modified_files:
   - docs/scanners/vue/index.md
   - docs/scanners/react/index.md
   - docs/scanners/angular/index.md
+  - plugins/scanners/vue/package.json
+  - plugins/scanners/react/package.json
+  - plugins/scanners/angular/package.json
+  - packages/scanner/package.json
+  - bun.lock
 type: bug
 ordinal: 711000
 ---
@@ -74,6 +79,8 @@ Tests (existing coverage inspected first):
 - Rule: every root has a name. Authority: `docs/scanners/creating-a-plugin.md` ("Each has an observation-local `id`, `kind`, and `name`") and `ScanRoot.name`. Wrong result detected: `createScanObservation` accepts a nameless root, which crashes the reconciler. Gap: `root hierarchy rejects invalid parentage and duplicate identities` in `test-bun/scanner-roots.test.ts` covered parents and duplicate ids only. Smallest test: one more case in that test.
 - Rule: a package whose package.json has no name is scanned under its directory's name. Authority: the reproduced Gitea failure for Vue; the same nameless root reproduced for React and Angular by probing each scanner. Wrong result detected: the scanner reports a root without a name, so its files get no owners. Gap: no Vue or React test scans a manifest without a name, and the Angular cases that do never read the root's name. Smallest test: one case in each scanner's test file on its existing fixture and setup, with a manifest that has no name.
 - No new registry test: `healthy scanners update overlapping evidence while failed scanners retain saved Code and relationships` in `test-bun/scanner-composition.test.ts` already proves that a throwing scanner is reported by id while the others reconcile.
+
+6. Package versions: `@groma/scanner` 0.2.4, Vue scanner 0.2.8, React scanner 0.2.6, Angular scanner 0.2.7, with their `bun.lock` entries, so the next release publishes the changed packages. The release script skips a version that is already published.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -96,14 +103,18 @@ Correction: `packageRootName` first took `(manifest, repositoryRoot, directory)`
 Not part of this task: version bumps of the Vue, React and Angular scanner packages and of `@groma/scanner`, which release tasks carry. A published scanner bundles its own copy of the contract, so installed scanners get the fix with their next release. Core still does not check an observation that a plugin built without `createScanObservation` or `parseScanObservation`.
 
 Final state: `bun run check` passed (Biome and TypeScript clean for the changed files; Node suite 26 of 26; Bun suite 961 passed, 67 toolchain-gated skipped, none failed). The Go-gated `test-bun/go-scanner.test.ts` passed its 14 tests with `GROMA_TEST_GO` set. The Gitea scan was repeated with the Vue scanner rebuilt from the final source: `created 2398`, all 26 tracked `.vue` files owned, and a second scan ran clean.
+
+Correction after the automated review of pull request 233 (one finding, P1): the first commit left the package versions alone, on the reading that release tasks bump them, as TASK-660 changed the Rust scanner without a bump. That reading was wrong. `CLAUDE.md` says scanner packages need their own version bump when their contents change, and `publishPackage` in `scripts/scanner-release.ts` skips an exact version that is already published, so the next release would have kept the old Vue, React and Angular scanners. Bumped the three scanners and `@groma/scanner` by a patch version each and refreshed `bun.lock` (four version lines), following TASK-629 and TASK-548. The other scanners bundle the contract too but behave as before, so they keep their versions, as in TASK-548.
+
+After the version bumps `bun run check` passed again: Node suite 26 of 26; Bun suite 961 passed, 67 toolchain-gated skipped, none failed. `bun install --frozen-lockfile` accepts the refreshed lockfile.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-The Vue, React and Angular scanners now name a package whose package.json has no `name` after its directory, through one shared `packageRootName`. `createScanObservation` refuses a root without a name, as the JSON reader already did, so a scanner that reports one fails by name while the other scanners are reconciled.
+The Vue, React and Angular scanners now name a package whose package.json has no `name` after its directory, through one shared `packageRootName`. `createScanObservation` refuses a root without a name, as the JSON reader already did, so a scanner that reports one fails by name while the other scanners are reconciled. `@groma/scanner` and the three scanners carry a patch version bump, so the next release publishes them.
 
 Verified on Gitea 47f627870da5f2cb1c4ba4d1d5a6e1232c925679 with the go, python, typescript and vue scanners (2398 records, all 26 Vue files owned) and by four test cases that fail on the source before the fix.
 
-Not started, for Alex to decide: releasing the three scanner packages and `@groma/scanner` (installed scanners carry their own copy of the contract), and whether core should check an observation again when it receives it from a plugin that did not build it with the contract.
+Not started, for Alex to decide: whether core should check an observation again when it receives it from a plugin that did not build it with the contract. Installed scanners carry their own copy of the contract and get the fix with the next release.
 <!-- SECTION:FINAL_SUMMARY:END -->
