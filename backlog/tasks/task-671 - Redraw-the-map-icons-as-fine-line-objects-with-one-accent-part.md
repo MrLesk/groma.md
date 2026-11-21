@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-19T18:23:00Z'
-updated_date: '2026-11-21T23:41:00Z'
+updated_date: '2026-11-21T23:57:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -158,6 +158,13 @@ Coordinator's choices, not the owner's: the thickness levels; that the foot of a
 
 Verification of this round. A script compared every object's picture from above with the one before the rewrite: 128 of 151 are the same, shape for shape and in the same order. 23 differ by intent: 11 lost a foot the picture covered or mostly covered; route and stream lost the foot plate in the middle of their post; policy and audio show their foot at the south end; device and router show their antennas north of the box, no longer across its top; the four person cards moved their figure by at most 0.02 of the box; support and notification draw the same shapes in another order. A sheet of all 151 from both views was looked at large, object by object. Review map (demo icons, not committed): the group title Project work (board) and the container title Browser map (browser), which the owner had shown standing, lie flat with a wall and in line with their names in the Iso and Layers views; the camera on its roof lies with the lens up; the 2D view, the hierarchy rows and the details title show the drawings as before; no console message. Icon field on the live map, on a group with an icon: it opens with Icon on and the list shown; No icon hides the list and the filter, the form sends an empty value and the map shows the title without its icon; Icon picks the stored icon again; Save with No icon removed the icon; reopened, the field is short with No icon on; Icon then shows the list with nothing picked, the title names no pick and the form sends nothing; picking the icon and Save restored the record.
 bun run check after this round: 1010 pass, 67 skip, 0 fail; Node suite passes; lint output unchanged (2 warnings and 2 notes in files this task does not touch).
+
+Reviews (cold simplicity review and full-context review, run together, one round on the first commit of 2026-11-22). Defect both found, fixed: the painter ordered overlapping parts by their underside, and the new rule starts a covering part on the ground, so the figure of a person card (top 0.11) was drawn over its badge (top 0.16) in admin, developer and guest in every view, and notification drew its bell over its badge from above. The painter now draws the part that reaches higher over the one it overlaps. A test over all objects holds that from above and from the default view, and fails on the former rule. These four were among the 23 pictures that differ, so the count of 128 unchanged pictures stands.
+Also applied: the thickness levels, the objects that let a part hover on purpose and the fact that the painter centres an object are written above the parts and the objects; two checks for a top that is turned away are deleted, because every view of the map sees tops (pitch 18 to 90); the laptop lost two marks its lid covers in every view; the drawing from above is called that everywhere (fromAboveSvg), no longer a plan; the test of the two views uses an object with two parts.
+Changed after the full-context review compared the Icon field with the owner's words ("only when we select icon you expand"): for several elements whose icons differ the field opens with neither part on and the list closed. The switch holds whether the list is on as the pressed state of the Icon button.
+Left as they are, coordinator's call: the clearing choice of a long field carries an unused class and painter (making them optional costs more than it saves); a long field without a clearing choice throws when its form opens (one caller, and its comment says so); the ball stays as the one part that is not a prism (it draws core, and replacing it would change that drawing, which is the owner's call).
+One thing the first sheet sent to the owner showed wrong: the three cut badges. A corrected sheet was sent after the fix.
+Verification after the fixes: bun run check on the icon branch 1011 pass, 67 skip, 0 fail, and on the element links branch above it 1012 pass, 0 fail; Node suite 28 pass on both; lint output unchanged. The pictures from above of admin, developer, guest and notification draw their badge last again. Review map: for two components with different icons the Icon field opens with neither part on and the list closed, Icon shows the list with nothing picked and the form sends nothing, No icon sends an empty value, and a single record behaves as before, through Save. Light theme looked at in the Iso view.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
@@ -167,7 +174,7 @@ Each map icon is one object that lies on the map like a small relief: flat shape
 
 The list holds 151 generic names in 13 kinds. The Icon field of the Edit form shows No icon and Icon; under Icon it lists the icons by kind below a box that filters them, and its title names the pick. groma edit --help lists the names by kind. The contract, the agent guide and the help state the owner's rule for picking an icon: the area a part is about, not the action it performs.
 
-Verified by bun run check (1010 pass, 67 skip, 0 fail), a script that compared every object's picture from above before and after the icons were laid flat (128 of 151 the same, 23 changed by intent), a sheet of all 151 objects from both views, and walks of the review map in the Iso, 2D and Layers views.
+Verified by bun run check (1011 pass, 67 skip, 0 fail), a script that compared every object's picture from above before and after the icons were laid flat (128 of 151 the same, 23 changed by intent), a sheet of all 151 objects from both views, walks of the review map in the Iso, 2D and Layers views, and a test that holds the draw order of overlapping parts over all objects.
 
 The owner's verdicts: on 2026-11-21 "Yes, land them" on the 141 drawings, "everything looks good" on the Icon field and "perfect" on the choices redone by area and the ten new icons. On 2026-11-22 he asked for the icons to lie flat with their depth showing and for the No icon / Icon choice; he has not yet seen that round finished.
 
