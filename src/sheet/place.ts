@@ -40,6 +40,9 @@ const EXTERNAL_ISLAND = 'island:external'
 /** A virtual component stands a quarter of one unmeasured building unit above its container. */
 const PLATE_HEIGHT_UNITS = 0.25
 
+/** What a zone shows, before packing gives it a key, a parent surface and a rectangle. */
+type ZoneContent = Omit<Zone, 'key' | 'parent' | 'rect'>
+
 /** A packed subtree: its size in cells and where each child sits relative to its north corner. */
 interface Node {
   key: string
@@ -50,7 +53,7 @@ interface Node {
   paint:
     | { kind: 'building'; element: AnnotatedElement; heightUnits: number; shape: Shape; floors: BuildingFloor[]; lines: string[] }
     | { kind: 'slab'; element: AnnotatedElement }
-    | ({ kind: 'zone' } & Pick<Zone, 'name' | 'members' | 'groupId' | 'unidentifiedContainer'>)
+    | { kind: 'zone'; zone: ZoneContent }
     | { kind: 'island'; islandKind: IslandKind; name: string; element: AnnotatedElement | null }
 }
 
@@ -109,7 +112,7 @@ function subtreeConnections(key: string, children: readonly Node[], relationship
 /** The cells a surface's own name needs in its front band. */
 function nameWidth(paint: Node['paint']): number {
   if (paint.kind === 'island') return nameCells(paint.name.toUpperCase(), ISLAND_FONT, ISLAND_SPACING, paint.element?.icon !== undefined)
-  if (paint.kind === 'zone') return nameCells(paint.name, GROUP_FONT)
+  if (paint.kind === 'zone') return nameCells(paint.zone.name, GROUP_FONT, 0, paint.zone.icon !== undefined)
   if (paint.kind === 'slab') return nameCells(paint.element.title, CONTAINER_FONT, 0, paint.element.icon !== undefined)
   return 0
 }
@@ -227,10 +230,17 @@ function centredIsland(node: Node): Node {
   }
 }
 
-function groupTitle(groups: readonly AnnotatedGroup[], id: string): string {
+/** The group's zone carries its own name and appearance. Its member buildings already carry theirs. */
+function groupZone(groups: readonly AnnotatedGroup[], id: string, members: readonly Node[]): ZoneContent {
   const group = groups.find(candidate => candidate.id === id)
   if (group === undefined) throw new Error(`a component names the unknown group "${id}"`)
-  return group.title
+  return {
+    groupId: id,
+    name: group.title,
+    ...(group.color === undefined ? {} : { color: group.color }),
+    ...(group.icon === undefined ? {} : { icon: group.icon }),
+    members: members.map(member => member.key),
+  }
 }
 
 /** A container's components in hierarchy order, with each group's members folded into one zone node where its first member sat. */
@@ -250,9 +260,11 @@ function withZones(
     bucket.nodes.push(node)
     buckets.set(key, bucket)
   }
-  return [...buckets].map(([key, { group, nodes }]) => group === undefined
-    ? nodes[0]!
-    : packed(key, nodes, { kind: 'zone', groupId: group, name: groupTitle(groups, group), members: nodes.map(member => member.key) }, relationships))
+  return [...buckets].map(([key, { group, nodes }]) => {
+    if (group === undefined) return nodes[0]!
+    const zone = groupZone(groups, group, nodes)
+    return packed(key, nodes, { kind: 'zone', zone }, relationships)
+  })
 }
 
 export function placeWorld(world: ArchitectureGraph): Placement {
@@ -280,10 +292,11 @@ export function placeWorld(world: ArchitectureGraph): Placement {
     const components = children.filter(child => child.kind === 'component')
     const surfaces = containers.map(slab)
     if (components.length > 0) {
-      surfaces.push(packed(`unidentified:${system.representationId}`, components.map(building), {
-        kind: 'zone', name: 'Unidentified container', unidentifiedContainer: true,
+      const zone: ZoneContent = {
+        name: 'Unidentified container', unidentifiedContainer: true,
         members: components.map(component => component.representationId),
-      }, relationships))
+      }
+      surfaces.push(packed(`unidentified:${system.representationId}`, components.map(building), { kind: 'zone', zone }, relationships))
     }
     return packed(
       system.representationId,
@@ -379,9 +392,7 @@ function collect(islands: readonly Node[], origins: readonly CellRect[]): Placem
     } else if (paint.kind === 'slab') {
       placement.slabs.push({ ...item(paint.element), island: islandKey, rect })
     } else if (paint.kind === 'zone') {
-      placement.zones.push({ key: node.key, name: paint.name, parent: surface, members: paint.members, rect,
-        groupId: paint.groupId, unidentifiedContainer: paint.unidentifiedContainer,
-      })
+      placement.zones.push({ ...paint.zone, key: node.key, parent: surface, rect })
     } else {
       placement.buildings.push({
         ...item(paint.element),

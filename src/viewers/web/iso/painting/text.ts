@@ -86,13 +86,10 @@ export function surfaceText(
 /** The label and its short leader share the surface's identity and ground plane. */
 export function surfaceLabel(
   text: SurfaceLabel,
-  size: number,
+  layout: ReturnType<typeof surfaceLabelLayout>,
   view: ProjectionView,
-  spacing = 0,
-  zoom = 1,
-  icon = false,
+  spacing: number,
 ): SvgNode {
-  const layout = surfaceLabelLayout(text, size, zoom, view, icon)
   return node('g', { transform: planeMatrix('ground', text.origin, view) }, 'label surface-label', [
     node('rect', { x: layout.x, width: layout.width, height: layout.height }, 'label-hit'),
     node('line', { x1: text.width / 2, x2: text.width / 2, y1: 0, y2: layout.leader }, 'label-leader'),

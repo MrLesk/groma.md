@@ -142,7 +142,7 @@ function partSvg(part: IconPart, cells: number, view: ProjectionView, detail: nu
 /**
  * What the camera scale decides about one icon; icon-camera.ts holds the rules. On the live map the stylesheet
  * applies them while the camera moves, so the icon only carries its slot's side. A still is drawn once, so the
- * painter applies them here: a landmark's enlargement, a roof icon's fading, the line width and the opacity
+ * painter applies them here: a landmark's enlargement, the fading of an icon that is no landmark, the line width and the opacity
  * of the inner lines. A still's renderer scales lines with the drawing, hence the division.
  */
 function cameraLook(slot: IconSlot, still: Still | undefined): { style: string; enlarge: Record<string, string>; detail: number | undefined } {

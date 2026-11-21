@@ -5,8 +5,8 @@
  * `--icon-side`, the slot's side in plane pixels, on every live icon.
  *
  * There are two kinds of icon. A landmark, the icon before a system's or container's title, is enlarged so it
- * stays readable when the map is zoomed out. Every other icon stands on a roof, shrinks with the map and fades
- * out when it would be a smudge.
+ * stays readable when the map is zoomed out. Icons on roofs and beside zone names stay in their slots and
+ * fade out when they would be a smudge.
  */
 const LIVE_SCALE = 'var(--camera-scale, 1)'
 
@@ -44,7 +44,7 @@ function rampCss(ramp: Ramp): string {
   return `clamp(0, calc((${SCREEN_SIDE_CSS} - ${ramp.from}) / ${ramp.to - ramp.from}), 1)`
 }
 
-/** A roof icon fades out below these sizes instead of staying on the map as a smudge. */
+/** An icon that is no landmark (on a roof, or before a zone's name) fades out below these sizes instead of staying on the map as a smudge. */
 const ROOF_ICON: Ramp = { from: 7, to: 10 }
 
 /** Opacity of a roof icon whose slot is `side` screen pixels wide. */

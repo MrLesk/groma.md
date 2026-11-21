@@ -87,6 +87,9 @@ const SURFACE_DEPTH = {
   island: depthOf('island'),
   system: depthOf('island') - 0.5,
   slab: depthOf('slab'),
+  // A zone lies on its slab's top, so its color is as strong as the slab's own would be. A weaker color would
+  // read as a pale cut-out, because the zone's ground covers the slab's tint.
+  zone: depthOf('slab'),
   building: depthOf('building'),
 }
 
@@ -101,20 +104,21 @@ function surfaceColours(kind: keyof typeof SURFACE_DEPTH, palette?: Palette): st
 }
 
 /**
- * The elements an authored color paints. `own` reaches the element's own faces and none of the surfaces drawn inside
+ * The map levels an authored color paints. `own` reaches the level's own faces and none of the surfaces drawn inside
  * it: a slab holds its group zones, so its faces are its direct children. `top` is the class of its top surface.
  */
 const COLORED_LEVELS = [
   { kind: 'system', own: ' > ', top: 'ground' },
   { kind: 'slab', own: ' > ', top: 'top' },
+  { kind: 'zone', own: ' > ', top: 'ground' },
   { kind: 'building', own: ' ', top: 'top' },
 ] as const
 
 /**
  * An authored color replaces the ink in its element's surface tints, at a stronger share, and tints its outline.
  * The browser sets four --tint-* variables on the element that the surface and stroke rules read, so selection, lit,
- * draft and comparison rules keep working unchanged; group zones reset them, because a color belongs to its element
- * alone. A cover has no variables and no states, so it gets the same values as plain rules.
+ * draft and comparison rules keep working. Each zone resets the slab's tints and can set its own.
+ * A cover has no variables and no states, so it gets the same values as plain rules.
  */
 function authoredColours(palette?: Palette): string {
   return COLOR_NAMES.flatMap(name => COLORED_LEVELS.map(({ kind, own, top }) => {
@@ -259,11 +263,12 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
     : `#map .actor .face { fill: ${paper}; }`}
   ${authoredColours(palette)}
   ${iconCss(palette)}
-  #map .zone .ground { fill: url(#hatch-ground); }
+  #map .zone > .ground { fill: ${palette === undefined ? 'var(--tint-top, transparent)' : 'transparent'}; }
   #map .pattern { stroke: none; pointer-events: none; }
   #map .island.actors .pattern { fill: url(#dots); }
   #map .island.external .pattern { fill: url(#cross); }
-  #map .slab .pattern { fill: url(#grain); }
+  #map .slab > .pattern { fill: url(#grain); }
+  #map .zone > .pattern { fill: url(#hatch-ground); }
   #map .building.component .pattern.left { fill: url(#lines-left); }
   #map .building.component .pattern.right { fill: url(#lines-right); }
   #map .building.actor .pattern.left { fill: url(#dots-left); }
@@ -272,15 +277,15 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .building.external .pattern.right { fill: url(#cross-right); }
   #map .camera[data-facades-hidden] .building .pattern { display: none; }
   #map .camera[data-surface-patterns-hidden] .island > .pattern,
-  #map .camera[data-surface-patterns-hidden] .slab > .pattern { display: none; }
-  #map .camera[data-surface-patterns-hidden] .zone > .ground { fill: transparent; }
+  #map .camera[data-surface-patterns-hidden] .slab > .pattern,
+  #map .camera[data-surface-patterns-hidden] .zone > .pattern { display: none; }
   #map .label-hit { fill: transparent; stroke: none; pointer-events: all; }
   #map .label-leader {
     stroke: ${line}; ${width}
     vector-effect: non-scaling-stroke; pointer-events: none;
   }
   #map .ghost { opacity: 0.8; }
-  #map .ghost .face, #map .ghost .ground { fill: none; pointer-events: all; }
+  #map .ghost .face { fill: none; pointer-events: all; }
   #map .ghost .pattern { display: none; }
   #map .ghost.draft .face, #map .ghost.draft .ground,
   #map .route-base.ghost.draft, #map .route.ghost.draft:not(.touched):not(.lit) .line { stroke-dasharray: ${4 / zoom} ${3 / zoom}; }
@@ -356,8 +361,8 @@ export const mapCss = `
   }
   #map :is(.island, .slab, .zone):is(.selected, .touched, .lit, .context) > .surface-label .text { fill: var(--highlight); }
   #map :is(.island, .slab, .zone):is(.selected, .touched, .lit, .context) > .surface-label .label-leader { stroke: var(--highlight); }
-  #map :is(.island, .slab, .building):is(.selected, .touched, .lit, .context) > .icon :is(.icon-part, .icon-glyph path) { stroke: var(--highlight); }
-  #map :is(.island, .slab, .building):is(.selected, .touched, .lit, .context) > .icon .icon-solid { fill: var(--highlight); }
+  #map :is(.island, .slab, .zone, .building):is(.selected, .touched, .lit, .context) > .icon :is(.icon-part, .icon-glyph path) { stroke: var(--highlight); }
+  #map :is(.island, .slab, .zone, .building):is(.selected, .touched, .lit, .context) > .icon .icon-solid { fill: var(--highlight); }
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) { --emphasis: ${emphasis(0.5)}; }
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) .face { stroke: color-mix(in srgb, var(--highlight) 45%, var(--map-line)); }
   body:not([data-comparison]) #map .camera:has(.component-focus) .building.component:not(.component-focus):not(.neighbor) { opacity: 0.3; }

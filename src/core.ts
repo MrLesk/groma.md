@@ -91,10 +91,7 @@ export function annotateArchitecture(
 
   return {
     flows,
-    groups: groups.map(({ id, title, description, overview, tags }) => ({
-      id, title, ...(description === undefined ? {} : { description }), overview,
-      ...(tags === undefined ? {} : { tags }),
-    })),
+    groups: groups.map(({ memberIds, sourceFilename, ...group }) => group),
     drafts: records.drafts.map(document => draftRecordOf(document).id).sort(),
     elements: withDirectChildren(elements),
     relationships: model.relationships.map((relationship, index) => {

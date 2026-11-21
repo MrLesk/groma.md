@@ -10,11 +10,8 @@ import {
   parsedDocument,
   readDocument,
   removeDocument,
-  replaceLeadProse,
-  type TagChanges,
-  withDescription,
-  withTags,
-  withTitle,
+  type MeaningChanges,
+  withMeaning,
   writeDocument,
 } from './markdown-emitter.ts'
 import { kebabCase, requireText } from './naming.ts'
@@ -178,26 +175,29 @@ export async function addGroup(context: GroupContext, input: AddGroupInput): Pro
   return writeResult(id, [created], left, members)
 }
 
-/** The wording and tags an author can change on a group record. */
-export interface GroupMeaning extends TagChanges {
-  title?: string
-  description?: string
-  overview?: string
-  original?: EditValues
-}
+/**
+ * What an author can change on a group record: its wording, its tags, and the color and icon of its zone.
+ * This list states it once: `editGroup` writes exactly these fields, and `src/edit.ts` refuses every other
+ * option for a group.
+ */
+export const groupFields = ['title', 'description', 'overview', 'addTags', 'removeTags', 'color', 'icon'] as const
 
-/** Updates the group's wording and tags while preserving its id and members. */
-export async function editGroup(context: GroupContext, group: ArchitectureGroup, input: GroupMeaning): Promise<string> {
-  const changes = [input.title, input.description, input.overview, input.addTags, input.removeTags]
-  if (changes.every(value => value === undefined)) {
-    throw new Error('--title, --description, --overview, --add-tags or --remove-tags is required')
+export type GroupMeaning = Pick<MeaningChanges, (typeof groupFields)[number]>
+
+/** Updates the group's wording, tags and appearance while preserving its id and members. */
+export async function editGroup(
+  context: GroupContext, group: ArchitectureGroup, input: GroupMeaning & { original?: EditValues },
+): Promise<string> {
+  // Only the group's fields reach the document, whatever else the edit carries.
+  const changes: GroupMeaning = {}
+  for (const field of groupFields) changes[field] = input[field]
+  if (Object.values(changes).every(value => value === undefined)) {
+    throw new Error('--title, --description, --overview, --add-tags, --remove-tags, --color or --icon is required')
   }
+  changes.title = changes.title?.trim()
   checkEdit(input.original, group, input)
-  let source = await readDocument(context.repositoryRoot, group.sourceFilename)
-  if (input.title !== undefined) source = withTitle(source, requireText(input.title, '--title').trim())
-  if (input.overview !== undefined) source = replaceLeadProse(source, input.overview)
-  source = withDescription(source, input.description)
-  source = withTags(source, input)
+  const stored = await readDocument(context.repositoryRoot, group.sourceFilename)
+  const source = withMeaning(stored, changes)
   await writeGroups(context, [{ sourceFilename: group.sourceFilename, source }])
   return group.id
 }

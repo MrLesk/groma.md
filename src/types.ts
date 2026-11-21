@@ -230,6 +230,9 @@ export interface ArchitectureGroup {
   title: string
   description?: string
   tags?: string[]
+  /** The color of the group's zone and the icon before its name. Members keep their own appearance. */
+  color?: ColorName
+  icon?: IconName
   overview: string
   /** The components the document links under "## Members", in its order. */
   memberIds: string[]
@@ -238,9 +241,10 @@ export interface ArchitectureGroup {
 
 /**
  * A group as a view sees it. A view finds the members the other way round: each one names its
- * group in AnnotatedElement.group, as it names its parent.
+ * group in AnnotatedElement.group, as it names its parent. Every other field of the stored group
+ * reaches the views and the exports, so a field added to ArchitectureGroup is published too.
  */
-export type AnnotatedGroup = Pick<ArchitectureGroup, 'id' | 'title' | 'description' | 'tags' | 'overview'>
+export type AnnotatedGroup = Omit<ArchitectureGroup, 'memberIds' | 'sourceFilename'>
 
 export interface FlowStep {
   relationshipId: string
