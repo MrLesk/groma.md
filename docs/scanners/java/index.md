@@ -61,6 +61,12 @@ from any other unresolved name, so the count includes every unresolved name,
 such as a typo. Other compiler errors are reported as warnings with their javac
 code.
 
+After such errors javac can crash while attributing a class, a crash the javac
+command line hides behind the errors it reported. The scan keeps the bindings
+that class reached, attributes the remaining classes, and reports a
+`JAVA_ATTRIBUTION_CRASHED` warning with the crash message. A crash without a
+reported error fails the scan.
+
 The worker places the selected project root on javac's source path. This lets
 named modules with `module-info.java` keep local source bindings without
 loading a project build or dependency JARs.

@@ -119,7 +119,7 @@ public final class Main {
             }
         };
         units.forEach(unit -> recorder.scan(unit, null));
-        task.analyze();
+        var crashes = attribute(task, units, diagnostics);
         var index = new Declarations(root, Trees.instance(task), authored);
         units.forEach(unit -> index.scan(unit, null));
         var uses = new Uses(index, diagnostics.getDiagnostics());
@@ -140,6 +140,7 @@ public final class Main {
         for (var item : diagnostics.getDiagnostics()) {
             messages.add(message(root, item, "warning", item.getCode(), item.getMessage(Locale.ROOT)));
         }
+        messages.addAll(crashes);
         messages.addAll(uses.diagnostics());
         return Json.object(
             "schemaVersion", 1,
@@ -148,6 +149,28 @@ public final class Main {
             "files", index.files(), "entryPoints", index.entryPoints(), "operations", index.operations,
             "invocations", uses.invocations, "httpEndpoints", http.endpoints,
             "httpRequests", requests, "diagnostics", messages);
+    }
+
+    /**
+     * javac treats a crash after it has reported errors as their consequence and reports only those errors. It takes
+     * each class off its queue before attributing it, so analysis resumes after the class it crashed on, which keeps
+     * the bindings its attribution reached. Every later class is attributed here, not on demand when the scan first
+     * asks for its elements, where a crash would fail the project. Every retry passes at least one class.
+     */
+    private static List<Object> attribute(JavacTask task, List<CompilationUnitTree> units, DiagnosticCollector<JavaFileObject> diagnostics) throws Exception {
+        var crashes = new ArrayList<Object>();
+        long classes = units.stream().mapToLong(unit -> unit.getTypeDecls().size()).sum();
+        while (true) {
+            try {
+                task.analyze();
+                return crashes;
+            } catch (IllegalStateException crash) {
+                var reported = diagnostics.getDiagnostics().stream().anyMatch(item -> item.getKind() == Diagnostic.Kind.ERROR);
+                if (!reported || crashes.size() >= classes) throw crash;
+                crashes.add(Json.object("severity", "warning", "code", "JAVA_ATTRIBUTION_CRASHED", "message",
+                    "javac stopped attributing a class after reporting errors: " + crash.getMessage()));
+            }
+        }
     }
 
     private static String diagnostic(Path root, Diagnostic<? extends JavaFileObject> item) {
