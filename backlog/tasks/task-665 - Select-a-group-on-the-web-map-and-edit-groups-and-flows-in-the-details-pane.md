@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-18T22:00:00Z'
-updated_date: '2026-11-18T22:52:00Z'
+updated_date: '2026-11-21T22:08:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -70,6 +70,7 @@ Groups are the records authors shape most by hand, and the web map can create on
 - [x] #7 docs/viewers/web/index.md (the table of writes, the URL parameters, selecting a group and its pane) and docs/component-markdown.md (Groups, Flows) describe it
 - [x] #8 A click anywhere on a group's zone on the web map selects the group, also at the zoom the map opens with, and the zone takes the selected look. A click on a building in the zone selects that component, and a draft dropped on the zone still lands in its container
 - [x] #9 The pane of a component that is in a group names the group, and a click on that name selects the group
+- [x] #10 The view that removes a group says that its components stay
 <!-- AC:END -->
 
 ## Definition of Done
@@ -102,6 +103,8 @@ Checks: bun run check passed on the final code (984 Bun tests and 28 Node tests,
 
 2026-11-19, after the owner tried it: "I cannot select a group on the map" and "I cannot see that a component is part of a group from the component's detail pane". Cause of the first: only the zone's name selected the group. At the zoom the map opens with a name is 20 to 45 px wide and a route often lies on it, so a click on a group landed on its container or a relationship. My walk had only tried it zoomed in, where the name was 200 px wide. Now the whole zone selects its group (the zone carries data-group; buildings in it still select their component; gestures still read the container under it). Second: the pane of a component in a group now has a Group row whose name selects the group. That row and the Tags row are one atom, atoms/fact-row.ts.
 Live checks (dark theme): a real click on a zone's ground at the opening zoom (90 percent, zone 59 by 29 px) selects the group; in a foreground browser at 2400 percent a click on the ground of Plugins selects it, a click on a building in it selects the component, a shift-click on the ground while a component is selected selects the group alone, the same in the 2D view, and the Layers view selects through the same target. The element under the ground for gestures is the container cli. From the group pane a member opens the component pane, which reads Group, Map drawing above Tags; a real click on that name opens the group pane again. bun run check: 984 Bun and 28 Node tests, 0 failures.
+
+2026-11-22, walk of the writes of the web map with the owner (review map, dark theme). The view that removes a group asked only "Remove Map drawing?", which leaves open whether its seven components go too. removeEntry in src/viewers/web/organisms/commands.ts now takes what stays, and the group's entry passes "Its components stay.", so the view reads "Remove Map drawing? Its components stay.". Elements and relationships keep the plain question. bun run check on this branch with the change: 28 Node tests and 999 Bun tests pass, 0 fail.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
