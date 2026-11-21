@@ -127,7 +127,7 @@
     },
     "plugins/scanners/javascript": {
       "name": "@groma/scanner-javascript",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "typescript": "6.0.3",

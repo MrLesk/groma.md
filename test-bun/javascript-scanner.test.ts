@@ -77,6 +77,24 @@ test.concurrent('a JavaScript file that does not parse contributes no evidence w
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
 
+test.concurrent("a JavaScript file that exhausts the compiler's call stack contributes no evidence while the rest of the scan proceeds", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-javascript-deep-'))
+  try {
+    // Naming what `made.send` calls needs the type of `made`, which the compiler infers through every link's
+    // return type: 50,000 inferences one inside the other, far more than a call stack holds.
+    const links = Array.from({ length: 50_000 }, (_, index) => `function link${index}() { return link${index + 1}() }`)
+    const bundle = ['const made = link0()', "made.send('/orders')", ...links, 'function link50000() { return {} }', '']
+    await writeFile(path.join(root, 'bundle.js'), bundle.join('\n'))
+    await writeFile(path.join(root, 'app.js'), 'export function run() { return 1 }\n')
+    expect(await Bun.spawn(['git', 'init', '--quiet', root]).exited).toBe(0)
+    const scan = (await javascript.scan(root, {}, await javascriptFiles(root)))!
+    expect(scan.operations!.map(operation => operation.file)).toEqual(['app.js'])
+    expect(scan.files.find(file => file.file === 'bundle.js')?.symbols).toEqual([])
+    const warnings = scan.diagnostics.filter(diagnostic => diagnostic.severity === 'warning')
+    expect(warnings).toEqual([expect.objectContaining({ code: 'JAVASCRIPT_SOURCE_TOO_DEEP', file: 'bundle.js' })])
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('a JavaScript scan keeps one owner per file across a rescan of curated architecture', async () => {
   const { temporary, root, scanner } = await setup()
   try {
