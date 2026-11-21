@@ -21,6 +21,7 @@ import { createFlowList } from '../flow/list.ts'
 import type { CodeFile } from '../../source/structure.ts'
 import { paintElementWork } from '../work/component-tasks.ts'
 import { codeList } from './code-lists.ts'
+import { colorChoices } from './color-swatches.ts'
 import { heading, paragraph } from '../atoms/text.ts'
 import { editButton, isEditing, type EditField } from './editable.ts'
 import { tagRow } from './tag-row.ts'
@@ -51,6 +52,8 @@ export interface Inspected {
   origin: Origin
   overview: string
   tags: string[]
+  /** The authored color name, or '' when the element has none. */
+  color: string
   relationships: RelationshipPairData[]
   flows: FlowRowData[]
   children: InspectedChild[]
@@ -156,6 +159,7 @@ export function inspectDetails(
     origin: element.origin,
     overview: element.overview,
     tags: element.tags ?? [],
+    color: element.color ?? '',
     relationships,
     flows: flowsThrough(element.representationId, world).map(flow => ({
       flow: { id: flow.id }, title: flow.title,
@@ -188,7 +192,7 @@ export function inspectUnidentifiedContainer(zone: Zone, world: ArchitectureGrap
     children: world.elements.filter(element => members.has(element.representationId)).map(element => ({
       id: element.representationId, title: element.title, kind: element.kind, external: element.external,
     })),
-    tags: [], relationships: [], flows: [], technology: '', files: [], findings: [],
+    tags: [], color: '', relationships: [], flows: [], technology: '', files: [], findings: [],
     removable: false, matchedGhost: false, movable: false, parent: zone.parent,
   }
 }
@@ -410,5 +414,6 @@ function elementFields(inspected: Inspected, parents: readonly ParentOption[], t
     { name: 'technology', label: 'Technology', value: inspected.technology },
     ...(inspected.movable ? [{ name: 'parent' as const, label: 'Parent', value: inspected.parent ?? '', options: parents }] : []),
     { name: 'tags', label: 'Tags', value: formatTags(inspected.tags), suggestions: tagsInUse },
+    { name: 'color', label: 'Color', value: inspected.color, choices: colorChoices() },
   ]
 }
