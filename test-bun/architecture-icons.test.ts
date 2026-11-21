@@ -6,9 +6,10 @@ import { sheetScene } from '../src/sheet/scene.ts'
 import type { AnnotatedElement, ArchitectureGraph, C4Kind } from '../src/types.ts'
 import { iconObjects } from '../src/viewers/web/icons/objects.ts'
 import { box, cylinder } from '../src/viewers/web/icons/parts.ts'
+import type { IconPart, Prism } from '../src/viewers/web/icons/parts.ts'
 import { buildingsSvg } from '../src/viewers/web/iso/painting/buildings.ts'
-import { boundsOf, prismFaces, reachBehind } from '../src/viewers/web/iso/painting/icon-faces.ts'
-import { flatSvg, iconSvg, standsForward } from '../src/viewers/web/iso/painting/icons.ts'
+import { backToFront, boundsOf, laidFlat, prismFaces, reachBehind } from '../src/viewers/web/iso/painting/icon-faces.ts'
+import { iconSvg, planSvg, standsForward } from '../src/viewers/web/iso/painting/icons.ts'
 import type { SvgNode } from '../src/viewers/web/iso/painting/svg.ts'
 import { surfaceLabelLayout } from '../src/viewers/web/iso/painting/text.ts'
 import { DEFAULT_PROJECTION, projectScene } from '../src/viewers/web/iso/projection/project.ts'
@@ -71,7 +72,7 @@ test.concurrent('on a round roof the icon lies above the name, centred over it',
   expect(slot.x + slot.side / 2).toBeCloseTo(nameMiddle)
 })
 
-/** The class names of the drawings inside an icon: its standing object, the same object flat, or both between two views. */
+/** The class names of what an icon holds: one drawing, its standing object or its plan. */
 function drawingsOf(icon: SvgNode): string[] {
   return childrenOf(icon).map(child => child.attributes.class!)
 }
@@ -84,16 +85,45 @@ function wideBand(font: number): { width: number; band: { width: number; height:
 /** One zoom inside each of the title's size steps. */
 const TITLE_ZOOMS = [0.1, 0.3, 0.7, 2]
 
-test.concurrent('an icon follows the view of the map: its object stands on a tilted map and is drawn flat in the plan view', () => {
+test.concurrent('an icon follows the view of the map: its object stands on a tilted map and its plan is drawn in the plan view', () => {
   const box = { name: 'database' as const, corner: { x: 0, y: 0 }, side: 24 }
   expect(drawingsOf(iconSvg(box, DEFAULT_PROJECTION))).toEqual(['icon-object'])
-  expect(drawingsOf(iconSvg(box, { ...DEFAULT_PROJECTION, pitch: 90 }))).toEqual(['icon-flat'])
+  expect(drawingsOf(iconSvg(box, { ...DEFAULT_PROJECTION, pitch: 90 }))).toEqual(['icon-plan'])
 })
 
-test.concurrent('the flat drawing of every icon is its own object and shows the accent', () => {
+test.concurrent('the plan of every icon object shows the accent', () => {
   for (const name of Object.keys(iconObjects) as IconName[]) {
-    const accents = flatSvg(name, 24).filter(shape => shape.attributes.class!.split(' ').includes('icon-accent'))
-    expect(accents.length, `${name} drawn flat has no accent`).toBeGreaterThan(0)
+    const accents = planSvg(name, 24).filter(shape => shape.attributes.class!.split(' ').includes('icon-accent'))
+    expect(accents.length, `${name} seen from above has no accent`).toBeGreaterThan(0)
+  }
+})
+
+/** The least and greatest value of an upright panel's outline along x (0) or z (1). */
+function reach(panel: Prism, axis: 0 | 1): [number, number] {
+  const values = panel.outline.map(spot => spot[axis])
+  return [Math.min(...values), Math.max(...values)]
+}
+
+/** Panels closer than this only touch: rounding must not turn a shared edge into a common area. */
+const TOUCH = 1e-6
+
+/** Every two upright panels of an object that cover a common area seen from the front, as places in its list of parts. */
+function overlappingPanels(parts: readonly IconPart[]): [number, number][] {
+  const panels = parts.flatMap((part, place) => part.shape === 'prism' && part.axis === 'y' ? [{ part, place }] : [])
+  const overlap = (a: Prism, b: Prism): boolean => ([0, 1] as const).every(axis =>
+    reach(a, axis)[0] < reach(b, axis)[1] - TOUCH && reach(b, axis)[0] < reach(a, axis)[1] - TOUCH)
+  return panels.flatMap(a => panels.filter(b => b.place > a.place && overlap(a.part, b.part)).map((b): [number, number] => [a.place, b.place]))
+}
+
+test.concurrent('where two panels overlap, the plan shows in front the one the tilted map shows in front', () => {
+  for (const [name, parts] of Object.entries(iconObjects)) {
+    const laid = laidFlat(parts)
+    const tilted = backToFront(parts, DEFAULT_PROJECTION)
+    const plan = backToFront(laid, { yaw: 0, pitch: 90 })
+    for (const [one, other] of overlappingPanels(parts)) {
+      const otherInFront = tilted.indexOf(parts[other]!) > tilted.indexOf(parts[one]!)
+      expect(plan.indexOf(laid[other]!) > plan.indexOf(laid[one]!), `${name}: the plan stacks parts ${one} and ${other} the other way round`).toBe(otherInFront)
+    }
   }
 })
 
@@ -109,7 +139,7 @@ test.concurrent('an icon is sized from the letters of its name and lies on the n
 })
 
 test.concurrent('every icon object stays inside its footprint, so it never stands on the name beside it', () => {
-  for (const [name, { parts }] of Object.entries(iconObjects)) {
+  for (const [name, parts] of Object.entries(iconObjects)) {
     for (const part of parts) {
       const { min, max } = boundsOf(part)
       for (const [x, y] of [min, max]) {
@@ -125,9 +155,9 @@ test.concurrent('no icon drawing before a title reaches what stands on the surfa
   for (const font of [GROUP_FONT, CONTAINER_FONT, ISLAND_FONT]) {
     for (const zoom of TITLE_ZOOMS) {
       const { icon } = surfaceLabelLayout(wideBand(font), font, zoom, DEFAULT_PROJECTION, true)
-      for (const [name, object] of Object.entries(iconObjects)) {
+      for (const [name, parts] of Object.entries(iconObjects)) {
         // 0 is the surface's edge and a negative depth lies on the surface.
-        const reaches = icon.y + (standsForward(object) - reachBehind(object.parts)) * icon.side
+        const reaches = icon.y + (standsForward(parts) - reachBehind(parts)) * icon.side
         expect(reaches, `${name} at font ${font} and zoom ${zoom}`).toBeGreaterThan(-emptyGround)
       }
     }
