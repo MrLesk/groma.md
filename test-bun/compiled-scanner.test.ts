@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
@@ -48,6 +48,12 @@ test.concurrent('the standalone CLI resolves an installed dependency of a local 
     await run([binary, 'scan'], root)
     const world = await loadAnnotatedArchitecture(root)
     expect(world.elements.some(element => element.code?.some(code => code.file === 'probe.local'))).toBe(true)
+    await run([binary, 'agent-instructions', 'inspect'], root)
+    const exported = path.join(temporary, 'export')
+    await run([binary, 'export', exported], root)
+    expect((await readFile(path.join(exported, 'render.js'))).length).toBeGreaterThan(0)
+    expect((await readFile(path.join(exported, 'cover-light.png'))).subarray(0, 8))
+      .toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
   } finally {
     await rm(temporary, { recursive: true, force: true })
   }
