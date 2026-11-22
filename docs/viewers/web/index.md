@@ -296,7 +296,9 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
   Escape or a click outside closes the list. Details chips toggle the same focus.
   - With two or more focused tags, **any** matches elements and flows with at
     least one, and **all** requires every tag on the same element or flow.
-    A component in a `payments` container that carries `internal` itself matches both.
+    A component in a `payments` container that carries `internal` itself matches
+    `payments` and `internal`. A `payments` component that is a step end of a
+    flow tagged `checkout` matches `payments` and `checkout`.
   - **not** excludes a tag. With just **not internal**, everything outside
     `internal` stays lit. The bar shows a filled chip for each focused tag and
     an outlined chip for each exclusion. Click × to remove one.
