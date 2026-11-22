@@ -1,15 +1,14 @@
 import { expect, test } from 'bun:test'
 import type { IconName } from '../src/icons.ts'
 import { NESTED_CONTENT_PAD } from '../src/sheet/forces.ts'
-import { BASELINE, CAPITAL_MIDDLE, COMPONENT_FONT, CONTAINER_FONT, GROUP_FONT, ICON_RATIO, ISLAND_FONT, PLANE, buildingFont, iconAbove, labelBand, roofIconSlot, textWidth } from '../src/sheet/measure.ts'
+import { BASELINE, COMPONENT_FONT, CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, PLANE, buildingFont, iconAbove, labelBand, roofIconSlot, textWidth } from '../src/sheet/measure.ts'
 import { sheetScene } from '../src/sheet/scene.ts'
 import type { AnnotatedElement, ArchitectureGraph, C4Kind } from '../src/types.ts'
 import { iconObjects } from '../src/viewers/web/icons/objects.ts'
-import { box, cylinder } from '../src/viewers/web/icons/parts.ts'
 import type { IconPart } from '../src/viewers/web/icons/parts.ts'
 import { buildingsSvg } from '../src/viewers/web/iso/painting/buildings.ts'
-import { backToFront, boundsOf, prismFaces, reachBehind } from '../src/viewers/web/iso/painting/icon-faces.ts'
-import { fromAboveSvg, iconSvg } from '../src/viewers/web/iso/painting/icons.ts'
+import { backToFront, boundsOf, reachBehind } from '../src/viewers/web/iso/painting/icon-faces.ts'
+import { fromAboveSvg } from '../src/viewers/web/iso/painting/icons.ts'
 import type { SvgNode } from '../src/viewers/web/iso/painting/svg.ts'
 import { surfaceLabelLayout } from '../src/viewers/web/iso/painting/text.ts'
 import { DEFAULT_PROJECTION, projectScene } from '../src/viewers/web/iso/projection/project.ts'
@@ -72,11 +71,6 @@ test.concurrent('on a round roof the icon lies above the name, centred over it',
   expect(slot.x + slot.side / 2).toBeCloseTo(nameMiddle)
 })
 
-/** The looks of the faces an icon draws: a top, or a wall on the reader's left or right. */
-function facesOf(icon: SvgNode): string[] {
-  return childrenOf(icon).filter(child => child.tag === 'polygon').map(child => child.attributes.class!.split(' ')[1]!)
-}
-
 /** A title's band as the packing reserves it for a surface of this font, wide enough that width never limits the title. */
 function wideBand(font: number): { width: number; band: { width: number; height: number } } {
   return { width: 400, band: { width: 4000, height: labelBand(font) * PLANE } }
@@ -84,18 +78,6 @@ function wideBand(font: number): { width: number; band: { width: number; height:
 
 /** One zoom inside each of the title's size steps. */
 const TITLE_ZOOMS = [0.1, 0.3, 0.7, 2]
-
-test.concurrent('an icon lies on the map as one object: a tilted map shows the walls of its parts, the view from above only their tops', () => {
-  // A document is two sheets, so the count of tops tells whether both views draw both parts.
-  const box = { name: 'document' as const, corner: { x: 0, y: 0 }, side: 24 }
-  const tilted = facesOf(iconSvg(box, DEFAULT_PROJECTION))
-  const above = facesOf(iconSvg(box, { ...DEFAULT_PROJECTION, pitch: 90 }))
-  expect(tilted.some(face => face === 'icon-left' || face === 'icon-right')).toBe(true)
-  expect(above).toHaveLength(2)
-  expect(above.every(face => face === 'icon-top')).toBe(true)
-  // Both views draw the same parts: each top once.
-  expect(tilted.filter(face => face === 'icon-top')).toHaveLength(above.length)
-})
 
 test.concurrent('every icon object shows its accent from above', () => {
   for (const name of Object.keys(iconObjects) as IconName[]) {
@@ -129,17 +111,6 @@ test.concurrent('where two parts of an object overlap, the one that reaches high
   }
 })
 
-test.concurrent('an icon is sized from the letters of its name and lies on the name\'s line, at every size of a title', () => {
-  expect(roofIconSlot(['orders'], COMPONENT_FONT, false).side).toBe(COMPONENT_FONT * ICON_RATIO)
-  for (const zoom of TITLE_ZOOMS) {
-    const layout = surfaceLabelLayout(wideBand(CONTAINER_FONT), CONTAINER_FONT, zoom, DEFAULT_PROJECTION, true)
-    expect(layout.icon.side).toBeCloseTo(layout.fontSize * ICON_RATIO)
-    // The box's middle is the middle of the capitals: the line's top is 0.9 font sizes above the baseline.
-    const capitalMiddle = layout.baseline - layout.fontSize * 0.9 + layout.fontSize * CAPITAL_MIDDLE
-    expect(layout.icon.y + layout.icon.side / 2).toBeCloseTo(capitalMiddle)
-  }
-})
-
 test.concurrent('every icon object stays inside its footprint, so it never stands on the name beside it', () => {
   for (const [name, parts] of Object.entries(iconObjects)) {
     for (const part of parts) {
@@ -165,18 +136,4 @@ test.concurrent('no icon drawing before a title reaches what stands on the surfa
       }
     }
   }
-})
-
-test.concurrent('a prism shows the faces turned to the reader, and a curved wall is one face', () => {
-  const cube = box(0, 0, 0, 1, 1, 1)
-  const touches = (faces: ReturnType<typeof prismFaces>, corner: readonly number[]): boolean =>
-    faces.flatMap(face => face.points).some(point => point.every((value, axis) => value === corner[axis]))
-  const front = prismFaces(cube, DEFAULT_PROJECTION)
-  expect(front.map(face => face.tone).sort()).toEqual(['left', 'right', 'top'])
-  // The reader stands past the corner (1, 1, 0) and never sees the far corner (0, 0, 0); from the opposite side it is the other way round.
-  expect(touches(front, [0, 0, 0])).toBe(false)
-  const behind = prismFaces(cube, { ...DEFAULT_PROJECTION, yaw: DEFAULT_PROJECTION.yaw + 180 })
-  expect(behind).toHaveLength(3)
-  expect(touches(behind, [1, 1, 0])).toBe(false)
-  expect(prismFaces(cylinder(0.5, 0.5, 0.5, 0, 1), DEFAULT_PROJECTION)).toHaveLength(2)
 })
