@@ -285,7 +285,7 @@ function deselect(): void {
 }
 
 const searchControl = createSearchSession({
-  root: searchRoot, elements: world.elements, tasks: work.items, viewport,
+  root: searchRoot, elements: world.elements, groups: world.groups, tasks: work.items, viewport,
   clearSource: source.clear, anchorOf: id => map.anchorOf(id),
   taskElements: task => touchedElements(task, world),
   openTask: id => applyTaskSelection(openWorkSelection(activeTaskIds, id)),
@@ -463,7 +463,7 @@ function applyWorld(payload: WebPayload, reset = false): void {
   }
   taskDiff.invalidate()
   paintWorld()
-  searchControl.update(world.elements, work.items)
+  searchControl.update(world.elements, world.groups, work.items)
 }
 /** Repaints only the optional Backlog layer; map projection, painting and camera state stay unchanged. */
 function applyWork(payload: WebWorkPayload): void {

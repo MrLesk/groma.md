@@ -56,7 +56,10 @@ export interface IsoMap {
   isSheet(target: EventTarget | null): boolean
   /** True when a click or key target is the project plate's pencil action. */
   isProjectEdit(target: EventTarget | null): boolean
-  /** The point a pin's foot stands on: the roof of a building, the top of a slab or the surface of a system island, near its left corner. */
+  /**
+   * Where `id` is on the map, near its left corner: the roof of a building, the top of a slab, the surface of a system
+   * island or the zone of a stored group. A pin's foot stands on it, and search brings it into view.
+   */
   anchorOf(id: string): Point | undefined
 }
 
@@ -357,7 +360,9 @@ export function createMap(host: HTMLElement): IsoMap {
       const slab = painted?.slabs.find(item => item.slab.representationId === id)
       if (slab) return onSurface(slab.faces.find(face => face.side === 'top')!.points)
       const island = painted?.islands.find(item => item.island.element?.representationId === id)
-      return island === undefined ? undefined : onSurface(island.polygon)
+      if (island) return onSurface(island.polygon)
+      const zone = painted?.zones.find(item => item.zone.groupId === id)
+      return zone === undefined ? undefined : onSurface(zone.polygon)
     },
   }
 }

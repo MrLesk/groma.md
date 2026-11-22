@@ -79,6 +79,27 @@ export function searchControl(icons: { search: string, close: string }): string 
   return `<div id="web-search"><div class="chrome-field">${icons.search}<input type="search" placeholder="Search" autocomplete="off" spellcheck="false" role="combobox" aria-label="Search" aria-autocomplete="list" aria-expanded="false" aria-controls="web-search-results"><button class="search-clear" type="button" aria-label="Clear search">${icons.close}</button><span class="keycap search-shortcut" aria-hidden="true"></span></div><div class="anchored-popover animated search-menu" hidden><div id="web-search-results" class="search-results" role="listbox" aria-label="Search results"></div><div class="anchored-popover-footer"><span class="result-count"></span><span>↑↓ Navigate</span><span><span class="keycap">↵</span> Open</span><span><span class="keycap">Esc</span> Close</span></div></div></div>`
 }
 
+/** What one result row shows: its mark, its name, what it is, and where it is. */
+function rowContent(result: WebSearchResult): { mark: string, title: string, meta: string, path: string } {
+  if (result.kind === 'task') {
+    return { mark: '#', title: result.task.title, meta: `Task · ${result.task.status}`, path: result.task.id }
+  }
+  if (result.kind === 'group') {
+    return {
+      mark: '⬚',
+      title: result.group.title,
+      meta: 'Group',
+      path: result.path.length === 0 ? result.group.id : result.path.join(' › '),
+    }
+  }
+  return {
+    mark: kindGlyph(result.element.kind),
+    title: result.element.title,
+    meta: `${kindLabel(result.element.kind, result.element.external)} · ${result.element.origin}`,
+    path: result.path.length === 0 ? result.element.id : result.path.join(' › '),
+  }
+}
+
 export function paintSearchResults(
   host: HTMLElement,
   results: readonly WebSearchResult[],
@@ -93,14 +114,7 @@ export function paintSearchResults(
     return
   }
   results.forEach((result, index) => {
-    const content = result.kind === 'task'
-      ? { mark: '#', title: result.task.title, meta: `Task · ${result.task.status}`, path: result.task.id }
-      : {
-        mark: kindGlyph(result.element.kind),
-        title: result.element.title,
-        meta: `${kindLabel(result.element.kind, result.element.external)} · ${result.element.origin}`,
-        path: result.path.length === 0 ? result.element.id : result.path.join(' › '),
-      }
+    const content = rowContent(result)
     const row = document.createElement('button')
     row.type = 'button'
     row.id = `web-search-result-${index}`

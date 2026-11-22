@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-18T22:00:00Z'
-updated_date: '2026-11-21T22:08:00Z'
+updated_date: '2026-11-22T18:58:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -49,6 +49,11 @@ modified_files:
   - src/viewers/web/url.ts
   - test-bun/web-map-highlights.test.ts
   - test-bun/web-selection.test.ts
+  - src/viewers/web/search/model.ts
+  - src/search.ts
+  - src/viewers/web/search/view.ts
+  - src/viewers/web/search/control.ts
+  - test-bun/web-search.test.ts
 type: feature
 ordinal: 712000
 ---
@@ -71,6 +76,7 @@ Groups are the records authors shape most by hand, and the web map can create on
 - [x] #8 A click anywhere on a group's zone on the web map selects the group, also at the zoom the map opens with, and the zone takes the selected look. A click on a building in the zone selects that component, and a draft dropped on the zone still lands in its container
 - [x] #9 The pane of a component that is in a group names the group, and a click on that name selects the group
 - [x] #10 The view that removes a group says that its components stay
+- [x] #11 Search finds a group by its title or id: its result reads Group with the path of its container, the arrow keys preview its zone with the selected look, and Enter selects the group and frames its members
 <!-- AC:END -->
 
 ## Definition of Done
@@ -90,6 +96,8 @@ Groups are the records authors shape most by hand, and the web map can create on
 4. Writes: authoring.ts and organisms/writes.ts carry the hooks of a group's pane and a flow's pane. The group pane offers Edit (Title, Description, Overview, Tags) with Remove inside; the flow pane offers Edit (Title, Description, Overview, Tags). Both are built with editEntry and painted with paintWriteEntries.
 5. Docs: docs/viewers/web/index.md and docs/component-markdown.md.
 6. Tests. Authority: acceptance criteria 2 and 3. (a) The address: a link with group=<id> selects that group and writing the view returns the same link; group= with an element's id or an unknown id selects nothing. Wrong result: the id is dropped or read as a component, so a shared link opens nothing. Gap: no test names a group in a link. (b) Selected alone, only if selection.ts expresses the rule as a function: an additive pick of a group, and of an element while a group is selected. Wrong result: a group in a selection of several, which no pane can paint. No DOM tests.
+
+7. Search finds groups (owner, 2026-11-22: "Yes, add it" to "Should search find groups?"). src/viewers/web/search/model.ts indexes the stored groups beside the elements and the tasks and returns a group result with the path of its members. search/view.ts paints its row (mark, title, Group, path). search/session.ts previews and accepts it by the group's id, as it does an element. iso/painting/map.ts anchorOf answers for a group's zone, so the preview can bring it into view. render.ts passes world.groups. No new test. The project rule of 2026-11-22 skips a unit test of a function whose cccc cognitive score is 5 or lower: groupIndex and createWebSearch in search/model.ts score 0 and 1, and no regular expression is involved. A test written first (a group's title finds the group, with the path core search gives one of its members) failed on two wrong versions of the code and was removed for that rule. The existing tests of test-bun/web-search.test.ts pass an empty group list. The flow is verified on the live map.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -105,10 +113,17 @@ Checks: bun run check passed on the final code (984 Bun tests and 28 Node tests,
 Live checks (dark theme): a real click on a zone's ground at the opening zoom (90 percent, zone 59 by 29 px) selects the group; in a foreground browser at 2400 percent a click on the ground of Plugins selects it, a click on a building in it selects the component, a shift-click on the ground while a component is selected selects the group alone, the same in the 2D view, and the Layers view selects through the same target. The element under the ground for gestures is the container cli. From the group pane a member opens the component pane, which reads Group, Map drawing above Tags; a real click on that name opens the group pane again. bun run check: 984 Bun and 28 Node tests, 0 failures.
 
 2026-11-22, walk of the writes of the web map with the owner (review map, dark theme). The view that removes a group asked only "Remove Map drawing?", which leaves open whether its seven components go too. removeEntry in src/viewers/web/organisms/commands.ts now takes what stays, and the group's entry passes "Its components stay.", so the view reads "Remove Map drawing? Its components stay.". Elements and relationships keep the plain question. bun run check on this branch with the change: 28 Node tests and 999 Bun tests pass, 0 fail.
+
+2026-11-22, walk of the group pane with the owner (review map, dark theme, real clicks for the selecting gestures). All ten criteria held. Measured with the browser's own hit test: a click selects a group only on the ground that its buildings, routes and task pins leave free. That is 17 percent of the zones' ground at the zoom the map opens with (three zones lie wholly under task pins), 41 percent with the Browser map container filling the screen and 74 percent with one zone framed. A group was in neither the hierarchy nor the search. Asked "Should search find groups?", the owner answered "Yes, add it" (criterion 11). Group rows in the hierarchy were not proposed: how the hierarchy shows groups is an open point of TASK-655.
+Built: the web search model indexes the stored groups by title and id beside the elements and the tasks (search/model.ts groupIndex). A group result carries the path of its first member, because all members of a group have the same container. Its row shows a mark, the title, Group and that path (search/view.ts rowContent). The session previews and accepts a group result by the group's id, as it does an element (search/session.ts selectionId): the arrow keys give the zone the selected look, and Enter selects the group and frames its members through the code a group link already uses. iso/painting/map.ts anchorOf answers for a group's zone, so the preview brings a zone that is off screen into view. Groups are indexed in the web model and not in core search (src/search.ts), because the terminal map shares core search and cannot select a group. Core search exports what the three indexes share: the matching options (fuzzyMatching) and ancestorPaths.
+Live checks on the final code of this branch (its own map on port 4793, read only, dark theme, keyboard events and a mouse click): "map drawing" lists the group first as Map drawing, Group, Groma › Browser map. The down arrow gives its zone the selected look and leaves the address and the pane as they were. Escape restores the selection and the camera. Enter selects the group: the address reads group=export-map-drawing, the pane reads Group and the camera frames the zone. A click on the row does the same. The preview brings a group whose zone is off screen into view. The id export-map-drawing and the typo "map drwing" find the group. The 2D view previews and accepts it. An element result opens as before.
+Review round (cold simplicity review and full-context review in parallel, one merged list, applied by me): no defect. Applied: the matching options have one owner in core search, where a copy had been kept equal by a comment; ancestorPaths owns its lookup, so a caller cannot key it wrongly; architectureId became selectionId, and the parameter of the preview option became ids; the contract of anchorOf says what stands on the point and that search brings it into view; the comment of groupIndex names the rule that makes the first member enough; the group's mark is a literal in rowContent, as the task's mark is. The readability tool (codehygiene) reports nothing in the changed lines.
+Two consequences told to the owner and not changed: a group and an element of the same title list the group first (Browser session), because the group's id repeats its title; typing a container's id lists that container's groups, because a group's id starts with it.
+Checks on the final code: bun run check passed (999 Bun tests and 28 Node tests, 0 failures). A first run that day failed on timeouts in scanner tests while the machine was busy indexing storage; the same code passed when run again.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-A group is selected on the web map by the name of its zone and has a pane: its wording, its tags and its members. On the current revision of a live map the group pane and the flow pane offer Edit (Title, Description, Overview, Tags) through the write view every pane uses, and a group can be removed from its Edit view. The URL names a selected group as group=<id>.
+A group is selected on the web map by a click on its zone and has a pane: its wording, its tags and its members. The pane of a component in a group names the group. On the current revision of a live map the group pane and the flow pane offer Edit (Title, Description, Overview, Tags) through the write view every pane uses, and a group can be removed from its Edit view. The URL names a selected group as group=<id>. Search finds a group by its title or id, previews its zone and selects it.
 <!-- SECTION:FINAL_SUMMARY:END -->
