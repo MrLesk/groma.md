@@ -4,6 +4,7 @@ import { paintFileDiff } from './diff-view.ts'
 import type { AnnotatedElement } from '../../../types.ts'
 import type { SourcePayload } from '../../source/read.ts'
 import type { CodeFile } from '../../source/structure.ts'
+import { mayLeaveWriteView } from '../organisms/write-view.ts'
 import { leaveSource, paintSource } from './view.ts'
 
 export interface SourceControl {
@@ -181,6 +182,7 @@ export function createSourceControl(options: SourceControlOptions): SourceContro
       return codeFiles
     },
     open(nextFile, nextLine) {
+      if (!mayLeaveWriteView(options.host)) return
       if (file === undefined) detailsScrollTop = options.host.scrollTop
       void load(nextFile, nextLine)
     },
