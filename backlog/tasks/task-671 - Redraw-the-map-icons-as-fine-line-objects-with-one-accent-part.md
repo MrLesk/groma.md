@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-19T18:23:00Z'
-updated_date: '2026-11-22T21:06:00Z'
+updated_date: '2026-11-22T21:50:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -169,6 +169,8 @@ One thing the first sheet sent to the owner showed wrong: the three cut badges. 
 Verification after the fixes: bun run check on the icon branch 1011 pass, 67 skip, 0 fail, and on the element links branch above it 1012 pass, 0 fail; Node suite 28 pass on both; lint output unchanged. The pictures from above of admin, developer, guest and notification draw their badge last again. Review map: for two components with different icons the Icon field opens with neither part on and the list closed, Icon shows the list with nothing picked and the form sends nothing, No icon sends an empty value, and a single record behaves as before, through Save. Light theme looked at in the Iso view.
 
 2026-11-22, pruning by the testing rule the owner added to AGENTS.md that day (owner: "Yes, prune them"). Removed three tests of test-bun/architecture-icons.test.ts: direct assertions on iconSvg (cccc cognitive 0), on roofIconSlot and surfaceLabelLayout (1 each) and on prismFaces (0), with no regular expression involved. The helper facesOf and five imports went with them. The drawing code is unchanged. The yardstick is the one the cleanup on main used (TASK-677): a direct assertion on one helper that scores 0 to 5 goes; a test that runs a flow, a pipeline of several functions or a function that scores 6 or more stays. The four checks over the whole catalogue of 151 objects stay on my reading: they also assert on functions that score 0 or 1, but each runs every object through its function, the way the kept scene tests on main run a whole map through sheetScene; the owner is asked.
+
+2026-11-22, later. The owner answered "Keep them" to the question whether the 20 tests of this kind in the stack go as well. They stay: 7 of the tag selection, 5 of the export subset, 3 of the color and icon preview, the four catalogue checks of this task and one of a group selected alone. Each asserts on the one function that carries a whole rule of its feature, although that function scores 0 to 4 on cccc. The pruning removed only direct assertions on small helpers.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
