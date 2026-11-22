@@ -219,6 +219,11 @@ takes what the pane reads and the write hooks
 ([`PaneWrites`](../../../src/viewers/web/organisms/writes.ts)) as two arguments,
 and hands the hooks only to the function that paints the Edit entry.
 
+The plugin source form of Settings (**Add plugin** and **Choose version**) is a
+write form as well: the same label, field and approval bar. The Plugins screen
+runs its write the way it runs every plugin action, so the form closes when its
+button is pressed and a failed action shows above the plugin list.
+
 - **Element fields:** `title`, `description`, `overview`, `technology`, `parent`
   (where the component can move), `tags`, `color`, and `icon`. Empty optional
   values clear the field. The Tags field is one box that holds the pending tags
