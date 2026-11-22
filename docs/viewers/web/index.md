@@ -448,7 +448,9 @@ A name that stands for an element in a list shows the element's ID while the
 pointer rests on it, as a link to an element does in the stored records: a
 hierarchy row, an actor of the flow list, a child, a group member, a selected
 element, an end of a relationship or of a flow step, a search result, and an
-element a task names
+element a task names. A group's name shows the group's ID the same way: in the
+Group row of a component's pane, beside a component in the selection of
+several, and in a group's search result
 ([`showIdOnHover`](../../../src/viewers/web/atoms/text.ts)).
 
 The right details pane opens when an element, relationship, group, flow, or task is

@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-21T19:18:00Z'
-updated_date: '2026-11-21T21:46:00Z'
+updated_date: '2026-11-22T20:48:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -141,6 +141,7 @@ modified_files:
   - src/viewers/web/search/view.ts
   - src/viewers/web/task-diff/view.ts
   - docs/viewers/web/index.md
+  - src/viewers/web/organisms/selection-details.ts
 type: feature
 ordinal: 715000
 ---
@@ -163,6 +164,7 @@ This task gives every link to an element that groma keeps one form: the element'
 - [x] #4 groma's own records are stored in that form
 - [x] #5 docs/component-markdown.md states the form and that groma reads membership, relationship ends and step ends from the link target alone
 - [x] #6 On the web map, a name that stands for an element in a list shows the element's id on hover: hierarchy rows, the actors of the flow list, the element lists of the details pane, relationship ends, flow step ends, search results and the elements a task names
+- [x] #7 On the web map a group's name shows the group's id on hover where a list names it: the Group row of a component's pane, the group beside a component in the selection of several, and a group's search result
 <!-- AC:END -->
 
 ## Definition of Done
@@ -188,6 +190,8 @@ Changed while building: withElementLinks takes the sections of the record at han
 After the review round: withElementLinks writes again only the links that name an element, a list item and the first two cells of a table row (endsAndRest), so an Action or Description cell and prose in the section stay the author's; linkText writes a title on one line; the target part of an inline link is one pattern shared with the rename (inlineLinkTarget in src/architecture-markdown.ts). Tests extended in the same two cases: (a) the author's own links in an Action cell and under the table keep their text and get no title (wrong result: groma rewrites the author's sentence; gap: the first version of the case had no such link); (b) a title with a line break (wrong result: the row breaks and no load succeeds afterwards; gap: the odd title had no line break).
 
 Web map (the owner, 2026-11-21, to "Should the map's own lists show the id on hover too?": "Yes, on the map too"). showIdOnHover in src/viewers/web/atoms/text.ts sets a name's hover text to the element's id, the way panes already show hover text. Every builder of a list that names elements calls it: sidebarRow (hierarchy rows and the flow list's actors), elementLinks (children, group members, the selection), the ends of a relationship card, the ends of a flow step, an element's search result and the elements a task names. The pane's own heading and the names drawn on the map are not lists and stay as they are. No new test: the web viewer has no DOM harness for these builders, so the names' hover texts are read on the live review map.
+
+7. A group's name shows its id on hover too (owner, 2026-11-22: "Yes, show it" to "Show a group's id on hover too?"; he had set the rule "in general"). Three builders call showIdOnHover for a group: groupRow in organisms/details.ts (the Group row of a component's pane), elementLinks in the same file for the group shown beside a listed component (its field is the group, with id and title, where it was a note of free text), and the group row of search/view.ts. No new test: these are DOM builders without a harness, as in step 6 of the web part, and their functions are single steps; the hover texts are read on the live review map.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -204,6 +208,12 @@ Verification. By hand on copies of test/fixtures/edit: a relationship row, a gro
 Open with the owner (not built): whether the web map's lists should show the id on hover too; whether groma should store reference-style step ends inline. Outside this task: scripts/large-world-fixture.ts still writes groma.group and a three-column relationship table, so running it would replace that fixture with records the loader refuses; a source-file endpoint's path is written unescaped, so a path such as src/__tests__/a.test.ts renders with bold text.
 
 2026-11-21, the owner on "The map's own lists show titles with no id on hover. Should they show the id on hover too: yes, or records only?": "Yes, on the map too". Built: showIdOnHover in src/viewers/web/atoms/text.ts, called by sidebarRow (hierarchy rows and the flow list's actors), elementLinks (children, group members, the selection), the ends of a relationship card, the ends of a flow step, an element's search result, and a task's reference when it reads as the element's title. Not changed: the pane's own heading, the names drawn on the map, and the rows of flows and groups, which are not elements (a flow row keeps its own hover text, its title). Verified on the live review map by reading the hover text of the names: group members (Camera control: camera, Map fonts: fonts-index), hierarchy rows (Groma: groma-md, Browser map: export, Backlog.md: backlog-md), actors (Developer: developer), the children of a container, relationship ends (Groma application: cli), flow step ends (Command interface: src-cli) and search results (Map painting: map). No new test: the web viewer has no DOM harness for these builders. bun run check: 28 Node tests and 1012 Bun tests pass, 0 fail.
+
+2026-11-22, walk of element links with the owner (review map, dark theme). The six criteria held: the stored links read [Title](target "id") in Members, relationship rows and Steps, with a source-file end keeping its path; groma edit <flow-id> --steps with other link words stored the same record; a new title reached the group that lists the component and a new id reached all four links to it, and both commands named the records they changed; on the map every name of an element in a list showed its id on hover. Found: a group's name showed no id on hover, so a group's id was visible only in the address. Asked "Show a group's id on hover too?", the owner answered "Yes, show it" (criterion 7).
+Built: groupRow (organisms/details.ts) calls showIdOnHover for the Group row of a component's pane. elementLinks shows the group beside a listed component with the group's id on hover; its field is now the group (id and title) where it was a note of free text, and the selection pane passes the group record. The group row of search/view.ts shows the group's id, as an element's row shows the element's. The comment of showIdOnHover and docs/viewers/web/index.md name groups.
+No new test, see plan step 7. Live checks on the review map with the change applied as a trial at the top of the stack: the hover text of the Group row of Camera control reads export-map-drawing and a click still selects the group; in the selection of Camera control and Task map markers the rows read camera and web-work-pins and the groups beside them read export-map-drawing and export-project-work; the search result of Map drawing reads export-map-drawing, an element's result its id, a task's nothing.
+Own review only, as a small change: one variable renamed so that group names only a group. The readability tool (codehygiene) reports nothing in the changed lines. The scan at this level changed no record.
+Checks: bun run check passed (955 Bun tests and 28 Node tests, 0 failures) before that rename; the type check, the lint and the related tests passed after it.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
@@ -212,4 +222,6 @@ Open with the owner (not built): whether the web map's lists should show the id 
 Every link to an element that groma keeps in its records, in a group's Members, in relationship rows and in a flow's Steps, is written as [Title](target "id"): the title as the text and the id as the link title, which Markdown viewers show on hover. A relationship end that names a source file keeps its path. The form has one writer, elementLink in src/element-links.ts; withElementLinks writes it again in place for the two cells or the list item that name an element, and leaves the author's cells, prose and reference-style links as typed. groma edit <id> --title or --id reaches every record that links the element through relinkElement in src/edit.ts and names the records it changed. Loading still reads the link target alone. groma's own records and the fixture records are stored in the form; docs/component-markdown.md has an Element links section. bun run check passes. Open with the owner: the id on hover in the web map's lists, and reference-style step ends.
 
 On the web map, a name that stands for an element in a list shows the element's id on hover (showIdOnHover in src/viewers/web/atoms/text.ts).
+
+A group's name shows the group's id on hover in the same lists (criterion 7, 2026-11-22).
 <!-- SECTION:FINAL_SUMMARY:END -->

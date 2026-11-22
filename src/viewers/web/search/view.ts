@@ -124,6 +124,7 @@ export function paintSearchResults(
     row.setAttribute('role', 'option')
     row.setAttribute('aria-selected', String(index === activeIndex))
     if (result.kind === 'architecture') showIdOnHover(row, result.element.id)
+    if (result.kind === 'group') showIdOnHover(row, result.group.id)
 
     const rank = document.createElement('span')
     rank.className = 'search-rank'
