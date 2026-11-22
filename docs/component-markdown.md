@@ -258,15 +258,18 @@ names, skip blanks and add each tag once. Groma reads any OKF list of non-empty 
 Open **Tags** beside the web map's view switch to find, preview or focus a tag.
 A row or a details chip toggles focus. The × on a bar chip clears it.
 [`selectByTags`](../src/tag-selection.ts) reads each element's own tags and those
-of its system, container, and group. A flow matches on its own tags. A matching
-flow lights both ends of each step.
+of its system, container, and group. A flow's tags also count for both ends of
+each of its steps, so a focused flow tag lights those elements. A flow itself
+matches on its own tags.
 
 - **any** matches an element or flow with at least one focused tag.
 - **all** requires every focused tag to match the same element or the same flow.
-  The switch appears with two or more.
-- **not** removes any element or flow matching an excluded tag. An excluded
-  end stays out even when a matching flow uses it. Excluding a flow leaves its
-  ends eligible. With only exclusions, all other elements and flows match.
+  For an element, the tags of the flows whose steps end at it count beside its
+  own. The switch appears with two or more.
+- **not** removes any element or flow matching an excluded tag. A flow with an
+  excluded tag is removed before its tags count for anything, so excluding a
+  flow leaves its ends eligible. An excluded end stays out even when a matching
+  flow uses it. With only exclusions, all other elements and flows match.
   Parents of the lit elements stay as context.
 
 In system `shop`, the `checkout-api` container carries `payments` and its
@@ -283,6 +286,7 @@ has one step from `catalog` to `cart`.
 | Only not `internal` | Everything except `refunds`. |
 | `store-team` | Only the group member `cart` lights, along with its zone. |
 | `shopping` | `browse-cart` matches. Its ends `catalog` and `cart` light, along with their route. |
+| `shopping` and `payments` | Only `cart`: it carries `payments` and the step of `browse-cart` ends at it. The flow carries one of the two tags, so it does not match. |
 
 A link carries `tag=<tag>` for each focused tag, `match=all` for **all**, and
 `not=<tag>` for each exclusion. Opening it frames the matches. For example,

@@ -12,8 +12,8 @@ export interface TagFocus {
 /** What the map lights for a tag focus and the parents it keeps as context. */
 export interface TagSelection {
   /**
-   * Representation ids of the lit elements: those whose tags match, and the step ends of matching flows.
-   * A lit element need not carry a focused tag.
+   * Representation ids of the lit elements: those whose tags match. A flow's tags count for the ends of
+   * its steps, so a lit element need not carry a focused tag.
    */
   lit: ReadonlySet<string>
   /** Representation ids of systems and containers shown as context for lit elements. */
@@ -42,42 +42,36 @@ function matchesFocusedTags(tags: readonly string[], focus: TagFocus): boolean {
   return focus.focused.some(tag => tags.includes(tag))
 }
 
-/** A flow matches on the tags it carries. Nothing reaches a flow from the elements it passes through. */
-function matchingFlows(world: ArchitectureGraph, focus: TagFocus): ArchitectureFlow[] {
-  return world.flows.filter(flow => {
-    const tags = flow.tags ?? []
-    return !hasExcludedTag(tags, focus) && matchesFocusedTags(tags, focus)
-  })
-}
-
 /**
- * The two ends of every step of these flows, as the map knows them. A step names its ends by element id;
- * the relationship it names carries their representation ids, which differ from element ids in a comparison.
+ * The tags each element takes from these flows, by representation id: a flow's tags count for both ends
+ * of each of its steps. A step names its ends by element id; the relationship it names carries their
+ * representation ids, which differ from element ids in a comparison.
  */
-function flowEnds(flows: readonly ArchitectureFlow[], relationships: readonly AnnotatedRelationship[]): Set<string> {
-  const relationshipIds = new Set(flows.flatMap(flow => flow.steps.map(step => step.relationshipId)))
-  const ends = new Set<string>()
-  for (const relationship of relationships) {
-    if (!relationshipIds.has(relationship.id)) continue
-    ends.add(relationship.source)
-    ends.add(relationship.target)
+function tagsFromFlows(flows: readonly ArchitectureFlow[], relationships: readonly AnnotatedRelationship[]): Map<string, string[]> {
+  const endsOf = new Map(relationships.map(relationship => [relationship.id, [relationship.source, relationship.target]]))
+  const tagsOfEnd = new Map<string, string[]>()
+  for (const flow of flows) {
+    for (const step of flow.steps) {
+      for (const end of endsOf.get(step.relationshipId) ?? []) tagsOfEnd.set(end, [...(tagsOfEnd.get(end) ?? []), ...(flow.tags ?? [])])
+    }
   }
-  return ends
+  return tagsOfEnd
 }
 
 /**
- * The elements a focus lights: those whose tags match, and the ends of the steps of matching flows.
- * An element an excluded tag selects stays out, also when a matching flow uses it.
+ * The elements a focus lights: those whose tags match and that no excluded tag selects. An element has
+ * the tags it carries, those of its system, container and group, and those `flowTags` gives it from the
+ * flows whose steps end at it.
  */
-function litElements(world: ArchitectureGraph, focus: TagFocus, ends: ReadonlySet<string>, parentOf: ParentOf): Set<string> {
+function litElements(world: ArchitectureGraph, focus: TagFocus, flowTags: ReadonlyMap<string, readonly string[]>, parentOf: ParentOf): Set<string> {
   const ownTags = new Map(world.elements.map(element => [element.representationId, element.tags ?? []]))
   const groupTags = new Map(world.groups.map(group => [group.id, group.tags ?? []]))
 
-  /** An element matches on the tags it carries and those of its system, container and group. */
   function tagsForElement(element: AnnotatedElement): string[] {
     const lineage = ancestorIds(element.representationId, parentOf)
     const tags = lineage.flatMap(id => ownTags.get(id) ?? [])
     if (element.group !== undefined) tags.push(...(groupTags.get(element.group) ?? []))
+    tags.push(...(flowTags.get(element.representationId) ?? []))
     return tags
   }
 
@@ -85,10 +79,7 @@ function litElements(world: ArchitectureGraph, focus: TagFocus, ends: ReadonlySe
   for (const element of world.elements) {
     const tags = tagsForElement(element)
     if (hasExcludedTag(tags, focus)) continue
-    const id = element.representationId
-    // An element can take part in many flows. If ends inherited flow tags,
-    // excluding an internal flow would drop its public components from an export.
-    if (ends.has(id) || matchesFocusedTags(tags, focus)) lit.add(id)
+    if (matchesFocusedTags(tags, focus)) lit.add(element.representationId)
   }
   return lit
 }
@@ -106,11 +97,15 @@ function parentsOfLitElements(lit: ReadonlySet<string>, parentOf: ParentOf): Set
 
 /** Selects matching flows, lit elements and their parents for both the map and the filtered export. */
 export function selectByTags(world: ArchitectureGraph, focus: TagFocus): TagSelection {
-  const flows = matchingFlows(world, focus)
-  const ends = flowEnds(flows, world.relationships)
+  // A flow that carries an excluded tag is out: it matches nothing and gives its tags to none of its ends.
+  // So an excluded tag never reaches an element from a flow, and excluding an internal flow does not drop
+  // the public components it passes through from an export.
+  const flows = world.flows.filter(flow => !hasExcludedTag(flow.tags ?? [], focus))
   const parentOf = parentOfElements(world.elements)
-  const lit = litElements(world, focus, ends, parentOf)
-  return { lit, parents: parentsOfLitElements(lit, parentOf), matchingFlows: new Set(flows.map(flow => flow.id)) }
+  const lit = litElements(world, focus, tagsFromFlows(flows, world.relationships), parentOf)
+  // A flow matches on the tags it carries. Nothing reaches a flow from the elements it passes through.
+  const matchingFlows = flows.filter(flow => matchesFocusedTags(flow.tags ?? [], focus))
+  return { lit, parents: parentsOfLitElements(lit, parentOf), matchingFlows: new Set(matchingFlows.map(flow => flow.id)) }
 }
 
 /**

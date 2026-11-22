@@ -27,7 +27,7 @@ function shop(): ArchitectureGraph {
       { id: 'lookup', source: 'orders', target: 'catalog', description: '', technology: '', origin: 'observed' },
     ],
     flows: [{
-      id: 'buy', title: 'Buy', overview: '', sourceFilename: '', tags: ['purchase'],
+      id: 'buy', title: 'Buy', overview: '', sourceFilename: '', tags: ['purchase', 'pilot'],
       steps: [
         { relationshipId: 'submit', source: 'cart', target: 'orders', action: '' },
         { relationshipId: 'lookup', source: 'orders', target: 'catalog', action: '' },
@@ -72,14 +72,16 @@ test.concurrent('a group tag lights its members and leaves their siblings out', 
   expect(selection.matchingFlows.size).toBe(0)
 })
 
-test.concurrent('a flow lights every step end and matches all only on its own tags', () => {
+test.concurrent('a flow tag counts for every step end, and all joins it with the tags an end carries', () => {
   const world = shop()
   const purchase = selectByTags(world, { focused: ['purchase'], match: 'any', excluded: [] })
   expect(purchase.matchingFlows).toEqual(new Set(['buy']))
   expect(purchase.lit).toEqual(new Set(['cart', 'orders', 'catalog']))
 
+  // Cart and orders carry internal and the purchase flow passes through them. Catalog carries no tag,
+  // and the flow itself matches only on the tags it carries.
   const both = selectByTags(world, { focused: ['purchase', 'internal'], match: 'all', excluded: [] })
-  expect(both.lit.size).toBe(0)
+  expect(both.lit).toEqual(new Set(['cart', 'orders']))
   expect(both.matchingFlows.size).toBe(0)
 })
 
@@ -92,6 +94,11 @@ test.concurrent('exclusion leaves public ends of an excluded flow lit and an exc
   const withoutOrders = selectByTags(world, { focused: ['purchase'], match: 'any', excluded: ['payments'] })
   expect(withoutOrders.matchingFlows).toEqual(new Set(['buy']))
   expect(withoutOrders.lit).toEqual(new Set(['cart', 'catalog']))
+
+  // An excluded flow is out: its other tag reaches none of its ends.
+  const withoutPilot = selectByTags(world, { focused: ['purchase'], match: 'any', excluded: ['pilot'] })
+  expect(withoutPilot.matchingFlows.size).toBe(0)
+  expect(withoutPilot.lit.size).toBe(0)
 })
 
 test.concurrent('a shared link carries the match mode and both lists of known tags', () => {
