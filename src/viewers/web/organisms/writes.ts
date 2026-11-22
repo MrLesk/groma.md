@@ -1,5 +1,6 @@
 import type { EditArchitectureInput } from '../../../authoring.ts'
 import type { EditValues } from '../../../authoring-conflict.ts'
+import type { ReadPane } from './write-view.ts'
 
 /** The fields Edit can change from an element's pane. */
 export type MeaningEdit = Pick<EditArchitectureInput, 'title' | 'description' | 'overview' | 'technology' | 'parent' | 'addTags' | 'removeTags' | 'color' | 'icon'>
@@ -27,9 +28,10 @@ export interface SelectionWrites {
  * receives them: the sections a person reads are painted without any, so reading cannot write.
  */
 export interface PaneWrites {
-  onRead?: () => void
-  /** Adds a virtual component to the element. The pane offers it for a container only. */
-  onAddComponent?: (input: { name: string; description?: string; overview: string }) => Promise<void>
+  /** After Add component it gets the new component's id and selects it. */
+  onRead?: ReadPane
+  /** Adds a virtual component to the element and resolves to its id. The pane offers it for a container only. */
+  onAddComponent?: (input: { name: string; description?: string; overview: string }) => Promise<string>
   onRemove?: () => Promise<void>
   onAccept?: () => Promise<void>
   onEdit?: (input: MeaningEdit, original: EditValues) => Promise<void>

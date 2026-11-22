@@ -106,8 +106,11 @@ export interface WriteView {
   fields: readonly WriteField[]
   /** What a write without fields is about to do, shown where the fields would be: "Remove Billing?". */
   question?: string
-  /** Stores the write on approval. A radio group with no choice has no entry. */
-  write: (values: Record<string, string>) => Promise<void>
+  /**
+   * Stores the write on approval. A radio group with no choice has no entry. It may resolve to the id of a
+   * record it created, which the view hands to the pane's read step. Add component is the only write that does.
+   */
+  write: (values: Record<string, string>) => Promise<void> | Promise<string>
   /** The other writes of the same record, offered above the fields. Each opens its own view in place of this one. */
   entries?: readonly WriteEntry[]
 }
@@ -119,6 +122,12 @@ export interface WriteEntry {
   hint?: string
   view: WriteView
 }
+
+/**
+ * Returns a pane to reading once its write view has closed. A view whose write created a record passes that
+ * record's id, so that a pane can show the record. Only the pane of an element does, after Add component.
+ */
+export type ReadPane = (created?: string) => void
 
 /** A repaint of the same selection keeps its open write view. Another selection replaces it. */
 export function isWriteViewOpen(host: HTMLElement, key: string): boolean {
@@ -155,7 +164,7 @@ function formValues(form: HTMLFormElement): Record<string, string> {
 }
 
 /** The buttons for `entries`. A click opens that entry's view, unless `mayOpen` answers no. */
-function entryRow(host: HTMLElement, key: string, entries: readonly WriteEntry[], read: () => void, mayOpen: () => boolean): HTMLElement {
+function entryRow(host: HTMLElement, key: string, entries: readonly WriteEntry[], read: ReadPane, mayOpen: () => boolean): HTMLElement {
   const row = document.createElement('div')
   row.className = 'write-entries'
   for (const entry of entries) {
@@ -174,7 +183,7 @@ function entryRow(host: HTMLElement, key: string, entries: readonly WriteEntry[]
  * Paints the write entries of a reading pane in its header. They are the pane's only controls that lead to writing. `key` names
  * what the pane shows, and `read` paints the pane's reading view again once a view closes.
  */
-export function paintWriteEntries(host: HTMLElement, key: string, entries: readonly WriteEntry[], read: () => void): void {
+export function paintWriteEntries(host: HTMLElement, key: string, entries: readonly WriteEntry[], read: ReadPane): void {
   const row = entryRow(host, key, entries, read, () => true)
   row.classList.add('of-pane')
   // First in the body, so the keyboard reaches the entries before what the pane reads.
@@ -195,7 +204,7 @@ function errorLine(): HTMLElement {
  * the pane to reading; a failed write leaves the view as it was, with the failure's message in the bar.
  * Cancel and Escape return to reading without writing.
  */
-function openWriteView(host: HTMLElement, key: string, { approveLabel, fields, question, write, entries = [] }: WriteView, read: () => void): void {
+function openWriteView(host: HTMLElement, key: string, { approveLabel, fields, question, write, entries = [] }: WriteView, read: ReadPane): void {
   const view = document.createElement('div')
   view.className = 'write-view'
   view.dataset.writeKey = key
@@ -246,8 +255,8 @@ function openWriteView(host: HTMLElement, key: string, { approveLabel, fields, q
   })
   form.append(approval.bar)
 
-  const close = (): void => { view.remove(); read() }
-  approval.cancel.addEventListener('click', close)
+  const close = (created?: string): void => { view.remove(); read(created) }
+  approval.cancel.addEventListener('click', () => close())
   view.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return
     event.preventDefault()
@@ -257,12 +266,14 @@ function openWriteView(host: HTMLElement, key: string, { approveLabel, fields, q
   form.addEventListener('submit', async event => {
     event.preventDefault()
     refusal.textContent = ''
+    let created: string | undefined
     const outcome = await approval.approve(async () => {
-      await write(formValues(form))
+      const result = await write(formValues(form))
+      if (typeof result === 'string') created = result
       // Says on the pane that the view's values are now stored, while they can still be read from it.
       view.dispatchEvent(new CustomEvent(WRITE_STORED, { bubbles: true }))
     })
-    if (outcome === 'stored') close()
+    if (outcome === 'stored') close(created)
   })
 
   host.querySelector('.tabs')!.replaceChildren()

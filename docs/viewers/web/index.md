@@ -219,7 +219,8 @@ fields or question, and the writer it calls.
 [`organisms/write-view.ts`](../../../src/viewers/web/organisms/write-view.ts)
 paints every one of them, so a new write cannot bring its own controls: it is
 one more function in `commands.ts`, added to the entries of the pane or of the
-Edit view that offers it. Every form that writes, in a pane or a dialog, is a
+Edit view that offers it. **Add component** resolves to the new component's
+ID, and the pane then selects that component; the camera stays where it is. Every form that writes, in a pane or a dialog, is a
 write form: one atom,
 [`atoms/write-form.ts`](../../../src/viewers/web/atoms/write-form.ts), gives
 its fields one look (the class `write-form`: a small label over its control)

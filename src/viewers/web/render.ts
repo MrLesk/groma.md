@@ -114,6 +114,8 @@ const authoring = createAuthoring(host, map, data, {
   world: () => world,
   repaint: () => paintViewState(),
   deselect,
+  select: id => select(id, false, 'map'),
+  showStoredWorld: () => revisionControl.showStoredWorld(),
 })
 const source = createSourceControl({
   host: detailsHost, initialFile: opened.file, initialLine: opened.line,

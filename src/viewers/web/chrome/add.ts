@@ -27,7 +27,7 @@ export const addDialogCss = `
 `
 
 /** The plus button of the hierarchy pane: one dialog declares a person, an external system, or a draft. */
-export function createAddControl(button: HTMLElement, add: (input: AddInput) => Promise<void>): void {
+export function createAddControl(button: HTMLElement, add: (input: AddInput) => Promise<unknown>): void {
   const dialog = document.createElement('dialog')
   dialog.id = 'add-dialog'
   dialog.className = 'verb-dialog'

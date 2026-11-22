@@ -25,4 +25,4 @@ Reads live updates from the local server or saved data from a static export. Sen
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [src/viewers/web/authoring.ts](../../../../../../src/viewers/web/authoring.ts) | [src/viewers/web/render.ts](../../../../../../src/viewers/web/render.ts) | Invokes supplied callbacks: live, world | typescript |
+| [src/viewers/web/authoring.ts](../../../../../../src/viewers/web/authoring.ts) | [src/viewers/web/render.ts](../../../../../../src/viewers/web/render.ts) | Invokes supplied callbacks: live, repaint, select, showStoredWorld, world | typescript |
