@@ -36,10 +36,10 @@ export function paintSelection(
   host.querySelector('h1')!.textContent = `${members.length} ${nounOf(members.map(member => kindLabel(member.kind, member.external)))}`
   host.querySelector('.tabs')!.replaceChildren()
   const body = host.querySelector('.body')!
-  const groupTitle = new Map(world.groups.map(group => [group.id, group.title]))
+  const groupOf = new Map(world.groups.map(group => [group.id, group]))
   body.replaceChildren(elementLinks(members.map(member => ({
     id: member.representationId, title: member.title, kind: member.kind, external: member.external,
-    note: groupTitle.get(member.group ?? ''),
+    group: groupOf.get(member.group ?? ''),
   })), onSelect))
   if (writes === undefined) return true
   const fields = sharedElementFields(members, knownTags(world))

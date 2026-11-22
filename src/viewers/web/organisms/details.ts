@@ -39,8 +39,8 @@ export interface InspectedChild {
   title: string
   kind: C4Kind
   external: boolean
-  /** A short fact shown after the title, such as the group a selected component is in. */
-  note?: string
+  /** The group the element is in, named after its title where a list shows it, as the selection of several does. */
+  group?: { id: string; title: string }
 }
 
 export interface Inspected {
@@ -233,11 +233,12 @@ export function elementLinks(elements: readonly InspectedChild[], onSelect: (id:
     link.className = 'link'
     link.append(mark, ' ', element.title)
     showIdOnHover(link, element.id)
-    if (element.note !== undefined) {
-      const note = document.createElement('span')
-      note.className = 'note'
-      note.textContent = element.note
-      link.append(note)
+    if (element.group !== undefined) {
+      const groupName = document.createElement('span')
+      groupName.className = 'note'
+      groupName.textContent = element.group.title
+      showIdOnHover(groupName, element.group.id)
+      link.append(groupName)
     }
     link.addEventListener('click', event => onSelect(element.id, event.shiftKey))
     const item = document.createElement('li')
@@ -419,6 +420,7 @@ function groupRow(group: { id: string; title: string }, onSelect: (id: string, a
   link.type = 'button'
   link.className = 'link'
   link.textContent = group.title
+  showIdOnHover(link, group.id)
   link.addEventListener('click', () => onSelect(group.id, false))
   return factRow('Group', [link])
 }

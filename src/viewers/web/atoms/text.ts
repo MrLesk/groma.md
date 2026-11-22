@@ -8,8 +8,8 @@ export function paintPaneTitle(titleHost: HTMLHeadingElement, title: string, ico
 }
 
 /**
- * A name that stands for an element in a list shows the element's id while the pointer rests on it, as a
- * link to an element does in the stored records. The id is what commands take.
+ * A name that stands for an element or a group in a list shows that record's id while the pointer rests on
+ * it, as a link to an element does in the stored records. The id is what commands take.
  */
 export function showIdOnHover(name: HTMLElement, id: string): void {
   name.title = id
