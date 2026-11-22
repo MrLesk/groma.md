@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-19T18:23:00Z'
-updated_date: '2026-11-21T23:57:00Z'
+updated_date: '2026-11-22T21:06:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -114,6 +114,8 @@ The coordinator's choices, not his decisions: which names and kinds the list hol
 11. Docs: the Icons entry and the Element fields entry of docs/viewers/web/index.md, and the Icons section of docs/component-markdown.md with the names by kind.
 12. Verification: a sheet of all 151 objects from both views; a script that compares every object's picture from above before and after the rewrite of 2026-11-22; Groma's own map with icons on its elements and groups (demo data on the review map, not committed) in the Iso, 2D and Layers views; the hierarchy rows and the details title; the Edit form's Icon field with No icon, Icon, the filter, Save and the preview on the map; groma edit --help and a refused name; bun run check.
 13. The rule for picking an icon (docs/component-markdown.md, docs/agent-instructions/describe.md, src/write-commands.ts): the owner's rule of 2026-11-21, pick the area a part is about and not the action it performs, stands in the contract's Icons section, in the agent guide beside --icon, and as the first line of the names in groma edit --help.
+
+Tests after the pruning of 2026-11-22: three tests of test-bun/architecture-icons.test.ts are removed, with the helper facesOf and the imports only they used. Each asserted directly on small functions, and the testing rule of AGENTS.md skips a unit test of a single function that scores 5 or lower on cccc: "an icon lies on the map as one object: a tilted map shows the walls of its parts, the view from above only their tops" (iconSvg 0), "an icon is sized from the letters of its name and lies on the name's line, at every size of a title" (roofIconSlot 1, surfaceLabelLayout 1) and "a prism shows the faces turned to the reader, and a curved wall is one face" (prismFaces 0). Six tests stay: the two that run a world through the scene, the projection and the building painter (a roof name starts after its icon slot; on a round roof the icon lies above the name), and the four checks over the whole icon catalogue (the accent shows from above; the overlap order; inside the footprint; nothing reaches behind).
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -165,6 +167,8 @@ Changed after the full-context review compared the Icon field with the owner's w
 Left as they are, coordinator's call: the clearing choice of a long field carries an unused class and painter (making them optional costs more than it saves); a long field without a clearing choice throws when its form opens (one caller, and its comment says so); the ball stays as the one part that is not a prism (it draws core, and replacing it would change that drawing, which is the owner's call).
 One thing the first sheet sent to the owner showed wrong: the three cut badges. A corrected sheet was sent after the fix.
 Verification after the fixes: bun run check on the icon branch 1011 pass, 67 skip, 0 fail, and on the element links branch above it 1012 pass, 0 fail; Node suite 28 pass on both; lint output unchanged. The pictures from above of admin, developer, guest and notification draw their badge last again. Review map: for two components with different icons the Icon field opens with neither part on and the list closed, Icon shows the list with nothing picked and the form sends nothing, No icon sends an empty value, and a single record behaves as before, through Save. Light theme looked at in the Iso view.
+
+2026-11-22, pruning by the testing rule the owner added to AGENTS.md that day (owner: "Yes, prune them"). Removed three tests of test-bun/architecture-icons.test.ts: direct assertions on iconSvg (cccc cognitive 0), on roofIconSlot and surfaceLabelLayout (1 each) and on prismFaces (0), with no regular expression involved. The helper facesOf and five imports went with them. The drawing code is unchanged. The yardstick is the one the cleanup on main used (TASK-677): a direct assertion on one helper that scores 0 to 5 goes; a test that runs a flow, a pipeline of several functions or a function that scores 6 or more stays. The four checks over the whole catalogue of 151 objects stay on my reading: they also assert on functions that score 0 or 1, but each runs every object through its function, the way the kept scene tests on main run a whole map through sheetScene; the owner is asked.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
