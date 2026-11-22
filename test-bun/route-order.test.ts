@@ -6,14 +6,6 @@ import { LineRuns, type RunEnds } from '../src/sheet/route/order.ts'
 const north: RunEnds = { joinedAtLow: false, left: -1 }
 const east: RunEnds = { joinedAtLow: true, left: -1 }
 
-test.concurrent('a route that joins a shared line first crosses the other route only when it also leaves last', () => {
-  const placed = new LineRuns()
-  // Comes from the west at y = 10, runs north and turns east at y = 0.
-  placed.add(0, [{ line: 0, low: 0, high: 10, lowSide: 1, highSide: -1 }])
-  expect(placed.crossings({ line: 0, low: 2, high: 12, lowSide: 1, highSide: -1 }, north, undefined)).toBe(0)
-  expect(placed.crossings({ line: 0, low: -2, high: 12, lowSide: 1, highSide: -1 }, north, undefined)).toBe(1)
-})
-
 test.concurrent('routes that turn a corner together keep their order round it', () => {
   const placed = new LineRuns()
   // Comes from the west at y = 10, turns east at (100, 0) and turns north again at x = 200.

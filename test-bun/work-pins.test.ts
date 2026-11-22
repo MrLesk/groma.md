@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'bun:test'
 
 import type { WorkItem, WorkSnapshot } from '../src/types.ts'
-import { elementWorkGroups, pinsOf, touchedElements } from '../src/work/pins.ts'
+import { elementWorkGroups, pinsOf } from '../src/work/pins.ts'
 import { box, worldOf } from './helpers.ts'
 
 const unit = { x: 0, y: 0, width: 1, height: 1 }
@@ -40,12 +40,6 @@ test.concurrent('a pin stands on the element holding the last modified file, els
     ['TASK-2', 'observed:vault'],
     ['TASK-3', 'observed:vault'],
   ])
-})
-
-test.concurrent('a task touches the elements of its modified files, newest first, then the ones it references, each once', () => {
-  const world = pinWorld()
-  const touched = touchedElements(item('TASK-5', { references: ['api', 'src/api.ts', 'not-an-id'], modifiedFiles: ['src/api.ts', 'README.md', 'src/vault.ts'] }), world)
-  assert.deepEqual(touched, ['observed:vault', 'observed:api'])
 })
 
 

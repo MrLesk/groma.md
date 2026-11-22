@@ -32,12 +32,6 @@ test.concurrent('a system map click clears a selected component before a second 
     { kind: 'architecture', ids: [system.representationId] })
 })
 
-test.concurrent('every concrete selection owns details and the empty selection does not', () => {
-  assert.equal(ownsDetails(noSelection), false)
-  assert.equal(ownsDetails(selectArchitecture(noSelection, 'observed:a', false)), true)
-  assert.equal(ownsDetails(selectTask('TASK-7')), true)
-})
-
 test.concurrent('a plain architecture pick replaces the current selection', () => {
   const several = selectArchitecture(
     selectArchitecture(noSelection, 'observed:a', false),

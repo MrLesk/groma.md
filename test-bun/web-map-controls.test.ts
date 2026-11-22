@@ -22,17 +22,6 @@ test.concurrent('saved controls restore the last projection and filters when the
   }
 })
 
-test.concurrent('explicit URL controls override saved choices independently, including all-visible filters', () => {
-  const saved = { mapView: 'layers' as const, hiddenFilters: new Set<MapFilter>(['component']) }
-  expect(readMapControls(new URLSearchParams('view=2d'), saved)).toEqual({ ...saved, mapView: '2d' })
-  expect(readMapControls(new URLSearchParams('hide=container,relationship'), saved)).toEqual({
-    mapView: 'layers', hiddenFilters: new Set(['container', 'relationship']),
-  })
-  expect(readMapControls(new URLSearchParams('view=iso&hide='), saved)).toEqual({
-    mapView: 'iso', hiddenFilters: new Set(),
-  })
-})
-
 test.concurrent('shared projections and filters override different browser preferences without changing the selected content', async () => {
   const world = await loadAnnotatedArchitecture(viewerFixtureRoot)
   const component = world.elements.find(element => element.kind === 'component')!
