@@ -345,10 +345,11 @@ controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**)
     holds the rules by which an icon follows the camera. Adding an icon means
     adding its name to [`src/icons.ts`](../../../src/icons.ts), one object, one
     glyph, and its name in the [contract's table](../../component-markdown.md#icons).
-- **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
-  IDs and titles from the configured work source. `Up`/`Down` preview matches;
-  `Enter` opens the selected element or task; `Escape` restores the prior selection
-  and camera.
+- **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements and stored groups
+  together with task IDs and titles from the configured work source. A group is
+  found by its title or id and is listed with the path of its members' container.
+  `Up`/`Down` preview matches; `Enter` opens the selected element, group or task;
+  `Escape` restores the prior selection and camera.
 - **Themes:** **Settings -> Theme** offers **Auto** and the
   [themes `config.json` enables](../../config.md#themes): the bundled **Light**,
   **Dark** and **Blueprint** unless the project lists its own. **Auto** follows
@@ -391,7 +392,7 @@ Click anywhere on a group's zone to select the group alone; a building in the zo
 selects its component. The group's pane shows the description, overview, tags, and links to
 its members. Click a member to select that component. The pane of a component in a group
 names the group, and that name selects the group.
-Opening a group link frames its members. A group without members draws no zone; only its link opens it
+Opening a group link frames its members. A group without members draws no zone; its link or its search result opens it
 ([`organisms/group-details.ts`](../../../src/viewers/web/organisms/group-details.ts)).
 
 The right details pane opens when an element, relationship, group, flow, or task is
