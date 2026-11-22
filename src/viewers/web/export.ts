@@ -2,16 +2,21 @@ import { mkdir, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 import { watchArchitecture } from '../../architecture-watch.ts'
+import { loadAnnotatedArchitecture } from '../../core.ts'
 import { compareArchitecture, ownedFiles, type SourceTexts } from '../../history/comparison.ts'
 import { olderFirst, readGitRevision, type GitRevision } from '../../history/revisions.ts'
 import { atRevision, readSourceTexts } from '../../history/snapshots.ts'
 import { measuredSheetScene } from '../../sheet/scene.ts'
+import { loadThemes } from '../../themes/configured.ts'
+import type { ThemeDefinition } from '../../themes/definition.ts'
+import type { TagFocus } from '../../tag-selection.ts'
+import { knownTags } from '../../tags.ts'
 import { outlineSourceFiles, readSnapshotCodeStructure } from '../source/structure.ts'
 import { renderPage } from './page.ts'
 import { PUBLISHED_EVENT, PUBLISHED_VERSION_EVENT } from './payload.ts'
 import type { PublishedView, WebBootPayload } from './payload.ts'
 import { bundleRenderer, loadMapRoot } from './runtime.ts'
-import { coverThemes, generateCovers } from './sharing/images.ts'
+import { generateCover } from './sharing/images.ts'
 import { coverFile } from './sharing/metadata.ts'
 
 export interface WebExportHandle {
@@ -19,10 +24,13 @@ export interface WebExportHandle {
   close(): Promise<void>
 }
 
+/** The revisions, tag focus and publication settings for a static web map. */
 export interface WebExportOptions {
   url?: string
   revision?: string
   from?: string
+  /** Export only the subset these tags keep; absent exports everything. */
+  filter?: TagFocus
   watch?: boolean
   onError?: (error: unknown) => void
 }
@@ -66,28 +74,47 @@ function comparisonView(before: PublishedView, after: PublishedView): PublishedV
   }
 }
 
+/**
+ * Stops an export whose filter names a tag that nothing carries in the exported commits. Such a tag is most
+ * likely mistyped, and a mistyped exclude would publish what it was meant to leave out.
+ */
+async function refuseTagsNothingCarries(roots: readonly string[], filter: TagFocus | undefined): Promise<void> {
+  if (filter === undefined) return
+  const worlds = await Promise.all(roots.map(root => loadAnnotatedArchitecture(root)))
+  const carried = new Set(worlds.flatMap(world => knownTags(world)))
+  const unused = [...filter.focused, ...filter.excluded].filter(tag => !carried.has(tag))
+  if (unused.length > 0) throw new Error(`The export filter names ${unused.length === 1 ? 'a tag' : 'tags'} that nothing carries: ${unused.join(', ')}`)
+}
+
 /** Materialize existing viewer reads while the requested roots are available; no Git reaches the browser. */
-async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number): Promise<WebBootPayload> {
+async function publishedSnapshot(root: string, revisions: GitRevision[], generation: number, filter: TagFocus | undefined, themes: ThemeDefinition[]): Promise<WebBootPayload> {
   const to = revisions.at(-1) ?? null
   const from = revisions.length === 2 ? revisions[0]! : undefined
   return atRevision(root, to, async afterRoot => {
-    const afterMap = await loadMapRoot(afterRoot)
+    if (from === undefined) await refuseTagsNothingCarries([afterRoot], filter)
+    const afterMap = await loadMapRoot(afterRoot, undefined, filter)
+    // A filter that leaves nothing of the exported commit is a mistake worth stopping for, not an empty site.
+    if (filter !== undefined && afterMap.world.elements.length === 0) throw new Error('The export filter leaves no element to export')
     if (from === undefined) {
       const view = await snapshotView(root, afterRoot, to, revisions, generation, afterMap, ownedFiles(afterMap.world))
-      return { ...view.payload, delivery: { kind: 'published', views: [view] } }
+      return { ...view.payload, delivery: { kind: 'published', views: [view] }, themes }
     }
     return atRevision(root, from, async beforeRoot => {
-      const beforeMap = await loadMapRoot(beforeRoot)
+      // In a comparison a tag is carried when either commit carries it.
+      await refuseTagsNothingCarries([afterRoot, beforeRoot], filter)
+      const beforeMap = await loadMapRoot(beforeRoot, undefined, filter)
       const files = [...new Set([...ownedFiles(beforeMap.world), ...ownedFiles(afterMap.world)])]
+      // A filtered snapshot reads only the files its own subset owns: a part excluded in one commit publishes no source from that commit.
+      const filesOf = (map: typeof afterMap) => filter === undefined ? files : ownedFiles(map.world)
       // The time machine lists the commits newest first, as it does live.
       const history = [...revisions].reverse()
       const [before, after] = await Promise.all([
-        snapshotView(root, beforeRoot, from, history, generation, beforeMap, files),
-        snapshotView(root, afterRoot, to, history, generation, afterMap, files),
+        snapshotView(root, beforeRoot, from, history, generation, beforeMap, filesOf(beforeMap)),
+        snapshotView(root, afterRoot, to, history, generation, afterMap, filesOf(afterMap)),
       ])
       // One comparison, from the older commit to the newer; closing it opens either commit on its own.
       const comparison = comparisonView(before, after)
-      return { ...comparison.payload, delivery: { kind: 'published', views: [before, after, comparison] } }
+      return { ...comparison.payload, delivery: { kind: 'published', views: [before, after, comparison] }, themes }
     })
   })
 }
@@ -124,12 +151,11 @@ export async function exportWebViewer(
   options: WebExportOptions = {},
 ): Promise<WebExportHandle> {
   const revisions = await exportRevisions(repositoryRoot, options)
+  const { filter } = options
   const url = options.url === undefined ? undefined : new URL(options.url)
   if (url !== undefined && !url.pathname.endsWith('/')) url.pathname += '/'
   const output = path.resolve(outputDirectory)
   const renderer = await bundleRenderer()
-  await mkdir(output, { recursive: true })
-  await replaceFile(path.join(output, 'render.js'), renderer)
 
   let generation = Date.now()
   let closed = false
@@ -137,10 +163,14 @@ export async function exportWebViewer(
   const finished = new Promise<void>(resolve => { closePromise = resolve })
 
   async function publish(): Promise<void> {
-    const snapshot = await publishedSnapshot(repositoryRoot, revisions, ++generation)
+    // The working tree's config.json chooses the themes, also when the map comes from another commit.
+    const themes = await loadThemes(repositoryRoot)
+    const snapshot = await publishedSnapshot(repositoryRoot, revisions, ++generation, filter, themes)
     if (closed) return
-    const covers = await generateCovers(snapshot)
-    for (const theme of coverThemes) await replaceFile(path.join(output, coverFile(theme)), covers[theme])
+    // Nothing is written before the snapshot exists, so an export that fails leaves no directory and no half-written site.
+    await mkdir(output, { recursive: true })
+    await replaceFile(path.join(output, 'render.js'), renderer)
+    for (const theme of themes) await replaceFile(path.join(output, coverFile(theme.id)), await generateCover(snapshot, theme))
     await replaceFile(path.join(output, 'snapshot.js'), snapshotScript(snapshot))
     await replaceFile(path.join(output, 'index.html'), renderPage(snapshot, url))
     await replaceFile(path.join(output, 'version.js'), versionScript(snapshot.generation))

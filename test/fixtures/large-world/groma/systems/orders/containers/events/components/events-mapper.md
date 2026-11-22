@@ -5,7 +5,6 @@ status: stable
 groma:
   id: events-mapper
   parent: events
-  group: Support
   code:
     - scanner: typescript
       file: src/orders/events/mapper.ts

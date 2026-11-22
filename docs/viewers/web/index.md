@@ -91,10 +91,38 @@ commit, and the revision picker offers the two exported commits.
 contents, and outlines; `web/data.ts` selects those bundled views through the
 same read boundary used by the live viewer.
 
+### Filtered exports
+
+`--include-filter` and `--exclude-filter` take comma-separated
+[OKF tags](../../component-markdown.md#tags) and export the part of the
+architecture meant for one audience:
+
+```sh
+groma export ./site --include-filter payments --exclude-filter internal
+```
+
+- `--include-filter` keeps what the tags select, with the parents that hold it.
+  Without it the export starts from the whole architecture.
+- `--exclude-filter` removes what its tags select, and wins when both filters
+  name the same element.
+- A relationship is exported when both of its ends are. A flow is exported
+  when all of its steps are and it carries no excluded tag. A group is exported
+  when one of its members is, so a group with an excluded tag goes with its members.
+
+An excluded element is absent, not dimmed: the map is laid out for the subset,
+and the element's descriptions and source files are not written to the output.
+A filter that leaves no element fails instead of writing an empty site. So does
+a filter that names a tag nothing carries: the tag is most likely mistyped, and
+a mistyped exclude would publish what it was meant to leave out.
+The [worked example](../../component-markdown.md#exporting-a-subset) shows the
+rule, which is `subsetByTags` in
+[`src/tag-selection.ts`](../../../src/tag-selection.ts). Exporting never changes
+the stored architecture.
+
 ### Social previews
 
-Export also writes `cover-light.png`, `cover-dark.png`, and `cover-blueprint.png`
-at 1200x630 pixels. Each cover uses the actual map, the graph-paper grid, and a
+Export also writes one `cover-<theme id>.png` per enabled theme, such as
+`cover-light.png`, at 1200x630 pixels. Each cover uses the actual map, the graph-paper grid, and a
 footer with the project title and groma.md attribution.
 
 Set the public directory URL when publishing so the initial HTML contains
@@ -124,24 +152,139 @@ Open Graph generation for both export and live delivery.
   prompt pointing to `groma agent-instructions`. It disappears once any element
   has a description or overview.
 
-### In-place editing
+### Reading and editing
 
-On a live current map, **Edit** switches the selected element or relationship
-from reading to a form:
+One rule decides where a write lives in the web map:
 
-- **Element fields:** `title`, `description`, `overview`, `technology`, and `parent`
-  (where the component can move). Empty optional values clear the field.
+- **Reading never writes.** Whatever a person clicks or types while reading the
+  map or a pane only selects, navigates, or changes the view: selection, lit
+  flows, tag focus, filters, theme, and camera. That state lives in the URL or
+  the browser, never in the architecture.
+- **A pane writes only from a view the person opens.** On a live current map a
+  reading pane holds write entries in its header: buttons that open such a view
+  and store nothing themselves. It holds no other control that writes and no
+  input.
+- **Every write is approved the same way.** A write view holds one write. It
+  shows what the write needs, its fields or, for a write that needs none, one
+  line that says what it will do. It ends with the approval bar at the bottom
+  of the pane: **Cancel**, then the button that approves the write. Only that
+  button writes, once, and returns the pane to reading; Enter in a field
+  presses it. Cancel and Escape return to reading and leave the stored data
+  alone. While the write is in flight the view waits, and a failed write leaves
+  the view as it was with its message in the bar. No write has a layout or an
+  approval step of its own. The dialogs that write (Add, a draft or a group
+  drawn on the map, a drafted relationship, the project editor) end with the
+  same approval bar.
+- **Unsaved input keeps the selection.** While a write view holds input that
+  is not stored, nothing else can be selected: a click on the map, in the
+  hierarchy, on a task, a flow or a search result, and the pane's close button
+  change nothing, and the view asks for the changes to be saved or cancelled
+  first. Cancel and Escape in the view drop them. The view answers this
+  through `mayLeaveWriteView` in
+  [`organisms/write-view.ts`](../../../src/viewers/web/organisms/write-view.ts).
+  Whoever would show something else in the pane asks it first: every function
+  of `render.ts` that changes the selection for a person's gesture, and the
+  code reader before it opens a file.
+- **The approving button says Save.** It says something else only where
+  another word tells better what happens: **Add**, **Accept**, **Remove**,
+  **Combine**, and **Create group**.
+- **A record has one write entry, Edit.** It opens the Edit view of the
+  selected element, relationship, group, or flow: every field a person can set
+  on the record in the web map, and nowhere else can they change. Picking and
+  typing store nothing.
+  **Save** sends the changed fields as one `groma edit`.
+- **A record's other writes are entries of its Edit view.** **Accept**,
+  **Remove** and, for a container, **Add component** stand above the fields. Each opens its own write view in place of
+  the Edit view. They act on the stored record: while the fields hold unsaved
+  changes they do not open and ask for the changes to be saved or cancelled
+  first.
+- **Several selected elements share one Edit view.** It offers Tags, Color and
+  Icon. A selection made entirely of components also offers **Group** and **Combine**.
+
+| Write | Entry | The view shows | Approving button |
+|---|---|---|---|
+| Edit an element or relationship | Edit, in its pane | the fields | Save |
+| Add a virtual component | Add component, in the container's Edit view | Name, Description and Overview | Add |
+| Edit a group | Edit, in its pane | Title, Description, Overview, Tags, Color and Icon | Save |
+| Edit a flow | Edit, in its pane | Title, Description, Overview and Tags | Save |
+| Edit several elements | Edit, in the selection pane | Tags, Color and Icon | Save |
+| Accept a draft | Accept, in the Edit view | one question | Accept |
+| Remove an element, group, draft relationship, or current relationship with a virtual component | Remove, in its Edit view | one question | Remove |
+| Group components | Group, in the pane of several components | a field for the group name | Create group |
+| Combine components | Combine, in the pane of several components | a list to pick the component that stays | Combine |
+
+Every write of a pane is one function in
+[`organisms/commands.ts`](../../../src/viewers/web/organisms/commands.ts) that
+only describes it: the label of its entry, what its approving button says, its
+fields or question, and the writer it calls.
+[`organisms/write-view.ts`](../../../src/viewers/web/organisms/write-view.ts)
+paints every one of them, so a new write cannot bring its own controls: it is
+one more function in `commands.ts`, added to the entries of the pane or of the
+Edit view that offers it. **Add component** resolves to the new component's
+ID, and the pane then selects that component; the camera stays where it is. Every form that writes, in a pane or a dialog, is a
+write form: one atom,
+[`atoms/write-form.ts`](../../../src/viewers/web/atoms/write-form.ts), gives
+its fields one look (the class `write-form`: a small label over its control)
+and builds its approval bar, which holds Cancel and the approving button, runs
+one write at a time, and shows a failed write's message. A form that writes
+styles no field and builds no approval button of its own. A new editable field
+is one entry in its Edit view's field list. For an element this is `elementFields` in
+[`organisms/details.ts`](../../../src/viewers/web/organisms/details.ts). Groups and flows share
+`wordingAndTagFields` in [`organisms/commands.ts`](../../../src/viewers/web/organisms/commands.ts).
+Groups and elements share `colorAndIconFields` for Color and Icon. Put a
+field that several elements can share in `sharedElementFields`; the core's
+`fieldsOfSeveralElements` in [`src/edit.ts`](../../../src/edit.ts) decides which fields
+several elements take. The
+code that paints what a person reads receives no write hook: `paintDetails`
+takes what the pane reads and the write hooks
+([`PaneWrites`](../../../src/viewers/web/organisms/writes.ts)) as two arguments,
+and hands the hooks only to the function that paints the Edit entry.
+
+The plugin source form of Settings (**Add plugin** and **Choose version**) is a
+write form as well: the same label, field and approval bar. The Plugins screen
+runs its write the way it runs every plugin action, so the form closes when its
+button is pressed and a failed action shows above the plugin list.
+
+- **Element fields:** `title`, `description`, `overview`, `technology`, `parent`
+  (where the component can move), tags, `color`, and `icon`. Empty optional
+  values clear the field. The Tags field is one box that holds the tags as
+  chips and the text being typed: Enter or a comma turns the typed text into
+  a chip, Backspace in the empty text takes the last chip off, and the × on a
+  chip takes that one off. The tags already in use are offered under the box,
+  narrowed by what is typed. Save sends the tags added and the tags removed
+  (`addTags`, `removeTags`), not the list. The Color field offers no color and
+  each named color; the Icon field offers **No icon** or **Icon**, and under
+  **Icon** each named icon under the name of its kind. The title of either
+  field names the pick.
 - **Relationship fields:** `description` and `technology`.
-- **Draft acceptance and removal:** A matched draft element or a draft relationship
-  exposes **Accept** (`groma accept`). **Remove** appears only where `groma remove`
-  would succeed (an unreferenced actor, external system, ghost, or draft
-  relationship).
-- **Conflict checking:** Element, relationship, and project forms submit changed
-  fields together with their original values. If another edit changed one of those
-  fields concurrently, **Save** preserves the unsaved input and shows the original,
+- **Flow steps** are edited with `groma edit <flow-id> --steps`.
+- **Acceptance and removal:** The Edit view of a matched draft element or
+  a draft relationship offers **Accept** (`groma accept`). **Remove** is offered
+  only where `groma remove` would succeed: an unreferenced actor, external
+  system, ghost or virtual component, a group, and a draft relationship or a
+  current relationship with a virtual component that no flow uses. Each asks in its own view and
+  writes when its approving button is pressed. Removing a group leaves its members in place.
+- **Conflict checking:** A single record's form submits changed values with
+  their original values. Tag additions and removals merge with the current tags.
+  If another edit changed one of the conflict-checked fields concurrently,
+  **Save** preserves the unsaved input and shows the original,
   current, and proposed values without writing.
-- **Multi-select actions:** Shift-clicking sibling components offers **Group as**
-  and **Combine into**.
+- **Several selected elements:** Shift-clicking elements selects them together,
+  and the pane lists them in place of one element's details, each component
+  with the group it is in
+  ([`organisms/selection-details.ts`](../../../src/viewers/web/organisms/selection-details.ts)).
+  The map gives every selected component the focus look and softly accents the
+  components one hop from any of them. A click on a listed element selects it
+  alone. A shift-click drops it from the selection. On a live current map,
+  **Edit** offers Tags, Color and Icon. A partial tag chip shows how many
+  elements carry it. Press its name to add it to all, or × to remove it from
+  all. A shared color or icon starts selected. A mixed field starts with no
+  choice. Picks preview on every selected element. **Save** applies the changes
+  to all in one edit, without checking opening values. When every selected
+  element is a component the pane also offers **Group** (name them as one group, `groma add
+  group`) and **Combine** (fold them into the one the person picks, `groma edit
+  --combine`). Changing the selection returns the pane to reading; an open
+  view that holds unsaved input keeps the selection instead.
 
 Historical and exported maps are read-only and expose no write controls.
 
@@ -151,18 +294,115 @@ The top header groups the groma.md lockup, project title from `project.md`,
 system/container/component counts, the revision picker, **Search**, and the view
 controls (**Fit**, `-`, zoom readout, `+`, **Settings**, **Help**, and **Info**):
 
-- **Projection bar:** **Iso**, **2D**, and **Layers** sit in a floating bar at the
-  top center of the map (`F2` toggles **Layers**; `F1` hides the HUD chrome for a
-  map-only view; `F3` toggles the performance/debug panel).
+- **Iso**, **2D**, and **Layers** sit in the projection bar at the top left of
+  the map, above the C4 filter. `F2` toggles **Layers**, `F1` hides the controls
+  for a map-only view, and `F3` toggles the performance/debug panel.
 - **C4 filter bar:** The floating icon bar beside the hierarchy toggles **Actors**,
   **Systems**, **Containers**, **Components**, and **Relationships** on the map.
   Choices persist in `localStorage` and URL parameters.
-- **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements together with task
-  IDs and titles from the configured work source. `Up`/`Down` preview matches;
-  `Enter` opens the selected element or task; `Escape` restores the prior selection
-  and camera.
-- **Themes:** **Settings -> Theme** offers **Auto**, **Light**, **Dark**, and
-  **Blueprint**.
+- **Tags** appears beside the view switch when an element, group, or flow carries
+  a tag. Open it with a click or `T`. The list shows tags alphabetically and
+  counts the records that carry each tag directly. Type to find a tag. Point at a row or use ↑ and ↓
+  to preview a toggle. Click or press Enter to keep it and frame the matches.
+  Escape or a click outside closes the list. Details chips toggle the same focus.
+  - With two or more focused tags, **any** matches elements and flows with at
+    least one, and **all** requires every tag on the same element or flow.
+    A component in a `payments` container that carries `internal` itself matches
+    `payments` and `internal`. A `payments` component that is a step end of a
+    flow tagged `checkout` matches `payments` and `checkout`.
+  - **not** excludes a tag. With just **not internal**, everything outside
+    `internal` stays lit. The bar shows a filled chip for each focused tag and
+    an outlined chip for each exclusion. Click × to remove one.
+  - The map, the hierarchy rows, the actors and flows under **Actors** and the task pins recede together. A group's
+    tag lights its members. A flow's tag lights its step ends. A preview leaves
+    the camera and URL in place. Clearing the last chip frames the current selection.
+    [Tag matching and example](../../component-markdown.md#focusing-on-tags).
+
+  [`tags/tag-focus.ts`](../../../src/viewers/web/tags/tag-focus.ts) owns the focus and the bar, and
+  [`tags/tag-list.ts`](../../../src/viewers/web/tags/tag-list.ts) owns the list.
+  [`flow/list.ts`](../../../src/viewers/web/flow/list.ts) keeps the flow rows' emphasis across repaints.
+- **Colors:** The Edit form of an element or group has a **Color** field: no color, then
+  each [named color](../../component-markdown.md#colors) in the current theme's
+  values. The map mixes the saved color into the element's surfaces and outline;
+  selection, lit flows, task marks and drafts keep their own look over it, and a
+  comparison switches authored colors off because color means change there.
+  A group's color lightly tints the ground under its zone's hatch and colors its outline.
+  While the form is open the map shows the picked color on the element or zone; it is
+  stored only by **Save**, and stays on the map from the pick until the saved
+  map arrives
+  ([`editing/appearance-preview.ts`](../../../src/viewers/web/editing/appearance-preview.ts)).
+- **Icons:** The Edit form of an element or group has an **Icon** field with
+  two parts, **No icon** and **Icon**. The field shows nothing else until
+  **Icon** is on; for several elements whose icons differ, neither part is on
+  when the form opens. **Icon** lists each
+  [named icon](../../component-markdown.md#icons) under the name of its kind,
+  below a box that filters them: an icon stays while its name or the name of
+  its kind contains the typed text. A picked icon stays picked while the
+  filter hides it, and the field's title names it. The name makes room for
+  the saved icon, so the map lays itself out again. While the form is open
+  the map shows the picked icon in the room the name has now.
+  - An icon is part of its name, like the icon of any label. It lies on the
+    name's line, one gap before the text: on the roof of an external system or
+    component, and before the title of a system, container or group. An
+    actor's round roof centres its name, so there the icon lies above the
+    name, centred over it.
+  - Its size comes from the name's letters: its box is 0.9 times the font
+    size. So it follows its name: a title's icon changes with the title's size
+    step when the map is zoomed, and a small roof name has a small icon. No
+    icon is drawn larger than that. An icon is drawn whenever its name is:
+    like the name it only gets small when the map is zoomed out.
+  - An icon has one drawing, its object, built like the map itself: flat
+    shapes with a height that lie on a footprint, like a small relief. Nothing
+    in it stands upright as a thin sheet: a window, a document or a sign lies
+    face up, and is thick enough to show a wall. Each view looks at that
+    object the way it looks at the map. The 2D view sees it from straight
+    above. The Iso and Layers views see the same object from the map's angle,
+    so the heights of its parts show as walls and it turns with the map. The
+    hierarchy rows, the details title and the Icon field show the drawing of
+    the 2D view.
+  - The object lies with the middle of its ground on the middle of the icon's
+    box, in every view. Before a title a high object rises a little over the
+    edge of its surface, within the empty ground every surface keeps along its
+    edge, so it never covers a building.
+  - An object is a fine line drawing: quiet lines of one width over faces a
+    little off paper, shaded like a building's. It has one accent, the thing
+    that says what the object is: a database's top disc, a terminal's prompt.
+    The accent is drawn in ink. When the element or group has an authored color
+    the accent takes it, and the rest of the object stays neutral. A selected
+    or lit element draws all of its icon's lines in the highlight. An icon is
+    the same drawing at every size: only the width of its lines follows the
+    zoom.
+  - The objects are in one file per kind under
+    [`icons/objects/`](../../../src/viewers/web/icons/objects), in the kinds
+    [`src/icons.ts`](../../../src/icons.ts) names, and
+    [`icons/objects.ts`](../../../src/viewers/web/icons/objects.ts) joins them.
+    [`icons/parts.ts`](../../../src/viewers/web/icons/parts.ts) holds the
+    parts they are built from: a prism is a flat outline on the footprint
+    raised straight up, which gives sheets, plates, boxes and cylinders. The
+    size of an icon's box and its place on a roof are in
+    [`sheet/measure.ts`](../../../src/sheet/measure.ts);
+    [`iso/painting/text.ts`](../../../src/viewers/web/iso/painting/text.ts)
+    places it on a title's line.
+    [`iso/painting/icon-faces.ts`](../../../src/viewers/web/iso/painting/icon-faces.ts)
+    decides which faces of an object the reader sees,
+    [`iso/painting/icons.ts`](../../../src/viewers/web/iso/painting/icons.ts)
+    draws the object from any view, and
+    [`iso/painting/icon-camera.ts`](../../../src/viewers/web/iso/painting/icon-camera.ts)
+    holds the rule by which an icon's lines follow the camera. Adding an icon
+    means adding its name to its kind in [`src/icons.ts`](../../../src/icons.ts),
+    its object with one accent to that kind's file, and its name to the
+    [contract's table](../../component-markdown.md#icons). Draw the object as
+    its picture from above, give its parts a height, put the accent on a top,
+    and look at it from both views.
+- **Search (`/` or `Cmd/Ctrl+K`):** Ranks architecture elements and stored groups
+  together with task IDs and titles from the configured work source. A group is
+  found by its title or id and is listed with the path of its members' container.
+  `Up`/`Down` preview matches; `Enter` opens the selected element, group or task;
+  `Escape` restores the prior selection and camera.
+- **Themes:** **Settings -> Theme** offers **Auto** and the
+  [themes `config.json` enables](../../config.md#themes): the bundled **Light**,
+  **Dark** and **Blueprint** unless the project lists its own. **Auto** follows
+  the system appearance.
 
 ### Time machine and revision comparison
 
@@ -193,9 +433,27 @@ authored flows nested beneath it) and **Structure** (internal systems, container
 and components, followed by **External systems**). Clicking a flow row checks it,
 highlights its ordered route path with animated directional dashes on the map, and
 opens the flow reader in the right details pane. Multiple flows can stay checked
-at once.
+at once. When a flow carries tags, its reader shows a **Tags** row after the
+description and overview
+([`flow/reader.ts`](../../../src/viewers/web/flow/reader.ts)). Press a tag to toggle the map's focus.
 
-The right details pane opens when an element, relationship, flow, or task is
+Click anywhere on a group's zone to select the group alone; a building in the zone still
+selects its component. The group's pane shows the description, overview, tags, and links to
+its members. Click a member to select that component. The pane of a component in a group
+names the group, and that name selects the group.
+Opening a group link frames its members. A group without members draws no zone; its link or its search result opens it
+([`organisms/group-details.ts`](../../../src/viewers/web/organisms/group-details.ts)).
+
+A name that stands for an element in a list shows the element's ID while the
+pointer rests on it, as a link to an element does in the stored records: a
+hierarchy row, an actor of the flow list, a child, a group member, a selected
+element, an end of a relationship or of a flow step, a search result, and an
+element a task names. A group's name shows the group's ID the same way: in the
+Group row of a component's pane, beside a component in the selection of
+several, and in a group's search result
+([`showIdOnHover`](../../../src/viewers/web/atoms/text.ts)).
+
+The right details pane opens when an element, relationship, group, flow, or task is
 selected (and can be expanded for wider source and diff reading):
 
 - **What it does:** Shows the element's description, overview, peer
@@ -228,8 +486,11 @@ projects that fixed scene into SVG for **Iso**, **2D**, or **Layers**:
   lines of code map to floor height (`1-4` units); incoming and outgoing file
   interactions determine width and depth; and the dominant file extension selects
   the facade window pattern.
+- **Virtual components:** A stable component without a source file stands on
+  its container as a flat plate, lower than any building. Its details pane
+  and search results say **Component · virtual**.
 - **Origin and state:** Observed elements and current relationships use solid
-  lines; draft ghosts and draft relationships use dashed lines.
+  lines, as do virtual components. Draft ghosts and draft relationships use dashed lines.
 
 The browser keeps the viewport-sized background grid outside the moving camera
 group so pan, zoom, trackpad inertia, and smooth transitions between **Iso**,
@@ -262,13 +523,18 @@ its first referenced element) and in the bottom-center **Backlog.md Tasks** bar:
 The URL query string tracks the current view so any state can be shared by link:
 
 - `from=<commit>` and `revision=<commit>` select history snapshots or comparisons.
-- `actor=<id>`, `system=<id>`, `container=<id>`, `component=<id>`,
+- `actor=<id>`, `system=<id>`, `container=<id>`, `component=<id>`, `group=<id>`,
   `relationship=<source>/<target>`, `flow=<id>`, `step=<number>`, and `task=<id>`
   restore selections.
 - `tab=how|tasks`, `file=<path>`, and `line=<number>` open the corresponding
   details tab and source location.
-- `view=iso|2d|layers`, `hide=...`, `theme=auto|light|dark|blueprint`, `hud=off`,
-  and `inset=<pixels>` configure projection and chrome.
+- `tag=<tag>` focuses a tag. Repeat it for more tags. The default is **any**.
+- `match=all` requires every focused tag.
+- `not=<tag>` excludes a tag. Repeat it for more exclusions. Opening the link
+  frames the matches. Tags absent from this architecture are ignored.
+- `view=iso|2d|layers`, `hide=...`, `theme=auto|<theme id>`, `hud=off`, and
+  `inset=<pixels>` configure projection and chrome. A theme id the project does
+  not enable is ignored, so the link falls back to the saved choice.
 
 An embedding page (such as a slide deck or docs site) can drive an iframe without
 reloading by posting `{ gromaView: '?component=<id>&tab=how' }` to the iframe

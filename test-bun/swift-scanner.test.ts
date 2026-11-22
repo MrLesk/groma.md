@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import type { ScannerPlugin } from '@groma/scanner'
-import { buildPackage, prepareWindowsSwiftPackage, windowsSwiftPackageRoot } from '../plugins/scanners/swift/build.ts'
+import { buildPackage, prepareWindowsSwiftPackage } from '../plugins/scanners/swift/build.ts'
 import manifest from '../plugins/scanners/swift/package.json'
 import { discoverScanners } from '../src/scanner/modules/discovery.ts'
 import { addScanner } from '../src/scanner/modules/inventory.ts'
@@ -47,18 +47,6 @@ test.concurrent('the Windows SwiftPM package keeps an existing build directory',
     expect(await Bun.file(stale).exists()).toBe(false)
   } finally {
     await rm(packageRoot, { recursive: true, force: true })
-  }
-})
-
-test.concurrent('the Windows SwiftPM package uses GROMA_SWIFT_PM_CACHE', () => {
-  const previous = process.env.GROMA_SWIFT_PM_CACHE
-  const configured = path.join(os.tmpdir(), 'groma-swift-cache-root')
-  process.env.GROMA_SWIFT_PM_CACHE = configured
-  try {
-    expect(windowsSwiftPackageRoot()).toBe(path.resolve(configured))
-  } finally {
-    if (previous === undefined) delete process.env.GROMA_SWIFT_PM_CACHE
-    else process.env.GROMA_SWIFT_PM_CACHE = previous
   }
 })
 

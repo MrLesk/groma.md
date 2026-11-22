@@ -1,31 +1,62 @@
-import { heading, paragraph } from '../atoms/text.ts'
 import type { EditArchitectureInput } from '../../../authoring.ts'
 import type { EditValues } from '../../../authoring-conflict.ts'
-import { message } from './editable.ts'
+import type { GroupMeaning } from '../../../group.ts'
+import type { ReadPane } from './write-view.ts'
 
-/** What the edit verb changes from the pane; the id is the selected element's. */
-export type MeaningEdit = Pick<EditArchitectureInput, 'title' | 'description' | 'overview' | 'technology' | 'parent'>
+/** The fields Edit can change from an element's pane. */
+export type MeaningEdit = Pick<EditArchitectureInput, 'title' | 'description' | 'overview' | 'technology' | 'parent' | 'addTags' | 'removeTags' | 'color' | 'icon'>
 
 export interface ParentOption {
   id: string
   title: string
 }
 
-export interface SelectionWrites {
-  members: { id: string; title: string }[]
+/** Group and Combine take a selection made entirely of components. */
+export interface ComponentWrites {
   onGroup: (name: string) => Promise<void>
   onCombine: (survivor: string) => Promise<void>
 }
 
-/** The write hooks an element pane gets on the current revision of a live map. */
+/** Any selection of elements can edit tags and appearance on the current revision of a live map. */
+export interface SelectionWrites {
+  onRead: () => void
+  onEdit: (changes: Pick<MeaningEdit, 'addTags' | 'removeTags' | 'color' | 'icon'>) => Promise<void>
+  components?: ComponentWrites
+}
+
+/**
+ * The write hooks an element pane gets on the current revision of a live map. Only the pane's Edit entry
+ * receives them: the sections a person reads are painted without any, so reading cannot write.
+ */
 export interface PaneWrites {
-  onRead?: () => void
+  /** After Add component it gets the new component's id and selects it. */
+  onRead?: ReadPane
+  /** Adds a virtual component to the element and resolves to its id. The pane offers it for a container only. */
+  onAddComponent?: (input: { name: string; description?: string; overview: string }) => Promise<string>
   onRemove?: () => Promise<void>
   onAccept?: () => Promise<void>
   onEdit?: (input: MeaningEdit, original: EditValues) => Promise<void>
   parents?: readonly ParentOption[]
-  /** Present while several components are selected on a live map. */
-  selection?: SelectionWrites
+}
+
+/** The wording and tags that Edit changes on a flow. */
+export type WordingEdit = Pick<MeaningEdit, 'title' | 'description' | 'overview' | 'addTags' | 'removeTags'>
+
+/**
+ * The write hooks a group pane gets on the current revision of a live map: Edit, and Remove of the group record.
+ * Edit takes the core's own list of what a group can change (`groupFields` in src/group.ts), so the pane cannot
+ * offer a field the core would refuse.
+ */
+export interface GroupWrites {
+  onRead: () => void
+  onEdit: (input: GroupMeaning, original: EditValues) => Promise<void>
+  onRemove?: () => Promise<void>
+}
+
+/** The write hooks a flow pane gets on the current revision of a live map: Edit. Its Steps table is edited on the command line. */
+export interface FlowWrites {
+  onRead: () => void
+  onEdit: (input: WordingEdit, original: EditValues) => Promise<void>
 }
 
 /** The write hooks a relationship pane gets on the current revision of a live map. */
@@ -34,76 +65,4 @@ export interface RelationWrites {
   onAccept?: () => Promise<void>
   onEdit?: (input: { description?: string; technology?: string }, original: EditValues) => Promise<void>
   onRemove?: () => Promise<void>
-}
-
-/** A matched ghost becomes stable through the same accept input as the CLI. */
-export function paintAcceptControl(body: Element, accept: () => Promise<void>): void {
-  const button = document.createElement('button')
-  button.type = 'button'
-  button.className = 'accept'
-  button.textContent = 'Accept'
-  const error = paragraph('error', '')
-  error.setAttribute('role', 'status')
-  button.addEventListener('click', async () => {
-    error.textContent = ''
-    button.disabled = true
-    try {
-      await accept()
-    } catch (cause) {
-      error.textContent = message(cause)
-      button.disabled = false
-    }
-  })
-  const box = document.createElement('div')
-  box.className = 'selection-writes accept'
-  box.append(button, error)
-  body.append(box)
-}
-
-/** Several selected components: name them as one group, or fold them into the survivor the person picks. */
-export function paintSelectionControls(body: Element, selection: SelectionWrites): void {
-  body.append(heading(`${selection.members.length} selected`))
-  const box = document.createElement('div')
-  box.className = 'selection-writes'
-  const group = document.createElement('form')
-  group.className = 'group-as'
-  const name = document.createElement('input')
-  name.name = 'name'
-  name.required = true
-  name.setAttribute('aria-label', 'Group name')
-  const groupButton = document.createElement('button')
-  groupButton.type = 'submit'
-  groupButton.textContent = 'Group as'
-  group.append(name, groupButton)
-  const combine = document.createElement('form')
-  combine.className = 'combine-into'
-  const survivor = document.createElement('select')
-  survivor.setAttribute('aria-label', 'Survivor')
-  for (const member of selection.members) {
-    const option = document.createElement('option')
-    option.value = member.id
-    option.textContent = member.title
-    survivor.append(option)
-  }
-  const combineButton = document.createElement('button')
-  combineButton.type = 'submit'
-  combineButton.textContent = 'Combine into'
-  combine.append(survivor, combineButton)
-  const error = paragraph('error', '')
-  error.setAttribute('role', 'status')
-  const submit = (form: HTMLFormElement, write: () => Promise<void>): void => {
-    form.addEventListener('submit', async event => {
-      event.preventDefault()
-      error.textContent = ''
-      try {
-        await write()
-      } catch (cause) {
-        error.textContent = message(cause)
-      }
-    })
-  }
-  submit(group, () => selection.onGroup(name.value))
-  submit(combine, () => selection.onCombine(survivor.value))
-  box.append(group, combine, error)
-  body.append(box)
 }

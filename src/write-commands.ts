@@ -1,9 +1,10 @@
 import type { Command } from 'commander'
 
 import { writes } from './authoring.ts'
-import type { AddInput, RemoveInput } from './authoring.ts'
+import type { AddInput, EditArchitectureInput, RemoveInput } from './authoring.ts'
+import { COLOR_NAMES } from './colors.ts'
+import { ICON_KINDS } from './icons.ts'
 import type { StructuralResult } from './curate.ts'
-import { isGroupAddress } from './naming.ts'
 import { scanRepository } from './scanner.ts'
 
 function printWriteResult(result: string | StructuralResult): void {
@@ -19,7 +20,7 @@ function printWriteResult(result: string | StructuralResult): void {
   }
 }
 
-/** `<verb> relation <a> <b>` names a relationship and `<verb> group <address> [ids...]` a group; every other id stands alone. Only remove reads the members. */
+/** `<verb> relation <a> <b>` names a relationship; every other id stands alone. */
 function addressed(id: string, ids: string[]): RemoveInput {
   if (id === 'relation') {
     const [source, target] = ids
@@ -28,15 +29,14 @@ function addressed(id: string, ids: string[]): RemoveInput {
     }
     return { id: source, relation: target }
   }
-  if (id === 'group') {
-    const [address, ...members] = ids
-    if (address === undefined || !isGroupAddress(address)) {
-      throw new Error('group takes an address <container-id>/<group-kebab>')
-    }
-    return { id: address, members }
-  }
   if (ids.length > 0) throw new Error(`${id} takes no further id`)
   return { id }
+}
+
+/** Edit takes two endpoints after `relation`, or one or more element ids. */
+function editAddress(id: string, ids: string[]): EditArchitectureInput {
+  if (id === 'relation' || ids.length === 0) return addressed(id, ids)
+  return { id, alsoIds: ids }
 }
 
 /** `add relation <a> <b>` and `add group <name> <ids...>` carry ids after the name; nothing else does. */
@@ -48,6 +48,13 @@ function addedIds(thing: string, ids: string[]): Pick<AddInput, 'relation' | 'me
   if (thing === 'group') return { members: ids }
   if (ids.length > 0) throw new Error('add takes one name; quote a name with spaces')
   return {}
+}
+
+/** The icon names for the end of `groma edit --help`, one line per kind, under the rule for picking one. */
+function iconNamesHelp(): string {
+  const kinds = Object.entries(ICON_KINDS)
+  const width = Math.max(...kinds.map(([kind]) => kind.length))
+  return ['Icon names. Pick the area a part is about, not what it does to it:', ...kinds.map(([kind, names]) => `  ${kind.padEnd(width)}  ${names.join(', ')}`)].join('\n')
 }
 
 /** The commands that change architecture Markdown: draft, add, remove, edit, and accept. */
@@ -85,14 +92,15 @@ export function registerWriteCommands(program: Command): void {
 
   program
     .command('add')
-    .description('Declare an actor, external system, draft, flow, relation, or group')
-    .argument('<thing>', 'actor, external, draft, flow, relation, or group')
+    .description('Declare an actor, external system, virtual component, draft, flow, relation, or group')
+    .argument('<thing>', 'actor, external, component, draft, flow, relation, or group')
     .argument('<name>', 'name, or the source file or concept ID of a relation')
-    .argument('[ids...]', 'target file or concept ID of a relation, or the member IDs of a group')
+    .argument('[ids...]', 'target file or concept ID of a relation, or the component IDs a group lists')
     .option('--overview <markdown>', 'full Markdown explanation, or the outcome of a draft')
+    .option('--parent <container-id>', 'internal container for a virtual component')
     .option('--steps <markdown>', 'flow Steps table: From | To | Action, with Markdown endpoint links')
     .option('--description <text>', 'optional short summary, or how the source uses the target')
-    .option('--technology <text>', 'technology of an external, or the interaction mechanism of a relation')
+    .option('--technology <text>', 'technology of an external system or virtual component, or the mechanism of a relation')
     .addHelpText('after', '\nAgent guides: groma agent-instructions')
     .action(async (thing: string, name: string, ids: string[], options) => {
       try {
@@ -100,6 +108,7 @@ export function registerWriteCommands(program: Command): void {
           thing,
           name,
           ...addedIds(thing, ids),
+          parent: options.parent,
           overview: options.overview,
           steps: options.steps,
           description: options.description,
@@ -114,9 +123,9 @@ export function registerWriteCommands(program: Command): void {
 
   program
     .command('remove')
-    .description('Remove a person, external, ghost, component without Code, empty system/container, unused draft, relation, or group')
-    .argument('<id>', 'element id, draft id, flow id, relation, or group')
-    .argument('[ids...]', 'with relation: the source and target endpoints; with group: the address and the members leaving')
+    .description('Remove a person, external, ghost, virtual component, empty system/container, unused draft, relation, or group')
+    .argument('<id>', 'element id, draft id, flow id, group id, or relation')
+    .argument('[ids...]', 'with relation: the source and target endpoints')
     .action(async (id: string, ids: string[]) => {
       try {
         const removed = await writes.remove(process.cwd(), addressed(id, ids))
@@ -130,32 +139,38 @@ export function registerWriteCommands(program: Command): void {
   program
     .command('edit')
     .description('Update authored meaning')
-    .argument('<id>', 'element id, draft id, flow id, project, relation, or group')
-    .argument('[ids...]', 'with relation: the source and target endpoints; with group: the address')
-    .option('--title <text>', 'new title; the id stays, or the new name of a group')
+    .argument('<id>', 'element id, draft id, flow id, group id, project, or relation')
+    .argument('[ids...]', 'more elements taking the same tag changes, color and icon, or the two endpoints of a relation')
+    .option('--title <text>', 'new title; the id stays')
     .option('--overview <markdown>', 'full Markdown explanation, or the outcome of a draft')
     .option('--steps <markdown>', 'flow Steps table: From | To | Action, with Markdown endpoint links')
     .option('--description <text>', 'optional short summary (empty removes it), or how a relation works')
     .option('--technology <text>', 'technology of an element (empty removes it) or of a relation')
-    .option('--draft <draft-id>', 'tag this element with the draft that touches it')
-    .option('--group <name>', 'assign this component to a sibling group')
-    .option('--ungroup', 'remove this component from its group')
+    .option('--add-tags <tags>', 'comma-separated OKF tags to add to a group, a flow or one or more elements')
+    .option('--remove-tags <tags>', 'comma-separated OKF tags to remove from a group, a flow or one or more elements')
+    .option('--color <name>', `map color for a group or one or more elements, one of ${COLOR_NAMES.join(', ')} (empty removes it)`)
+    .option('--icon <name>', 'map icon for a group or one or more elements, one of the icon names below (empty removes it)')
+    .option('--draft <draft-id>', 'link this element to the draft that touches it')
+    .option('--group <group-id>', 'put this component in a group of its container; it leaves the group it was in')
+    .option('--ungroup', 'take this component out of its group')
     .option('--parent <id>', 'move an empty scanned component to this container, or a container to this system')
     .option('--combine <ids...>', 'combine empty sibling systems, containers or components into this one; their containers, components or files move to it')
     .option('--detach <files...>', 'detach these source files from the component')
     .option('--id <new-id>', 'rename this element; its document and the documents under it move with it')
-    .addHelpText('after', '\nAgent guides: groma agent-instructions')
+    .addHelpText('after', `\n${iconNamesHelp()}\n\nAgent guides: groma agent-instructions`)
     .action(async (id: string, ids: string[], options) => {
       try {
-        const { id: target, relation } = addressed(id, ids)
         const edited = await writes.edit(process.cwd(), {
-          id: target,
-          relation,
+          ...editAddress(id, ids),
           title: options.title,
           overview: options.overview,
           steps: options.steps,
           description: options.description,
           technology: options.technology,
+          addTags: options.addTags,
+          removeTags: options.removeTags,
+          color: options.color,
+          icon: options.icon,
           draft: options.draft,
           group: options.group,
           ungroup: options.ungroup,

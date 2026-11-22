@@ -2,6 +2,8 @@
 type: C4 Component
 title: Source watch
 status: stable
+tags:
+  - scanning
 groma:
   id: scanner-source-watch
   parent: cli
@@ -12,7 +14,6 @@ groma:
     - scanner: typescript
       file: src/scanner/watch-patterns.ts
       symbol: compileWatchPatterns
-  group: Source scanning
 description: Re-runs affected scanners when project source files change
 ---
 

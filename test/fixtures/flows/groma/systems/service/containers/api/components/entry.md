@@ -17,4 +17,4 @@ Coordinates a request.
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
 | [src/entry.ts](../../../../../../src/entry.ts) | [src/worker.ts](../../../../../../src/worker.ts) | Dispatches work | Function call |
-| [entry](entry.md) | [journal](../../../../../externals/journal.md) | Records activity | HTTP |
+| [Entry](entry.md "entry") | [Journal](../../../../../externals/journal.md "journal") | Records activity | HTTP |

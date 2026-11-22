@@ -14,7 +14,6 @@ groma:
       file: src/plugins/settings.ts
     - scanner: typescript
       file: src/plugins/settings-model.ts
-  group: Plugins
 description: Builds shared settings state and applies plugin actions by kind
 ---
 

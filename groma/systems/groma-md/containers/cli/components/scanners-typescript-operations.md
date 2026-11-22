@@ -2,6 +2,8 @@
 type: C4 Component
 title: Operation body analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: scanners-typescript-operations
   parent: cli
@@ -9,7 +11,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/typescript-operations.ts
       symbol: typeScriptOperations
-  group: Scanner support
 description: Tokenises TypeScript operation bodies for duplication comparison
 ---
 

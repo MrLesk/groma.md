@@ -5,7 +5,6 @@ status: stable
 groma:
   id: order-service-gateway
   parent: order-service
-  group: Core
   code:
     - scanner: typescript
       file: src/orders/order-service/gateway.ts

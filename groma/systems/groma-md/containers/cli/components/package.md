@@ -26,7 +26,6 @@ groma:
       symbol: packageManagerCertificates
     - scanner: typescript
       file: src/certificate-trust.ts
-  group: Plugins
 description: Reads config.json, owns the plugins it lists and restores them by kind
 ---
 
@@ -36,5 +35,5 @@ Reads and writes config.json, the project's one groma.md configuration, and reso
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [src/scanner/modules/package.ts](../../../../../../src/scanner/modules/package.ts) | [scanner-package-registry](../../../../../externals/scanner-package-registry.md) | Downloads scanner packages | Bun install and npm registry protocol |
-| [src/scanner/modules/published.ts](../../../../../../src/scanner/modules/published.ts) | [scanner-package-registry](../../../../../externals/scanner-package-registry.md) | Reads scanner releases | Bun package manager and npm registry protocol |
+| [src/scanner/modules/package.ts](../../../../../../src/scanner/modules/package.ts) | [Scanner package registry](../../../../../externals/scanner-package-registry.md "scanner-package-registry") | Downloads scanner packages | Bun install and npm registry protocol |
+| [src/scanner/modules/published.ts](../../../../../../src/scanner/modules/published.ts) | [Scanner package registry](../../../../../externals/scanner-package-registry.md "scanner-package-registry") | Reads scanner releases | Bun package manager and npm registry protocol |

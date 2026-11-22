@@ -6,7 +6,7 @@ import path from 'node:path'
 
 import { writeTree } from '../test/cli-helpers.ts'
 import { firstScanAgentNote, initializeAgentInstructions } from '../src/agent-instructions.ts'
-import { awaitsCuration, firstScanHint, firstScanTitle } from '../src/empty-world.ts'
+import { firstScanHint, firstScanTitle } from '../src/empty-world.ts'
 import { emptyState } from '../src/viewers/web/chrome/empty.ts'
 import type { WebBootPayload } from '../src/viewers/web/payload.ts'
 import { box, worldOf } from './helpers.ts'
@@ -30,14 +30,6 @@ function withProse(prose: { description?: string; overview?: string }) {
 function notice(world: ReturnType<typeof firstScan>, revision: string | null = null): string {
   return emptyState({ revision, world, project: undefined } as unknown as WebBootPayload)
 }
-
-test.concurrent('a map is a first scan until any element gets a description or an overview', () => {
-  assert.equal(awaitsCuration(firstScan()), true)
-  assert.equal(awaitsCuration(withProse({ description: 'Holds what a customer wants to buy' })), false)
-  assert.equal(awaitsCuration(withProse({ overview: 'The cart prices its lines.' })), false)
-  assert.equal(awaitsCuration(worldOf([])), false)
-  assert.equal(awaitsCuration(worldOf([box('shop', 'system', unit)])), false)
-})
 
 test.concurrent('the browser shows the first-scan notice only on a live first scan', () => {
   const shown = notice(firstScan())

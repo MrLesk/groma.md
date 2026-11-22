@@ -15,5 +15,5 @@ and allowlists sit on this edge.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [channels](container.md) | [whatsapp](../../../../externals/whatsapp.md) | Links a WhatsApp Web session and exchanges messages | WhatsApp Web |
-| [channels](container.md) | [telegram](../../../../externals/telegram.md) | Runs the bot and exchanges DMs and group messages | Telegram Bot API |
+| [Channels](container.md "channels") | [WhatsApp](../../../../externals/whatsapp.md "whatsapp") | Links a WhatsApp Web session and exchanges messages | WhatsApp Web |
+| [Channels](container.md "channels") | [Telegram](../../../../externals/telegram.md "telegram") | Runs the bot and exchanges DMs and group messages | Telegram Bot API |

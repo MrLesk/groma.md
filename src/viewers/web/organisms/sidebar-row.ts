@@ -1,4 +1,7 @@
+import type { IconName } from '../../../icons.ts'
 import type { C4Kind } from '../../../types.ts'
+import { glyphElement } from '../icons/glyph-element.ts'
+import { showIdOnHover } from '../atoms/text.ts'
 import { animateDisclosure } from '../chrome/motion.ts'
 
 export function disclosureChevron(): HTMLSpanElement {
@@ -34,15 +37,18 @@ export function sidebarBranches(followingSiblings: readonly boolean[]): HTMLSpan
   })
 }
 
-/** Shared entity columns for actor groups and the software tree. */
+/** Shared entity columns for actor groups and the software tree. The row of an element shows its id on hover. */
 export function sidebarRow(
+  id: string,
   title: string,
   kind: C4Kind,
   fold?: { expanded: boolean; count: number; toggle(): void },
+  icon?: IconName,
 ): HTMLButtonElement {
   const button = document.createElement('button')
   button.type = 'button'
   button.className = 'row'
+  showIdOnHover(button, id)
   if (fold) button.setAttribute('aria-expanded', String(fold.expanded))
 
   const twist = document.createElement('span')
@@ -60,6 +66,11 @@ export function sidebarRow(
   const mark = document.createElement('span')
   mark.className = `mark kind-${kind}`
   mark.setAttribute('aria-hidden', 'true')
+  // An element with an icon shows its glyph where the others show their kind's mark.
+  if (icon !== undefined) {
+    mark.classList.add('with-glyph')
+    mark.append(glyphElement(icon, 14))
+  }
 
   const name = document.createElement('span')
   name.className = 'name'

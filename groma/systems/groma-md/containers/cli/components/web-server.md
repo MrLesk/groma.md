@@ -2,6 +2,8 @@
 type: C4 Component
 title: Web host
 status: stable
+tags:
+  - web
 groma:
   id: web-server
   parent: cli
@@ -19,7 +21,6 @@ groma:
       file: src/viewers/web/startup/restore.ts
     - scanner: typescript
       file: src/viewers/web/startup/plugins.ts
-  group: Browser delivery
 description: Serves the local browser map and live architecture operations
 ---
 

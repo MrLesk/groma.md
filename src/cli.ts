@@ -19,6 +19,8 @@ import { registerLintCommand } from './lint-command.ts'
 import { registerPluginCommands } from './plugins/cli.ts'
 import { registerScannerCommands } from './scanner/cli.ts'
 import { formatScanReport, scanRepository, watchScan } from './scanner.ts'
+import { parseTags } from './tags.ts'
+import type { TagFocus } from './tag-selection.ts'
 import { startBackgroundScannerUpdates } from './scanner/background-updates.ts'
 import { renderPlainWelcome, startWelcome } from './welcome.ts'
 import { registerWriteCommands } from './write-commands.ts'
@@ -141,10 +143,27 @@ async function initializeProject(
   }
 }
 
-async function exportWeb(directory: string, options: { url?: string; revision?: string; from?: string }): Promise<void> {
+interface ExportCommandOptions {
+  url?: string
+  revision?: string
+  from?: string
+  /** Comma-separated tags, as typed. */
+  includeFilter?: string
+  excludeFilter?: string
+}
+
+async function exportWeb(directory: string, options: ExportCommandOptions): Promise<void> {
   const root = process.cwd()
   const { exportWebViewer } = await import('./viewers/web/export.ts')
-  const exported = await exportWebViewer(root, directory, options)
+  const filter: TagFocus = {
+    focused: parseTags(options.includeFilter ?? ''),
+    match: 'any',
+    excluded: parseTags(options.excludeFilter ?? ''),
+  }
+  const filtered = filter.focused.length > 0 || filter.excluded.length > 0
+  const exported = await exportWebViewer(root, directory, {
+    url: options.url, revision: options.revision, from: options.from, ...(filtered ? { filter } : {}),
+  })
   console.log(`groma export at ${path.resolve(directory)}`)
   await exported.close()
 }
@@ -253,13 +272,20 @@ program
   .option('--url <url>', 'public URL of the exported directory, for social previews')
   .option('--revision <commit>', 'export this commit instead of the working tree')
   .option('--from <commit>', 'compare this starting commit with --revision')
+  .option('--include-filter <tags>', 'export the elements these comma-separated tags light, including group members, flow step ends and their parents')
+  .option('--exclude-filter <tags>', 'omit elements matching these comma-separated tags and groups or flows that carry them')
   .addOption(new Option('--watch').hideHelp())
   .on('option:watch', () => {
     console.log('Coming soon.')
     process.exit(0)
   })
-  .action(async (directory: string, options: { url?: string; revision?: string; from?: string }) => {
-    await exportWeb(directory, options)
+  .action(async (directory: string, options: ExportCommandOptions) => {
+    try {
+      await exportWeb(directory, options)
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error))
+      process.exitCode = 1
+    }
   })
 
 withListWindowOptions(program

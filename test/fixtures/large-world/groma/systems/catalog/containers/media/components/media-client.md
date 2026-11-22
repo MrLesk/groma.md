@@ -29,4 +29,4 @@ Media client of Media.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [media-client](media-client.md) | [payments](../../../../../externals/payments.md) | Charges cards | HTTP |
+| [Media client](media-client.md "media-client") | [Payments](../../../../../externals/payments.md "payments") | Charges cards | HTTP |

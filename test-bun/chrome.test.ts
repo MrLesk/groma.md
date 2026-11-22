@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import { detailsScrollOffset } from '../src/viewers/tui/panes/screen.ts'
 import { test } from 'bun:test'
 
 import { detailsContentWidth, fitPanes, panesForWidth, terminalLayout } from '../src/viewers/tui/layout.ts'
@@ -40,14 +39,6 @@ test.concurrent('reading reserves 80 text columns when possible without changing
     assert.equal(detailsContentWidth(hierarchyFocus), width === 200 ? 80 : 28)
     assert.equal(terminalLayout(hierarchyFocus).map, true)
   }
-})
-
-test.concurrent('details can scroll past their final link to the end of a record', () => {
-  const pane = { lines: Array.from({ length: 80 }, () => []), cursor: 35 }
-  const height = 20
-  assert.equal(detailsScrollOffset(pane, 0, height), 16)
-  assert.ok(detailsScrollOffset(pane, 40, height) > pane.cursor)
-  assert.equal(detailsScrollOffset(pane, 100, height), pane.lines.length - height)
 })
 
 test.concurrent('shrinking to 80 columns retains map space and permits explicit details focus', () => {

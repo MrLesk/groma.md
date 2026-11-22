@@ -1,5 +1,6 @@
 import { compareSemanticElements } from '../../element-order.ts'
-import type { AnnotatedElement, ArchitectureGraph } from '../../types.ts'
+import type { Zone } from '../../sheet/types.ts'
+import type { AnnotatedElement, AnnotatedGroup, ArchitectureGraph, WorkItem } from '../../types.ts'
 
 export type Selection =
   | { kind: 'none' }
@@ -30,16 +31,32 @@ export function ownsDetails(selection: Selection): boolean {
   return selection.kind !== 'none'
 }
 
-/** A plain pick replaces the architecture selection; an additive pick toggles one target in its ordered set. */
-export function selectArchitecture(selection: Selection, id: string, additive: boolean): Selection {
-  if (!additive || selection.kind !== 'architecture') return { kind: 'architecture', ids: [id] }
-  if (!selection.ids.includes(id)) return { kind: 'architecture', ids: [...selection.ids, id] }
-  const ids = selection.ids.filter(selected => selected !== id)
+/** The architecture selection of one target: an element, a relationship, a group or the placement group. */
+export function selectOne(id: string): Selection {
+  return { kind: 'architecture', ids: [id] }
+}
+
+/** A plain pick selects one target. An additive pick toggles it in order, except that a group is always selected alone. */
+export function selectArchitecture(selection: Selection, id: string, additive: boolean, groups: readonly AnnotatedGroup[]): Selection {
+  const selected = selectedArchitecture(selection)
+  const picksGroup = groups.some(group => group.id === id)
+  const groupIsSelected = groups.some(group => selected.includes(group.id))
+  if (!additive || picksGroup || groupIsSelected) return selectOne(id)
+  if (!selected.includes(id)) return { kind: 'architecture', ids: [...selected, id] }
+  const ids = selected.filter(previous => previous !== id)
   return ids.length === 0 ? noSelection : { kind: 'architecture', ids }
 }
 
 export function selectTask(id: string): Selection {
   return { kind: 'task', id }
+}
+
+/** True when the id names something the map can select: stored architecture or the derived placement group. */
+export function isKnownArchitecture(id: string, world: ArchitectureGraph, zones: readonly Zone[]): boolean {
+  return world.elements.some(element => element.representationId === id)
+    || world.groups.some(group => group.id === id)
+    || world.relationships.some(relationship => relationship.id === id)
+    || zones.some(zone => zone.unidentifiedContainer && zone.key === id)
 }
 
 /** System surfaces first release a component selection so large islands offer room to deselect. */
@@ -50,13 +67,20 @@ export function selectMapArchitecture(selection: Selection, id: string, additive
     && world.elements.some(element => element.kind === 'component' && selected.includes(element.representationId))) {
     return noSelection
   }
-  return selectArchitecture(selection, id, additive)
+  return selectArchitecture(selection, id, additive, world.groups)
 }
 
-/** Drops targets that disappeared from a live payload without changing the order of those that remain. */
+/** Drops the targets `known` rejects without changing the order of those that remain. */
 export function retainSelection(selection: Selection, known: (id: string) => boolean): Selection {
   if (selection.kind === 'none') return selection
   if (selection.kind === 'task' || selection.kind === 'flow') return known(selection.id) ? selection : noSelection
   const ids = selection.ids.filter(known)
   return ids.length === 0 ? noSelection : { kind: 'architecture', ids }
+}
+
+/** Keep only targets that still exist in the updated architecture or work list. */
+export function retainLiveSelection(selection: Selection, world: ArchitectureGraph, zones: readonly Zone[], work: readonly WorkItem[]): Selection {
+  if (selection.kind === 'task') return retainSelection(selection, id => work.some(task => task.id === id))
+  if (selection.kind === 'flow') return retainSelection(selection, id => world.flows.some(flow => flow.id === id))
+  return retainSelection(selection, id => isKnownArchitecture(id, world, zones))
 }

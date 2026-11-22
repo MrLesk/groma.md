@@ -2,13 +2,14 @@
 type: C4 Component
 title: R source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: r-src-index
   parent: cli
   code:
     - scanner: typescript
       file: plugins/scanners/r/src/index.ts
-  group: Language scanners
   technology: TypeScript, R, tree-sitter
 description: Reads selected R source and returns direct named functions and outlines.
 ---

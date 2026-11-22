@@ -1,5 +1,6 @@
 import type { WebDataSource } from '../data.ts'
 import { escaped } from '../atoms/escape.ts'
+import { approvalBar } from '../atoms/write-form.ts'
 import { scannerName } from '../scanners/name.ts'
 import { isNpmPackageName } from '../../../scanner/modules/package-name.ts'
 import { pluginGroups, pluginSettingAction, pluginUpgradeAction, scannerMatchReason, type PluginSetting, type ScannerSetting, type PluginSettings, type PluginSettingsAction } from '../../../plugins/settings-model.ts'
@@ -37,11 +38,10 @@ export const pluginSettingsCss = `
   #scanner-settings [data-action="remove"] { color: var(--diff-removed); }
   #scanner-settings .scanner-notice { margin: 0; color: var(--muted); }
   #scanner-settings .scanner-notice[data-tone="error"], #scanner-settings .scanner-notice[data-tone="warning"] { color: var(--syntax-number); }
-  #scanner-settings form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
-  #scanner-settings label { display: grid; gap: 8px; flex: 1; min-width: 0; }
-  #scanner-settings input { width: 100%; box-sizing: border-box; border: 1px solid var(--hairline); border-radius: var(--control-radius); background: var(--paper); color: var(--ink); padding: 9px; font: inherit; }
+  /* The plugin source form is a write form: atoms/write-form.ts gives its label, its field and its buttons their look. */
+  #scanner-settings form { display: grid; gap: 12px; }
+  #scanner-settings input[type="search"] { width: 100%; box-sizing: border-box; border: 1px solid var(--hairline); border-radius: var(--control-radius); background: var(--paper); color: var(--ink); padding: 9px; font: inherit; }
   #scanner-settings .scanner-updates { display: flex; flex: none; align-items: center; gap: 8px; }
-  #scanner-settings .scanner-updates input { width: auto; }
   #scanner-settings .scanner-error { color: var(--diff-removed); }
   #scanner-settings .scanner-error summary { color: inherit; }
   #scanner-settings [hidden] { display: none; }
@@ -50,7 +50,6 @@ export const pluginSettingsCss = `
     #scanner-settings .scanner-heading { grid-column: 1; grid-row: 1; min-width: 0; }
     #scanner-settings .scanner-status { grid-column: 1; grid-row: 2; }
     #scanner-settings .scanner-primary { grid-column: 2; grid-row: 1 / span 2; }
-    #scanner-settings form label { flex-basis: 100%; }
   }
 `
 
@@ -116,12 +115,17 @@ function settingGroup(group: ReturnType<typeof pluginGroups>[number], showBulk: 
 /** Plugin management uses the live data source inside Settings. */
 export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onState: (state: PluginSettings) => void) {
   host.innerHTML = '<p class="scanner-notice" hidden></p><label class="scanner-updates"><input type="checkbox" data-automatic-updates>Automatic updates</label><div class="scanner-tools"><input type="search" aria-label="Search plugins" placeholder="Search plugins"><button class="chrome-button" type="button" data-add>Add plugin</button></div>'
-    + '<form hidden><label>Plugin source<input name="source" placeholder="package name, package@version, Git URL, or local path" required></label><button class="chrome-button" type="submit">Add</button><button class="chrome-button" type="button" data-cancel>Cancel</button></form>'
+    + '<form class="write-form" hidden><label>Plugin source<input name="source" placeholder="package name, package@version, Git URL, or local path" required></label></form>'
     + '<details class="scanner-error" hidden><summary></summary><pre></pre></details><button class="chrome-button" type="button" data-retry hidden>Retry installation</button><div data-rows></div>'
   const rows = host.querySelector<HTMLElement>('[data-rows]')!
   const error = host.querySelector<HTMLDetailsElement>('.scanner-error')!
   const form = host.querySelector('form')!
   const source = form.querySelector('input')!
+  // The plugin source form is a write form: Cancel and its approving button come from the shared approval bar. The bar
+  // does not run this write. The submit handler below hands it to change(), which runs every plugin action of this
+  // screen and shows a failed one above the rows.
+  const approval = approvalBar('Add')
+  form.append(approval.bar)
   const search = host.querySelector<HTMLInputElement>('input[type="search"]')!
   const notice = host.querySelector<HTMLElement>('.scanner-notice')!
   const retry = host.querySelector<HTMLButtonElement>('[data-retry]')!
@@ -208,12 +212,12 @@ export function bindPluginSettings(data: WebDataSource, host: HTMLElement, onSta
     updateId = id
     form.hidden = false
     source.value = state?.plugins.find(plugin => plugin.id === id)?.source ?? ''
-    form.querySelector('button')!.textContent = id ? 'Update' : 'Add'
+    approval.approveButton.textContent = id ? 'Update' : 'Add'
     source.focus()
   }
   automatic.addEventListener('change', () => { void change({ action: 'automatic-updates', enabled: automatic.checked }) })
   host.querySelector('[data-add]')!.addEventListener('click', () => sourceForm())
-  host.querySelector('[data-cancel]')!.addEventListener('click', () => { form.hidden = true })
+  approval.cancel.addEventListener('click', () => { form.hidden = true })
   retry.addEventListener('click', () => { if (failedAction) void change(failedAction) })
   search.addEventListener('input', () => { if (state) paintRows(state); setBusy(); rows.scrollTop = 0 })
   rows.addEventListener('input', event => {

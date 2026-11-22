@@ -1,0 +1,53 @@
+import type { IconName } from '../../../icons.ts'
+import { peopleIcons } from './objects/people.ts'
+import { clientsIcons } from './objects/clients.ts'
+import { computeIcons } from './objects/compute.ts'
+import { trafficIcons } from './objects/traffic.ts'
+import { dataIcons } from './objects/data.ts'
+import { messagingIcons } from './objects/messaging.ts'
+import { securityIcons } from './objects/security.ts'
+import { watchingIcons } from './objects/watching.ts'
+import { toolingIcons } from './objects/tooling.ts'
+import { aiIcons } from './objects/ai.ts'
+import { mediaIcons } from './objects/media.ts'
+import { commerceIcons } from './objects/commerce.ts'
+import { shapesIcons } from './objects/shapes.ts'
+import type { IconPart } from './parts.ts'
+
+/**
+ * One object per icon name, as the parts it is built from. It is the only drawing an icon has, and it is drawn
+ * like the rest of the map: it lies on the map's surface. The 2D view and the panes look at it from straight
+ * above, and a tilted map looks at the same object from the map's own angle, where the heights of its parts show
+ * as walls. So draw an object as its picture from above, and give each part a height. Its accent is the one thing
+ * that says what it is: one part, or the few marks that draw that thing, on a top, so every view shows it. The
+ * painter lays the middle of the ground an object covers on the middle of the icon's box, so where an object lies
+ * inside its footprint does not matter.
+ *
+ * A part lies on the ground, or wholly on the parts under it, and then starts at their top. A part that covers
+ * another and reaches past it would float there: it starts on the ground too and is higher than what it covers.
+ * A few objects let a part hover over another on purpose, such as the sheets of `layers` and the screen of `mobile`.
+ * The painter draws parts back to front, and where two parts overlap it draws the one that reaches higher over
+ * the other, so a part that should cover another must reach higher than it. Where it cannot tell which of two
+ * parts is in front (two overlapping parts of one height, or parts that hide each other in a ring) it keeps the
+ * order of the list, so list the parts of an object back to front, lowest first. Parts that lie side by side
+ * must not overlap.
+ *
+ * The objects live in one file per kind under `objects/`, in the kinds `ICON_KINDS` names. Keep every object
+ * inside the 1 × 1 footprint, and low: an object rises on screen over what lies behind it, and a test holds every
+ * drawing short of what stands on the surface behind a title.
+ */
+export const iconObjects: Record<IconName, readonly IconPart[]> = {
+  ...peopleIcons,
+  ...clientsIcons,
+  ...computeIcons,
+  ...trafficIcons,
+  ...dataIcons,
+  ...messagingIcons,
+  ...securityIcons,
+  ...watchingIcons,
+  ...toolingIcons,
+  ...aiIcons,
+  ...mediaIcons,
+  ...commerceIcons,
+  ...shapesIcons,
+}

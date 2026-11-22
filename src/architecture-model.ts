@@ -1,6 +1,8 @@
 import { elementOverview } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
+import { COLOR_NAMES, isColorName } from './colors.ts'
+import { isIconName } from './icons.ts'
 import { isArchitectureId, isReservedId, kebabCase } from './naming.ts'
 import { DRAFT_TYPE, c4Kind, requireGromaMapping } from './okf-profile.ts'
 import { storedConnections } from './relationship-markdown.ts'
@@ -55,7 +57,7 @@ function invalidElement(sourceFilename: string, message: string): never {
 
 function validateGromaFields(groma: Record<string, unknown>, sourceFilename: string): void {
   const unknownFields = Object.keys(groma).filter(field => {
-    return !['id', 'parent', 'group', 'technology', 'code', 'draft'].includes(field)
+    return !['id', 'parent', 'technology', 'color', 'icon', 'code', 'draft'].includes(field)
   })
   if (unknownFields.length > 0) {
     invalidElement(sourceFilename, `unsupported groma field(s): ${unknownFields.join(', ')}`)
@@ -64,7 +66,7 @@ function validateGromaFields(groma: Record<string, unknown>, sourceFilename: str
 
 function optionalText(
   value: unknown,
-  field: 'description' | 'parent' | 'group' | 'technology' | 'draft',
+  field: 'description' | 'parent' | 'technology' | 'draft',
   sourceFilename: string,
 ): string | undefined {
   if (value === undefined) return undefined
@@ -78,6 +80,28 @@ function optionalText(
     )
   }
   return value as string
+}
+
+/** OKF `tags` is a top-level list of short strings. An empty list means the same as no tags. */
+export function tagsOf(value: unknown, sourceFilename: string): string[] | undefined {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value) || value.some(tag => typeof tag !== 'string' || tag.trim() === '')) {
+    invalidElement(sourceFilename, 'tags must be a list of non-empty strings')
+  }
+  return value.length === 0 ? undefined : [...value]
+}
+
+/** Reads the optional map color and icon of an element or a group. `invalid` refuses an unknown name in the words of the calling reader. */
+export function appearanceOf(
+  groma: Record<string, unknown>, invalid: (message: string) => never,
+): Pick<ArchitectureElement, 'color' | 'icon'> {
+  const { color, icon } = groma
+  if (color !== undefined && !isColorName(color)) invalid(`color must be one of ${COLOR_NAMES.join(', ')}`)
+  if (icon !== undefined && !isIconName(icon)) invalid('icon must be one of the names groma edit --help lists')
+  return {
+    ...(color === undefined ? {} : { color }),
+    ...(icon === undefined ? {} : { icon }),
+  }
 }
 
 function requireId(value: unknown, sourceFilename: string, label: string): string {
@@ -135,8 +159,9 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     invalidElement(sourceFilename, `only a system can live under externals/, but "${id}" is a ${kind}`)
   }
   const parent = optionalText(groma.parent, 'parent', sourceFilename)
-  const group = optionalText(groma.group, 'group', sourceFilename)
   const technology = optionalText(groma.technology, 'technology', sourceFilename)
+  const tags = tagsOf(document.frontmatter.tags, sourceFilename)
+  const appearance = appearanceOf(groma, message => invalidElement(sourceFilename, message))
   const draft = draftOf(groma, sourceFilename)
 
   return {
@@ -149,8 +174,9 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     }),
     parentId: parent ?? null,
     external,
-    ...(group === undefined ? {} : { group }),
     ...(technology === undefined ? {} : { technology }),
+    ...(tags === undefined ? {} : { tags }),
+    ...appearance,
     code: codeReferencesOf(groma.code, kind, message => {
       throw new ArchitectureModelError('INVALID_ELEMENT', sourceFilename, message)
     }),
@@ -158,6 +184,29 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
     ...(draft === undefined ? {} : { draft }),
     sourceFilename,
   }
+}
+
+/** A person places new software under its expected parent. Only scanning may leave a component directly under a system. */
+export function resolveParent(
+  elements: readonly ArchitectureElement[],
+  kind: C4Kind,
+  parentId: string | undefined,
+): ArchitectureElement | undefined {
+  const expectedParentKind = expectedParentKinds.get(kind)
+  if (expectedParentKind === undefined) {
+    if (parentId !== undefined) throw new Error('--parent is forbidden for a system')
+    return undefined
+  }
+  if (parentId === undefined) throw new Error(`--parent is required for a ${kind}`)
+  const parent = elements.find(element => element.id === parentId)
+  if (parent === undefined) throw new Error(`unknown parent "${parentId}"`)
+  if (parent.kind !== expectedParentKind) {
+    throw new Error(
+      `${kind} requires a ${expectedParentKind} parent, but "${parentId}" is a ${parent.kind}`,
+    )
+  }
+  if (parent.external) throw new Error(`"${parentId}" is external and has no containers`)
+  return parent
 }
 
 function acceptsParent(element: ArchitectureElement, parent: ArchitectureElement): boolean {
@@ -314,17 +363,26 @@ export function requireDraftRecord(records: ArchitectureRecords, draft: string):
   return draft
 }
 
-/** The kebab id a new name gets, provided no element or draft record holds it and it is not reserved. */
+/** Flows, groups and draft records share the id space of elements: each of their ids, with the kind of record that holds it. */
+export function otherRecordIds(records: ArchitectureRecords): Map<string, 'flow' | 'group' | 'draft'> {
+  const holders = new Map<string, 'flow' | 'group' | 'draft'>()
+  const kinds = [['flow', records.flows], ['group', records.groups], ['draft', records.drafts]] as const
+  for (const [kind, documents] of kinds) {
+    for (const document of documents) {
+      const id = requireGromaMapping(document.frontmatter, document.sourceFilename).id
+      if (typeof id === 'string') holders.set(id, kind)
+    }
+  }
+  return holders
+}
+
+/** The kebab id a new name gets, provided no element, flow, group or draft record holds it and it is not reserved. */
 export function freeId(records: ArchitectureRecords, model: ArchitectureModel, name: string): string {
   const id = kebabCase(name)
   if (id === '') throw new Error('name must contain a letter or a digit')
   if (model.elements.some(element => element.id === id)) throw new Error(`id "${id}" already exists`)
-  if (records.flows.some(document => requireGromaMapping(document.frontmatter, document.sourceFilename).id === id)) {
-    throw new Error(`id "${id}" already names a flow`)
-  }
-  if (records.drafts.some(document => draftRecordOf(document).id === id)) {
-    throw new Error(`id "${id}" already names a draft`)
-  }
+  const holder = otherRecordIds(records).get(id)
+  if (holder !== undefined) throw new Error(`id "${id}" already names a ${holder}`)
   if (isReservedId(id)) throw new Error(`"${id}" is reserved for a Groma document or command`)
   return id
 }

@@ -11,8 +11,8 @@ A developer opens the revision selector in the live browser map and selects a co
 
 | From | To | Action |
 | --- | --- | --- |
-| [Developer](../actors/developer.md) | [Revision selector](../systems/groma-md/containers/export/components/revision-control.md) | Select a compatible architecture revision |
-| [Revision selector](../systems/groma-md/containers/export/components/revision-control.md) | [Browser data](../systems/groma-md/containers/export/components/data.md) | Request the selected revision |
-| [Browser data](../systems/groma-md/containers/export/components/data.md) | [Web host](../systems/groma-md/containers/cli/components/web-server.md) | Request the architecture payload for that revision |
-| [Web host](../systems/groma-md/containers/cli/components/web-server.md) | [Revision history](../systems/groma-md/containers/cli/components/history-revisions.md) | Load the selected repository snapshot |
-| [Revision history](../systems/groma-md/containers/cli/components/history-revisions.md) | [Git](../externals/git.md) | Read the selected commit as an archive for Groma to load |
+| [Developer](../actors/developer.md "developer") | [Revision selector](../systems/groma-md/containers/export/components/revision-control.md "revision-control") | Select a compatible architecture revision |
+| [Revision selector](../systems/groma-md/containers/export/components/revision-control.md "revision-control") | [Browser data](../systems/groma-md/containers/export/components/data.md "data") | Request the selected revision |
+| [Browser data](../systems/groma-md/containers/export/components/data.md "data") | [Web host](../systems/groma-md/containers/cli/components/web-server.md "web-server") | Request the architecture payload for that revision |
+| [Web host](../systems/groma-md/containers/cli/components/web-server.md "web-server") | [Revision history](../systems/groma-md/containers/cli/components/history-revisions.md "history-revisions") | Load the selected repository snapshot |
+| [Revision history](../systems/groma-md/containers/cli/components/history-revisions.md "history-revisions") | [Git](../externals/git.md "git") | Read the selected commit as an archive for Groma to load |

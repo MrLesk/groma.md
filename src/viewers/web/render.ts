@@ -3,7 +3,7 @@ import { createComparisonControl } from './comparison/control.ts'
 import { createProjectSettings } from './settings/control.ts'
 import { createProjectReview } from './review/control.ts'
 import type { ProjectProfile } from '../../project-profile.ts'
-import type { AnnotatedElement, AnnotatedRelationship, WorkItem } from '../../types.ts'
+import type { AnnotatedElement, WorkItem } from '../../types.ts'
 import { elementWorkGroups, touchedElements } from '../../work/pins.ts'
 import type { FlowRef } from '../flows.ts'
 import { createAddControl } from './chrome/add.ts'
@@ -11,9 +11,9 @@ import { createEmptyState } from './chrome/empty.ts'
 import { createMapDebugPanel } from './chrome/map-debug.ts'
 import { bindMapView, readSavedMapControls, saveMapControls } from './chrome/map-view.ts'
 import { bindC4Filter } from './chrome/c4-filter.ts'
-import { animateControl, animateContent } from './chrome/motion.ts'
+import { bindTagFocus } from './tags/tag-focus.ts'
 import { measureFrame, type MapFrame } from './chrome/frame.ts'
-import { bindChromeActions, createWebShell, pageHosts } from './chrome/shell.ts'
+import { bindChromeActions, cameraActions, createWebShell, pageHosts } from './chrome/shell.ts'
 import { bindThemeControl, readSavedTheme } from './chrome/theme-control.ts'
 import { paintHeaderSummary } from './chrome/stats.ts'
 import { createWebDataSource, openWebBoot } from './data.ts'
@@ -27,23 +27,26 @@ import { createMapHighlights } from './iso/highlights.ts'
 import { bindMapPointer } from './iso/camera/pointer.ts'
 import { createCameraSession } from './iso/camera/session.ts'
 import { presentScene, createMapAnimator, createMapMotion } from './iso/view-motion/presentation.ts'
+import { paintGroup } from './organisms/group-details.ts'
 import { paintRelationship } from './organisms/relationship-details.ts'
+import { paintSelection } from './organisms/selection-details.ts'
 import { detailsTabAfterSelection, detailsTabAfterWork, type DetailsTab, inspectSelection, paintDetails } from './organisms/details.ts'
 import { createHierarchy } from './organisms/hierarchy.ts'
+import { mayLeaveWriteView } from './organisms/write-view.ts'
 import { createPins } from './work/pins.ts'
 import { createTip } from './organisms/tip.ts'
 import { createProjectEditor } from './project/editor.ts'
 import { createAuthoring } from './authoring.ts'
+import { createAppearancePreview } from './editing/appearance-preview.ts'
 import { createRevisionControl } from './revision/control.ts'
 import { createSearchSession } from './search/session.ts'
 import { createWorkIsland } from './work/island.ts'
 import { openWorkSelection, toggleWorkSelection } from './work/selection.ts'
 import type { WebBootPayload, WebPayload, WebWorkPayload } from './payload.ts'
-import { noSelection, primarySelection, primarySystem, retainSelection, selectArchitecture, selectMapArchitecture, selectedArchitecture, selectTask, type Selection } from './selection.ts'
+import { isKnownArchitecture, noSelection, primarySelection, primarySystem, retainLiveSelection, retainSelection, selectArchitecture, selectMapArchitecture, selectOne, selectedArchitecture, selectTask, type Selection } from './selection.ts'
 import { createSourceControl } from './source/control.ts'
 import { createTaskDiffControl } from './task-diff/control.ts'
 import { readView, writeView } from './url.ts'
-const ZOOM_STEP = 1.25
 const boot = openWebBoot(JSON.parse(document.getElementById('world')!.textContent!) as WebBootPayload, location)
 const data = createWebDataSource(boot)
 let world = boot.world
@@ -52,7 +55,7 @@ let sheet = boot.sheet
 let project: ProjectProfile | undefined = boot.project ?? undefined
 let currentPins = boot.pins
 let mapMeta = { generation: boot.generation, timings: boot.timings }
-const opened = readView(location, world, work.items, boot.revisions, readSavedTheme(localStorage), boot.comparison, readSavedMapControls(localStorage))
+const opened = readView(location, world, work.items, boot.revisions, readSavedTheme(localStorage, boot.themes), boot.comparison, readSavedMapControls(localStorage), boot.themes)
 saveMapControls(opened, localStorage)
 const changes = createComparisonControl(document.body, select, () => {
   repaintScene(false)
@@ -66,13 +69,16 @@ const filterC4 = bindC4Filter(document.getElementById('c4-filter')!, opened.hidd
   rememberMapControls()
 })
 const debug = createMapDebugPanel(document.body, () => ({ ...mapMeta, world, sheet }))
+/** A person's gesture changes it only after mayLeaveWriteView(detailsHost) agrees. */
+let selection = opened.selection
+const appearance = createAppearancePreview(document.getElementById('details')!, () => selectedArchitecture(selection), () => repaintScene(false))
 function projectedScene() {
-  return debug.project(() => changes.project(filterC4.project(presentScene(mapMotion.sheet, project, mapMotion.pose))))
+  return debug.project(() => changes.project(filterC4.project(presentScene(appearance.show(mapMotion.sheet), project, mapMotion.pose))))
 }
 let scene = projectedScene()
 const hosts = pageHosts()
 const { host, treeHost, flowsHost, statsHost, revisionBox, searchRoot, detailsHost, zoomHost, hierarchyContent, hierarchyToggle } = hosts
-const paintFlows = createFlowList()
+const flowList = createFlowList()
 const map = createMap(host)
 const highlights = createMapHighlights(map)
 const edit = data.edit
@@ -84,14 +90,17 @@ const tip = createTip(host)
 const pins = createPins(host, id => map.anchorOf(id), id => toggleTask(id, false), tip)
 const island = createWorkIsland(host, { toggleTask: id => toggleTask(id), showStatuses: pins.show, paintTaskHighlights: paintMapState }, tip)
 const hierarchy = createHierarchy(treeHost, select)
-const themeControl = bindThemeControl(document.getElementById('theme') as HTMLDetailsElement, opened.theme, syncUrl)
+const tagFocus = bindTagFocus(world, opened.tagFocus, { map, pins, hierarchy, flowList }, () => {
+  paintViewState()
+  focusOpened(selection.kind)
+})
+const themeControl = bindThemeControl(document.getElementById('theme') as HTMLDetailsElement, opened.theme, boot.themes, syncUrl)
 let hudVisible = opened.hudVisible
 shell.setHud(hudVisible)
-let selection = opened.selection
 let activeFlows: WebFlowRef[] = opened.flows
 const initial = primarySystem(world)
 if (boot.revision === null && selection.kind === 'none' && initial !== undefined) {
-  selection = selectArchitecture(noSelection, initial.representationId, false)
+  selection = selectOne(initial.representationId)
 }
 /** Tasks activated from pins or chips, in activation order; selection is independent and this order supplies its deactivation fallback. */
 let activeTaskIds: string[] = selection.kind === 'task' ? [selection.id] : []
@@ -104,6 +113,9 @@ const authoring = createAuthoring(host, map, data, {
   live: () => revisionControl.live,
   world: () => world,
   repaint: () => paintViewState(),
+  deselect,
+  select: id => select(id, false, 'map'),
+  showStoredWorld: () => revisionControl.showStoredWorld(),
 })
 const source = createSourceControl({
   host: detailsHost, initialFile: opened.file, initialLine: opened.line,
@@ -133,20 +145,7 @@ const camera = createCameraSession({
 /** A world update's blend: the camera tracks its fit on every frame, through the last, instead of refitting a selection. */
 let following = false
 function worldElement(id: string | undefined): AnnotatedElement | undefined { return id === undefined ? undefined : world.elements.find(element => element.representationId === id) }
-function worldRelationship(id: string | undefined): AnnotatedRelationship | undefined { return id === undefined ? undefined : world.relationships.find(item => item.id === id) }
-function unidentifiedGroup(id: string | undefined) { return sheet.zones.find(zone => zone.unidentifiedContainer && zone.key === id) }
 function workItem(id: string | undefined): WorkItem | undefined { return id === undefined ? undefined : work.items.find(item => item.id === id) }
-
-function known(id: string | undefined): boolean {
-  return worldElement(id) !== undefined || worldRelationship(id) !== undefined || unidentifiedGroup(id) !== undefined || workItem(id) !== undefined
-    || world.flows.some(flow => flow.id === id)
-}
-
-function fitControl(): void { animateControl(document.getElementById('fit')!, 'fit'); camera.refit() }
-function zoomStep(factor: number, control: HTMLElement): void {
-  animateControl(control, 'zoom')
-  camera.zoomBy(factor)
-}
 
 function syncUrl(): void {
   const query = writeView({
@@ -155,12 +154,11 @@ function syncUrl(): void {
     ...(revisionControl.from === undefined ? {} : { from: revisionControl.from }),
     ...(source.file === undefined ? {} : { file: source.file }),
     ...(source.line === undefined ? {} : { line: source.line }),
-    selection, flows: activeFlows,
-    tab: detailsTab,
+    selection, flows: activeFlows, tab: detailsTab, tagFocus: tagFocus.focus,
     theme: themeControl.mode,
     hudVisible,
     ...(opened.inset === undefined ? {} : { inset: opened.inset }),
-  }, world, work.items, location.pathname, revisionControl.comparison)
+  }, world, work.items, location.pathname, revisionControl.comparison, boot.themes)
   history.replaceState(null, '', `${location.pathname}${query}`)
 }
 
@@ -173,6 +171,7 @@ function rememberMapControls(): void {
 function paintMapState(): void {
   const task = selection.kind === 'task' ? workItem(selection.id) : undefined
   map.changes(changes.marks())
+  tagFocus.paintSurfaces()
   const highlighted = island.tasksShown ? activeTaskIds : [] // The task island's switch takes task highlights off the map with the pins.
   highlights.paint(selection, world, activeFlows, highlighted.map(id => workItem(id)).filter((item): item is WorkItem => item !== undefined))
   pins.activate(activeTaskIds, task?.id)
@@ -183,38 +182,40 @@ function paintViewState(commitUrl = true): void {
   if (commitUrl) syncUrl()
   const task = selection.kind === 'task' ? workItem(selection.id) : undefined
   changes.update(world, revisionControl.comparison, revisionControl.selected, primarySelection(selection))
-  paintMapState()
+  paintMapState() // The hierarchy and flow list receive the tag selection before they repaint their rows.
   hierarchy.paint(world, selectedArchitecture(selection), revisionControl.comparison, changes.enabled)
-  paintFlows(flowsHost, world, activeFlows, toggleFlow, {
+  flowList.paint(flowsHost, world, activeFlows, toggleFlow, {
     title: 'Actors', selectedIds: selectedArchitecture(selection), onSelectActor: select,
   })
   paintHeaderSummary(statsHost, world, project)
   paintDetailsState(task)
+  appearance.sync()
   shell.paint(selection)
 }
 
-let paintedDetail = ''
 function paintDetailsState(task: WorkItem | undefined): void {
-  const detail = `${primarySelection(selection)}:${detailsTab}:${source.file}`
-  if (revisionControl.comparison !== undefined && detail !== paintedDetail) animateContent(detailsHost.querySelector<HTMLElement>('.body')!)
-  paintedDetail = detail
-  detailsHost.querySelector('.comparison-reasons')?.remove()
-  const activeFlow = activeFlows.at(-1)
   const selectedId = primarySelection(selection)
+  changes.prepareDetails(detailsHost, selectedId, detailsTab, source.file)
+  const activeFlow = activeFlows.at(-1)
   const selected = worldElement(selectedId)
-  const inspected = inspectSelection(selectedId, world, sheet.zones)
-  const relationship = worldRelationship(selectedId)
   const paintedReader = source.paint(selected) || taskDiff.paint(task)
-  paintFlowReturn(
-    detailsHost, activeFlow, selection.kind === 'flow', world, select, showFlows,
-    source.file !== undefined,
-  )
+  paintFlowReturn(detailsHost, activeFlow, selection.kind === 'flow', world, select, showFlows, source.file !== undefined)
   if (paintedReader) return
   const flow = world.flows.find(item => item.id === selectedId)
   if (selection.kind === 'flow' && flow !== undefined && activeFlow !== undefined) {
-    paintFlowDetails(detailsHost, flow, activeFlow, world, selectFlowStep, select)
+    const reading = { onStep: selectFlowStep, onInspect: select, focusTags: tagFocus.focus.focused, onToggleTag: tagFocus.toggle }
+    paintFlowDetails(detailsHost, flow, activeFlow, world, reading, authoring.flowWrites(flow.id))
     return
   }
+  const group = world.groups.find(group => group.id === selectedId)
+  if (selection.kind === 'architecture' && group !== undefined) {
+    paintGroup(detailsHost, group, world, select, tagFocus.focus.focused, tagFocus.toggle, authoring.groupWrites(group.id))
+    return
+  }
+  const several = selectedArchitecture(selection)
+  if (paintSelection(detailsHost, several, world, select, authoring.selectionWrites(several))) return
+  const relationship = world.relationships.find(row => row.id === selectedId)
+  const inspected = inspectSelection(selectedId, world, sheet.zones)
   if (relationship !== undefined) {
     paintRelationship(detailsHost, relationship, world, select, authoring.relationWrites)
   } else if (inspected !== undefined) {
@@ -222,7 +223,7 @@ function paintDetailsState(task: WorkItem | undefined): void {
       world, comparison: revisionControl.comparison,
       onSelect: select,
       onToggleFlow: flow => toggleFlow(flow, selected?.representationId),
-      activeFlows,
+      activeFlows, focusTags: tagFocus.focus.focused, onToggleTag: tagFocus.toggle,
       tab: detailsTab,
       onTab: tab => {
         detailsTab = tab
@@ -232,16 +233,16 @@ function paintDetailsState(task: WorkItem | undefined): void {
       onSource: source.open,
       workGroups: selected?.kind === 'component' ? elementWorkGroups(work, selected.representationId, world) : [],
       onTask: toggleTask,
-      ...(selected === undefined ? {} : authoring.paneWrites(selected.id, selectedArchitecture(selection))),
-    })
+    }, authoring.paneWrites(selected?.id))
   }
 }
 
 function select(id: string, additive = false, origin: 'panel' | 'map' = 'panel'): void {
-  if (worldElement(id) === undefined && worldRelationship(id) === undefined && unidentifiedGroup(id) === undefined) return
+  if (!isKnownArchitecture(id, world, sheet.zones)) return
+  if (!mayLeaveWriteView(detailsHost)) return
   source.clear()
   const next = origin === 'map' ? selectMapArchitecture(selection, id, additive, world)
-    : selectArchitecture(selection, id, additive)
+    : selectArchitecture(selection, id, additive, world.groups)
   detailsTab = detailsTabAfterSelection(detailsTab, primarySelection(selection), primarySelection(next), comparisonDefaultTab(revisionControl.comparison?.components[worldElement(primarySelection(next))?.id ?? '']))
   selection = next
   camera.touched = true
@@ -254,16 +255,15 @@ function focusActiveTasks(): void {
     const task = workItem(id)
     return task === undefined ? [] : touchedElements(task, world)
   })
-  const frame = viewport()
-  camera.focus(fitHighlights(scene, elementIds, frame, zoomLimits(camera.fitted).max), frame)
+  camera.focus(frame => fitHighlights(scene, elementIds, frame, zoomLimits(camera.fitted).max))
 }
 function focusArchitecture(ids: readonly string[]): void {
-  const frame = viewport()
-  camera.focus(fitArchitecture(scene, world, ids, frame), frame)
+  camera.focus(frame => fitArchitecture(scene, world, ids, frame))
 }
 
 /** Task pins preserve the camera; panel and search selections bring active work into view. */
 function applyTaskSelection(next: ReturnType<typeof toggleWorkSelection>, focus = true): void {
+  if (!mayLeaveWriteView(detailsHost)) return
   activeFlows = []
   activeTaskIds = next.active
   source.clear()
@@ -279,6 +279,7 @@ function toggleTask(id: string, focus = true): void {
 }
 
 function deselect(): void {
+  if (!mayLeaveWriteView(detailsHost)) return
   authoring.cancel()
   source.clear()
   selection = noSelection
@@ -288,7 +289,7 @@ function deselect(): void {
 }
 
 const searchControl = createSearchSession({
-  root: searchRoot, elements: world.elements, tasks: work.items, viewport,
+  root: searchRoot, elements: world.elements, groups: world.groups, tasks: work.items, viewport,
   clearSource: source.clear, anchorOf: id => map.anchorOf(id),
   taskElements: task => touchedElements(task, world),
   openTask: id => applyTaskSelection(openWorkSelection(activeTaskIds, id)),
@@ -298,6 +299,8 @@ const searchControl = createSearchSession({
     map.select(ids ?? selectedArchitecture(selection))
   },
   apply(next, commitUrl) {
+    // An accepted result is a new selection. A refused one leaves the map as it was before the search previewed it.
+    if (commitUrl && !mayLeaveWriteView(detailsHost)) { paintMapState(); return }
     const previousId = primarySelection(selection)
     ;({ selection, detailsTab } = next)
     if (commitUrl && previousId !== primarySelection(selection)) {
@@ -311,6 +314,7 @@ const searchControl = createSearchSession({
 })
 
 function showFlows(): void {
+  if (!mayLeaveWriteView(detailsHost)) return
   source.clear()
   selection = flowSelection(activeFlows)
   paintViewState()
@@ -324,6 +328,7 @@ function selectFlowStep(step: number | undefined): void {
 }
 
 function toggleFlow(flow: FlowRef, returnTo?: string): void {
+  if (!mayLeaveWriteView(detailsHost)) return
   activeFlows = toggleFlowActivation(activeFlows, flow, returnTo)
   activeTaskIds = []
   showFlows()
@@ -351,25 +356,29 @@ map.svg.addEventListener('keydown', event => {
 
 function toggleHud(): void {
   hudVisible = !hudVisible
+  if (!hudVisible) tagFocus.close()
   shell.setHud(hudVisible)
   camera.refit()
   syncUrl()
 }
 
-/** Frames what a view opened: its task, flow step or selection, or the whole sheet when it names none. */
+/** Frames what a view shows: all that its focused tags select; without tags its task, flow step or selection, or the whole sheet when it names none. */
 function focusOpened(kind: Selection['kind']): void {
-  if (kind === 'task') focusActiveTasks()
+  const lit = tagFocus.committedSelection()?.lit
+  if (lit !== undefined) focusArchitecture([...lit])
+  else if (kind === 'task') focusActiveTasks()
   else if (kind === 'architecture') focusArchitecture(selectedArchitecture(selection))
   else if (kind === 'flow') focusArchitecture(flowFocus(activeFlows, world))
   else camera.refit()
 }
 /** An embedding page opens another view in place, from the same query string the URL carries. */
 function openView(search: string): void {
-  const next = readView({ search, pathname: location.pathname }, world, work.items, boot.revisions, themeControl.mode, revisionControl.comparison, currentMapControls())
+  const next = readView({ search, pathname: location.pathname }, world, work.items, boot.revisions, themeControl.mode, revisionControl.comparison, currentMapControls(), boot.themes)
   if (next.hudVisible !== hudVisible) toggleHud()
   source.clear()
   selection = next.selection
   activeFlows = next.flows
+  tagFocus.restore(next.tagFocus)
   activeTaskIds = selection.kind === 'task' ? [selection.id] : []
   detailsTab = next.tab
   filterC4.setHidden(next.hiddenFilters)
@@ -413,18 +422,18 @@ const paintMapView = bindMapView(document.getElementById('map-view')!, view => {
 paintMapView(mapMotion.view)
 
 bindChromeActions({
+  tags: () => { if (hudVisible) tagFocus.open() },
   hud: toggleHud,
   layers: () => { mapAnimator.toggleLayers(); rememberMapControls() },
   debug: debug.toggle,
-  zoomIn: () => zoomStep(ZOOM_STEP, document.getElementById('zoom-in')!),
-  zoomOut: () => zoomStep(1 / ZOOM_STEP, document.getElementById('zoom-out')!),
-  fit: fitControl,
+  ...cameraActions(camera),
   deselect,
 })
 
 function applyWorld(payload: WebPayload, reset = false): void {
   mapMeta = { generation: payload.generation, timings: payload.timings }
   world = payload.world
+  tagFocus.setWorld(world)
   changes.update(world, payload.comparison, payload.revision?.id, primarySelection(selection))
   work = payload.work
   sheet = payload.sheet
@@ -442,7 +451,8 @@ function applyWorld(payload: WebPayload, reset = false): void {
     hierarchy.reset()
     activeTaskIds = []
     activeFlows = []
-    selection = retainSelection(selection, id => worldElement(id) !== undefined)
+    // Another revision keeps a selected element or group. A relationship's id is its position in that revision, so it is dropped.
+    selection = retainSelection(selection, id => worldElement(id) !== undefined || world.groups.some(group => group.id === id))
     if (!new URLSearchParams(location.search).has('tab')) {
       detailsTab = comparisonDefaultTab(payload.comparison?.components[worldElement(primarySelection(selection))?.id ?? ''])
     } else if (detailsTab === 'tasks') detailsTab = 'what'
@@ -453,11 +463,11 @@ function applyWorld(payload: WebPayload, reset = false): void {
     activeTaskIds = activeTaskIds.filter(id => workItem(id) !== undefined)
     activeFlows = retainFlows(activeFlows, world)
     if (selection.kind === 'flow') selection = flowSelection(activeFlows)
-    selection = retainSelection(selection, id => known(id))
+    selection = retainLiveSelection(selection, world, sheet.zones, work.items)
   }
   taskDiff.invalidate()
   paintWorld()
-  searchControl.update(world.elements, work.items)
+  searchControl.update(world.elements, world.groups, work.items)
 }
 /** Repaints only the optional Backlog layer; map projection, painting and camera state stay unchanged. */
 function applyWork(payload: WebWorkPayload): void {
@@ -468,7 +478,7 @@ function applyWork(payload: WebWorkPayload): void {
     && elementWorkGroups(work, selected.representationId, world).length > 0
   detailsTab = detailsTabAfterWork(detailsTab, hasTasks)
   activeTaskIds = activeTaskIds.filter(id => workItem(id) !== undefined)
-  selection = retainSelection(selection, id => known(id))
+  selection = retainLiveSelection(selection, world, sheet.zones, work.items)
   pins.paint(currentPins.filter(pin => map.anchorOf(pin.elementId) !== undefined))
   island.paint(payload.pins, work)
   paintViewState()

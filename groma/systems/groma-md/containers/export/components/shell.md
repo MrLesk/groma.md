@@ -20,7 +20,6 @@ groma:
       file: src/viewers/web/chrome/credits.ts
     - scanner: typescript
       file: src/viewers/web/chrome/frame.ts
-  group: Browser controls
 description: Browser toolbar, side panels and keyboard shortcuts
 ---
 

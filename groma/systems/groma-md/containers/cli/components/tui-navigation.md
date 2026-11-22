@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal navigation
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: tui-navigation
   parent: cli
@@ -23,7 +26,6 @@ groma:
       file: src/viewers/tui/tree.ts
     - scanner: typescript
       file: src/viewers/tui/keys.ts
-  group: Terminal map
 description: Handles keyboard and pointer selection in the terminal map
 ---
 

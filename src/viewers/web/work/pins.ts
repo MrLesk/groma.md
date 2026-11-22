@@ -1,3 +1,4 @@
+import type { TagSelection } from '../../../tag-selection.ts'
 import type { Point } from '../../../types.ts'
 import type { WorkPin } from '../../../work/pins.ts'
 import { fillWorkBadge, finishingWorkKeys, WORK_BADGE, WORK_BADGE_FINISH_MS } from './badge.ts'
@@ -40,6 +41,9 @@ export const pinsCss = `
     will-change: translate;
   }
   .pin.active { filter: none; }
+  .pin .head, .pin .stem, .pin .foot { transition: opacity 200ms ease; }
+  .pin.receded:not(.active) :is(.head, .stem, .foot) { opacity: 0.2; }
+  .pin.receded:not(.active) .head:hover { opacity: 1; }
   .pin.arriving { animation: pin-arrive 700ms ease-out; }
   @keyframes pin-arrive {
     0% { transform: translateY(0); filter: grayscale(0); }
@@ -88,6 +92,8 @@ export interface PinLayer {
   show(statuses: readonly string[], tasksShown: boolean): void
   /** Colours the pins of the active tasks, greyscale otherwise, and marks those of the selected task, which is always one of the active ones. */
   activate(active: readonly string[], selected: string | undefined): void
+  /** Recedes the pins that stand on elements a tag focus does not light; undefined ends it. */
+  recede(selection: TagSelection | undefined): void
 }
 
 /** The work pins over the map; clicking a pin's head toggles its task. */
@@ -211,6 +217,11 @@ export function createPins(host: HTMLElement, anchorOf: (id: string) => Point | 
       enabledStatuses = statuses
       tasksShown = shown
       fanOut()
+    },
+    recede(selection) {
+      for (const pin of pins) {
+        pinned.get(pin.key)?.node.classList.toggle('receded', selection !== undefined && !selection.lit.has(pin.elementId))
+      }
     },
     activate(active, selected) {
       for (const pin of pins) {

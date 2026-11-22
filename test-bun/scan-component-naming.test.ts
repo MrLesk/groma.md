@@ -5,11 +5,13 @@ import os from 'node:os'
 import path from 'node:path'
 import { createScanObservation } from '@groma/scanner'
 
+import { writes } from '../src/authoring.ts'
 import { loadArchitecture } from '../src/architecture-reader.ts'
 import { editArchitecture } from '../src/edit.ts'
 import { draftElement } from '../src/draft.ts'
 import { componentNames } from '../src/scan-component-naming.ts'
 import { reconcileScanObservations } from '../src/scan-reconciler.ts'
+import { repositoryRoot, withFixture } from './helpers.ts'
 
 function names(files: string[], occupied: string[] = []) {
   return componentNames(files.map(file => ({ file, parent: 'scanner' })), new Set(occupied))
@@ -135,6 +137,21 @@ test.concurrent('matching a draft keeps its identity and draft status', async ()
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('a new file with a virtual component’s name gets its own component', async () => {
+  await withFixture(path.join(repositoryRoot, 'test/fixtures/edit'), async root => {
+    const id = await writes.add(root, { thing: 'component', parent: 'api', name: 'Review', overview: 'A person reviews the order.' })
+    const file = 'src/review.ts'
+    await reconcileScanObservations(root, [observation(['src/stock.ts', file])])
+    const scanned = await components(root)
+    const virtual = scanned.find(component => component.id === id)
+    expect(virtual).toBeDefined()
+    expect(virtual?.code).toBeUndefined()
+    const owner = scanned.find(component => component.code?.some(reference => reference.file === file))
+    expect(owner).toBeDefined()
+    expect(owner?.id).not.toBe(id)
+  })
+})
+
 test.concurrent('extension-only source filenames produce readable records that survive repeat scans', async () => {
   const root = await repository()
   try {
@@ -183,16 +200,16 @@ test.concurrent('authored titles do not force identity qualifiers into new displ
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
-test.concurrent('scanned IDs never take a word the CLI reads as an address, and later scans keep them', async () => {
-  expect([...names(['src/group.ts', 'src/relation.ts']).values()].map(value => value.id)).toEqual(['src-group', 'src-relation'])
+test.concurrent('scanned IDs never take the word the CLI reads as a relation address, and later scans keep them', async () => {
+  expect([...names(['src/relation.ts']).values()].map(value => value.id)).toEqual(['src-relation'])
 
   const root = await repository()
-  const scan = observation(['src/group.ts'])
+  const scan = observation(['src/relation.ts'])
   try {
     expect((await reconcileScanObservations(root, [scan])).created).toBe(2)
     const ids = (await loadArchitecture(root)).documents
       .map(document => (document.frontmatter.groma as { id?: string } | undefined)?.id)
-    expect(ids).not.toContain('group')
+    expect(ids).not.toContain('relation')
     expect((await reconcileScanObservations(root, [scan])).created).toBe(0)
   } finally { await rm(root, { recursive: true, force: true }) }
 })

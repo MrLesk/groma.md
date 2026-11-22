@@ -15,4 +15,4 @@ OpenClaw's agent store.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [agent-runtime](container.md) | [anthropic](../../../../externals/anthropic.md) | Streams a completion for the current turn | Anthropic API |
+| [Agent Runtime](container.md "agent-runtime") | [Anthropic](../../../../externals/anthropic.md "anthropic") | Streams a completion for the current turn | Anthropic API |

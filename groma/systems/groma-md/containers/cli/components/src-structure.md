@@ -2,6 +2,8 @@
 type: C4 Component
 title: TypeScript source outline
 status: stable
+tags:
+  - scanning
 groma:
   id: src-structure
   parent: cli
@@ -9,7 +11,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/typescript/src/structure.ts
       symbol: readCodeStructure
-  group: Language analysis
 description: Reads the declaration outline of a TypeScript file
 ---
 

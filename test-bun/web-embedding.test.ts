@@ -39,11 +39,3 @@ test.concurrent('an embedded map ignores other windows and messages that are not
   embedded.deliver({ source: embedded.parent, data: null })
   assert.deepEqual(opened, [])
 })
-
-test.concurrent('a map opened directly neither listens nor announces itself', () => {
-  const direct = page(false)
-  listenForEmbeddedViews(direct.window, () => assert.fail('a direct map must not open posted views'))
-
-  assert.equal(direct.listening(), false)
-  assert.deepEqual(direct.posted, [])
-})

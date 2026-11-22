@@ -2,6 +2,8 @@
 type: C4 Component
 title: C# scanner adapter
 status: stable
+tags:
+  - scanning
 groma:
   id: csharp-src-index
   parent: cli
@@ -15,7 +17,6 @@ groma:
       file: plugins/scanners/csharp/src/adapter.ts
     - scanner: typescript
       file: plugins/scanners/csharp/src/process.ts
-  group: Language analysis
 description: Starts the C# worker and converts its result into scan evidence
 ---
 

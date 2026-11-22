@@ -2,6 +2,8 @@
 type: C4 Component
 title: React analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: react-src-index
   parent: cli
@@ -22,7 +24,6 @@ groma:
       symbol: Evidence
     - scanner: typescript
       file: plugins/scanners/react/src/project.ts
-  group: Language analysis
 description: Analyses React source, JSX and HTTP bindings
 ---
 

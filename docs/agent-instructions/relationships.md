@@ -33,16 +33,18 @@ establish a runtime workflow.
 | `groma draft relation <source> <target> --description <text> --technology <text>` | two endpoints; plans a link, even between existing components |
 | `groma accept relation <source> <target>` | the endpoints of a draft relationship; scans never accept it |
 | `groma edit relation <source> <target> [--description <text>] [--technology <text>]` | the endpoints of an existing relationship; its lifecycle stays |
-| `groma remove relation <source> <target>` | the endpoints of a draft relationship that no flow uses |
+| `groma remove relation <source> <target>` | a draft relationship, or a current relationship with a virtual component as an endpoint, when no flow uses it |
 | `groma add flow <title> --overview <prose> --steps <markdown-table>` | the title of a new flow; its ID is the title in kebab case |
-| `groma edit <flow-id> [--title <text>] [--overview <prose>] [--steps <markdown-table>]` | a flow ID |
+| `groma edit <flow-id> [--title <text>] [--description <text>] [--overview <prose>] [--steps <markdown-table>] [--add-tags <tags>] [--remove-tags <tags>]` | a flow ID |
 | `groma remove <flow-id>` | a flow ID |
 
-Endpoints between software elements are exact repository-relative source files,
-each owned by a component. Component, container, and system IDs are refused
-there. When either endpoint is an actor or external system, endpoints may be
-element IDs. Current relationships cannot be removed, including after explicit
-acceptance.
+Between components, name a component that owns code by one of its exact
+repository-relative source files and a virtual component by its ID. For
+example, `groma add relation src/release.ts release-approval --description
+'Requests approval' --technology 'Review form'` links the file to the virtual
+component's document. When either endpoint is an actor or external system,
+endpoints may be element IDs. Other current relationships cannot be removed,
+including after explicit acceptance.
 
 ## Relationship descriptions
 
@@ -77,6 +79,8 @@ groma view submit-a-request
 
 groma.md writes `<groma-root>/flows/submit-a-request.md`. Each step stores From,
 To, and Action columns and links each endpoint to its C4 Markdown document.
+Type any text for an endpoint link: groma.md stores the element's title as the
+text and its ID as the link title, and keeps both current.
 Links resolve relative to that flow document, not the shell's working
 directory, and work the same under `groma/` and `.groma/`. Table order is
 execution order, and each row must match an existing directed relationship.
