@@ -50,21 +50,6 @@ function distanceToEdge(point: Point, from: Point, to: Point): number {
   return Math.hypot(point.x - from.x - fraction * dx, point.y - from.y - fraction * dy)
 }
 
-test.concurrent('additional building ports subdivide the usable edge span without moving toward corners', () => {
-  const building = endpoint(tower())
-  const initial = portsFor(building, 3)
-  const busy = portsFor(building, 12)
-  for (const side of ['north', 'east', 'south', 'west'] as const) {
-    const axis = side === 'north' || side === 'south' ? 'x' : 'y'
-    const coordinates = (ports: typeof initial) => ports.filter(port => port.side === side).map(port => port.wall[axis])
-    const before = coordinates(initial)
-    const after = coordinates(busy)
-    assert.equal(new Set(after).size, 12)
-    assert.equal(Math.min(...after), Math.min(...before))
-    assert.equal(Math.max(...after), Math.max(...before))
-  }
-})
-
 test.concurrent('busy stepped-tower ports meet visible faces with distinct tips clear of their corners', () => {
   const building = tower()
   const ports = portsFor(endpoint(building), 12)

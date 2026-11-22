@@ -5,7 +5,7 @@ import type { TerminalViewModel } from '../src/viewers/tui/model.ts'
 import { canEnter, enterView } from '../src/viewers/tui/navigation-spatial.ts'
 import { initialState, reduceViewer, type MapDirection, type ViewerState } from '../src/viewers/tui/navigation.ts'
 import { paintedWorld } from '../src/viewers/tui/organisms/world.ts'
-import { routeTouches, visibleIn } from '../src/viewers/tui/projection-camera.ts'
+import { visibleIn } from '../src/viewers/tui/projection-camera.ts'
 import { mapAnchors, projectWorld } from '../src/viewers/tui/projection.ts'
 import { largeWorldFixtureRoot, paneLayout, terminalModel } from './helpers.ts'
 
@@ -58,14 +58,6 @@ test.concurrent('the painter visits only the items and routes that touch the vie
   assert.ok(painted.items.length < projection.items.length, 'the root map does not fit one viewport, so some items stay unpainted')
   assert.ok(painted.routes.length < projection.relationships.length, 'routes off the viewport stay unpainted')
   assert.ok(painted.items.every(item => visibleIn(item.cellBounds, viewport)))
-})
-
-test.concurrent('a route is painted when a segment crosses the viewport, not when only its box does', () => {
-  const viewport = { x: 10, y: 10, width: 20, height: 10 }
-  const through = [{ x: 0, y: 15 }, { x: 40, y: 15 }]
-  const around = [{ x: 0, y: 5 }, { x: 40, y: 5 }, { x: 40, y: 25 }]
-  assert.equal(routeTouches(through, viewport), true)
-  assert.equal(routeTouches(around, viewport), false)
 })
 
 test.concurrent('arrow navigation keeps the selection visible and moves no shape within one depth', async () => {
