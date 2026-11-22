@@ -52,7 +52,7 @@ export function oneWriteAtATime(onWriting: (writing: boolean) => void) {
   let writing = false
   return {
     get writing(): boolean { return writing },
-    async run(write: () => Promise<void>): Promise<'done' | 'ignored'> {
+    async run(write: () => Promise<unknown>): Promise<'done' | 'ignored'> {
       if (writing) return 'ignored'
       writing = true
       onWriting(true)
@@ -81,9 +81,9 @@ export interface ApprovalBar {
    * Runs the write the person approved and says what became of it: `'stored'` once it succeeded, `'failed'`
    * when it threw, or `'ignored'` when an earlier write of this bar is still in flight. While the write
    * runs the form is inert, so nothing is typed or pressed twice. A failed write shows its message in the
-   * bar and gives the focus back to where it was.
+   * bar and gives the focus back to where it was. What the write resolves to is not used.
    */
-  approve(write: () => Promise<void>): Promise<'stored' | 'failed' | 'ignored'>
+  approve(write: () => Promise<unknown>): Promise<'stored' | 'failed' | 'ignored'>
 }
 
 /**

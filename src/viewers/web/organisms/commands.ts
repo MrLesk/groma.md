@@ -57,7 +57,7 @@ export function editEntry(
   }
 }
 
-/** Adds a virtual component inside the container whose pane is open. */
+/** Adds a virtual component inside the container whose pane is open. Once it is stored the pane shows the new component. */
 export function addComponentEntry(add: NonNullable<PaneWrites['onAddComponent']>): WriteEntry {
   return {
     label: 'Add component',

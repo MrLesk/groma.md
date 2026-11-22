@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-18T18:42:00Z'
-updated_date: '2026-11-19T06:58:00Z'
+updated_date: '2026-11-22T20:03:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -55,6 +55,12 @@ modified_files:
   - test-bun/scan-component-naming.test.ts
   - test-bun/sheet-scene.test.ts
   - src/origin.ts
+  - src/viewers/web/data.ts
+  - src/viewers/web/atoms/write-form.ts
+  - src/viewers/web/chrome/add.ts
+  - src/viewers/web/revision/control.ts
+  - src/viewers/web/organisms/write-view.ts
+  - groma/systems/groma-md/containers/export/components/data.md
 type: feature
 ordinal: 709000
 ---
@@ -77,6 +83,7 @@ Design, settled by the agent after three independent proposals (two agreed on ev
 - [x] #6 The web map draws a virtual component as a flat plate, lower than any building that owns code, in the tone of the other buildings, and a ghost keeps its look. Panes, search results and plain output say virtual where they say observed or draft. The terminal map draws it as a stable component
 - [x] #7 On the current revision of a live map the Edit view of a container offers Add component with Name, Description and Overview through the write view every pane uses, and the Edit view of a current relationship with a virtual end offers Remove while no flow uses the relationship
 - [x] #8 docs/component-markdown.md, docs/product-model.md, docs/viewers/web/index.md, docs/agent-instructions and groma agent-instructions describe what a virtual component is, how it is added, related and removed, and how the maps show it
+- [x] #9 After Add component is stored the pane shows the new component: it is selected, the hierarchy marks its row and its plate takes the selected look, while the camera stays where it is
 <!-- AC:END -->
 
 ## Definition of Done
@@ -98,6 +105,8 @@ Design, settled by the agent after three independent proposals (two agreed on ev
 6. Plain output, search and the terminal details name the origin.
 7. Docs: docs/component-markdown.md, docs/product-model.md, docs/viewers/web/index.md, docs/agent-instructions, src/instructions.ts.
 8. Tests. Authority: the owner request of 2026-11-18 and the acceptance criteria of this task. (a) Adding, criterion 1: a wrong result is a draft, a document outside the container or an accepted external parent; no test adds a component. (b) Scanning, criterion 2: a wrong result is code attached to the virtual component by name; existing tests only cover ghosts. (c) Origin: a wrong rule calls an actor or a ghost virtual; nothing tests the derivation. (d) Relationships, criteria 3 and 4: wrong results are a refused concept end, a row that does not load again, a concept end accepted between two components with code, a protected row that blocks removing the virtual component for ever. (e) Combine, criterion 5: a wrong result is an architecture that no longer loads after the combine, or a combine that stays refused after the rows are gone. (f) Sheet, criterion 6: a virtual component as high as a component with one file. No DOM tests.
+
+9. After Add, the new component is selected (owner, 2026-11-22: "Yes, select it" to "After Add, select the new component?"; before, the pane returned to the container and nothing pointed to the new plate). The add writer of the page resolves to the new id (src/viewers/web/data.ts). The hook of the container's pane first shows the stored world through the revision control (revision/control.ts refresh), so the selection does not race with the live update, and resolves to the id (authoring.ts). The write view hands what a write created to the pane's read step once the view has closed (organisms/write-view.ts), and the element pane selects it as a click on the map would, without moving the camera. No new test: the changed functions are single steps with a cccc cognitive score of 5 or lower and no regular expression, and the flow is verified on the live map.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -126,10 +135,20 @@ Not changed, known:
 Verification. bun run check passes: 988 Bun tests and 28 Node tests, 0 failures, no complexity warning; the lint notes left are in files this task does not touch. Criterion 1, 2, 3, 4, 5 and the plate height of 6 have tests (test-bun/editing.test.ts, scan-component-naming.test.ts, detach.test.ts, sheet-scene.test.ts). Run by hand on a scratch copy of test/fixtures/edit: tags, color, icon and a group on a virtual component, the plain output (review component Review virtual group:api-manual-steps), --parent refused for an actor, the draft hint for a container. On the live map of this repository, dark theme: the plate and its solid look next to a dashed ghost, Component · virtual in the pane and in the search result, Add component from the Edit view of the container up to the new plate, no Add component in the Edit view of a component, Remove in the Edit view of a current relationship with a virtual end and the emptied selection after it, no Remove while a flow uses that relationship and Remove again after the flow is gone, Edit without Remove on a relationship between two components with code. Terminal map through tui-test before the review round: Component · virtual with a solid box; the terminal files did not change after it except the name of a type.
 
 Owner confirmation, 2026-11-19, after the delivery. Asked "Do the virtual component design calls stand?" with six calls and their costs (the name virtual; no stored marker, so a component whose files all went away is virtual too; the plate; Add component inside the Edit view of the container; removable current relationships with a virtual end; a ghost container also accepting a virtual component), the owner answered "They stand". The follow-ups in the final summary are not approved work.
+
+2026-11-22, walk of virtual components with the owner (review map, dark theme). The eight criteria held live: the plate stands lower than the buildings in their tone, the pane and the search result say Component · virtual, Add component works from the Edit view of a container, Remove works on a relationship with a virtual end and then on the component, the unsaved-input rule holds in the Add view, and a real click selects a plate 16 pixels wide. The command line added, related and removed as documented, and all test data left through the product's own paths. Found: right after Add the pane returned to the container, and the new plate, the smallest thing on the map, was neither selected nor shown. Asked "After Add, select the new component?", the owner answered "Yes, select it" (criterion 9).
+Built: the page's add writer resolves to the id the server answers with (data.ts sendForId). The Add component hook then shows the stored world and resolves to the id (authoring.ts). revision/control.ts showStoredWorld reads the world and applies it unless that generation is shown already, so the write's answer and the live update may arrive in either order. The write view hands what its write created to the pane's read step after the view has closed (write-view.ts ReadPane), because select asks the open view first, and a view with typed input that is still writing answers no. The element pane's read step selects the component as a click on the map would, so the camera stays (authoring.ts readPane, render.ts). The approval bar and the header Add dialog accept a write that resolves to anything. Create group awaits add and drops the id, so it behaves as before. The scanner rewrote one row of the Browser data record for the new callbacks.
+No unit test, see plan step 9: the functions that carry the behavior score 0 to 3 on cccc.
+Live checks on the final code (review map with the change applied as a trial at the top of the stack, dark theme): Add selects the new component. The address reads component=print-proof, the pane reads Component · virtual, the hierarchy marks its row, the plate has the selected look and the zoom stays at 270 percent. A refused Add (the name "!!!") keeps the view with the server's message. Cancel returns to the container. Typed input still refuses a click on the map. An Edit Save returns to the same record. Create group still returns to the selection of several.
+Review round (cold simplicity review and full-context review in parallel, one merged list, applied by me): no defect in the supported flow. Applied: showStoredWorld shows nothing while another revision is loading, so a late read cannot replace a newer world that waits there. A failed read after a stored write no longer reports the write as failed, which would have invited a second Add of the same component. The read step selects only while the map still shows the current revision and has the component under the id the map shows, so a revision opened during the write cannot make it select an old record of the same id. The step has one name, showStoredWorld, in the page and in the control. One named type, ReadPane, says once what the read step gets. The write view's contract and the docs say that Add component is the only write that resolves to an id, where they had stated a rule for every write. A comment says why Create group drops the id. The readability tool (codehygiene) reports nothing in the changed lines.
+Known and told to the owner: Create group still leaves the selection on the components. render.ts is at 499 of 500 lines and reaches 500 with the task switch pull request, so the next line there needs a split first.
+Checks on the final code: bun run check passed (946 Bun tests and 28 Node tests, 0 failures).
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
 A person can add a virtual component: a stable C4 Component without Code references that explains what no scan can see. groma add component <name> --parent <container-id> --overview <prose> adds it, and so does Add component in the Edit view of a container on the web map. Nothing stored marks it; src/origin.ts derives the origin virtual. A relationship names it by its document, the maps draw it as a flat plate (web) and a stable component (terminal), a scan never matches it, and a current relationship with a virtual end can be removed when no flow uses it. The design is the agent choice after independent proposals and a prototype; the owner asked for the feature in one sentence and confirmed these calls on 2026-11-19 after the delivery ("They stand"): the name virtual in the product, no stored marker (so a component whose files all went away is virtual too), the plate look, document-named endpoints, removal of current relationships with a virtual end, and Add component inside the Edit view of the container. Verified by bun run check (988 Bun and 28 Node tests pass), scratch runs of the command line and a walk of the live map; details are in the notes. Follow-ups, not built: drawing a relationship to a virtual component on the web map (the relate tool is hidden), a scan-summary count of components that lost their files, removal of the exact row when a relationship has several.
+
+After Add component the new component is selected (criterion 9, 2026-11-22).
 <!-- SECTION:FINAL_SUMMARY:END -->
