@@ -287,6 +287,10 @@ and understand correct use from names and contracts. Ask what they might misunde
 code, state, or indirection can be removed without changing required behavior. Prefer clearer structure over comments
 that explain hidden conventions.
 
+After `bun run check` passes, use the `codehygiene` skill to review changed code for readability. Run it on the files
+changed by the task and focus on findings in the lines you changed. Apply suggestions that make the code easier to
+follow and preserve its behavior. [Code Hygiene instructions](https://github.com/brianbell-x/codehygiene#use)
+
 Apply reasonable findings from any review within the approved scope without asking for approval, and rerun affected
 checks. Ask the user only when applying a finding would change the approved scope.
 
@@ -330,6 +334,11 @@ Do not spawn agents for other reviews unless the user explicitly asks.
 
 Test domain rules and observable behavior: scanner inference, ownership, navigation state, projection and layout
 invariants, camera rules, world immutability, and lifecycle.
+
+Before adding a unit test for a single function, run `cccc --pretty <source-file>` and read that function's `cognitive`
+score. If the score is **5 or lower**, skip the unit test unless the behavior being tested depends on a regular
+expression. In every case, identify a specific wrong result that existing tests would miss. Tests of a supported flow
+may exercise functions of any score. [cccc documentation](https://github.com/moznion/cccc#usage)
 
 Before adding a test or extending its assertions, inspect existing coverage and briefly record in the task plan:
 
