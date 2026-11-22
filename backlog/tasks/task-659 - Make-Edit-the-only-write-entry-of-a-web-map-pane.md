@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-16T17:02:00Z'
-updated_date: '2026-11-21T22:05:00Z'
+updated_date: '2026-11-22T11:10:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -53,6 +53,7 @@ modified_files:
   - src/viewers/web/atoms/write-form.ts
   - src/viewers/web/organisms/choice-field.ts
   - test-bun/web-write-form.test.ts
+  - src/viewers/web/settings/plugins.ts
 type: feature
 ordinal: 707000
 ---
@@ -77,6 +78,7 @@ The web map rule for writes (docs/viewers/web/index.md, "Reading and editing") s
 - [x] #10 The dialogs of the web map that write (Add, a draft or a group drawn on the map, a drafted relationship, the project editor) end with the same approval bar as a pane's write view, built by one shared atom: the message of a failed write, Cancel, then the verb of the write
 - [x] #11 The fields of a pane's write view look like the fields of the dialogs: a small caps label over a control of the same size, radius and background. One shared style, the class write-form of atoms/write-form.ts, gives both their look
 - [x] #12 The relationship pane counts one derived file interaction in the singular
+- [x] #13 The plugin source box of web Settings (Add plugin, Choose version) looks like every other write form: a small caps label over its field with the shared focus outline, then the shared approval bar with Cancel before Add or Update. What pressing its button does is unchanged: the box closes and the Plugins screen runs the action and shows a failure above the plugin list
 <!-- AC:END -->
 
 ## Definition of Done
@@ -100,6 +102,8 @@ The web map rule for writes (docs/viewers/web/index.md, "Reading and editing") s
 8. highlights.ts and map.ts: every selected component gets the focus look; neighbors are the components one hop from any of them.
 9. Docs: the Reading and editing rule in docs/viewers/web/index.md (with the table of the five pane writes), the Web map writes section of AGENTS.md, and the multi-selection sentence in docs/product-model.md.
 10. Tests: test-bun/web-write-form.test.ts covers the one-write-at-a-time guard (two tests); test-bun/web-map-highlights.test.ts covers the focus of several selected components. The views and dialogs themselves are DOM and the repository has no DOM harness; they were checked on the live map.
+
+11. settings/plugins.ts: the plugin source box of Settings is a write form as well. Its form carries the class write-form and ends with the approval bar from atoms/write-form.ts (Cancel, then Add or Update); the screen keeps no label, field or button rules for it, and its own input rule now names its search boxes. The screen still runs the write through change(), the one function that runs every plugin action, so the box closes when its button is pressed and the bar is not asked to approve. No new test: the change is look and button order, the behavior is the one before, and the repository has no DOM harness.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -126,6 +130,12 @@ Reviews: one cold simplicity review and one full-context review on the same snap
 2026-11-22, walk of this pull request with the owner, on the review map in the dark theme. Every write was opened and tried: the Edit view of a component (fields, a color pick previewed on the map, Cancel, Escape, Enter in a field saves once, Save by button, the form inert while the write is in flight), the pane of several selected components (Edit, Group with Create group, Combine), a relationship, a group (Edit and Remove with its question), a flow, the refusal of a command while fields hold unsaved changes, and the project editor. The approval bar spans the pane to within its border (measured), and the pane cannot scroll sideways. Found and fixed here: the relationship pane said "1 derived file interactions"; it now counts one in the singular (derivedInteractions in src/viewers/web/organisms/relationship-details.ts). Found and fixed in the group pane's task: a group's Remove question did not say that its components stay. Raised with the owner, not changed: the plugin Add form in Settings has its own field look and button order. Not reachable on the map, as on main: the header Add and the map's draft tools are hidden as unfinished, so their dialogs could not be walked. bun run check on this branch: see the pull request.
 
 bun run check with the singular fix: 28 Node tests and 984 Bun tests pass, 0 fail; the 2 lint warnings are older and in other files.
+
+2026-11-22, the plugin source box of Settings. On the walk the owner was shown that box beside a pane's write view and asked "Make the Add plugin box look like the others: yes, or leave it?". He answered "Yes, same look". Decided by him: the look, that is a small grey caps label, the green outline while typing, and Cancel before the action. Change (settings/plugins.ts): the form carries the class write-form and ends with the approval bar of atoms/write-form.ts, which says Add, or Update when a row's version button opened the box. The screen's own label and form rules and its two buttons are gone, and its input rule now names its search boxes, so it no longer overrides the write form's field. Not changed, my call, because he was asked about the look only: pressing the button still closes the box at once and the Plugins screen runs the action through change(), so a failed action shows above the plugin list with Retry installation and not in the bar, and the bar's approve() is not used by this form. The buttons of a plugin's row (Install, Update, Remove from project) still write on one press.
+
+Live check on the review map (the top of the stack with the install progress change of TASK-676 applied), 1600x1000, dark theme: the label is 10 px caps with 0.14em spacing in the muted color; the field has the write form's font, padding and background and a 2 px solid outline in the highlight color while focused; Cancel, then Add with the accent border, end at the right edge under the field. Automatic updates, Search plugins and the path filter of a row measure as before the change. Add with an empty field sends nothing. Cancel closes the box. A row's version button opens it with that plugin's source and Update. Enter in the field with a package name that no registry has closed the box, showed the row in progress and after 33 s Plugin action failed with Retry installation, and left groma/config.json unchanged. Also looked at in the light theme and at a width of 420 px: the field spans the box, the buttons end at its right edge and nothing scrolls sideways. No new test: the change is look and button order, the behavior is the one before, and the repository has no DOM harness.
+
+bun run check with the plugin source form on the shared look: 28 Node tests and 984 Bun tests pass, 0 fail (67 skipped as before); lint and type check clean.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
@@ -133,11 +143,11 @@ bun run check with the singular fix: 28 Node tests and 984 Bun tests pass, 0 fai
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
 The reading pane of the web map no longer writes, and every write of the web map is approved the same way. A reading pane holds write entries in its header: Edit for an element or a relationship, Group and Combine for several selected components. An entry opens a write view and stores nothing. Every write view has the same shape: what the write needs (its fields, or one question for a write that needs none), then the approval bar at the bottom of the pane with the message of a failed write, Cancel and the verb. Only the verb writes. Accept and Remove are entries of a record's Edit view and each opens its own view; they do not open while the fields hold unsaved changes.
 
-Every form that writes is a write form, one atom: atoms/write-form.ts. Its class write-form gives the fields one look, a small caps label over its control, in a pane and in a dialog. Its approval bar holds Cancel and the approving button (Save, unless another word tells better what happens: Add, Accept, Remove, Combine, Create group), makes the form inert while the write is in flight, runs one write at a time and shows a failed write's message. The pane's write view and the four dialogs that write (Add, a draft or group drawn on the map, a drafted relationship, the project editor) use it and style no field and build no approval button of their own. Each pane write is described as data in organisms/commands.ts and painted by organisms/write-view.ts, so a new write cannot bring its own layout or confirmation step. Also in this task: the pane of several selected elements, the focus look on every selected component, and a details pane that sizes its content without the room a scrollbar takes.
+Every form that writes is a write form, one atom: atoms/write-form.ts. Its class write-form gives the fields one look, a small caps label over its control, in a pane and in a dialog. Its approval bar holds Cancel and the approving button (Save, unless another word tells better what happens: Add, Update, Accept, Remove, Combine, Create group), makes the form inert while the write is in flight, runs one write at a time and shows a failed write's message. The pane's write view and the four dialogs that write (Add, a draft or group drawn on the map, a drafted relationship, the project editor) use it and style no field and build no approval button of their own. The plugin source box of Settings (Add plugin, Choose version) takes the same look and bar; the Plugins screen still runs its write, so the box closes when its button is pressed and a failed action shows above the plugin list. Each pane write is described as data in organisms/commands.ts and painted by organisms/write-view.ts, so a new write cannot bring its own layout or confirmation step. Also in this task: the pane of several selected elements, the focus look on every selected component, and a details pane that sizes its content without the room a scrollbar takes.
 
 Verification: bun run check passes on the final code (969 Bun and 28 Node tests, 0 failures). All five pane writes and all four dialogs were walked on the live map, including refused writes, writes held in flight and real key presses; see the notes.
 
 Cost: Accept and Remove sit behind Edit, so Accept is not visible on a matched draft until Edit is pressed and takes three presses (Edit, Accept, Accept).
 
-Not in this task: the plugin Add form in settings keeps its own buttons, with its verb before Cancel. The creation controls of the web map (the header Add button and the map tools) are hidden as unfinished and the rule does not place them yet.
+Not in this task: the creation controls of the web map (the header Add button and the map tools) are hidden as unfinished and the rule does not place them yet.
 <!-- SECTION:FINAL_SUMMARY:END -->

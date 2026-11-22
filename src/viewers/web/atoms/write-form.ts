@@ -5,7 +5,7 @@
  *
  * From top to bottom the approval bar holds the message of a failed write, then Cancel and the button
  * that approves the write. The approving button says Save. It says something else only where another
- * word tells better what happens: Add, Accept, Remove, Combine, Create group.
+ * word tells better what happens: Add, Update, Accept, Remove, Combine, Create group.
  */
 
 export const writeFormCss = `
