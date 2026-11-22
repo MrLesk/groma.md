@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-16T17:02:00Z'
-updated_date: '2026-11-22T13:08:00Z'
+updated_date: '2026-11-22T21:01:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -110,6 +110,8 @@ The web map rule for writes (docs/viewers/web/index.md, "Reading and editing") s
 12. Unsaved input keeps the selection (the owner's decision of 2026-11-22). organisms/write-view.ts: the view answers mayLeaveWriteView(host), asked through one cancelable event. It says no while its fields differ from what they opened with, unless its own write is in flight, and shows the sentence on the one line above the fields that the record's other writes already used. render.ts: every function that changes the selection for a person's gesture asks first: select, applyTaskSelection, deselect, the search's accepted result, showFlows and toggleFlow. chrome/shell.ts takes the zoom and fit actions of the header (cameraActions), which keeps render.ts within 500 lines. No new test: the rule lives in the view's DOM code and in the page script, the repository has no DOM harness, and a pure copy of the two conditions would only restate them. Checked on the live map.
 
 13. After the reviews of step 12: the view also answers no while its own write is in flight, then without the sentence; a view left in a closed pane is not asked; the code reader (source/control.ts) asks before it opens a file, which covers Open source in Project review; a refused search result repaints the map's state so its preview look goes.
+
+Tests after the pruning of 2026-11-22: test-bun/web-write-form.test.ts is removed. Its two tests asserted directly on oneWriteAtATime, whose run scores 1 on cccc; the testing rule of AGENTS.md skips a unit test of a single function that scores 5 or lower. The focus test of test-bun/web-map-highlights.test.ts stays: it runs a loaded world through the selection and the highlights.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -154,6 +156,8 @@ Reviews of the change above (one cold simplicity review and one full-context rev
 Live check of the review fixes on the review map, dark theme: with a typed title, Open source on a duplicate in Project review closed the dialog, left the selection and the typed title and showed the sentence, and no code reader took the pane. With a typed tag, a search result previewed with the arrow key and accepted with Enter was refused and the map showed the three selected components again. A click on another building while Save was held in flight changed nothing and said nothing; a held write that failed left the view with its message and the typed tag, and a held write that succeeded closed the view on the same selection. A relationship's Edit view with typed text, then a switch to an earlier revision: the pane closed with the view in it, and a click on a building selected that building.
 
 bun run check on the code with the review fixes: 28 Node tests and 984 Bun tests pass, 0 fail. One earlier run failed on a scanner test that timed out while the machine was busy with the two reviews; that test passes alone and in the two full runs after it.
+
+2026-11-22, pruning by the testing rule the owner added to AGENTS.md that day (owner: "Yes, prune them"). Removed test-bun/web-write-form.test.ts with its two tests: they were direct assertions on one helper, oneWriteAtATime (cccc cognitive: oneWriteAtATime 0, run 1), with no regular expression involved. The guard itself is unchanged. The yardstick is the one the cleanup on main used (TASK-677): a direct assertion on one helper that scores 0 to 5 goes; a test that runs a flow, a pipeline of several functions or a function that scores 6 or more stays.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
