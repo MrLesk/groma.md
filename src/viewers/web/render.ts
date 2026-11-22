@@ -12,9 +12,9 @@ import { createMapDebugPanel } from './chrome/map-debug.ts'
 import { bindMapView, readSavedMapControls, saveMapControls } from './chrome/map-view.ts'
 import { bindC4Filter } from './chrome/c4-filter.ts'
 import { bindTagFocus } from './chrome/tag-focus.ts'
-import { animateControl, animateContent } from './chrome/motion.ts'
+import { animateContent } from './chrome/motion.ts'
 import { measureFrame, type MapFrame } from './chrome/frame.ts'
-import { bindChromeActions, createWebShell, pageHosts } from './chrome/shell.ts'
+import { bindChromeActions, cameraActions, createWebShell, pageHosts } from './chrome/shell.ts'
 import { bindThemeControl, readSavedTheme } from './chrome/theme-control.ts'
 import { paintHeaderSummary } from './chrome/stats.ts'
 import { createWebDataSource, openWebBoot } from './data.ts'
@@ -32,6 +32,7 @@ import { paintRelationship } from './organisms/relationship-details.ts'
 import { paintSelection } from './organisms/selection-details.ts'
 import { detailsTabAfterSelection, detailsTabAfterWork, type DetailsTab, inspectSelection, paintDetails } from './organisms/details.ts'
 import { createHierarchy } from './organisms/hierarchy.ts'
+import { mayLeaveWriteView } from './organisms/write-view.ts'
 import { createPins } from './work/pins.ts'
 import { createTip } from './organisms/tip.ts'
 import { createProjectEditor } from './project/editor.ts'
@@ -46,7 +47,6 @@ import { noSelection, primarySelection, primarySystem, retainSelection, selectAr
 import { createSourceControl } from './source/control.ts'
 import { createTaskDiffControl } from './task-diff/control.ts'
 import { readView, writeView } from './url.ts'
-const ZOOM_STEP = 1.25
 const boot = openWebBoot(JSON.parse(document.getElementById('world')!.textContent!) as WebBootPayload, location)
 const data = createWebDataSource(boot)
 let world = boot.world
@@ -92,6 +92,7 @@ const tagFocus = bindTagFocus(document.getElementById('tags')!, document.getElem
 const themeControl = bindThemeControl(document.getElementById('theme') as HTMLDetailsElement, opened.theme, boot.themes, syncUrl)
 let hudVisible = opened.hudVisible
 shell.setHud(hudVisible)
+/** A person's gesture changes it only after mayLeaveWriteView(detailsHost) agrees. */
 let selection = opened.selection
 let activeFlows: WebFlowRef[] = opened.flows
 const initial = primarySystem(world)
@@ -145,12 +146,6 @@ function workItem(id: string | undefined): WorkItem | undefined { return id === 
 function known(id: string | undefined): boolean {
   return worldElement(id) !== undefined || worldRelationship(id) !== undefined || unidentifiedGroup(id) !== undefined || workItem(id) !== undefined
     || world.flows.some(flow => flow.id === id)
-}
-
-function fitControl(): void { animateControl(document.getElementById('fit')!, 'fit'); camera.refit() }
-function zoomStep(factor: number, control: HTMLElement): void {
-  animateControl(control, 'zoom')
-  camera.zoomBy(factor)
 }
 
 function syncUrl(): void {
@@ -245,6 +240,7 @@ function paintDetailsState(task: WorkItem | undefined): void {
 
 function select(id: string, additive = false, origin: 'panel' | 'map' = 'panel'): void {
   if (worldElement(id) === undefined && worldRelationship(id) === undefined && unidentifiedGroup(id) === undefined) return
+  if (!mayLeaveWriteView(detailsHost)) return
   source.clear()
   const next = origin === 'map' ? selectMapArchitecture(selection, id, additive, world)
     : selectArchitecture(selection, id, additive)
@@ -270,6 +266,7 @@ function focusArchitecture(ids: readonly string[]): void {
 
 /** Task pins preserve the camera; panel and search selections bring active work into view. */
 function applyTaskSelection(next: ReturnType<typeof toggleWorkSelection>, focus = true): void {
+  if (!mayLeaveWriteView(detailsHost)) return
   activeFlows = []
   activeTaskIds = next.active
   source.clear()
@@ -285,6 +282,7 @@ function toggleTask(id: string, focus = true): void {
 }
 
 function deselect(): void {
+  if (!mayLeaveWriteView(detailsHost)) return
   authoring.cancel()
   source.clear()
   selection = noSelection
@@ -304,6 +302,8 @@ const searchControl = createSearchSession({
     map.select(ids ?? selectedArchitecture(selection))
   },
   apply(next, commitUrl) {
+    // An accepted result is a new selection. A refused one leaves the map as it was before the search previewed it.
+    if (commitUrl && !mayLeaveWriteView(detailsHost)) { paintMapState(); return }
     const previousId = primarySelection(selection)
     ;({ selection, detailsTab } = next)
     if (commitUrl && previousId !== primarySelection(selection)) {
@@ -317,6 +317,7 @@ const searchControl = createSearchSession({
 })
 
 function showFlows(): void {
+  if (!mayLeaveWriteView(detailsHost)) return
   source.clear()
   selection = flowSelection(activeFlows)
   paintViewState()
@@ -330,6 +331,7 @@ function selectFlowStep(step: number | undefined): void {
 }
 
 function toggleFlow(flow: FlowRef, returnTo?: string): void {
+  if (!mayLeaveWriteView(detailsHost)) return
   activeFlows = toggleFlowActivation(activeFlows, flow, returnTo)
   activeTaskIds = []
   showFlows()
@@ -425,9 +427,7 @@ bindChromeActions({
   hud: toggleHud,
   layers: () => { mapAnimator.toggleLayers(); rememberMapControls() },
   debug: debug.toggle,
-  zoomIn: () => zoomStep(ZOOM_STEP, document.getElementById('zoom-in')!),
-  zoomOut: () => zoomStep(1 / ZOOM_STEP, document.getElementById('zoom-out')!),
-  fit: fitControl,
+  ...cameraActions(camera),
   deselect,
 })
 

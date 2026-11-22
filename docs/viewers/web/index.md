@@ -174,6 +174,16 @@ One rule decides where a write lives in the web map:
   approval step of its own. The dialogs that write (Add, a draft or a group
   drawn on the map, a drafted relationship, the project editor) end with the
   same approval bar.
+- **Unsaved input keeps the selection.** While a write view holds input that
+  is not stored, nothing else can be selected: a click on the map, in the
+  hierarchy, on a task, a flow or a search result, and the pane's close button
+  change nothing, and the view asks for the changes to be saved or cancelled
+  first. Cancel and Escape in the view drop them. The view answers this
+  through `mayLeaveWriteView` in
+  [`organisms/write-view.ts`](../../../src/viewers/web/organisms/write-view.ts).
+  Whoever would show something else in the pane asks it first: every function
+  of `render.ts` that changes the selection for a person's gesture, and the
+  code reader before it opens a file.
 - **The approving button says Save.** It says something else only where
   another word tells better what happens: **Add**, **Accept**, **Remove**,
   **Combine**, and **Create group**.
@@ -251,7 +261,8 @@ button is pressed and a failed action shows above the plugin list.
   alone; a shift-click drops it from the selection. On a live current map, while every selected element is a
   component, the pane offers **Group** (name them as one group, `groma add
   group`) and **Combine** (fold them into the one the person picks, `groma edit
-  --combine`). Changing the selection returns the pane to reading.
+  --combine`). Changing the selection returns the pane to reading; an open
+  view that holds unsaved input keeps the selection instead.
 
 Historical and exported maps are read-only and expose no write controls.
 

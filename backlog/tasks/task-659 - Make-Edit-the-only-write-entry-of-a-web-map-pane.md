@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-16T17:02:00Z'
-updated_date: '2026-11-22T11:10:00Z'
+updated_date: '2026-11-22T13:08:00Z'
 labels:
   - personalization
 milestone: m-6
@@ -54,6 +54,7 @@ modified_files:
   - src/viewers/web/organisms/choice-field.ts
   - test-bun/web-write-form.test.ts
   - src/viewers/web/settings/plugins.ts
+  - src/viewers/web/source/control.ts
 type: feature
 ordinal: 707000
 ---
@@ -79,6 +80,7 @@ The web map rule for writes (docs/viewers/web/index.md, "Reading and editing") s
 - [x] #11 The fields of a pane's write view look like the fields of the dialogs: a small caps label over a control of the same size, radius and background. One shared style, the class write-form of atoms/write-form.ts, gives both their look
 - [x] #12 The relationship pane counts one derived file interaction in the singular
 - [x] #13 The plugin source box of web Settings (Add plugin, Choose version) looks like every other write form: a small caps label over its field with the shared focus outline, then the shared approval bar with Cancel before Add or Update. What pressing its button does is unchanged: the box closes and the Plugins screen runs the action and shows a failure above the plugin list
+- [x] #14 While a write view holds input that is not stored, nothing else can be selected: a click on the map, in the hierarchy, on a task, a flow or a search result, the pane's close button and Escape outside the view change nothing, and the view says to save or cancel first. Cancel, Escape in the view and the view's own write still leave it, and a view with nothing typed or picked is left as before
 <!-- AC:END -->
 
 ## Definition of Done
@@ -104,6 +106,10 @@ The web map rule for writes (docs/viewers/web/index.md, "Reading and editing") s
 10. Tests: test-bun/web-write-form.test.ts covers the one-write-at-a-time guard (two tests); test-bun/web-map-highlights.test.ts covers the focus of several selected components. The views and dialogs themselves are DOM and the repository has no DOM harness; they were checked on the live map.
 
 11. settings/plugins.ts: the plugin source box of Settings is a write form as well. Its form carries the class write-form and ends with the approval bar from atoms/write-form.ts (Cancel, then Add or Update); the screen keeps no label, field or button rules for it, and its own input rule now names its search boxes. The screen still runs the write through change(), the one function that runs every plugin action, so the box closes when its button is pressed and the bar is not asked to approve. No new test: the change is look and button order, the behavior is the one before, and the repository has no DOM harness.
+
+12. Unsaved input keeps the selection (the owner's decision of 2026-11-22). organisms/write-view.ts: the view answers mayLeaveWriteView(host), asked through one cancelable event. It says no while its fields differ from what they opened with, unless its own write is in flight, and shows the sentence on the one line above the fields that the record's other writes already used. render.ts: every function that changes the selection for a person's gesture asks first: select, applyTaskSelection, deselect, the search's accepted result, showFlows and toggleFlow. chrome/shell.ts takes the zoom and fit actions of the header (cameraActions), which keeps render.ts within 500 lines. No new test: the rule lives in the view's DOM code and in the page script, the repository has no DOM harness, and a pure copy of the two conditions would only restate them. Checked on the live map.
+
+13. After the reviews of step 12: the view also answers no while its own write is in flight, then without the sentence; a view left in a closed pane is not asked; the code reader (source/control.ts) asks before it opens a file, which covers Open source in Project review; a refused search result repaints the map's state so its preview look goes.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -136,6 +142,18 @@ bun run check with the singular fix: 28 Node tests and 984 Bun tests pass, 0 fai
 Live check on the review map (the top of the stack with the install progress change of TASK-676 applied), 1600x1000, dark theme: the label is 10 px caps with 0.14em spacing in the muted color; the field has the write form's font, padding and background and a 2 px solid outline in the highlight color while focused; Cancel, then Add with the accent border, end at the right edge under the field. Automatic updates, Search plugins and the path filter of a row measure as before the change. Add with an empty field sends nothing. Cancel closes the box. A row's version button opens it with that plugin's source and Update. Enter in the field with a package name that no registry has closed the box, showed the row in progress and after 33 s Plugin action failed with Retry installation, and left groma/config.json unchanged. Also looked at in the light theme and at a width of 420 px: the field spans the box, the buttons end at its right edge and nothing scrolls sideways. No new test: the change is look and button order, the behavior is the one before, and the repository has no DOM harness.
 
 bun run check with the plugin source form on the shared look: 28 Node tests and 984 Bun tests pass, 0 fail (67 skipped as before); lint and type check clean.
+
+2026-11-22, unsaved input keeps the selection. Found on the walk of the pull request that edits several elements: with something typed, a click on another component, or a Shift-click to add one more, closed the Edit view and dropped the input without a question. The same was true for one element. Asked "Keep the Edit view open when you click the map with unsaved changes?", the owner answered "Yes, keep it open". He had been told what he would see: a click on the map changes nothing and the Edit view says "Save or cancel your changes first.", the sentence it already used for Accept and Remove; and the cost: nothing else can be selected until Save or Cancel. My calls, not his: the rule covers every gesture that selects (the hierarchy, tasks, flows, an accepted search result, the pane's close button and Escape outside the view), not the map alone; a click on the element that is already selected gets the same sentence; the sentence comes in with the pane's usual short fade each time it is said, so a second click shows again; a click while the view's own write is in flight still goes through, as before. Not covered: switching to another revision and reloading the page still drop the input.
+
+render.ts was at the 500 line limit, so the zoom and fit actions of the header moved to chrome/shell.ts, beside the code that binds those buttons (cameraActions).
+
+Live check on the review map (the top of the stack with this change applied by hand), 1600x1000, dark theme. One element with a typed title: a click on another building, a Shift-click, a click on the same building, a click on a surface, the pane's close button, Escape outside the view, a hierarchy row, a flow row, a task pin and an accepted search result each left the selection, the address and the typed title as they were, and the view said "Save or cancel your changes first.". The zoom button and the switch to 2D and back kept the view and said nothing. Escape in the view and Cancel closed it, and the next click selected again. With nothing typed a click on another building selected it, as before. While Save was held in flight for 1.5 s a click on another building selected it and the write was still stored. Three components with a typed tag: a Shift-click on a fourth left three selected, kept the chip and showed the sentence; a color pick alone did the same. The Group view with a typed name said "Create group or cancel your changes first.". Every record changed by these checks was put back.
+
+Reviews of the change above (one cold simplicity review and one full-context review, run together, one round, on the first local commit). Four defects, all fixed. (1) Open source in Project review still opened the code reader over a view with unsaved input, because only the selection was asked: the code reader now asks before it opens a file (source/control.ts). (2) A search result previewed with the arrow keys kept its selected look on the map after its accept was refused: the refusal now repaints the map's state. (3) A click while the view's own write was in flight still replaced the view, so a write that then failed lost the input and its message: the view now waits then, in silence, as it does for Cancel and Escape. The sentence above that says such a click still goes through no longer holds. (4) A view left in a closed pane, after a revision switch or a live update dropped the selection, would have refused every later gesture with nothing to see: mayLeaveWriteView asks only a view in an open pane. Also applied: one line at the selection in render.ts names the rule, and the documentation and the comment of mayLeaveWriteView name both askers. Left as they are, my call: a click on the element that is already selected gets the sentence (an exemption would need a comparison of selections); the six asking lines stay explicit, because by the time the pane is painted the state has already changed; with the panes hidden (F1) a refusal shows nothing until they are shown again; the focus stays where it was after a refusal, so Escape outside the view is refused again and Cancel is the way out. Reported by the cold review and not from this change: on this branch the panes of several elements and of a relationship keep an open view on a read-only revision; the later branches of the stack already check that writes are offered.
+
+Live check of the review fixes on the review map, dark theme: with a typed title, Open source on a duplicate in Project review closed the dialog, left the selection and the typed title and showed the sentence, and no code reader took the pane. With a typed tag, a search result previewed with the arrow key and accepted with Enter was refused and the map showed the three selected components again. A click on another building while Save was held in flight changed nothing and said nothing; a held write that failed left the view with its message and the typed tag, and a held write that succeeded closed the view on the same selection. A relationship's Edit view with typed text, then a switch to an earlier revision: the pane closed with the view in it, and a click on a building selected that building.
+
+bun run check on the code with the review fixes: 28 Node tests and 984 Bun tests pass, 0 fail. One earlier run failed on a scanner test that timed out while the machine was busy with the two reviews; that test passes alone and in the two full runs after it.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
@@ -148,6 +166,8 @@ Every form that writes is a write form, one atom: atoms/write-form.ts. Its class
 Verification: bun run check passes on the final code (969 Bun and 28 Node tests, 0 failures). All five pane writes and all four dialogs were walked on the live map, including refused writes, writes held in flight and real key presses; see the notes.
 
 Cost: Accept and Remove sit behind Edit, so Accept is not visible on a matched draft until Edit is pressed and takes three presses (Edit, Accept, Accept).
+
+Unsaved input keeps the selection: while a write view holds input that is not stored, a gesture that would select something else changes nothing and the view says to save or cancel first. The view answers that through mayLeaveWriteView (organisms/write-view.ts), which every function of render.ts that changes the selection for a person's gesture asks first.
 
 Not in this task: the creation controls of the web map (the header Add button and the map tools) are hidden as unfinished and the rule does not place them yet.
 <!-- SECTION:FINAL_SUMMARY:END -->

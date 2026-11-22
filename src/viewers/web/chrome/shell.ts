@@ -1,7 +1,21 @@
 import { ownsDetails, primarySelection } from '../selection.ts'
 import type { Selection } from '../selection.ts'
 import { bindPopover } from '../atoms/popover.ts'
+import { animateControl } from './motion.ts'
 import { bindShortcuts, type ShortcutActions } from './shortcuts.ts'
+
+/** How far one press of a zoom button or key zooms. */
+const ZOOM_STEP = 1.25
+
+/** The zoom and fit actions the header's buttons and the map keys share: each gives its button brief feedback, then moves the camera. */
+export function cameraActions(camera: { zoomBy(factor: number): void; refit(): void }): Pick<ShortcutActions, 'zoomIn' | 'zoomOut' | 'fit'> {
+  const press = (id: string, kind: 'fit' | 'zoom'): void => animateControl(document.getElementById(id)!, kind)
+  return {
+    zoomIn: () => { press('zoom-in', 'zoom'); camera.zoomBy(ZOOM_STEP) },
+    zoomOut: () => { press('zoom-out', 'zoom'); camera.zoomBy(1 / ZOOM_STEP) },
+    fit: () => { press('fit', 'fit'); camera.refit() },
+  }
+}
 
 /** Buttons and keys use the same actions; shell events stay outside map orchestration. */
 export function bindChromeActions(actions: ShortcutActions): void {

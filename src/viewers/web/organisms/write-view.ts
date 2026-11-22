@@ -1,4 +1,5 @@
 import { approvalBar } from '../atoms/write-form.ts'
+import { animateContent } from '../chrome/motion.ts'
 import { choiceField, type Choice } from './choice-field.ts'
 import { tagsField } from './tags-field.ts'
 
@@ -54,7 +55,7 @@ export const writeViewCss = `
   /* A pane has the room for a long text, so its text area starts taller and can be dragged taller still. */
   #details .write-form textarea { height: auto; min-height: 140px; resize: vertical; }
   #details .write-view .question { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
-  /* The line under the record's other writes, for one that cannot open yet. */
+  /* The line above the fields that says why the view cannot be left yet. */
   #details .write-view > .error { margin: 0; color: var(--highlight-text); }
   #details .write-view > .error:empty { display: none; }
   /* In a pane the approval bar is the pane's footer: it spans the pane from edge to edge, across its padding. */
@@ -121,6 +122,22 @@ export function isWriteViewOpen(host: HTMLElement, key: string): boolean {
 /** The event a write view sends up the pane right after its write was stored, before the view closes. */
 export const WRITE_STORED = 'write-stored'
 
+/** The event that asks an open write view whether the pane may show something else. A view that holds unsaved input cancels it. */
+const LEAVING = 'write-view-leaving'
+
+/**
+ * Asks the pane's open write view before the pane shows something else. The answer is no while the view
+ * holds input that is not stored: the view then tells the person to save or cancel first, and the caller
+ * changes nothing. Without a view in an open pane the answer is yes. Whoever would show something else asks first:
+ * every function of `render.ts` that changes the selection for a person's gesture, and the code reader
+ * (`source/control.ts`) before it opens a file.
+ */
+export function mayLeaveWriteView(host: HTMLElement): boolean {
+  // A closed pane is inert and keeps what it last showed. A view left in it is not asked.
+  const view = host.inert ? null : host.querySelector('.write-view')
+  return view === null || view.dispatchEvent(new CustomEvent(LEAVING, { cancelable: true }))
+}
+
 /** The key of the open write view and the values its fields hold, stored or not. Undefined while the pane is reading. */
 export function pendingValues(host: HTMLElement): { key: string; values: Record<string, string> } | undefined {
   const form = host.querySelector<HTMLFormElement>('.write-form')
@@ -133,27 +150,20 @@ function formValues(form: HTMLFormElement): Record<string, string> {
   return Object.fromEntries([...new FormData(form)].map(([name, value]) => [name, String(value)]))
 }
 
-/** The buttons for `entries`. A click opens that entry's view unless `refusal` returns why it cannot open now. */
-function entryRow(
-  host: HTMLElement, key: string, entries: readonly WriteEntry[], read: () => void, refusal: () => string | undefined,
-): { row: HTMLElement; error: HTMLElement } {
+/** The buttons for `entries`. A click opens that entry's view, unless `mayOpen` answers no. */
+function entryRow(host: HTMLElement, key: string, entries: readonly WriteEntry[], read: () => void, mayOpen: () => boolean): HTMLElement {
   const row = document.createElement('div')
   row.className = 'write-entries'
-  const error = errorLine()
   for (const entry of entries) {
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'write-entry'
     button.textContent = entry.label
     if (entry.hint !== undefined) button.title = entry.hint
-    button.addEventListener('click', () => {
-      const refused = refusal()
-      if (refused === undefined) openWriteView(host, key, entry.view, read)
-      else error.textContent = refused
-    })
+    button.addEventListener('click', () => { if (mayOpen()) openWriteView(host, key, entry.view, read) })
     row.append(button)
   }
-  return { row, error }
+  return row
 }
 
 /**
@@ -162,7 +172,7 @@ function entryRow(
  * what the pane shows, and `read` paints the pane's reading view again once a view closes.
  */
 export function paintWriteEntries(host: HTMLElement, key: string, entries: readonly WriteEntry[], read: () => void): void {
-  const { row } = entryRow(host, key, entries, read, () => undefined)
+  const row = entryRow(host, key, entries, read, () => true)
   row.classList.add('of-pane')
   // First in the body, so the keyboard reaches the entries before what the pane reads.
   host.querySelector('.body')!.prepend(row)
@@ -202,18 +212,33 @@ function openWriteView(host: HTMLElement, key: string, { approveLabel, fields, q
   for (const field of fields) fieldsBox.append(fieldControl(field))
   form.append(fieldsBox)
   /**
-   * What the fields hold as the view opens. The record's other writes act on the stored record, so their
-   * entries open only while the fields still hold this.
+   * What the fields hold as the view opens. Input that differs from it is not stored yet, and a view that
+   * holds such input is not left: the record's other writes act on the stored record, and another
+   * selection would drop what the person typed. Only Cancel, Escape and the view's own stored write leave it then.
    */
   const opened = JSON.stringify(formValues(form))
-  const others = entryRow(host, key, entries, read,
-    () => JSON.stringify(formValues(form)) === opened ? undefined : `${approveLabel} or cancel your changes first.`)
-  if (entries.length > 0) view.append(others.row, others.error)
-  view.append(form)
+  const refusal = errorLine()
+  /**
+   * Answers whether the view may be left now. A no says why on the line above the fields, again each time
+   * it is asked. While the view's own write is in flight the no is silent: the view waits, as it does for
+   * Cancel and Escape. It is asked only once the view is shown, so `approval`, created below, exists by then.
+   */
+  const mayLeave = (): boolean => {
+    if (JSON.stringify(formValues(form)) === opened) return true
+    if (approval.writing) return false
+    refusal.textContent = `${approveLabel} or cancel your changes first.`
+    animateContent(refusal)
+    return false
+  }
+  const others = entryRow(host, key, entries, read, mayLeave)
+  if (entries.length > 0) view.append(others)
+  view.append(refusal, form)
+  // Asked through mayLeaveWriteView before the pane shows something else.
+  view.addEventListener(LEAVING, event => { if (!mayLeave()) event.preventDefault() })
 
   // While the write is in flight the record's other writes wait too, and the view holds the focus, and with it Escape.
   const approval = approvalBar(approveLabel, writing => {
-    others.row.inert = writing
+    others.inert = writing
     if (writing) view.focus()
   })
   form.append(approval.bar)
@@ -228,7 +253,7 @@ function openWriteView(host: HTMLElement, key: string, { approveLabel, fields, q
   })
   form.addEventListener('submit', async event => {
     event.preventDefault()
-    others.error.textContent = ''
+    refusal.textContent = ''
     const outcome = await approval.approve(async () => {
       await write(formValues(form))
       // Says on the pane that the view's values are now stored, while they can still be read from it.
