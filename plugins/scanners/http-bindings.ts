@@ -1,4 +1,4 @@
-import type { Checker, CheckerSymbol } from './http-checker.ts'
+import { inBatches, type Checker, type CheckerSymbol } from './http-checker.ts'
 import type { Node, SourceFile, TextNode as Identifier } from './http-syntax.ts'
 import {
   exported, importedName, indexSources, objectUse, scriptFile, settingEffect, startsWith, topLevel, typePosition, useAt,
@@ -53,7 +53,6 @@ export function bindingUses(
 ): Bindings {
   let index: Index | undefined
   const indexed = (): Index => { index ??= indexSources(ts, sources); return index }
-  const uses = new Map<Node, Promise<Use[]>>()
   const symbols = new Map<Node, Promise<CheckerSymbol | undefined>>()
   const shorthand = (node: Node): boolean => ts.isShorthandPropertyAssignment(node.parent) && node.parent.name === node
   /** Resolve names in one request to the checker, and a shorthand property's value one by one. */
@@ -70,28 +69,60 @@ export function bindingUses(
     }
     return found
   }
-  /** Whether a name stands for the variable: directly, or through an import or export of it. */
-  const refersTo = async (node: Node, declaration: Node): Promise<boolean> => {
-    const symbol = await symbolOf(node)
-    if (symbol === undefined || node.parent === declaration) return false
-    if (await checker.declaration(symbol) === declaration) return true
-    if (importedName(ts, node)) return false
-    return await checker.declaration(await checker.aliased(symbol)) === declaration
+  // Preserve lookup order: the declared spelling first, then its imported aliases.
+  const references = new Map<Node, { sameName: Use[]; aliases: Use[] }>()
+  const indexedNames = new Map<string, Promise<void>>()
+
+  function recordReference(declaration: (Node & { name?: Node }) | undefined, name: Identifier) {
+    if (!declaration || name.parent === declaration) return
+    const declaredName = declaration.name
+    if (!declaredName || !ts.isIdentifier(declaredName)) return
+    const sameName = declaredName.text === name.text
+    if (!sameName && name.text !== 'default' && !indexed().imported.has(name.text)) return
+
+    const uses = references.get(declaration) ?? { sameName: [], aliases: [] }
+    const group = sameName ? uses.sameName : uses.aliases
+    group.push(useAt(ts, name))
+    references.set(declaration, uses)
   }
-  const usesOf = (declaration: Node & { name?: Node }): Promise<Use[]> => {
-    let found = uses.get(declaration)
-    if (found !== undefined) return found
-    found = (async () => {
-      const { names, imported } = indexed()
-      const name = declaration.name !== undefined && ts.isIdentifier(declaration.name) ? declaration.name.text : undefined
-      const texts = name === undefined ? [] : [name, 'default', ...imported]
-      const candidates = [...new Set(texts.flatMap(text => names.get(text) ?? []))].filter(node => !typePosition(ts, node))
-      resolveAll(candidates)
-      const referring = await Promise.all(candidates.map(node => refersTo(node, declaration)))
-      return candidates.filter((_, position) => referring[position]).map(node => useAt(ts, node))
-    })()
-    uses.set(declaration, found)
-    return found
+
+  /** An import binding and its target can each own uses of the same name. */
+  async function declarationsOf(name: Identifier) {
+    const symbol = await symbolOf(name)
+    if (!symbol) return []
+    const direct = await checker.declaration(symbol)
+    if (importedName(ts, name)) return [direct]
+    const target = await checker.declaration(await checker.aliased(symbol))
+    return direct === target ? [direct] : [direct, target]
+  }
+
+  async function indexNames(texts: Iterable<string>) {
+    const { names } = indexed()
+    const candidates = [...texts]
+      .flatMap(text => names.get(text) ?? [])
+      .filter(node => !typePosition(ts, node))
+    resolveAll(candidates)
+    const declarations = await inBatches(candidates, declarationsOf)
+    for (const [position, targets] of declarations.entries()) {
+      for (const target of targets) recordReference(target, candidates[position]!)
+    }
+  }
+
+  let importUses: Promise<void> | undefined
+  /** Every lookup shares the import aliases. Resolve each other spelling only when a declaration needs it. */
+  async function usesOf(declaration: Node & { name?: Node }): Promise<Use[]> {
+    if (!declaration.name || !ts.isIdentifier(declaration.name)) return []
+    const name = declaration.name.text
+    const { imported } = indexed()
+    importUses ??= indexNames(new Set(['default', ...imported]))
+    await importUses
+    if (name !== 'default' && !imported.has(name)) {
+      const local = indexedNames.get(name) ?? indexNames([name])
+      indexedNames.set(name, local)
+      await local
+    }
+    const uses = references.get(declaration)
+    return uses ? [...uses.sameName, ...uses.aliases] : []
   }
   /** Whether a dynamic import's module object is used as a whole, through its binding or by being handed on. */
   const dynamicEscapes = async ({ binding }: DynamicImport): Promise<boolean> => {
