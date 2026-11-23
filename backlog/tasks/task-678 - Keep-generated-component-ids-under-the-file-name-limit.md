@@ -5,18 +5,21 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-23T08:38:00Z'
-updated_date: '2026-11-23T08:41:00Z'
+updated_date: '2026-11-23T09:20:00Z'
 labels: []
 dependencies: []
 references:
   - src/naming.ts
   - src/scan-component-naming.ts
   - src/scan-reconciler.ts
+documentation:
+  - docs/component-markdown.md
 modified_files:
   - src/naming.ts
   - src/scan-component-naming.ts
   - src/scan-reconciler.ts
   - test-bun/scan-component-naming.test.ts
+  - docs/component-markdown.md
 type: bug
 ordinal: 716000
 ---
@@ -45,7 +48,7 @@ On a large Angular/Nx monorepo with deeply nested source folders, the first `gro
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-Verification: the two tests added to `test-bun/scan-component-naming.test.ts` fail before the change and pass after it. A rescan of the monorepo that failed now completes: 12,391 components, longest file name 163 characters. `bun run check`: Biome, `tsc --noEmit` and the Node suite pass; the Bun suite has 923 pass and 28 fail, all in Java, Kotlin, Scala, COBOL, JVM trust, npm CA and action TLS tests that need a JDK or network access this machine does not have. None touch component naming.
+Verification: the two tests added to `test-bun/scan-component-naming.test.ts` fail before the change and pass after it. A rescan of the monorepo that failed now completes: 12,391 components, longest file name 163 characters. `bun run check` passes on Node 26.13.1, Bun 1.4.5 and JDK 25: Biome, `tsc --noEmit`, 28 Node tests and 951 Bun tests. Rescanning this repository leaves `groma/` unchanged.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

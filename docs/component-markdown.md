@@ -220,6 +220,11 @@ identity do not enter that hash. Titles use the readable name without the
 hash. An already owned source keeps its stored ID on later scans, including
 when another scanner reports it.
 
+A generated ID is also its file name, so a readable name longer than 160 bytes
+keeps its start, cut at a whole character, and ends in the first eight
+hexadecimal digits of SHA-256 of the full name. That leaves room for `.md` and
+the temporary suffix of an atomic write under the 255-byte file name limit.
+
 ### Tags
 
 `tags` is the OKF field for categories that cut across the hierarchy, such as a
