@@ -237,7 +237,7 @@
     },
     "plugins/scanners/typescript": {
       "name": "@groma/scanner-typescript",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "typescript": "7.1.0-beta",

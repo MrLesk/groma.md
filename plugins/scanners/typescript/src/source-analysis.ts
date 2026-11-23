@@ -106,6 +106,9 @@ async function analyzeProject(
       { ...options, paths: { ...workspacePaths, ...options.paths }, noEmit: true })
     const sources = await Promise.all(paths.map(file => program.getSourceFile(path.join(repositoryRoot, file))))
     const selectedProgramSources = sources.filter((source): source is SourceFile => source !== undefined)
+    // The program's selected files by the compiler's path, so an import is matched to its file without loading it.
+    const selectedFiles = new Map(selectedProgramSources.map(source =>
+      [source.path, path.relative(repositoryRoot, source.fileName).split(path.sep).join('/')]))
     const checker = program.getProject().checker
     // One adapter per program, so operations and entries share its answers.
     const sharedChecker = nativeChecker(checker)
@@ -113,9 +116,10 @@ async function analyzeProject(
     const owned = new Set(project.files.map(file => path.resolve(file)))
     const readsImports = ({ fileName }: SourceFile) => owned.has(path.resolve(fileName)) || !configured.has(path.resolve(fileName))
     const files = await Promise.all(selectedProgramSources.filter(readsImports).map(async source => {
-      const file = path.relative(repositoryRoot, source.fileName).split(path.sep).join('/')
-      return { file, imports: await resolvedImports(repositoryRoot, source, await usedImportSpecifiers(source, checker), checker),
-        symbols: exportSymbols(file, source) }
+      const file = selectedFiles.get(source.path)!
+      const specifiers = await usedImportSpecifiers(source, checker)
+      const imports = await resolvedImports(source, specifiers, checker, selectedFiles)
+      return { file, imports, symbols: exportSymbols(file, source) }
     }))
     const entries = await sourceBuildEntries(repositoryRoot, { ...syntax, SyntaxKind }, sharedChecker, selectedProgramSources)
     return { files, ...evidence, entries }
