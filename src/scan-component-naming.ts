@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 
-import { displayName, isReservedId, kebabCase } from './naming.ts'
+import { displayName, fitId, isReservedId, kebabCase } from './naming.ts'
 
 interface ComponentSource {
   file: string
@@ -20,7 +20,7 @@ function readableNames(source: ComponentSource): string[] {
     names.push(kebabCase(`${parents.slice(-depth).join('-')}-${stem}`))
   }
   names.push(`${source.parent}-${names[names.length - 1]}`)
-  return [...new Set(names)]
+  return [...new Set(names.map(fitId))]
 }
 
 function advance(candidate: { position: number; names: string[]; hashLength: number }): void {

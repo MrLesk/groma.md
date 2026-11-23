@@ -9,6 +9,7 @@ import { writes } from '../src/authoring.ts'
 import { loadArchitecture } from '../src/architecture-reader.ts'
 import { editArchitecture } from '../src/edit.ts'
 import { draftElement } from '../src/draft.ts'
+import { fitId, isArchitectureId } from '../src/naming.ts'
 import { componentNames } from '../src/scan-component-naming.ts'
 import { reconcileScanObservations } from '../src/scan-reconciler.ts'
 import { repositoryRoot, withFixture } from './helpers.ts'
@@ -212,4 +213,20 @@ test.concurrent('scanned IDs never take the word the CLI reads as a relation add
     expect(ids).not.toContain('relation')
     expect((await reconcileScanObservations(root, [scan])).created).toBe(0)
   } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test('deep component ids stay under the file name limit and stay distinct', () => {
+  const deep = Array.from({ length: 12 }, (_, index) => `view-selection-detail-ref-${index}`).join('/')
+  const files = [`a/${deep}/item.component.ts`, `b/${deep}/item.component.ts`]
+  const result = names(files)
+  const ids = files.map(file => result.get(file)!.id)
+  expect(new Set(ids).size).toBe(2)
+  for (const id of ids) expect(Buffer.byteLength(`${id}.md.${'x'.repeat(36)}.tmp`)).toBeLessThan(255)
+  expect(names(files)).toEqual(result)
+})
+
+test('a shortened id never splits a character', () => {
+  const id = fitId('𠀀'.repeat(60))
+  expect(isArchitectureId(id)).toBe(true)
+  expect(Buffer.byteLength(id)).toBeLessThanOrEqual(160)
 })
