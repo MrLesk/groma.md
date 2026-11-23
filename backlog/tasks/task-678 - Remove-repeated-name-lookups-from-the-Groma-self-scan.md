@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@codex'
 created_date: '2026-11-23T19:00:00Z'
-updated_date: '2026-11-23T19:12:00Z'
+updated_date: '2026-11-23T20:35:00Z'
 labels: []
 dependencies: []
 references:
@@ -59,6 +59,8 @@ A normal CLI self-scan of the edited task branch completed in 6.57 s with no arc
 The unchanged TypeScript scanner already took 42.93 s at 885f3171, before the November 22 evening batch of 16 PRs, and 55.24 s at c42c9c71, before the last two PRs in that batch. Those measurements establish that the slow scan predates both the icon and link-title changes. Timings varied with other work on the host.
 
 Final specification and quality review: each name uses its compiler declaration or eligible import target. Same-name uses precede aliases, and the checking rules for writes, escapes and function identity continue to use the same evidence. The name index is local to one compiler context. The final checkout comparison matched every observation again. The full repository check passed: 28 Node and 949 Bun tests, 67 optional Bun skips and zero failures. Readability review split the name filtering and clarified lookup order. The only remaining codehygiene finding is an unchanged settings line. No new test or public documentation is needed for this behavior-preserving lookup change.
+
+Review of 2026-11-23 by a second agent, asked by the owner. The fixed lookup was compared with the original over 2,938 declarations: the shared scanner code, the HTTP fixtures in both scan modes and a sample of the core, asked in order, in reverse and all at once. The answers matched name for name and in the same order, and the comparison reported a rule dropped on purpose and a swapped order. Review changes, behaviour unchanged: the opening comment of bindingUses says when names are resolved, recordReference says why a differently spelled name counts only as default or as a local name an import binds, and the new functions state their return types and compare with undefined like the rest of the file. The comparison, lint, the type check and the HTTP tests passed again after these edits. Outside this change: pull request 237 from a contributor also adds a record numbered TASK-678, so that record needs a new number when it merges.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
