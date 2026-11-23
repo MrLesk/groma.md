@@ -93,17 +93,23 @@ export async function analyzeSourceFiles(repositoryRoot: string, paths: string[]
   }
 }
 
+/**
+ * A program lives for one project's analysis. Its evidence is plain data, so the program and the source trees fetched
+ * for it are released before the next project is compiled: a repository of many projects then needs the memory of its
+ * largest one, not of all of them together.
+ */
 async function analyzeProject(
   api: API, repositoryRoot: string, paths: string[], project: TypeScriptProject, workspacePaths: Record<string, string[]>,
   configured: ReadonlySet<string>,
 ): Promise<ProjectEvidence> {
-    const options: CompilerOptions = project.config?.options ?? {
-      noLib: true, types: [], allowJs: true,
-      moduleResolution: ModuleResolutionKind.Bundler, module: ModuleKind.Preserve,
-    }
-    // Repository packages resolve to their source without node_modules; an identical key in the config's own paths wins.
-    const program = await api.createProgram(project.files,
-      { ...options, paths: { ...workspacePaths, ...options.paths }, noEmit: true })
+  const options: CompilerOptions = project.config?.options ?? {
+    noLib: true, types: [], allowJs: true,
+    moduleResolution: ModuleResolutionKind.Bundler, module: ModuleKind.Preserve,
+  }
+  // Repository packages resolve to their source without node_modules; an identical key in the config's own paths wins.
+  const program = await api.createProgram(project.files,
+    { ...options, paths: { ...workspacePaths, ...options.paths }, noEmit: true })
+  try {
     const sources = await Promise.all(paths.map(file => program.getSourceFile(path.join(repositoryRoot, file))))
     const selectedProgramSources = sources.filter((source): source is SourceFile => source !== undefined)
     // The program's selected files by the compiler's path, so an import is matched to its file without loading it.
@@ -123,4 +129,7 @@ async function analyzeProject(
     }))
     const entries = await sourceBuildEntries(repositoryRoot, { ...syntax, SyntaxKind }, sharedChecker, selectedProgramSources)
     return { files, ...evidence, entries }
+  } finally {
+    await program.dispose()
+  }
 }
