@@ -104,6 +104,13 @@ export function withGromaField(
   })
 }
 
+/** Removes the `group` field groma 0.7 wrote on a component; src/group-upgrade.ts turns it into a group record first. */
+export function withoutGroupField(source: string): string {
+  return withGromaChange(source, groma => {
+    delete groma.group
+  })
+}
+
 export function withTitle(source: string, title: string): string {
   const { content, data } = documentParts(source)
   return sourceWithFrontmatter({ ...data, title }, content)

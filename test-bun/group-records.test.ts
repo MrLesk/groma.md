@@ -149,3 +149,45 @@ test.concurrent('a scan never gives a new component the id of a group', async ()
     expect(owner!.id).not.toBe(group.id)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
+
+/** Names a group the way groma 0.7 did: in a `group` field of the document's own groma mapping. */
+async function writeOldGroupField(document: string, name: string): Promise<void> {
+  // A Windows checkout stores the fixture with CRLF line endings.
+  const source = (await readFile(document, 'utf8')).replaceAll('\r\n', '\n')
+  const named = source.replace(/^groma:\n {2}id: .+\n/m, line => `${line}  group: ${name}\n`)
+  expect(named).not.toBe(source)
+  await writeFile(document, named)
+}
+
+const apiDocument = (root: string, file: string) => path.join(root, 'groma/systems/shop/containers/api', file)
+
+test.concurrent('a project groma 0.7 wrote turns the group names on its components into group records', async () => {
+  const root = await shop()
+  try {
+    // The container and a component without a container carry the name too, which no group can hold now.
+    // Only a scan stores such a component, directly under its system.
+    const loose = path.join(root, 'groma/systems/shop/components/loose.md')
+    await mkdir(path.dirname(loose), { recursive: true })
+    await writeFile(loose, '---\ntype: C4 Component\ntitle: Loose\nstatus: stable\ngroma:\n  id: loose\n  parent: shop\n---\n')
+    const documents = [
+      ...['container.md', 'components/orders.md', 'components/stock.md'].map(file => apiDocument(root, file)),
+      loose,
+    ]
+    for (const document of documents) await writeOldGroupField(document, 'Checks')
+
+    expect(membership(await loadAnnotatedArchitecture(root))).toEqual({ 'api-checks': ['orders', 'stock'] })
+    for (const document of documents) expect(await readFile(document, 'utf8')).not.toMatch(/^ +group:/m)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('a group converted from groma 0.7 takes the next free id when its usual id is taken', async () => {
+  const root = await shop()
+  try {
+    // An element holds the usual id of both names, and the two names differ only in letter case.
+    expect(await planned(root, 'Api checks', 'api')).toBe('api-checks')
+    await writeOldGroupField(apiDocument(root, 'components/orders.md'), 'Checks')
+    await writeOldGroupField(apiDocument(root, 'components/stock.md'), 'checks')
+
+    expect(membership(await loadAnnotatedArchitecture(root))).toEqual({ 'api-checks-2': ['orders'], 'api-checks-3': ['stock'] })
+  } finally { await rm(root, { recursive: true, force: true }) }
+})

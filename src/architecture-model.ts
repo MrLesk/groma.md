@@ -376,13 +376,20 @@ export function otherRecordIds(records: ArchitectureRecords): Map<string, 'flow'
   return holders
 }
 
-/** The kebab id a new name gets, provided no element, flow, group or draft record holds it and it is not reserved. */
+/** Why a new record cannot take this id: an element, flow, group or draft record holds it, or it is reserved. */
+export function idConflict(records: ArchitectureRecords, model: ArchitectureModel, id: string): string | undefined {
+  if (model.elements.some(element => element.id === id)) return `id "${id}" already exists`
+  const holder = otherRecordIds(records).get(id)
+  if (holder !== undefined) return `id "${id}" already names a ${holder}`
+  if (isReservedId(id)) return `"${id}" is reserved for a Groma document or command`
+  return undefined
+}
+
+/** The kebab id a new name gets, provided nothing else has it (see idConflict). */
 export function freeId(records: ArchitectureRecords, model: ArchitectureModel, name: string): string {
   const id = kebabCase(name)
   if (id === '') throw new Error('name must contain a letter or a digit')
-  if (model.elements.some(element => element.id === id)) throw new Error(`id "${id}" already exists`)
-  const holder = otherRecordIds(records).get(id)
-  if (holder !== undefined) throw new Error(`id "${id}" already names a ${holder}`)
-  if (isReservedId(id)) throw new Error(`"${id}" is reserved for a Groma document or command`)
+  const conflict = idConflict(records, model, id)
+  if (conflict !== undefined) throw new Error(conflict)
   return id
 }

@@ -699,6 +699,17 @@ nothing about its group. Core resolves the links
 and, on each member, the ID of its group: a view finds a group's members among
 the elements whose `group` is that ID, as it finds children by `parent`.
 
+groma 0.7 stored a group as a name in each member's `groma.group` field. Loading
+a project that still has the field converts it
+([`upgradeGroupFields`](../src/group-upgrade.ts)): the components of one
+container that name the same group become the members of the record
+`groma add group` would create, and the field is removed, so this happens once.
+When that record's ID is already taken, the record gets the first free numbered
+ID, such as `api-checks-2`. A container or a component without an identified
+container loses the field without a group. An old Git revision is converted the
+same way inside its temporary snapshot each time it is read; the repository does
+not change.
+
 `groma add group <name> <component-id...>` creates a record and prints its ID:
 the container's ID followed by the kebab-case name, so two containers can each
 have a group of the same name. `--description` and `--overview` add its

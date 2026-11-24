@@ -150,12 +150,21 @@ function groupTitled(context: GroupContext, title: string, containerId: string |
     && membersOf(context, group).some(member => member.parentId === containerId))
 }
 
+/** What grouping components writes: the record it creates, and the records it changes. */
+interface Grouping {
+  id: string
+  created: GroupWrite[]
+  changed: GroupWrite[]
+  members: ArchitectureElement[]
+}
+
 /**
- * Groups components of one container under a name. When their container already has a group of exactly
- * this title, they join it. Otherwise a record is created; its id is the container's id followed by the
- * kebab-case name, so two containers can each have a group of the same name.
+ * The writes that group components of one container under a name, without writing them. When their container
+ * already has a group of exactly this title, they join it. Otherwise a record is created; its id is the
+ * container's id followed by the kebab-case name, so two containers can each have a group of the same name,
+ * unless the caller gives the new record an id it has checked itself.
  */
-export async function addGroup(context: GroupContext, input: AddGroupInput): Promise<StructuralResult> {
+async function groupingWrites(context: GroupContext, input: AddGroupInput, newId?: string): Promise<Grouping> {
   const title = requireText(input.name, 'name').trim()
   if (kebabCase(title) === '') throw new Error('name must contain a letter or a digit')
   if (input.members.length === 0) throw new Error('a group takes at least one member id')
@@ -166,11 +175,9 @@ export async function addGroup(context: GroupContext, input: AddGroupInput): Pro
     if (input.description !== undefined || input.overview !== undefined) {
       throw new Error(`group ${existing.id} already has this name; groma edit ${existing.id} changes its description and overview`)
     }
-    const writes = await joiningWrites(context, existing, members)
-    await writeGroups(context, writes)
-    return writeResult(existing.id, [], writes, members)
+    return { id: existing.id, created: [], changed: await joiningWrites(context, existing, members), members }
   }
-  const id = freeId(context.records, context.model, `${containerId}-${title}`)
+  const id = newId ?? freeId(context.records, context.model, `${containerId}-${title}`)
   const sourceFilename = GromaFileSystem.open(context.repositoryRoot).sourceFilename(`groups/${id}.md`)
   const frontmatter = renderFrontmatter({
     type: GROUP_TYPE,
@@ -180,9 +187,38 @@ export async function addGroup(context: GroupContext, input: AddGroupInput): Pro
   })
   const prose = input.overview === undefined ? '' : `\n${input.overview.trim()}\n`
   const created = { sourceFilename, source: withMembers(`---\n${frontmatter}\n---\n${prose}`, sourceFilename, members) }
-  const left = await leavingWrites(context, members.map(member => member.id))
-  await writeGroups(context, [...left, created])
-  return writeResult(id, [created], left, members)
+  return { id, created: [created], changed: await leavingWrites(context, members.map(member => member.id)), members }
+}
+
+/**
+ * The writes of a grouping in the order they are stored: the records its components leave come before the
+ * record they join, so an interrupted write never leaves a component in two groups.
+ */
+function inWriteOrder({ created, changed }: Grouping): GroupWrite[] {
+  return [...changed, ...created]
+}
+
+/** Groups components of one container under a name, as `groupingWrites` describes. */
+export async function addGroup(context: GroupContext, input: AddGroupInput): Promise<StructuralResult> {
+  const grouping = await groupingWrites(context, input)
+  await writeGroups(context, inWriteOrder(grouping))
+  return writeResult(grouping.id, grouping.created, grouping.changed, grouping.members)
+}
+
+/** One group of a batch: what addGroup takes, and the free id its record gets if its title is new in its container. */
+export interface BatchGroupInput extends AddGroupInput {
+  id: string
+}
+
+/**
+ * Several groups at once, each planned as addGroup plans it, but all against the records as they were before
+ * this call: the inputs must name different groups and their ids must differ. The writes are checked together,
+ * then stored one by one.
+ */
+export async function addGroups(context: GroupContext, inputs: readonly BatchGroupInput[]): Promise<void> {
+  const writes: GroupWrite[] = []
+  for (const input of inputs) writes.push(...inWriteOrder(await groupingWrites(context, input, input.id)))
+  await writeGroups(context, writes)
 }
 
 /**
