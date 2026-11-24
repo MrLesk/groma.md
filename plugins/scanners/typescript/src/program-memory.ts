@@ -26,7 +26,7 @@ const gigabytes = (bytes: number) => `${Number((bytes / 2 ** 30).toFixed(1))} GB
  */
 export function requireMemoryFor(name: string, files: number, sourceBytes: number): void {
   if (sourceBytes <= largestProgramSource()) return
-  throw new Error(`stopped, ${name} (${files.toLocaleString('en-US')} files) would take about `
+  throw new Error(`stopped, ${name} (${files.toLocaleString('en-US')} ${files === 1 ? 'file' : 'files'}) would take about `
     + `${gigabytes(sourceBytes * MEMORY_PER_SOURCE_BYTE)} of memory, more than the `
     + `${gigabytes(os.totalmem() * MACHINE_SHARE)} one project may take of this machine's ${gigabytes(os.totalmem())}`)
 }
