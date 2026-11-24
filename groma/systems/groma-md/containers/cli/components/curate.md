@@ -20,6 +20,9 @@ groma:
     - scanner: typescript
       file: src/group-model.ts
       symbol: resolveGroups
+    - scanner: typescript
+      file: src/group-upgrade.ts
+      symbol: upgradeGroupFields
 description: Moves, combines and groups elements without changing their meaning
 ---
 
