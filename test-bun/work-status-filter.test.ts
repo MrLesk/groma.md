@@ -4,6 +4,7 @@ import { test } from 'bun:test'
 
 import {
   preservedWorkStatuses,
+  shownWorkStatuses,
   toggleWorkStatus,
   workStatusFilters,
 } from '../src/work/status-filter.ts'
@@ -29,4 +30,13 @@ test.concurrent('a filter choice survives an empty snapshot and a later pin', ()
   const returned = workStatusFilters(statuses, 'To Do', ['In Progress'], empty.enabled)
 
   assert.deepEqual(returned, { available: ['In Progress'], enabled: ['To Do'] })
+})
+
+test.concurrent('tasks turned off show no status and return with the status choice made before', () => {
+  const chosen = toggleWorkStatus(workStatusFilters(statuses, 'To Do', ['To Do', 'In Progress']), 'To Do')
+  assert.deepEqual(shownWorkStatuses(chosen.enabled, false), [])
+
+  const updatedWhileOff = workStatusFilters(statuses, 'To Do', ['To Do', 'In Progress', 'Done'], chosen.enabled)
+  assert.deepEqual(shownWorkStatuses(updatedWhileOff.enabled, false), [])
+  assert.deepEqual(shownWorkStatuses(updatedWhileOff.enabled, true), ['In Progress'])
 })

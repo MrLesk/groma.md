@@ -391,5 +391,9 @@ Backlog pin. The Live work island filters pins and chips by the configured
 statuses, showing a filter only while that status has a mapped pin. A filter
 appears when the first matching pin arrives. The configured terminal status starts
 hidden. The configured default status represents future work, starts shown, and uses
-draft treatment on the map; every other configured status starts shown. Without the CLI, the plugin supplies empty work and every architecture flow
+draft treatment on the map; every other configured status starts shown. The
+island's Backlog mark is the tasks switch: one click takes every pin and task
+highlight off the web map, and the next brings them back with the status filters
+as they were. The switch never changes the filters, so a work update that
+arrives while tasks are off leaves them off. Without the CLI, the plugin supplies empty work and every architecture flow
 remains available.

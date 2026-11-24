@@ -507,6 +507,12 @@ its first referenced element) and in the bottom-center **Backlog.md Tasks** bar:
 - The bottom bar filters pins and task chips by configured workflow status
   (default and in-progress statuses start shown; the terminal status starts
   hidden).
+- The Backlog mark on the bar, folded or open, is the tasks switch. One click
+  takes every pin and task highlight off the map; the next brings them back with
+  the status filters as they were. The mark is lit in the theme's highlight color
+  while tasks are on and grey while they are off. While they are off, the status
+  filters keep their choice and cannot change, and the count keeps the number
+  they select.
 - Clicking a pin or chip activates the task, highlights every element and outgoing
   route the task touches, and loads the full Backlog task record (including
   acceptance criteria, plan, references, and modified-file diffs) in the details
