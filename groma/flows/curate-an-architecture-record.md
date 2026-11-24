@@ -11,6 +11,6 @@ A developer inspects source evidence and chooses an existing architecture record
 
 | From | To | Action |
 | --- | --- | --- |
-| [Developer](../actors/developer.md) | [Command interface](../systems/groma-md/containers/cli/components/src-cli.md) | Submit groma edit for an existing element with its overview |
-| [Command interface](../systems/groma-md/containers/cli/components/src-cli.md) | [Architecture changes](../systems/groma-md/containers/cli/components/src-authoring.md) | Dispatch the explicit architecture edit |
-| [Architecture changes](../systems/groma-md/containers/cli/components/src-authoring.md) | [Markdown storage](../systems/groma-md/containers/cli/components/src-architecture-reader.md) | Write the validated overview to the element record |
+| [Developer](../actors/developer.md "developer") | [Command interface](../systems/groma-md/containers/cli/components/src-cli.md "src-cli") | Submit groma edit for an existing element with its overview |
+| [Command interface](../systems/groma-md/containers/cli/components/src-cli.md "src-cli") | [Architecture changes](../systems/groma-md/containers/cli/components/src-authoring.md "src-authoring") | Dispatch the explicit architecture edit |
+| [Architecture changes](../systems/groma-md/containers/cli/components/src-authoring.md "src-authoring") | [Markdown storage](../systems/groma-md/containers/cli/components/src-architecture-reader.md "src-architecture-reader") | Write the validated overview to the element record |

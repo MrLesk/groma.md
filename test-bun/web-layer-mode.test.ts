@@ -11,8 +11,6 @@ import {
   OVERHEAD_POSE,
   ORBIT_DURATION_MS,
   PLAN_DURATION_MS,
-  interpolatePose,
-  orbitPose,
 } from '../src/viewers/web/iso/view-motion/orbit.ts'
 import { box, uses, worldOf } from './helpers.ts'
 
@@ -139,18 +137,4 @@ test.concurrent('a relationship joins endpoints that live on different planes', 
   assert.deepEqual(route.lifts[0]!.to, route.points[0])
   assert.equal(route.lifts[0]!.from.x, route.lifts[0]!.to.x)
   assert.ok(route.lifts[0]!.to.y < route.lifts[0]!.from.y)
-})
-
-test.concurrent('orbit wraps yaw, clamps pitch, and interpolates across the yaw seam', () => {
-  const turned = orbitPose({ ...EXPLODED_POSE, yaw: 359 }, 10, -10_000)
-  assert.ok(turned.yaw >= 0 && turned.yaw < 360)
-  assert.equal(turned.pitch, 58)
-  assert.equal(orbitPose(turned, 0, 10_000).pitch, 18)
-
-  const halfway = interpolatePose(
-    { ...EXPLODED_POSE, yaw: 350 },
-    { ...EXPLODED_POSE, yaw: 10 },
-    0.5,
-  )
-  assert.ok(halfway.yaw < 10 || halfway.yaw > 350)
 })

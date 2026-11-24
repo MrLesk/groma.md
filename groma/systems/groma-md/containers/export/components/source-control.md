@@ -14,7 +14,6 @@ groma:
       file: src/viewers/web/source/highlight.ts
     - scanner: typescript
       file: src/viewers/web/source/diff-view.ts
-  group: Architecture panels
 description: Shows the selected source file with syntax and line emphasis
 ---
 

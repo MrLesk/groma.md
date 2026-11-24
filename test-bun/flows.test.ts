@@ -81,7 +81,10 @@ test.concurrent('flow authoring edits steps and blocks removal of referenced end
     const steps = '| From | To | Action |\n| --- | --- | --- |\n| [Requester](../actors/requester.md) | [Entry](../systems/service/containers/api/components/entry.md) | Start |'
     const id = await writes.add(root, { thing: 'flow', name: 'Another scenario', overview: 'Start a unit of work.', steps })
     expect((await loadAnnotatedArchitecture(root)).flows).toHaveLength(2)
-    await writes.edit(root, { id, title: 'Updated scenario', steps: steps.replace('| Start |', '| Submit |') })
+    await writes.edit(root, { id, addTags: 'checkout, internal' })
+    await writes.edit(root, { id, title: 'Updated scenario', steps: steps.replace('| Start |', '| Submit |'), removeTags: 'internal' })
+    const edited = (await loadAnnotatedArchitecture(root)).flows.find(flow => flow.id === id)
+    expect(edited?.tags).toEqual(['checkout'])
     await expect(writes.remove(root, { id: 'requester' })).rejects.toThrow()
     await expect(writes.remove(root, { id: 'src/entry.ts', relation: 'src/worker.ts' })).rejects.toThrow()
     await writes.remove(root, { id })
@@ -90,3 +93,14 @@ test.concurrent('flow authoring edits steps and blocks removal of referenced end
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test.concurrent('a flow takes no color: the edit is refused, and the same wording alone is stored', async () => {
+  await withFixture(fixture, async root => {
+    const { flows } = await loadAnnotatedArchitecture(root)
+    const wording = { id: flows[0]!.id, title: 'Revised flow' }
+    await expect(writes.edit(root, { ...wording, color: 'blue' })).rejects.toThrow()
+    await writes.edit(root, wording)
+    expect((await loadAnnotatedArchitecture(root)).flows[0]!.title).toBe('Revised flow')
+  })
+})
+

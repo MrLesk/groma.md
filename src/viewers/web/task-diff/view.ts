@@ -2,6 +2,7 @@ import type { ArchitectureGraph, C4Kind, WorkItem, WorkItemDetails } from '../..
 import { sourceIndex } from '../../../source-index.ts'
 import { updateTaskSummary, updateTaskText } from './updates.ts'
 import { kindGlyph } from '../../atoms/kind.ts'
+import { showIdOnHover } from '../atoms/text.ts'
 import { fileDiffRow, leaveFileDiff, paintFileDiff } from '../source/diff-view.ts'
 import type { TaskFileDiff } from '../../source/diff.ts'
 import type { TaskDiffPayload } from '../../source/diff.ts'
@@ -155,7 +156,10 @@ export function paintTaskSummary(
       const link = document.createElement('button')
       link.type = 'button'
       link.className = 'link'
-      link.append(marked(element.kind, element.external, reference === element.id ? element.title : reference))
+      const named = reference === element.id
+      link.append(marked(element.kind, element.external, named ? element.title : reference))
+      // A reference by id reads as the element's title; a reference to a file reads as that file.
+      if (named) showIdOnHover(link, element.id)
       link.onclick = event => onSelect(element.representationId, event.shiftKey)
       row.append(link)
     }

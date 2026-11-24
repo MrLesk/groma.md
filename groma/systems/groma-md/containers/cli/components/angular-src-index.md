@@ -2,6 +2,8 @@
 type: C4 Component
 title: Angular analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: angular-src-index
   parent: cli
@@ -22,7 +24,6 @@ groma:
       symbol: Templates
     - scanner: typescript
       file: plugins/scanners/angular/src/directives.ts
-  group: Language analysis
 description: Analyses Angular components, templates and HTTP bindings
 ---
 

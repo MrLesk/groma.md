@@ -15,32 +15,37 @@ export interface ArchitectureSearch {
   find(query: string): ArchitectureSearchResult[]
 }
 
-function ancestorPath(
-  element: AnnotatedElement,
-  byId: ReadonlyMap<string, AnnotatedElement>,
-): string[] {
-  const path: string[] = []
-  let parent = element.parent === null ? undefined : byId.get(element.parent)
-  while (parent !== undefined) {
-    path.unshift(parent.title)
-    parent = parent.parent === null ? undefined : byId.get(parent.parent)
+/**
+ * How closely a query must match. Every index whose results are ranked in one list by score uses these
+ * options, so that the scores compare.
+ */
+export const fuzzyMatching = { threshold: 0.35, ignoreLocation: true, includeScore: true } as const
+
+/** Gives each of `elements` its ancestor titles, from the architecture root to the element's parent. */
+export function ancestorPaths(elements: readonly AnnotatedElement[]): (element: AnnotatedElement) => string[] {
+  const byId = new Map(elements.map(element => [element.representationId, element]))
+  return element => {
+    const path: string[] = []
+    let parent = element.parent === null ? undefined : byId.get(element.parent)
+    while (parent !== undefined) {
+      path.unshift(parent.title)
+      parent = parent.parent === null ? undefined : byId.get(parent.parent)
+    }
+    return path
   }
-  return path
 }
 
 /** One semantic architecture index shared by every viewer. */
 export function createArchitectureSearch(
   elements: readonly AnnotatedElement[],
 ): ArchitectureSearch {
-  const byId = new Map(elements.map(element => [element.representationId, element]))
+  const pathOf = ancestorPaths(elements)
   const records = [...elements].sort(compareSemanticElements).map(element => {
-    const path = ancestorPath(element, byId)
+    const path = pathOf(element)
     return { element, path, pathText: path.join(' ') }
   })
   const fuse = new Fuse(records, {
-    threshold: 0.35,
-    ignoreLocation: true,
-    includeScore: true,
+    ...fuzzyMatching,
     keys: [
       { name: 'element.title', weight: 0.55 },
       { name: 'element.id', weight: 0.25 },

@@ -1,5 +1,5 @@
 import { compareSemanticElements } from '../element-order.ts'
-import type { AnnotatedElement, AnnotatedRelationship, ArchitectureGraph } from '../types.ts'
+import type { AnnotatedElement, AnnotatedGroup, AnnotatedRelationship, ArchitectureGraph } from '../types.ts'
 import { composePlacement } from './compose.ts'
 import { GAP, ISLAND_GAP, NESTED_CONTENT_PAD } from './forces.ts'
 import { MARGIN, PAD, shadeOf, translate, unionRects } from './grid.ts'
@@ -37,6 +37,11 @@ import type {
 
 const ACTORS_ISLAND = 'island:actors'
 const EXTERNAL_ISLAND = 'island:external'
+/** A virtual component stands a quarter of one unmeasured building unit above its container. */
+const PLATE_HEIGHT_UNITS = 0.25
+
+/** What a zone shows, before packing gives it a key, a parent surface and a rectangle. */
+type ZoneContent = Omit<Zone, 'key' | 'parent' | 'rect'>
 
 /** A packed subtree: its size in cells and where each child sits relative to its north corner. */
 interface Node {
@@ -48,7 +53,7 @@ interface Node {
   paint:
     | { kind: 'building'; element: AnnotatedElement; heightUnits: number; shape: Shape; floors: BuildingFloor[]; lines: string[] }
     | { kind: 'slab'; element: AnnotatedElement }
-    | { kind: 'zone'; name: string; members: string[]; unidentifiedContainer?: true }
+    | { kind: 'zone'; zone: ZoneContent }
     | { kind: 'island'; islandKind: IslandKind; name: string; element: AnnotatedElement | null }
 }
 
@@ -66,6 +71,8 @@ function item(element: AnnotatedElement): SheetItem {
     id: element.id,
     title: element.title,
     origin: element.origin,
+    ...(element.color === undefined ? {} : { color: element.color }),
+    ...(element.icon === undefined ? {} : { icon: element.icon }),
   }
 }
 
@@ -75,12 +82,12 @@ function buildingNode(element: AnnotatedElement, ranges: FileMeasureRanges, degr
     : element.external ? { kind: 'pill' } : { kind: 'block' }
   const size = buildingFont(element)
   const lines = shape.kind === 'pill' ? [element.title] : roofLines(element.title, size)
-  const base = footprintOf(lines, shape, degree, size)
+  const base = footprintOf(lines, shape, degree, size, element.icon !== undefined)
   const floors = element.kind === 'component'
     ? floorsOf(element.origin, element.code, ranges, base)
     : []
-  const heightUnits = element.kind !== 'component'
-    ? 1
+  const heightUnits = element.origin === 'virtual'
+    ? PLATE_HEIGHT_UNITS
     : floors.reduce((total, floor) => total + floor.heightUnits, 0) || 1
   const w = Math.max(base.w, ...floors.map(floor => floor.footprint.w))
   const d = Math.max(base.d, ...floors.map(floor => floor.footprint.d))
@@ -104,9 +111,9 @@ function subtreeConnections(key: string, children: readonly Node[], relationship
 
 /** The cells a surface's own name needs in its front band. */
 function nameWidth(paint: Node['paint']): number {
-  if (paint.kind === 'island') return nameCells(paint.name.toUpperCase(), ISLAND_FONT, ISLAND_SPACING)
-  if (paint.kind === 'zone') return nameCells(paint.name, GROUP_FONT)
-  if (paint.kind === 'slab') return nameCells(paint.element.title, CONTAINER_FONT)
+  if (paint.kind === 'island') return nameCells(paint.name.toUpperCase(), ISLAND_FONT, ISLAND_SPACING, paint.element?.icon !== undefined)
+  if (paint.kind === 'zone') return nameCells(paint.zone.name, GROUP_FONT, 0, paint.zone.icon !== undefined)
+  if (paint.kind === 'slab') return nameCells(paint.element.title, CONTAINER_FONT, 0, paint.element.icon !== undefined)
   return 0
 }
 
@@ -223,25 +230,41 @@ function centredIsland(node: Node): Node {
   }
 }
 
-/** Siblings in hierarchy order, with each group's members folded into one zone node where its first member sat. */
+/** The group's zone carries its own name and appearance. Its member buildings already carry theirs. */
+function groupZone(groups: readonly AnnotatedGroup[], id: string, members: readonly Node[]): ZoneContent {
+  const group = groups.find(candidate => candidate.id === id)
+  if (group === undefined) throw new Error(`a component names the unknown group "${id}"`)
+  return {
+    groupId: id,
+    name: group.title,
+    ...(group.color === undefined ? {} : { color: group.color }),
+    ...(group.icon === undefined ? {} : { icon: group.icon }),
+    members: members.map(member => member.key),
+  }
+}
+
+/** A container's components in hierarchy order, with each group's members folded into one zone node where its first member sat. */
 function withZones(
-  parentKey: string,
-  siblings: readonly Node[],
-  elements: readonly AnnotatedElement[],
+  container: AnnotatedElement,
+  components: readonly AnnotatedElement[],
+  buildings: readonly Node[],
+  groups: readonly AnnotatedGroup[],
   relationships: readonly Pick<AnnotatedRelationship, 'source' | 'target'>[],
 ): Node[] {
-  const groupOf = new Map(elements.map(element => [element.representationId, element.group]))
+  const groupOf = new Map(components.map(component => [component.representationId, component.group]))
   const buckets = new Map<string, { group: string | undefined; nodes: Node[] }>()
-  for (const node of siblings) {
+  for (const node of buildings) {
     const group = groupOf.get(node.key)
-    const key = group === undefined ? node.key : `group:${parentKey}:${group}`
+    const key = group === undefined ? node.key : `group:${container.representationId}:${group}`
     const bucket = buckets.get(key) ?? { group, nodes: [] }
     bucket.nodes.push(node)
     buckets.set(key, bucket)
   }
-  return [...buckets].map(([key, { group, nodes }]) => group === undefined
-    ? nodes[0]!
-    : packed(key, nodes, { kind: 'zone', name: group, members: nodes.map(member => member.key) }, relationships))
+  return [...buckets].map(([key, { group, nodes }]) => {
+    if (group === undefined) return nodes[0]!
+    const zone = groupZone(groups, group, nodes)
+    return packed(key, nodes, { kind: 'zone', zone }, relationships)
+  })
 }
 
 export function placeWorld(world: ArchitectureGraph): Placement {
@@ -258,7 +281,7 @@ export function placeWorld(world: ArchitectureGraph): Placement {
     const components = childrenOf(container.representationId).filter(child => child.kind === 'component')
     return packed(
       container.representationId,
-      withZones(container.representationId, components.map(building), components, relationships),
+      withZones(container, components, components.map(building), world.groups, relationships),
       { kind: 'slab', element: container },
       relationships,
     )
@@ -267,12 +290,13 @@ export function placeWorld(world: ArchitectureGraph): Placement {
     const children = childrenOf(system.representationId)
     const containers = children.filter(child => child.kind === 'container')
     const components = children.filter(child => child.kind === 'component')
-    const surfaces = withZones(system.representationId, containers.map(slab), containers, relationships)
+    const surfaces = containers.map(slab)
     if (components.length > 0) {
-      surfaces.push(packed(`unidentified:${system.representationId}`, components.map(building), {
-        kind: 'zone', name: 'Unidentified container', unidentifiedContainer: true,
+      const zone: ZoneContent = {
+        name: 'Unidentified container', unidentifiedContainer: true,
         members: components.map(component => component.representationId),
-      }, relationships))
+      }
+      surfaces.push(packed(`unidentified:${system.representationId}`, components.map(building), { kind: 'zone', zone }, relationships))
     }
     return packed(
       system.representationId,
@@ -368,9 +392,7 @@ function collect(islands: readonly Node[], origins: readonly CellRect[]): Placem
     } else if (paint.kind === 'slab') {
       placement.slabs.push({ ...item(paint.element), island: islandKey, rect })
     } else if (paint.kind === 'zone') {
-      placement.zones.push({ key: node.key, name: paint.name, parent: surface, members: paint.members, rect,
-        unidentifiedContainer: paint.unidentifiedContainer,
-      })
+      placement.zones.push({ ...paint.zone, key: node.key, parent: surface, rect })
     } else {
       placement.buildings.push({
         ...item(paint.element),

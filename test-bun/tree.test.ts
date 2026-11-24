@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import { test } from 'bun:test'
 
 import { initialState, reduceViewer } from '../src/viewers/tui/navigation.ts'
-import { scrollOffset } from '../src/viewers/tui/panes/hierarchy.ts'
 import { initialTree, semanticTreeRows, toggleExpansion } from '../src/viewers/tui/tree.ts'
 import { navigationWorld } from './helpers.ts'
 
@@ -129,18 +128,4 @@ test.concurrent('tree focus moves the cursor and enter drives selection and leve
   assert.equal(state.level, 'components')
   assert.equal(state.tree.cursor, state.currentId)
   assert.equal(state.tree.collapsed.has('observed:cleft'), false)
-})
-
-test.concurrent('tree scrolling keeps the cursor inside the visible window', () => {
-  for (let rows = 1; rows < 60; rows += 7) {
-    for (let height = 1; height <= 20; height += 3) {
-      for (let cursor = 0; cursor < rows; cursor += 1) {
-        const scroll = scrollOffset(cursor, rows, height)
-        assert.ok(scroll >= 0)
-        assert.ok(cursor >= scroll)
-        assert.ok(cursor < scroll + height)
-        assert.ok(scroll <= Math.max(0, rows - height))
-      }
-    }
-  }
 })

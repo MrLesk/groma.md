@@ -5,7 +5,6 @@ status: stable
 groma:
   id: directory-queue
   parent: directory
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/directory/queue.ts

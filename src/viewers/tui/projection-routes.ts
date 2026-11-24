@@ -1,5 +1,5 @@
 import { routeAll, type Endpoint, type RouteRequest } from '../../sheet/route/route.ts'
-import type { Bounds, Origin, Point } from '../../types.ts'
+import type { Bounds, Point, RelationshipOrigin } from '../../types.ts'
 import type { TerminalViewModel } from './model.ts'
 import type { WorldItem } from './projection.ts'
 import { visibleItemFor } from './projection-sheet.ts'
@@ -10,7 +10,7 @@ export interface SheetRoute {
   source: string
   target: string
   description: string
-  origin: Origin
+  origin: RelationshipOrigin
   /** Relationships also run from target to source, so both ends carry an arrow. */
   twoWay: boolean
   /** Terminal cells from the source frame to the target frame. */

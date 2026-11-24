@@ -12,5 +12,5 @@ Runs the shop day to day.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [shop-operator](shop-operator.md) | [api](../systems/shop/containers/api/container.md) | Places a correction | Browser |
-| [shop-operator](shop-operator.md) | [order-viewer](../systems/shop/containers/order-viewer/container.md) | Watches orders arrive | Browser |
+| [Shop operator](shop-operator.md "shop-operator") | [Api](../systems/shop/containers/api/container.md "api") | Places a correction | Browser |
+| [Shop operator](shop-operator.md "shop-operator") | [Order viewer](../systems/shop/containers/order-viewer/container.md "order-viewer") | Watches orders arrive | Browser |

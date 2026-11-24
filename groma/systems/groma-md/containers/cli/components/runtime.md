@@ -2,6 +2,8 @@
 type: C4 Component
 title: Python analysis runtime
 status: stable
+tags:
+  - scanning
 groma:
   id: runtime
   parent: cli
@@ -11,7 +13,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/python/worker/modules.ts
       symbol: workerModules
-  group: Language analysis
 description: Runs Python analysis in a worker thread with the bundled interpreter
 ---
 

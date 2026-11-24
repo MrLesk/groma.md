@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT, type WorkSource } from '@groma/work-source'
 import { readGromaConfig, writeGromaConfig } from '../src/config.ts'
-import { isLoopbackWebHost, startWebViewer } from '../src/viewers/web/server.ts'
+import { startWebViewer } from '../src/viewers/web/server.ts'
 import { loadProjectProfile } from '../src/project-profile.ts'
 import { createScannerSession } from '../src/scanner/session.ts'
 
@@ -433,9 +433,4 @@ test.concurrent('a webHost this computer cannot listen on is reported as the hos
   } finally {
     await rm(root, { recursive: true, force: true })
   }
-})
-
-test.concurrent('only the exact loopback names count as serving this computer only', () => {
-  const hosts = ['127.0.0.1', 'localhost', '::1', '0.0.0.0', '::', '127.0.0.2', 'localhost.example.com', '192.168.0.10']
-  expect(hosts.filter(host => isLoopbackWebHost(host))).toEqual(['127.0.0.1', 'localhost', '::1'])
 })

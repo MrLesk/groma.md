@@ -1,7 +1,8 @@
-import { expect, test } from 'bun:test'
+import { expect, spyOn, test } from 'bun:test'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { API, Program } from 'typescript/async'
 
 import manifest from '../plugins/scanners/typescript/package.json'
 import typescript from '../plugins/scanners/typescript/src/index.ts'
@@ -114,4 +115,41 @@ test.concurrent('a package bin and a script that run build output become entries
     const scan = (await scanTypeScriptSource(root, await typescriptFiles(root)))!
     expect(scan.entryPoints?.map(entry => entry.file).sort()).toEqual(['packages/cli/src/cli.ts', 'packages/cli/src/main.ts'])
   } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('each project\'s compiler program is released before the next project is compiled', async () => {
+  const root = await monorepo({
+    'packages/api/tsconfig.json': built,
+    'packages/api/src/index.ts': 'export function listPosts(): string[] { return [] }\n',
+    'packages/web/tsconfig.json': built,
+    'packages/web/src/page.ts': "export function page(): string { return 'page' }\n",
+  })
+  // Only this repository's programs count: other tests compile their own at the same time.
+  const ofThisRepository = (files: readonly unknown[]) => JSON.stringify(files).includes(path.basename(root))
+  const programs = new Set<Program>()
+  const life = { programs: 0, alive: 0, mostAliveAtOnce: 0 }
+  const createProgram = API.prototype.createProgram
+  const dispose = Program.prototype.dispose
+  const created = spyOn(API.prototype, 'createProgram').mockImplementation(async function (this: API, ...input) {
+    const program = await createProgram.apply(this, input)
+    if (ofThisRepository(input[0])) {
+      programs.add(program)
+      life.programs++
+      life.alive++
+      life.mostAliveAtOnce = Math.max(life.mostAliveAtOnce, life.alive)
+    }
+    return program
+  })
+  const released = spyOn(Program.prototype, 'dispose').mockImplementation(function (this: Program) {
+    if (programs.delete(this)) life.alive--
+    return dispose.call(this)
+  })
+  try {
+    await scanTypeScriptSource(root, await typescriptFiles(root))
+    expect(life).toEqual({ programs: 2, alive: 0, mostAliveAtOnce: 1 })
+  } finally {
+    created.mockRestore()
+    released.mockRestore()
+    await rm(root, { recursive: true, force: true })
+  }
 })

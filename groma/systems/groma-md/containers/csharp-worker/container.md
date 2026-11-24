@@ -2,6 +2,8 @@
 type: C4 Container
 title: C# worker
 status: stable
+tags:
+  - scanning
 groma:
   id: csharp-worker
   parent: groma-md

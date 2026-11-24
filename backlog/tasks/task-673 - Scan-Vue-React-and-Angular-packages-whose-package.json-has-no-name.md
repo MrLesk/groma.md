@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-21T00:06:00Z'
-updated_date: '2026-11-21T00:35:00Z'
+updated_date: '2026-11-24T21:01:00Z'
 labels: []
 dependencies: []
 references:
@@ -81,6 +81,8 @@ Tests (existing coverage inspected first):
 - No new registry test: `healthy scanners update overlapping evidence while failed scanners retain saved Code and relationships` in `test-bun/scanner-composition.test.ts` already proves that a throwing scanner is reported by id while the others reconcile.
 
 6. Package versions: `@groma/scanner` 0.2.4, Vue scanner 0.2.8, React scanner 0.2.6, Angular scanner 0.2.7, with their `bun.lock` entries, so the next release publishes the changed packages. The release script skips a version that is already published.
+
+7. Refresh the Angular, React and Vue package versions against current main. Use Angular 0.2.8, React 0.2.7 and Vue 0.2.9. Repeat the Gitea scan and the repository check before merging.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -107,6 +109,10 @@ Final state: `bun run check` passed (Biome and TypeScript clean for the changed 
 Correction after the automated review of pull request 233 (one finding, P1): the first commit left the package versions alone, on the reading that release tasks bump them, as TASK-660 changed the Rust scanner without a bump. That reading was wrong. `CLAUDE.md` says scanner packages need their own version bump when their contents change, and `publishPackage` in `scripts/scanner-release.ts` skips an exact version that is already published, so the next release would have kept the old Vue, React and Angular scanners. Bumped the three scanners and `@groma/scanner` by a patch version each and refreshed `bun.lock` (four version lines), following TASK-629 and TASK-548. The other scanners bundle the contract too but behave as before, so they keep their versions, as in TASK-548.
 
 After the version bumps `bun run check` passed again: Node suite 26 of 26; Bun suite 961 passed, 67 toolchain-gated skipped, none failed. `bun install --frozen-lockfile` accepts the refreshed lockfile.
+
+2026-11-24. Gitea at 47f627870 still fails on main ecc1f7e0 with the original name.toLowerCase error. With Go, Python, TypeScript and the built Vue 0.2.9 package, the scan created 2,398 records and all 26 tracked Vue files had exactly one owner. A separate CLI check reported an unnamed root by scanner and root ID while JavaScript still assigned an owner to app.js. Current main already used the prior proposed version numbers, so the built packages now use Angular 0.2.8, React 0.2.7 and Vue 0.2.9 with matching lockfile entries.
+
+The repository check passed on Bun 1.4.4 and Node 26.12.1, including the three unnamed-package regression tests. The Bun suite reported 956 passes, 67 skips for optional tooling, and zero failures.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

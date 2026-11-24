@@ -1,5 +1,5 @@
 import type { SheetScene } from '../../sheet/types.ts'
-import type { AnnotatedElement, Bounds, C4Kind, Origin, Point, TerminalLevel } from '../../types.ts'
+import type { AnnotatedElement, Bounds, C4Kind, Origin, Point, RelationshipOrigin, TerminalLevel } from '../../types.ts'
 import type { TerminalViewModel } from './model.ts'
 import { projectBounds, projectPoint, type TerminalCamera } from './projection-camera.ts'
 import { terminalRoutes, type SheetRoute } from './projection-routes.ts'
@@ -39,7 +39,7 @@ export interface ProjectedMapRoute {
   source: string
   target: string
   description: string
-  origin: Origin
+  origin: RelationshipOrigin
   /** Relationships run both ways, so both ends carry an arrow. */
   twoWay: boolean
   /** From the source frame to the target frame, both ends on the frames. */

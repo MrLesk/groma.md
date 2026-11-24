@@ -5,7 +5,6 @@ status: stable
 groma:
   id: checkout-validator
   parent: checkout
-  group: Core
   code:
     - scanner: typescript
       file: src/orders/checkout/validator.ts

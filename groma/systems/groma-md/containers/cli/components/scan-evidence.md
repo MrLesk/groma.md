@@ -2,6 +2,8 @@
 type: C4 Component
 title: Source interactions
 status: stable
+tags:
+  - scanning
 groma:
   id: scan-evidence
   parent: cli
@@ -13,7 +15,6 @@ groma:
     - scanner: typescript
       file: src/http-relationships.ts
       symbol: httpRelationships
-  group: Source scanning
 description: Turns scanner callback and HTTP facts into candidate relationships
 ---
 

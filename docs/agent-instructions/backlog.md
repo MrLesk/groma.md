@@ -17,7 +17,7 @@ curation cycle.
 
 When planning, reference the intended elements or their exact source files.
 Element IDs also link actors, systems, drafts, and architecture-only work.
-Titles, group addresses, and issue URLs remain context. A file only maps once
+Titles, group IDs, and issue URLs remain context. A file only maps once
 the loaded architecture records its owner; References do not declare ownership.
 
 ## After each file change
@@ -41,7 +41,7 @@ testing or task completion to record these links.
 
 ## After a structural command
 
-Structural commands print `ok`, then the target ID or group address, then their
+Structural commands print `ok`, then the target ID, then their
 completed writes:
 
 - `created:`, `changed:`, or `removed:` names a repository-relative
@@ -51,8 +51,8 @@ completed writes:
   absorbed element into the survivor, or a rename replaced the old ID with the
   new one. Either way, remove the old reference and add the new one.
 
-Moves report both paths and keep the same ID. Group commands report member
-IDs. groma.md does not save these results as ID aliases or operation history.
+Moves report both paths and keep the same ID. Group commands report the group
+records they wrote and the member IDs. groma.md does not save these results as ID aliases or operation history.
 
 Immediately after a structural command, before any further change, record all
 its created, changed, and removed paths in one Backlog update. Preserve the

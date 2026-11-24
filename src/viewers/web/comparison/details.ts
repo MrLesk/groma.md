@@ -1,5 +1,6 @@
 import { diffWordsWithSpace } from 'diff'
 import type { ComponentChange, ChangeStatus, Comparison } from '../../../history/comparison.ts'
+import { formatTags } from '../../../tags.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import { heading, paragraph } from '../atoms/text.ts'
 import { isChange } from './tree.ts'
@@ -63,7 +64,7 @@ function changedText(className: string, before: string | undefined, after: strin
 
 const fields = [
   ['title', 'name', 'what'], ['technology', 'technology', 'how'], ['parent', 'parent', 'what'],
-  ['group', 'group', 'what'], ['origin', 'status', 'what'], ['draft', 'draft', 'what'],
+  ['group', 'group', 'what'], ['color', 'color', 'what'], ['icon', 'icon', 'what'], ['origin', 'status', 'what'], ['draft', 'draft', 'what'],
 ] as const
 
 export function componentReasons(change: ComponentChange | undefined) {
@@ -74,6 +75,7 @@ export function componentReasons(change: ComponentChange | undefined) {
     reasons.push({ key: 'description', label: 'description', tab: 'what' })
   }
   for (const [key, label, tab] of fields) if (before[key] !== after[key]) reasons.push({ key, label, tab })
+  if (formatTags(before.tags) !== formatTags(after.tags)) reasons.push({ key: 'tags', label: 'tags', tab: 'what' })
   const ownership = (element: typeof before) => JSON.stringify(element.code.map(({ scanner, file, symbol }) => [scanner, file, symbol]).sort())
   if (ownership(before) !== ownership(after)) reasons.push({ key: 'ownership', label: 'ownership', tab: 'how' })
   const files = change.files.filter(file => file.status !== 'unchanged')
@@ -133,7 +135,11 @@ export function comparisonOverview(body: Element, change: ComponentChange, world
   const parentName = (id: string | null) => world.elements.find(item => item.id === id)?.title ?? id ?? ''
   changedField(body, 'Name', before.title, after.title)
   changedField(body, 'Parent', parentName(before.parent), parentName(after.parent))
-  changedField(body, 'Group', before.group, after.group)
+  const groupName = (id: string | undefined) => world.groups.find(item => item.id === id)?.title
+  changedField(body, 'Group', groupName(before.group), groupName(after.group))
+  changedField(body, 'Tags', formatTags(before.tags), formatTags(after.tags))
+  changedField(body, 'Color', before.color, after.color)
+  changedField(body, 'Icon', before.icon, after.icon)
   changedField(body, 'Status', before.origin, after.origin)
   changedField(body, 'Draft', before.draft, after.draft)
 }

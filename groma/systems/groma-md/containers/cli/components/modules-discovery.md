@@ -2,6 +2,8 @@
 type: C4 Component
 title: Scanner discovery
 status: stable
+tags:
+  - scanning
 groma:
   id: modules-discovery
   parent: cli
@@ -15,7 +17,6 @@ groma:
       file: src/scanner/modules/catalog.ts
     - scanner: typescript
       file: src/scanner/modules/official-catalog.ts
-  group: Scanner management
 description: Recommends scanners that match the technologies in a project
 ---
 

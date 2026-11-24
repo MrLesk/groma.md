@@ -12,4 +12,4 @@ Lets customers place orders.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [shop](system.md) | [git](../../externals/git.md) | Versions architecture | Git |
+| [Shop](system.md "shop") | [Git](../../externals/git.md "git") | Versions architecture | Git |

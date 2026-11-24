@@ -89,8 +89,10 @@ export function createCameraSession(options: CameraSessionOptions) {
       animator.track(pan(animator.current, dx, dy))
       touched = true
     },
-    /** Moves to a focus fitted in a frame; nothing to focus leaves the camera where it is. */
-    focus(next: Camera | undefined, frame: MapFrame): void {
+    /** Moves to a focus fitted in the current frame; nothing to focus leaves the camera where it is. */
+    focus(fit: (frame: MapFrame) => Camera | undefined): void {
+      const frame = options.frame()
+      const next = fit(frame)
       if (next === undefined) return
       animator.navigate(pan(next, frame.x, frame.y))
       touched = true

@@ -1,3 +1,5 @@
+import type { Tone } from './icon-faces.ts'
+
 /**
  * The map's levels from the outside in, like heading levels: each step down
  * is thinner and darker, so at any zoom the eye sorts the big outlined
@@ -29,6 +31,11 @@ export function strokeAt(depth: number): number {
   return BUILDING_STROKE * STROKE_RATIO ** (depthOf('building') - depth)
 }
 
+/** An authored color takes this many times the ink share of its surface, so its hue reads at fit zoom. */
+export const COLOR_STRENGTH = 2
+/** Share of the authored color in the outline of its element; the rest is the neutral line. */
+export const COLOR_EDGE = 0.7
+
 /** Share of ink mixed into the paper, 0 to 1. */
 export function tintAt(depth: number): number {
   return ISLAND_TINT * TINT_RATIO ** depth
@@ -47,6 +54,13 @@ export function weightAt(zoomRatio: number): number {
 export function facadeDetailsVisible(k: number): boolean {
   return k * FACADE_MARK >= 1
 }
+
+/** Share of ink in an icon's quiet lines; the rest is the map's line colour. */
+export const ICON_INK = 0.3
+/** Share of ink in an icon's faces by the side a face is turned to: the top is nearly paper, the left wall the deepest, as on a building. */
+export const ICON_TONE: Record<Tone, number> = { top: 0.04, right: 0.07, left: 0.1 }
+/** Share of the accent colour in the faces of an accent part, by the side a face is turned to. */
+export const ICON_ACCENT_TONE: Record<Tone, number> = { top: 0.14, right: 0.2, left: 0.26 }
 
 /** Island dots and crosses and the group hatching repeat this many world pixels apart; slab grain is coarser. */
 export const SURFACE_TILE = 8

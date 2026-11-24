@@ -2,6 +2,7 @@ import { animateContent } from '../chrome/motion.ts'
 import type { Comparison, ChangeStatus } from '../../../history/comparison.ts'
 import type { ArchitectureGraph } from '../../../types.ts'
 import type { LayeredScene } from '../iso/projection/separation.ts'
+import type { DetailsTab } from '../organisms/details.ts'
 import { chromeButton } from '../atoms/button.ts'
 import { comparisonTree, changeStatuses, changeLabels, changeMarks, isChange, nextChange, type VisibleStatus } from './tree.ts'
 
@@ -26,12 +27,16 @@ export function filterComparisonScene(scene: LayeredScene, world: ArchitectureGr
   }
 }
 
-/** Page-local filters and selection navigation over the comparison facts already supplied by History. */
+/**
+ * Page-local filters and selection navigation over the comparison facts already supplied by History.
+ * It also prepares the details pane for a repaint: it clears the reasons of the last pane and animates a change.
+ */
 export function createComparisonControl(host: HTMLElement, select: (id: string) => void, repaint: () => void) {
   let enabled = new Set<VisibleStatus>(changeStatuses)
   let pair = ''
   let order: string[] = []
   let selected: string | undefined
+  let paintedDetail = ''
   let world: ArchitectureGraph
   let comparison: Comparison | undefined
   const bar = document.createElement('div')
@@ -80,6 +85,13 @@ export function createComparisonControl(host: HTMLElement, select: (id: string) 
     if (position.textContent !== label) { position.textContent = label; animateContent(position) }
   }
   return {
+    /** Clear the previous reasons before painting a pane. In a comparison, animate a change of selection, tab or file. */
+    prepareDetails(pane: HTMLElement, selectedId: string | undefined, tab: DetailsTab, file: string | undefined): void {
+      const detail = `${selectedId}:${tab}:${file}`
+      if (comparison !== undefined && detail !== paintedDetail) animateContent(pane.querySelector<HTMLElement>('.body')!)
+      paintedDetail = detail
+      pane.querySelector('.comparison-reasons')?.remove()
+    },
     targets(): string[] {
       if (comparison === undefined) return []
       return Object.values(comparison.components).filter(change => isChange(change.status) && enabled.has(change.status))

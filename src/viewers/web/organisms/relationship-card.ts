@@ -1,8 +1,9 @@
 import type { AnnotatedElement, AnnotatedRelationship } from '../../../types.ts'
 import { kindLabel } from '../../atoms/kind.ts'
+import { showIdOnHover } from '../atoms/text.ts'
 import { pairDescriptions } from '../../relationship-text.ts'
 
-type Endpoint = Pick<AnnotatedElement, 'representationId' | 'title' | 'kind' | 'external'>
+type Endpoint = Pick<AnnotatedElement, 'representationId' | 'id' | 'title' | 'kind' | 'external'>
 
 export interface RelationshipCardData extends Pick<AnnotatedRelationship, 'id' | 'description'> {
   source: Endpoint
@@ -34,6 +35,7 @@ function endpoint(end: Endpoint, label: string, onSelect: Select, currentId?: st
   name.type = 'button'
   name.className = 'relationship-name'
   name.textContent = end.title
+  showIdOnHover(name, end.id)
   name.setAttribute('aria-label', `${label}: ${end.title}`)
   name.addEventListener('click', event => onSelect(end.representationId, event.shiftKey))
   if (end.representationId === currentId) {

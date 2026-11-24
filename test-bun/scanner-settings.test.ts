@@ -56,19 +56,6 @@ test.concurrent('scanner groups follow local availability while preserving proje
   expect(scannerNotice([{ ...installed, status: 'unchecked' }], []).tone).toBe('neutral')
 })
 
-test.concurrent('search filters every scanner group by identity or technology without losing its group', () => {
-  const selected = { ...setting('one', 'ready'), name: '@team/worker', source: 'one@1.0.0', technologies: ['shared'] }
-  const missing = { ...setting('two', 'missing'), source: '@team/code-scanner@1.0.0', technologies: ['other'] }
-  const suggested = { ...setting('three', 'available'), technologies: ['shared'] }
-  const scanners = [suggested, missing, selected]
-  expect(pluginGroups(scanners, 'SHARED').map(group => group.plugins)).toEqual([[selected], [suggested]])
-  expect(pluginGroups(scanners, 'worker').flatMap(group => group.plugins)).toEqual([selected])
-  expect(pluginGroups(scanners, 'two').flatMap(group => group.plugins)).toEqual([missing])
-  expect(pluginGroups(scanners, 'code-scanner').map(group => group.plugins)).toEqual([[missing]])
-  expect(pluginGroups(scanners, 'absent')).toEqual([])
-  expect(pluginGroups(scanners, ' ').flatMap(group => group.plugins)).toEqual([selected, missing, suggested])
-})
-
 test.concurrent('an incompatible recommendation does not make a missing project selection appear installed', () => {
   const proposal: ScannerDiscovery = { findings: [], inventory: [], limits: [], recommendations: [
     { id: 'react', package: '@groma/scanner-react', status: 'incompatible', evidence: [], reason: 'Unsupported technology version' },

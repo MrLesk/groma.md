@@ -2,6 +2,8 @@
 type: C4 Component
 title: NASM source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: nasm-src-index
   parent: cli
@@ -15,7 +17,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/nasm/src/reserved-words.ts
       symbol: reservedWords
-  group: Language scanners
   technology: TypeScript, NASM
 description: Reads one NASM x86-64 assembly configuration.
 ---

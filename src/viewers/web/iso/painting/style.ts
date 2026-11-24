@@ -1,9 +1,12 @@
-import { mixColour, webFontFamily, type Palette } from '../../atoms/theme.ts'
+import { COLOR_NAMES } from '../../../../colors.ts'
+import type { Palette } from '../../../../themes/definition.ts'
+import { mixColour, webFontFamily } from '../../atoms/theme.ts'
 import { layerCss } from './layer-planes.ts'
 import { glowCss } from './glow.ts'
 import { DEFAULT_PROJECTION, planeMatrix } from '../projection/project.ts'
 import type { Plane, ProjectionView } from '../projection/project.ts'
-import { FACADE_MARK, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
+import { ICON_STROKE_CSS } from './icon-camera.ts'
+import { COLOR_EDGE, COLOR_STRENGTH, FACADE_MARK, ICON_ACCENT_TONE, ICON_INK, ICON_TONE, SIDE, SURFACE_TILE, depthOf, emphasis, facadeDetailsVisible, strokeAt, surfacePatternsVisible, tintAt } from './scale.ts'
 import type { Level } from './scale.ts'
 import { mark, node, type SvgNode } from './svg.ts'
 
@@ -79,11 +82,116 @@ function stroke(level: Level, palette: Palette | undefined, zoom: number): strin
   return palette === undefined ? `--stroke: ${width}px;` : `stroke-width: ${Number(width) / zoom};`
 }
 
-function surfaceColours(kind: string, depth: number, palette?: Palette): string {
-  return `#map .${kind} .ground, #map .${kind} .top { fill: ${paintTint(tintAt(depth), palette)}; }
-    #map .${kind} .right { fill: ${paintTint(tintAt(depth + SIDE.right), palette)}; }
-    #map .${kind} .left { fill: ${paintTint(tintAt(depth + SIDE.left), palette)}; }`
+/** The ink share of each tinted level's top; `kind` is the class of the element whose faces take the tint. */
+const SURFACE_DEPTH = {
+  island: depthOf('island'),
+  system: depthOf('island') - 0.5,
+  slab: depthOf('slab'),
+  // A zone lies on its slab's top, so its color is as strong as the slab's own would be. A weaker color would
+  // read as a pale cut-out, because the zone's ground covers the slab's tint.
+  zone: depthOf('slab'),
+  building: depthOf('building'),
 }
+
+/** In the browser a surface takes its element's authored color when one is set (the --tint-* variables below), else the level's ink tint. */
+function surfaceColours(kind: keyof typeof SURFACE_DEPTH, palette?: Palette): string {
+  const depth = SURFACE_DEPTH[kind]
+  const fill = (side: 'top' | 'right' | 'left', share: number) => palette === undefined
+    ? `var(--tint-${side}, ${paintTint(share)})` : paintTint(share, palette)
+  return `#map .${kind} .ground, #map .${kind} .top { fill: ${fill('top', tintAt(depth))}; }
+    #map .${kind} .right { fill: ${fill('right', tintAt(depth + SIDE.right))}; }
+    #map .${kind} .left { fill: ${fill('left', tintAt(depth + SIDE.left))}; }`
+}
+
+/**
+ * The map levels an authored color paints. `own` reaches the level's own faces and none of the surfaces drawn inside
+ * it: a slab holds its group zones, so its faces are its direct children. `top` is the class of its top surface.
+ */
+const COLORED_LEVELS = [
+  { kind: 'system', own: ' > ', top: 'ground' },
+  { kind: 'slab', own: ' > ', top: 'top' },
+  { kind: 'zone', own: ' > ', top: 'ground' },
+  { kind: 'building', own: ' ', top: 'top' },
+] as const
+
+/**
+ * An authored color replaces the ink in its element's surface tints, at a stronger share, tints its outline and
+ * becomes the accent of its icon. The browser sets the AUTHORED_COLOR variables on the element, which the surface,
+ * stroke and icon rules read, so selection, lit, draft and comparison rules keep working. Each zone resets the
+ * slab's variables and can set its own. A cover has no variables and no states, so it gets the same values as plain rules.
+ */
+/** The variables an authored color sets on its element; --icon-accent is the color itself, for the icon's accent. */
+const AUTHORED_COLOR = ['--tint-top', '--tint-right', '--tint-left', '--tint-edge', '--icon-accent'] as const
+/** Declarations that take an authored color off an element again: a zone inside a colored slab, or everything while comparing. */
+const NO_AUTHORED_COLOR = AUTHORED_COLOR.map(name => `${name}: initial;`).join(' ')
+
+function authoredColours(palette?: Palette): string {
+  return COLOR_NAMES.flatMap(name => COLORED_LEVELS.map(({ kind, own, top }) => {
+    const element = `#map .${kind}[data-color="${name}"]`
+    const depth = SURFACE_DEPTH[kind]
+    const share = (side: number) => tintAt(depth + side) * COLOR_STRENGTH
+    if (palette === undefined) {
+      const mix = (amount: number, base: string) => `color-mix(in srgb, var(--color-${name}) ${(amount * 100).toFixed(1)}%, ${base})`
+      return `${element} { --tint-top: ${mix(share(0), 'var(--paper)')}; --tint-right: ${mix(share(SIDE.right), 'var(--paper)')}; `
+        + `--tint-left: ${mix(share(SIDE.left), 'var(--paper)')}; --tint-edge: ${mix(COLOR_EDGE, 'var(--map-line)')}; --icon-accent: var(--color-${name}); }`
+    }
+    const color = palette.colors[name]
+    const face = `${element}${own}`
+    return `${face}.${top} { fill: ${mixColour(palette.paper, color, share(0))}; }
+    ${face}.right { fill: ${mixColour(palette.paper, color, share(SIDE.right))}; }
+    ${face}.left { fill: ${mixColour(palette.paper, color, share(SIDE.left))}; }
+    ${face}.${top}, ${face}.face { stroke: ${mixColour(palette.line, color, COLOR_EDGE)}; }
+    ${accentRules(`${element} > .icon`, color, amount => mixColour(palette.paper, color, amount))}
+    ${element}.ghost${own}.${top}, ${element}.ghost${own}.face { fill: none; }`
+  })).join('\n  ')
+}
+
+/**
+ * The rules that draw the accent of the icons under `scope` in `color`: its lines and small solid marks in the
+ * color itself, the faces of an accent part and an accent screen in the share of it that `tint` mixes into paper.
+ */
+function accentRules(scope: string, color: string, tint: (share: number) => string): string {
+  return `${scope} .icon-accent { stroke: ${color}; }
+    ${scope} .icon-accent.icon-top, ${scope} .icon-accent.icon-screen { fill: ${tint(ICON_ACCENT_TONE.top)}; }
+    ${scope} .icon-accent.icon-right { fill: ${tint(ICON_ACCENT_TONE.right)}; }
+    ${scope} .icon-accent.icon-left { fill: ${tint(ICON_ACCENT_TONE.left)}; }
+    ${scope} .icon-accent.icon-solid { fill: ${color}; }`
+}
+
+/**
+ * An icon's parts have their own classes, so no rule for a building, slab or island reaches them. The object is
+ * a fine line drawing: quiet lines a little brighter than the map's outlines, over faces a little off paper that
+ * are shaded like a building's, by the side they are turned to. Its accent is drawn in ink. In the browser an
+ * element with an authored color hands that color to the accent through --icon-accent; the rest of the object
+ * stays neutral. `scope` is the selector the icons are drawn under: the map, or a pane's icon. A pane shows the
+ * object from above with these same rules and sets --icon-stroke on each icon itself, as the map's camera rule
+ * does on the map.
+ */
+export function iconCss(scope: string, palette?: Palette): string {
+  const line = palette === undefined
+    ? `color-mix(in srgb, var(--ink) ${ICON_INK * 100}%, var(--map-line))`
+    : mixColour(palette.line, palette.ink, ICON_INK)
+  const accent = palette === undefined ? 'var(--icon-accent, var(--ink))' : palette.ink
+  const accentTint = (share: number) => palette === undefined
+    ? `color-mix(in srgb, ${accent} ${(share * 100).toFixed(1)}%, var(--paper))`
+    : mixColour(palette.paper, palette.ink, share)
+  return `${scope} .icon-part {
+    stroke: ${line}; stroke-linejoin: round; stroke-linecap: round;
+    ${palette === undefined ? 'stroke-width: var(--icon-stroke);' : ''}
+  }
+  ${scope} .icon-top { fill: ${paintTint(ICON_TONE.top, palette)}; }
+  ${scope} .icon-right { fill: ${paintTint(ICON_TONE.right, palette)}; }
+  ${scope} .icon-left { fill: ${paintTint(ICON_TONE.left, palette)}; }
+  ${scope} .icon-screen { fill: ${palette?.paper ?? 'var(--paper)'}; }
+  ${scope} .icon-line { fill: none; }
+  ${scope} .icon-solid { fill: ${line}; }
+  ${accentRules(scope, accent, accentTint)}`
+}
+
+/** How live icons follow the camera; icon-camera.ts holds the rule beside the function a still image uses. */
+const iconCameraCss = `
+  #map .icon { --icon-stroke: ${ICON_STROKE_CSS}; }
+`
 
 /** The camera attributes that stop facade and surface patterns below readable size at zoom `k`; the map and its covers set the same ones. */
 export function patternAttributes(k: number): Record<string, boolean> {
@@ -102,8 +210,8 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   return `
   #map .sheet { pointer-events: none; ${stroke('island', palette, zoom)} }
   #map .calibration-tick, #map .compass, #map .project-plate { ${stroke('building', palette, zoom)} }
-  /* zones lie inside slab groups and keep their own weight while the slab is hovered or selected */
-  #map .zone { ${stroke('building', palette, zoom)} --emphasis: 1; }
+  /* zones lie inside slab groups: they keep their own weight while the slab is hovered or selected, and never take its authored color */
+  #map .zone { ${stroke('building', palette, zoom)} --emphasis: 1; ${palette === undefined ? NO_AUTHORED_COLOR : ''} }
   #map .island { ${stroke('island', palette, zoom)} }
   #map .slab { ${stroke('slab', palette, zoom)} }
   #map .building { ${stroke('building', palette, zoom)} }
@@ -116,6 +224,7 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
     stroke: ${line}; stroke-linejoin: round;
     ${width}
   }
+  ${palette === undefined ? '#map .ground, #map .face { stroke: var(--tint-edge, var(--map-line)); }' : ''}
   #map .frame, #map .calibration-tick,
   #map .compass .ring, #map .compass .star,
   #map .project-plate .edit-frame, #map .project-plate .pencil path { fill: none; }
@@ -145,16 +254,21 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .project-edit .pencil .tip, #map .project-edit .pencil .lead { stroke: none; }
   #map .grid { fill: none; stroke: ${grid}; }
   #map .grid.major { stroke: ${gridMajor}; }
-  ${surfaceColours('island', depthOf('island'), palette)}
-  ${surfaceColours('system', depthOf('island') - 0.5, palette)}
-  ${surfaceColours('slab', depthOf('slab'), palette)}
-  ${surfaceColours('building', depthOf('building'), palette)}
-  #map .actor .face { fill: ${paper}; }
-  #map .zone .ground { fill: url(#hatch-ground); }
+  ${surfaceColours('island', palette)}
+  ${surfaceColours('system', palette)}
+  ${surfaceColours('slab', palette)}
+  ${surfaceColours('building', palette)}
+  ${palette === undefined
+    ? `#map .actor .top { fill: var(--tint-top, ${paper}); } #map .actor .right { fill: var(--tint-right, ${paper}); } #map .actor .left { fill: var(--tint-left, ${paper}); }`
+    : `#map .actor .face { fill: ${paper}; }`}
+  ${authoredColours(palette)}
+  ${iconCss('#map', palette)}
+  #map .zone > .ground { fill: ${palette === undefined ? 'var(--tint-top, transparent)' : 'transparent'}; }
   #map .pattern { stroke: none; pointer-events: none; }
   #map .island.actors .pattern { fill: url(#dots); }
   #map .island.external .pattern { fill: url(#cross); }
-  #map .slab .pattern { fill: url(#grain); }
+  #map .slab > .pattern { fill: url(#grain); }
+  #map .zone > .pattern { fill: url(#hatch-ground); }
   #map .building.component .pattern.left { fill: url(#lines-left); }
   #map .building.component .pattern.right { fill: url(#lines-right); }
   #map .building.actor .pattern.left { fill: url(#dots-left); }
@@ -163,15 +277,15 @@ export function mapDrawingCss(palette?: Palette, zoom = 1): string {
   #map .building.external .pattern.right { fill: url(#cross-right); }
   #map .camera[data-facades-hidden] .building .pattern { display: none; }
   #map .camera[data-surface-patterns-hidden] .island > .pattern,
-  #map .camera[data-surface-patterns-hidden] .slab > .pattern { display: none; }
-  #map .camera[data-surface-patterns-hidden] .zone > .ground { fill: transparent; }
+  #map .camera[data-surface-patterns-hidden] .slab > .pattern,
+  #map .camera[data-surface-patterns-hidden] .zone > .pattern { display: none; }
   #map .label-hit { fill: transparent; stroke: none; pointer-events: all; }
   #map .label-leader {
     stroke: ${line}; ${width}
     vector-effect: non-scaling-stroke; pointer-events: none;
   }
   #map .ghost { opacity: 0.8; }
-  #map .ghost .face, #map .ghost .ground { fill: none; pointer-events: all; }
+  #map .ghost .face { fill: none; pointer-events: all; }
   #map .ghost .pattern { display: none; }
   #map .ghost.draft .face, #map .ghost.draft .ground,
   #map .route-base.ghost.draft, #map .route.ghost.draft:not(.touched):not(.lit) .line { stroke-dasharray: ${4 / zoom} ${3 / zoom}; }
@@ -205,10 +319,11 @@ export const mapCss = `
   /* Chrome can drop animated routes after zooming beneath the forced camera cache. Keep only their own layer promoted during a flow. */
   #map .camera[data-tracing] { will-change: auto !important; }
   #map .camera[data-tracing] .route-surface { will-change: transform; }
-  #map > .map-surface [data-id] { cursor: pointer; }
+  #map > .map-surface :is([data-id], [data-group]) { cursor: pointer; }
   #map > .map-surface:active, #map .drag-cover { cursor: grabbing; }
   #map .drag-cover { position: absolute; inset: 0; }
   ${mapDrawingCss()}
+  ${iconCameraCss}
   #map .route.hovered, #map .route.endpoint, #map .route.touched { --emphasis: ${emphasis(1)}; }
   #map .route.hovered .line { stroke: var(--map-line); opacity: 1; }
   #map .route.hovered .arrow { fill: var(--map-line); opacity: 1; }
@@ -234,7 +349,7 @@ export const mapCss = `
   #map .building.hovered:not(.selected), #map .slab.hovered:not(.selected):not(.context),
   #map .island.system.hovered:not(.selected):not(.context), #map .context { --emphasis: ${emphasis(0.5)}; }
   #map .building.hovered:not(.selected) .face, #map .slab.hovered:not(.selected):not(.context) .face,
-  #map .island.system.hovered:not(.selected):not(.context) > .ground { stroke: var(--map-line); }
+  #map .island.system.hovered:not(.selected):not(.context) > .ground { stroke: var(--tint-edge, var(--map-line)); }
   #map .selected, #map .touched,
   #map .building.lit, #map .slab.lit, #map .island.lit { --emphasis: ${emphasis(1)}; }
   #map .context .face, #map .island.context > .ground, #map .selected .face, #map :is(.island, .zone).selected > .ground,
@@ -246,12 +361,26 @@ export const mapCss = `
   }
   #map :is(.island, .slab, .zone):is(.selected, .touched, .lit, .context) > .surface-label .text { fill: var(--highlight); }
   #map :is(.island, .slab, .zone):is(.selected, .touched, .lit, .context) > .surface-label .label-leader { stroke: var(--highlight); }
+  #map :is(.island, .slab, .zone, .building):is(.selected, .touched, .lit, .context) > .icon .icon-part { stroke: var(--highlight); }
+  #map :is(.island, .slab, .zone, .building):is(.selected, .touched, .lit, .context) > .icon .icon-solid { fill: var(--highlight); }
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) { --emphasis: ${emphasis(0.5)}; }
   #map .building.neighbor:not(.selected):not(.touched):not(.lit) .face { stroke: color-mix(in srgb, var(--highlight) 45%, var(--map-line)); }
   body:not([data-comparison]) #map .camera:has(.component-focus) .building.component:not(.component-focus):not(.neighbor) { opacity: 0.3; }
+  /* Color means change while comparing, so authored colors step aside. */
+  body[data-comparison] #map [data-color] { ${NO_AUTHORED_COLOR} }
   body[data-comparison] #map .building:not([data-change]):not(.selected):not(.component-focus):not(.neighbor),
   body[data-comparison] #map .route:not([data-change]):not(.route-base):not(.selected):not(.endpoint):not(.lit) { opacity: .4; }
   body[data-comparison] #map .route-base { opacity: .4; }
+  /*
+   * Tag focus: what the focused tags do not match recedes. Selected, lit and task-marked bodies stay readable.
+   * A zone is drawn inside its slab or beside its island, and recedes on its own only where that surface stays.
+   * Neutral routes share one batched stroke, so that stroke recedes and a matching route draws its own line.
+   */
+  #map .camera[data-tag-focus] :is(.building, .slab, .island.system):not(.tag-match):not(.selected):not(.touched):not(.lit):not(.neighbor),
+  #map .camera[data-tag-focus] :is(.islands, .slab.tag-match) > .zone:not(.tag-match) { opacity: 0.3; }
+  #map .camera[data-tag-focus] .route-base { opacity: 0.2; }
+  #map .camera[data-tag-focus] .route:not(.tag-match):not(.selected):not(.endpoint):not(.lit):not(.touched):not(.hovered):not([data-change]) .arrow { opacity: 0.2; }
+  #map .camera[data-tag-focus] .route.tag-match:not(.selected):not(.endpoint):not(.lit):not(.touched) .line { opacity: 0.9; }
   #map .building, #map .route { transition: opacity var(--chrome-motion) var(--chrome-ease); }
   @media (prefers-reduced-motion: reduce) { #map .building, #map .route { transition: none; } }
   #map [data-change="added"] { --change: var(--diff-added); }

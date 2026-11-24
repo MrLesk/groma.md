@@ -1,6 +1,7 @@
 import lockup from '../atoms/lockup.svg' with { type: 'text' }
 import { escaped } from '../atoms/escape.ts'
-import { palettes, webFontFamily, type WebTheme } from '../atoms/theme.ts'
+import type { ThemeDefinition } from '../../../themes/definition.ts'
+import { webFontFamily } from '../atoms/theme.ts'
 import { textWidth } from '../../../sheet/measure.ts'
 import { fitCamera, pan } from '../iso/camera/camera.ts'
 import { gridPattern } from '../iso/grid.ts'
@@ -24,16 +25,17 @@ function titleWithin(title: string, width: number): string {
 }
 
 /** The real map sits on one continuous field; a glass footer carries the project's sharing identity. */
-export function renderCover(payload: CoverPayload, theme: WebTheme): string {
-  const palette = palettes[theme]
+export function renderCover(payload: CoverPayload, { palette }: ThemeDefinition): string {
   const scene = presentScene(payload.sheet, payload.project ?? undefined, NESTED_POSE)
   const camera = pan(fitCamera(scene.bounds, { width: 1144, height: 432 }), 28, 26)
+  /** A cover has no live stylesheet, so its painters fix what follows the camera at this scale. */
+  const still = { zoom: camera.k }
   const drawing = markup([
     node('g', {}, 'sheet', sheetSvg(scene)),
-    node('g', {}, 'islands', islandsSvg(scene, camera.k)),
-    node('g', {}, 'slabs', slabsSvg(scene, camera.k)),
+    node('g', {}, 'islands', islandsSvg(scene, camera.k, still)),
+    node('g', {}, 'slabs', slabsSvg(scene, camera.k, still)),
     node('g', {}, 'routes', routesSvg(scene)),
-    node('g', {}, 'items', buildingsSvg(scene)),
+    node('g', {}, 'items', buildingsSvg(scene, still)),
   ])
   const definitions = markup([...mapDefs(scene.view), ...facadeDefs(scene)]).replaceAll('var(--map-hatch)', palette.hatch)
   const title = titleWithin(payload.project?.title ?? 'Groma', 600)

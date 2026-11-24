@@ -342,6 +342,15 @@ export function createRevisionControl(options: RevisionControlOptions) {
     get from() { return from() },
     get comparison() { return current.comparison },
     get live() { return live() },
+    /**
+     * Reads the stored world and shows it unless it is shown already. A write calls it to see its own result
+     * without waiting for the live update that announces it; that update is then skipped as already shown.
+     * While another revision is loading it shows nothing: that load or the next live update brings the world.
+     */
+    async showStoredWorld(): Promise<void> {
+      const payload = await data.readWorld()
+      if (!navigating) refreshWorld(payload)
+    },
     paintProjectEdit(root: ParentNode) {
       root.querySelector('[data-project-edit]')?.toggleAttribute('hidden', !live() || data.edit === undefined)
     },
