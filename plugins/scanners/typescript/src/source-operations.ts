@@ -27,7 +27,11 @@ interface Values {
 const unknown = (): Values[] => [{ nodes: [], unresolved: true }]
 const MAX_DEPTH = 8
 const MAX_ALTERNATIVES = 32
-/** A large program has hundreds of thousands of names; both processes hold a request and its answer whole. */
+/**
+ * A large program has hundreds of thousands of names, and both processes hold a request and its answer whole. One
+ * request still carries many names: asked as separate questions through `inBatches`, they would take thousands of
+ * round trips.
+ */
 const NAMES_PER_REQUEST = 32_768
 
 /** Only these identifier positions can be followed by the value resolver. */

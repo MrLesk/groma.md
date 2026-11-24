@@ -1,11 +1,11 @@
 ---
 id: TASK-683
 title: Lower the memory of scanning one large TypeScript project
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-24T18:48:00Z'
-updated_date: '2026-11-24T19:15:00Z'
+updated_date: '2026-11-24T19:33:00Z'
 labels: []
 dependencies: []
 references:
@@ -35,19 +35,19 @@ One TypeScript program of 18 MB of source peaks at 2.0 to 2.7 GB in the compiler
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The TypeScript compiler process started by the scanner runs with GOMEMLIMIT set to a quarter of the machine's memory unless GOMEMLIMIT is already set in groma's environment, and no other process groma starts gets that setting.
-- [ ] #2 The scanner asks the compiler for syntax trees, symbols, call targets and imports in bounded batches instead of one request for the whole program.
-- [ ] #3 Scanning the same sources produces observations byte-identical to main.
-- [ ] #4 Peak memory of both processes and scan time are measured before and after on one large program.
-- [ ] #5 The repository check passes on Linux, macOS and Windows.
+- [x] #1 The TypeScript compiler process started by the scanner runs with GOMEMLIMIT set to a quarter of the machine's memory unless GOMEMLIMIT is already set in groma's environment, and no other process groma starts gets that setting.
+- [x] #2 The scanner asks the compiler for syntax trees, symbols, call targets and imports in bounded batches instead of one request for the whole program.
+- [x] #3 Scanning the same sources produces observations byte-identical to main.
+- [x] #4 Peak memory of both processes and scan time are measured before and after on one large program.
+- [x] #5 The repository check passes on Linux, macOS and Windows.
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -74,4 +74,22 @@ The compiler setting changed while building. GOGC=25 halved the compiler's peak 
 Measurements, final code against main, alternating runs, TypeScript scanner alone (observation-of.ts), macOS, 32 GB, so a limit of 8 GiB that the programs below never reach. One program of 3,320 files and 18 MB: main compiler 2.38 to 2.49 GB, scanner 2.34 to 2.43 GB, 10.4 to 11.6 s, CPU 19.2 to 21.1 s; this change compiler 1.56 to 1.76 GB, scanner 0.98 to 2.24 GB, 11.3 to 11.7 s, CPU 21.8 to 22.2 s. Ordinary repositories, three runs each: groma 2.0 to 2.3 s and 4.5 to 4.8 s CPU on both; gemini-cli 4.2 to 4.5 s and 10.2 to 10.7 s CPU on both. One program of 6,640 files and 36 MB: main compiler 4.87 GB, scanner 4.93 GB, 30 s; batched requests compiler 3.09 GB, scanner 3.87 GB, 24 s. Peaks of the scanner process vary up to twofold between identical runs because the runtime collects lazily; it keeps every syntax tree of a program until the program ends, which this change does not address.
 
 Verification. The compiler process gets GOMEMLIMIT=8192MiB on this machine and the scan process has none (read with ps from both processes during a scan); with GOMEMLIMIT=3GiB set for groma the compiler gets 3GiB. Observations are byte-identical to main on this repository (8.3 MB), Backlog.md (5.3 MB), gemini-cli (13.3 MB), the 18 MB program and the 36 MB program. Type check, lint and the TypeScript scanner tests pass.
+
+Review round, 2026-11-24 (full-context review; the cold review is recorded separately below). Applied: the compiler.ts comment and the documentation now say the limit keeps the compiler, not the whole scan, under a quarter of the machine's memory, that the scanner's own process has no limit, and that past the limit a scan finishes much more slowly (measured 3 times the time and 10 times the CPU with the limit at half of the compiler's live memory). Checked: the release installs with bun install --frozen-lockfile --ignore-scripts (release.yml) and the patch is still applied that way, so the published bundle carries it; a bundle built with plugins/scanners/typescript/build.ts contains the env option and its own compiler binary receives GOMEMLIMIT. Measured honestly: the bounded call and import batches gave no peak reduction beyond run-to-run noise on their own; they stay because they keep both processes from holding a whole program's questions and answers at once and cost nothing measurable. Not changed: the automated review asked for a scanner version bump, but npm has 0.2.4 and main already carries the unreleased 0.2.6, which this change ships in.
+
+Found while checking, not caused by this change: the bundled scanner package built from main and from this branch alike stalled without CPU on the Backlog.md repository in a harness that imports the bundle directly, while both scanned small repositories, including one whose tsconfig names a library, in a second. The cause was not investigated.
+
+Cold review, same day, on the first commit: no defect. It confirmed on CI run 45468742891 that install, the bundled package's fresh-checkout scan and bun run check passed on ubuntu-24.04, macos-latest and windows-latest; the Windows type check passing proves the patch applied there, because the unpatched types reject env. Go rejects a malformed GOMEMLIMIT (8G) with a fatal error and accepts 8192MiB. Applied: compiler.ts now names the patch and says to recreate it with bun patch when the SDK is upgraded, so a failing type check does not lead to deleting env and silently dropping the limit; the limit is described as keeping the compiler near or below a quarter (it is a soft limit); 'a GOMEMLIMIT set for groma' became 'already in groma's environment'; the NAMES_PER_REQUEST comment says why symbols go in large requests rather than through inBatches. Left as a possible follow-up: inBatches is now the scanner's general bound on compiler requests but lives in http-checker.ts, which predates this change.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Scanning one large TypeScript project needs less memory, with byte-identical output, on Linux, macOS and Windows.
+
+The scanner now asks the compiler in bounded batches: syntax trees, call targets and imports 256 at a time, symbols 32,768 names per request. Before, the SDK sent every concurrent question as one message and both processes held the whole program's questions and answers at once. The compiler process gets GOMEMLIMIT at a quarter of the machine's memory unless one is already set. That costs no time while memory is plentiful and makes Go collect harder as memory gets tight. A dependency patch adds the env option to the SDK so that only the compiler gets the limit.
+
+On one 18 MB program the compiler fell from 2.4-2.5 GB to 1.6-1.8 GB and the scanner from 2.3-2.4 GB to 1.0-2.2 GB, for about 5 percent more CPU. Ordinary repositories run as fast as before. Where the limit applies, it held the compiler at 1.05 GB (18 MB program, 1 GiB limit) and 2.1 GB (36 MB program, 2 GiB limit, main 4.9 GB). GOGC=25, the first plan, was dropped: it cost 65 to 85 percent more CPU on every scan.
+
+Risks and follow-ups: a limit below what the compiler really needs makes a scan much slower (3 times in one test). os.totalmem() reports the host inside memory-limited containers. The scanner's own process still keeps every syntax tree of a program until the program ends. The patch must be recreated when the SDK is upgraded, which the type check enforces. inBatches could move out of http-checker.ts.
+<!-- SECTION:FINAL_SUMMARY:END -->
