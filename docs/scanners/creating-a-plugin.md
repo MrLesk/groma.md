@@ -713,4 +713,9 @@ Use `groma plugin list` and `groma scanner check` to inspect the result;
 
 Updates are explicit. Scanning, starting a viewer or upgrading groma.md does not
 select a newer scanner. Local plugins continue to run from their configured
-folder; rebuild their entry and restart groma.md after changing their code.
+folder. Start a new groma.md process after editing a local plugin. Rebuild it
+first if its entry points to a generated file.
+
+In the groma.md checkout, the Angular, React, and Vue scanner entries point to
+TypeScript source. Run `bun install --frozen-lockfile --ignore-scripts` in the
+checkout to install their dependencies.
