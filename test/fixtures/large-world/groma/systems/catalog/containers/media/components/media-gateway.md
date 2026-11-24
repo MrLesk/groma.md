@@ -5,7 +5,6 @@ status: stable
 groma:
   id: media-gateway
   parent: media
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/media/gateway.ts

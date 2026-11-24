@@ -2,6 +2,8 @@
 type: C4 Component
 title: Dart source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: dart-src-index
   parent: cli
@@ -13,7 +15,6 @@ groma:
       symbol: sourceUnits
     - scanner: typescript
       file: plugins/scanners/dart/src/worker.ts
-  group: Language scanners
   technology: TypeScript, Dart analyzer, native executable
 description: Supplies Dart, Flutter and Serverpod declarations, Code outlines and bounded call evidence without a Dart SDK.
 ---

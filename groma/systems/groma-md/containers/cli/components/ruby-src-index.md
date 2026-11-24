@@ -2,6 +2,8 @@
 type: C4 Component
 title: Ruby source scanner
 status: stable
+tags:
+  - scanning
 groma:
   id: ruby-src-index
   parent: cli
@@ -28,7 +30,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/ruby/src/tokens.ts
       symbol: comparedMethod
-  group: Language scanners
   technology: TypeScript, tree-sitter-ruby, WebAssembly
 description: Supplies Ruby declarations, Rails handlers and HTTP evidence without running project code.
 ---

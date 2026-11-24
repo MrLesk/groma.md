@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-21T00:12:00Z'
-updated_date: '2026-11-21T00:27:00Z'
+updated_date: '2026-11-24T20:29:00Z'
 labels: []
 dependencies: []
 references:
@@ -59,6 +59,8 @@ Cause: `web/public/vs/language/typescript/tsWorker.js` is a 5.7 MB vendored bund
 3. `docs/scanners/javascript/index.md`: state the rule next to the parse-error rule and name the test in Validation. Bump `@groma/scanner-javascript` 0.2.4 to 0.2.5 in its `package.json` and in `bun.lock` (Releases section of CLAUDE.md; the guide ships as the package README).
 4. Test decision. Rule and authority: one file the compiler cannot answer about must not cost the repository's JavaScript evidence (Alex's request above, the reproduced `groma scan` failure on Dify). Wrong result the test detects: `scan` rejects with `RangeError: Maximum call stack size exceeded` and returns no observation. Gap: `test-bun/javascript-scanner.test.ts` covers a file that does not parse (fixture `javascript-invalid`), nothing covers a file that parses and then exhausts the compiler. Smallest test: one concurrent test in that file writes `app.js` and a generated `bundle.js` (a member call whose receiver comes from a chain of 50,000 functions, each returning the next one's result; 2,000 links still fit on macOS and 5,000 do not), and asserts that the scan resolves, `app.js` keeps its operation, `bundle.js` has no symbols and no operations, and one warning with the new code names `bundle.js`. The member call stands first in the file so the scan stops at the second call it asks about.
 5. Verify: the test fails on the unfixed scanner and passes after; `groma scan` on the Dify clone; `bun run check`. Check the sibling scanners that share the readers and record the result.
+
+6. Before merging, use JavaScript scanner version 0.2.6 in the package and lockfile. Current main already uses 0.2.5. Compare the built scanners on the original Dify checkout and run the repository check.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -82,12 +84,16 @@ Verification:
 - Dify at 296abf4e, fresh `groma` folder, JavaScript scanner added by path from the rebuilt package: `groma scan` prints `created 165, refreshed 0, matched 0, findings 1476` and `javascript · warning · JAVASCRIPT_SOURCE_TOO_DEEP ×1: web/public/vs/language/typescript/tsWorker.js`. The observation holds 156 files, 29,186 operations, 85,323 calls and 6 HTTP requests; before the fix it held nothing.
 - Generated files that reach the deep inference through the other reader paths (a batch of names the bindings reader resolves, a URL argument the reader asks the type of, an axios instance member) also end in the warning with the other file's evidence kept, and leave no rejected promise unhandled.
 - `bun run check` exits 0: Biome reports the two warnings and two infos that other files already had, TypeScript is clean, Node 26 pass, Bun 959 pass, 67 skip, 0 fail.
+
+2026-11-24. On Dify at 296abf4e, the JavaScript scanner built from main at 64fc78c1 threw the original stack overflow. The built 0.2.6 package inventoried 154 JavaScript files and reported one JAVASCRIPT_SOURCE_TOO_DEEP warning for web/public/vs/language/typescript/tsWorker.js. The other 153 files produced the same file, operation, call, HTTP and entry evidence as 0.2.5 when that single file was excluded. The package and lockfile use 0.2.6 because main already uses 0.2.5.
+
+The final repository check passed on Bun 1.4.4 and Node 26.12.1. The Bun suite reported 953 passes, 67 skips for optional tooling, and zero failures.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-The JavaScript scanner no longer loses a repository's evidence to one file. When the bundled compiler runs out of call stack while resolving a file's names, as on Dify's vendored 5.7 MB `tsWorker.js`, that file keeps its inventory entry, contributes no evidence and gets a `JAVASCRIPT_SOURCE_TOO_DEEP` warning, like a file that does not parse; every other file keeps its evidence. Dify at 296abf4e now scans to 165 elements. A generated regression test fails without the fix, the guide states the rule, and the package is 0.2.5.
+The JavaScript scanner no longer loses a repository's evidence to one file. When the bundled compiler runs out of call stack while resolving a file's names, as on Dify's vendored 5.7 MB `tsWorker.js`, that file keeps its inventory entry, contributes no evidence and gets a `JAVASCRIPT_SOURCE_TOO_DEEP` warning, like a file that does not parse; every other file keeps its evidence. Dify at 296abf4e now scans to 165 elements. A generated regression test fails without the fix, the guide states the rule, and the package is 0.2.6.
 
 Follow-ups that need a decision, not started: React, Vue and Angular fail the same way when a project source nests that deep, and a file whose syntax itself is too deep still fails the JavaScript scan. The notes hold the evidence for both.
 <!-- SECTION:FINAL_SUMMARY:END -->

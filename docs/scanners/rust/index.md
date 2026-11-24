@@ -40,9 +40,9 @@ Test, example, benchmark and build-script targets are outside this extraction.
 External crates and standard-library types remain unresolved. This source
 loader does not evaluate custom target configurations or build-generated flags.
 
-Crates share the repository source root so `#[path]` modules can refer to source
-outside a crate's own directory. Source listing includes selected target directories
-and follows literal `#[path = "..."]` references to shared files outside them.
+Crates share the smallest directory containing all selected Rust source files.
+This keeps `#[path]` modules visible outside a crate's own directory. Source
+listing includes selected target directories and follows literal `#[path = "..."]` references to shared files outside them.
 Module declarations still select the analyzed files; making a file reachable
 does not create a source owner by itself.
 

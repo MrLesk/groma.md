@@ -5,7 +5,6 @@ status: stable
 groma:
   id: directory-worker
   parent: directory
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/directory/worker.ts

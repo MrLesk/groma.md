@@ -151,6 +151,30 @@ test.concurrent('a source unit returns to its owner unless every file of the uni
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('a virtual component can take source files after its document relationships are removed', async () => {
+  const root = await repository()
+  try {
+    const before = await loadAnnotatedArchitecture(root)
+    const id = ownerId(before, 'alternate.ts')!
+    const absorbed = ownerId(before, 'handler.ts')!
+    await editArchitecture(root, { id, detach: ['alternate.ts'] })
+    const relationships = [
+      { source: 'emitter.ts', target: id },
+      { source: id, target: 'handler.ts' },
+    ]
+    for (const ends of relationships) {
+      await addRelation(root, { ...ends, description: 'Requests review', technology: 'Form' })
+    }
+    const combine = () => editArchitecture(root, { id, combine: [absorbed] })
+    await expect(combine()).rejects.toThrow()
+    for (const { source, target } of relationships) await removeThing(root, { id: source, relation: target })
+    await combine()
+    const after = await loadAnnotatedArchitecture(root)
+    expect(ownerId(after, 'handler.ts')).toBe(id)
+    expect(after.elements.find(element => element.id === id)?.origin).toBe('observed')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('detaching the file behind a flow step is refused and writes nothing', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-detach-flow-'))
   try {

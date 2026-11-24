@@ -2,6 +2,8 @@
 type: C4 Container
 title: Go worker
 status: stable
+tags:
+  - scanning
 groma:
   id: go-worker
   parent: groma-md

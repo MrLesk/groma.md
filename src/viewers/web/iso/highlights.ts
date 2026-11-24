@@ -3,21 +3,21 @@ import { touchedElements } from '../../../work/pins.ts'
 import { elementOnPath, type FlowRef } from '../../flows.ts'
 import { flowHighlight } from '../flow/state.ts'
 import type { IsoMap } from './painting/map.ts'
-import { primarySelection, selectedArchitecture, type Selection } from '../selection.ts'
+import { selectedArchitecture, type Selection } from '../selection.ts'
 
-/** One hop in either direction, limited to components rather than their containing surfaces. */
+/**
+ * Every selected component, and the components one hop from any of them in either direction. Surfaces are
+ * left out, and a selected component is never also a neighbor.
+ */
 function componentNeighborhood(selection: Selection, world: ArchitectureGraph) {
-  const id = selection.kind === 'architecture' ? primarySelection(selection) : undefined
-  const selected = world.elements.find(element => element.representationId === id && element.kind === 'component')
-  const peers = new Set(world.relationships.flatMap(edge => {
-    if (edge.source === selected?.representationId) return [edge.target]
-    if (edge.target === selected?.representationId) return [edge.source]
+  const components = new Set(world.elements.filter(element => element.kind === 'component').map(element => element.representationId))
+  const selected = new Set(selectedArchitecture(selection).filter(id => components.has(id)))
+  const neighbors = new Set(world.relationships.flatMap(edge => {
+    if (selected.has(edge.source)) return [edge.target]
+    if (selected.has(edge.target)) return [edge.source]
     return []
-  }))
-  const neighbors = new Set(world.elements
-    .filter(element => element.kind === 'component' && peers.has(element.representationId))
-    .map(element => element.representationId))
-  return { selected: selected?.representationId, neighbors }
+  }).filter(id => components.has(id) && !selected.has(id)))
+  return { selected, neighbors }
 }
 
 /** Browser-only emphasis; the inspector selection and architecture stay unchanged. */

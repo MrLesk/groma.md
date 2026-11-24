@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal session
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: src-view-host
   parent: cli
@@ -13,7 +16,6 @@ groma:
     - scanner: typescript
       file: src/viewers/tui/model.ts
       symbol: TerminalViewModel
-  group: Terminal map
 description: Runs the terminal viewer and connects it to live architecture updates
 ---
 

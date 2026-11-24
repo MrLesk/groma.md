@@ -15,4 +15,4 @@ Places orders in the shop.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [buyer](buyer.md) | [shop](../systems/shop/system.md) | Places orders | Browser |
+| [Buyer](buyer.md "buyer") | [Shop](../systems/shop/system.md "shop") | Places orders | Browser |

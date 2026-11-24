@@ -87,6 +87,8 @@ operation before opening a map.
    controls, and never reads the repository or a running groma.md server.
    Everything in the output directory is public data. Export reads stored
    architecture without starting a scanner, writes one snapshot, and exits.
+   `--include-filter` and `--exclude-filter` export only the part
+   [selected by tags](viewers/web/index.md#filtered-exports).
    Run it again to publish updated data. Hosting and access control belong to
    the chosen static host, outside groma.md.
 3. `groma scan`: scan this repo. Core folds structural scan evidence into Markdown
@@ -95,11 +97,11 @@ operation before opening a map.
    questions about similar implementations; they are not relationship rows.
    The command prints `ok` and a short summary. It does not print the
    architecture. Scan is the one plain command without paging, because a second
-   page would scan again. The scanner alone creates systems, containers, and
-   components; nothing writes them by hand.
+   page would scan again. The scan creates systems, containers, and components
+   from source evidence.
 4. Change the architecture through groma.md's commands; no viewer edits element
    or draft documents.
-   - A **new part** is drafted. `groma draft <kind> <name> --parent <id>
+   - A **planned part** is drafted. `groma draft <kind> <name> --parent <id>
      --overview <markdown>` writes a ghost at the path it will keep once
      accepted; the kind is system, container, or component. `--draft
      <draft-id>` files the ghost under a draft record.
@@ -110,10 +112,16 @@ operation before opening a map.
      <markdown>` updates that leading body prose. `groma edit <draft-id>
      --overview <markdown>` sets the draft outcome. The optional concise OKF
      field is changed separately with `--description`. `--title` renames a
-     part or a draft record while its id and file stay; `--technology` sets or
-     clears an element's technology. In the web map the details pane edits
-     title, description, overview and technology in place and tags the element
-     with a draft; every field posts the input `groma edit` takes.
+     part or a draft record while its id and file stay. `--technology` sets or
+     clears an element's technology. One or several elements can take the same
+     `--add-tags` and `--remove-tags` changes to their [OKF tags](component-markdown.md#tags)
+     (a group and a flow take them too),
+     `--color` for their [map color](component-markdown.md#colors), and `--icon`
+     for their [map icon](component-markdown.md#icons) (a group takes these two as well). An empty color or icon
+     clears it. The web map's [Edit form](viewers/web/index.md#reading-and-editing)
+     offers tags, color and icon for one element or several. On one element it
+     also offers title, description, overview and technology. Save posts one
+     `groma edit` input.
    - Atomic scan evidence is curated with `groma edit`: combine empty scan
      records, including two systems into one product, move an empty scanned
      component to another container or a container to another system, detach
@@ -121,7 +129,8 @@ operation before opening a map.
      or absorbed record takes every document stored under it to its new path.
      `--id <new-id>` renames an element: its document and the documents under it
      move to the paths of the new ID, children name the new parent, and
-     concept-addressed relationship rows and flow steps are repointed. Scans
+     concept-addressed relationship rows, flow steps and group members are
+     repointed. Scans
      match elements through owned files, so a renamed ID survives them. These
      operations validate the whole change before writing.
      `--detach <file...>` removes those files from the component's Code.
@@ -129,28 +138,34 @@ operation before opening a map.
      document. The next scan transfers them to the new source owner and returns
      them to the map. Scan before removing an empty component that still holds
      waiting rows. Combining components carries their outgoing rows together.
-   - A group is a name on each sibling component and is addressed as
-     `<container-id>/<group-kebab>`: `groma add group <name> <ids...>` names
-     it, `groma edit group <address> --title <text>` renames every member,
-     `groma remove group <address> [ids...]` takes members out or dissolves
-     it. In the web map a multi-selection of components offers Group as and
-     Combine into (the person picks the survivor), and a pressed zone opens
-     Rename and Dissolve.
-   - An interaction is authored with `groma add relation <source-file>
-     <target-file> --description <prose> --technology <text>`. Exact source
-     files identify code endpoints; actor and external-system declarations
-     may use concept IDs. The source element document holds one authored row per
+   - A [group](component-markdown.md#groups) is its own record that lists
+     components of one container: `groma add group <name> <ids...>` creates it
+     and prints its ID, `groma edit <group-id>` changes its title, description
+     and overview, `groma edit <component-id> --group <group-id>` or
+     `--ungroup` changes one membership, and `groma remove <group-id>` deletes
+     the record and leaves its members in place. In the web map the
+     pane of several selected components offers Group and Combine (the person
+     picks the survivor).
+   - An interaction is authored with `groma add relation <source>
+     <target> --description <prose> --technology <text>`. Exact source
+     files identify code endpoints. A virtual component uses its ID. Actor
+     and external-system declarations may use concept IDs. The source element
+     document holds one authored row per
      ordered endpoint pair across the architecture. `groma edit relation` rewords it; `groma draft
      relation` creates a planned row, and `groma accept relation` accepts it.
-     Only draft rows may be removed. The web editor chooses the participating
-     files and lets a reader inspect each claim represented by a map connection.
+     A draft row, or a current row with a virtual component as an endpoint,
+     can be removed when no flow uses it. The web map shows the claims behind a connection. Its Edit
+     view rewords the displayed endpoint pair.
    - **People and outside systems** are declared, never scanned: `groma add
      actor <name> --overview <markdown>` and `groma add external <name>
      [--technology <text>] --overview <markdown>` write them stable at once.
      `groma add draft <name> --overview <markdown>` writes a draft record.
-     `groma add component <name>` refuses and names `groma draft`.
+   - A **virtual component** explains a manual step or another responsibility
+     that no source shows. `groma add component <name> --parent <container-id>
+     --overview <prose>` creates it in an internal container. It accepts an
+     optional `--description` and `--technology`.
    - **Removing** takes the id alone: `groma remove <id>` deletes a person, an
-     external, a ghost, or a draft record no ghost belongs to; it refuses and
+     external, a virtual component, a ghost, or a draft record no ghost belongs to. It refuses and
      names what blocks it while other elements relate to the part, while a
      ghost still contains parts, or while ghosts still carry the draft's tag.
      A scanned component can be removed after its Code list is empty: delete its
@@ -184,7 +199,7 @@ ID. `groma view <id>` resolves exactly one element.
   keeps when accepted, in the same file.
 - A part a draft touches keeps its ID and its file; the tag is the only
   change.
-- Core assigns an ID only when a scan finds an unknown file, derived from its
+- When a scan finds an unknown file, core derives its ID from its
   recognizable file name. It compares new files together, qualifies collisions
   with the existing container and source parent context, and uses a short
   exact-source-path hash only when readable context is exhausted. Titles omit
@@ -200,8 +215,9 @@ The architecture is one tree under `groma/` (or `.groma/`): `actors/` holds the
 people who use the software, `externals/` the systems outside its boundary,
 `systems/` the software itself with its containers and components, and
 `drafts/` one record per draft. It may be empty. groma.md writes it from scans,
-accepted drafts, drafting, and the curation people apply through groma.md. The
-scanner alone creates stable systems, containers, and components.
+accepted drafts, drafting, and the curation people apply through groma.md.
+Scans create stable internal systems, containers and components from code.
+People can also add virtual components: stable components without Code references.
 
 After the first write of a document, later scans may refresh only nested
 `groma.code` frontmatter. They do not rewrite explanations, unowned metadata,
@@ -239,6 +255,8 @@ Core applies the batch like this:
    directories and imports alone do not create containers.
 3. An unknown file becomes a singleton component, unless explicit source-unit
    evidence groups companion files. A matching ghost receives Code and stays a draft.
+   A scan never matches a virtual component. A new file of the same name gets
+   its own owner and the virtual component keeps its ID.
 4. Positive execution-entry evidence lets core create an application container
    and place its unambiguous components. Later scans can complete unidentified
    placement while preserving IDs, source ownership, authored meaning and links.
@@ -373,5 +391,9 @@ Backlog pin. The Live work island filters pins and chips by the configured
 statuses, showing a filter only while that status has a mapped pin. A filter
 appears when the first matching pin arrives. The configured terminal status starts
 hidden. The configured default status represents future work, starts shown, and uses
-draft treatment on the map; every other configured status starts shown. Without the CLI, the plugin supplies empty work and every architecture flow
+draft treatment on the map; every other configured status starts shown. The
+island's Backlog mark is the tasks switch: one click takes every pin and task
+highlight off the web map, and the next brings them back with the status filters
+as they were. The switch never changes the filters, so a work update that
+arrives while tasks are off leaves them off. Without the CLI, the plugin supplies empty work and every architecture flow
 remains available.

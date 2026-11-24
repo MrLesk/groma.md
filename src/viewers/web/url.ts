@@ -1,13 +1,16 @@
 import type { ComponentChange } from '../../history/comparison.ts'
+import { tagFocusInUse, type TagFocus } from '../../tag-selection.ts'
 import { comparisonDefaultTab } from './comparison/details.ts'
 import type { Comparison } from '../../history/comparison.ts'
 import type { GitRevision } from '../../history/revisions.ts'
 import type { AnnotatedElement, AnnotatedRelationship, ArchitectureGraph, C4Kind, WorkItem } from '../../types.ts'
 import type { FlowRef } from '../flows.ts'
-import { isThemeMode, type WebThemeMode } from './atoms/theme.ts'
+import { bundledThemes } from '../../themes/bundled.ts'
+import { AUTO_THEME, isThemeMode, type ThemeDefinition } from '../../themes/definition.ts'
 import { mapControlEntries, readMapControls, type MapControls } from './chrome/map-view.ts'
 import type { DetailsTab } from './organisms/details.ts'
-import { noSelection, selectTask } from './selection.ts'
+import { flowSelection } from './flow/state.ts'
+import { noSelection, selectArchitecture, selectedArchitecture, selectTask } from './selection.ts'
 import type { Selection } from './selection.ts'
 
 /** What the page's query string carries, so a view opens again from its link. */
@@ -18,8 +21,11 @@ export interface ViewState extends MapControls {
   line?: number
   selection: Selection
   flows: FlowRef[]
+  /** The focused tags, their match mode and the excluded tags. */
+  tagFocus: TagFocus
   tab: DetailsTab
-  theme: WebThemeMode
+  /** Auto, or the id of an enabled theme. */
+  theme: string
   hudVisible: boolean
   inset?: number
 }
@@ -44,6 +50,7 @@ function architectureId(
   byId: ReadonlyMap<string, AnnotatedElement>,
   world: ArchitectureGraph,
 ): string | undefined {
+  if (name === 'group') return world.groups.find(group => group.id === value)?.id
   const element = byId.get(value)
   if (KINDS.includes(name as C4Kind) && element?.kind === name) return element.representationId
   return name === 'relationship' ? relationshipFor(value, byId, world)?.id : undefined
@@ -51,15 +58,17 @@ function architectureId(
 
 function architectureSelection(
   params: URLSearchParams,
-  byId: ReadonlyMap<string, AnnotatedElement>,
   world: ArchitectureGraph,
-): string[] {
-  const ids: string[] = []
+): Selection {
+  const byId = new Map(world.elements.map(element => [element.id, element]))
+  let selection: Selection = noSelection
   for (const [name, value] of params) {
     const id = architectureId(name, value, byId, world)
-    if (id !== undefined && !ids.includes(id)) ids.push(id)
+    // Each parameter is one additive pick. A repeated id is skipped, because an additive pick of a selected id takes it out.
+    if (id === undefined || selectedArchitecture(selection).includes(id)) continue
+    selection = selectArchitecture(selection, id, true, world.groups)
   }
-  return ids
+  return selection
 }
 
 function activeFlows(params: URLSearchParams, world: ArchitectureGraph): FlowRef[] {
@@ -72,6 +81,20 @@ function activeFlows(params: URLSearchParams, world: ArchitectureGraph): FlowRef
   const step = Number.isInteger(requested) && requested >= 1 && requested <= flow.steps.length ? requested - 1 : undefined
   if (step !== undefined) active.step = step
   return flows
+}
+
+function readTagFocus(params: URLSearchParams, world: ArchitectureGraph): TagFocus {
+  return tagFocusInUse(world, {
+    focused: params.getAll('tag'),
+    match: params.get('match') === 'all' ? 'all' : 'any',
+    excluded: params.getAll('not'),
+  })
+}
+
+function appendTagFocus(pairs: [string, string][], focus: TagFocus): void {
+  for (const tag of focus.focused) pairs.push(['tag', encodeURIComponent(tag)])
+  if (focus.match === 'all') pairs.push(['match', 'all'])
+  for (const tag of focus.excluded) pairs.push(['not', encodeURIComponent(tag)])
 }
 
 function sourceState(
@@ -102,16 +125,23 @@ function appendSourceState(
   if (state.line !== undefined) pairs.push(['line', String(state.line)])
 }
 
-/** A publication can select a theme through its architecture/{theme}/ directory. */
-function pathTheme(pathname: string): WebThemeMode | undefined {
-  const theme = pathname.match(/\/architecture\/([^/]+)\/?$/)?.[1]
-  return isThemeMode(theme) ? theme : undefined
+/** A publication can select a theme through its architecture/{theme}/ directory, when the project enables that theme. */
+function pathTheme(pathname: string, themes: readonly ThemeDefinition[]): string | undefined {
+  const published = pathname.match(/\/architecture\/([^/]+)\/?$/)?.[1]
+  return isThemeMode(published, themes) ? published : undefined
 }
 
-/** The browser and initial sharing metadata resolve the same explicit theme. */
-export function readTheme(url: Pick<URL, 'search' | 'pathname'>, defaultTheme: WebThemeMode = 'auto'): WebThemeMode {
+/**
+ * The theme a link asks for: its `theme` entry, else its publication path, else the given default. An entry or a path
+ * that names no enabled theme is passed over, so an old link falls back instead of breaking.
+ */
+export function readTheme(
+  url: Pick<URL, 'search' | 'pathname'>,
+  defaultTheme: string = AUTO_THEME,
+  themes: readonly ThemeDefinition[] = bundledThemes,
+): string {
   const selected = new URLSearchParams(url.search).get('theme')
-  return isThemeMode(selected) ? selected : pathTheme(url.pathname) ?? defaultTheme
+  return isThemeMode(selected, themes) ? selected : pathTheme(url.pathname, themes) ?? defaultTheme
 }
 
 function readTab(params: URLSearchParams, file: string | undefined, change: ComponentChange | undefined): DetailsTab {
@@ -127,10 +157,10 @@ function appendTab(pairs: [string, string][], state: ViewState, change: Componen
 
 /**
  * Reads the ordered architecture selection (repeated `<kind>=<id>` and
- * `relationship=<source id>/<target id>` entries) or `task=<id>`,
+ * `relationship=<source id>/<target id>` entries, or a single `group=<id>`) or `task=<id>`,
  * checked flows (repeated `flow=<id>`) and the last flow's one-based `step=<number>`,
- * `tab=how|tasks`, `view=iso|2d|layers`, `hide=<comma-separated filters>`,
- * `theme=auto|light|dark|blueprint` and `hud=off`. A query theme overrides
+ * tag focus (repeated `tag=<tag>` and `not=<tag>`, `match=all`), `tab=how|tasks`, `view=iso|2d|layers`, `hide=<comma-separated filters>`,
+ * `theme=auto|<theme id>` and `hud=off`. A query theme overrides
  * the publication path theme, then the saved default. Ids are the authored ids; anything the world
  * or the work does not know is ignored, a kind naming an element of another kind included.
  */
@@ -139,22 +169,16 @@ export function readView(
   world: ArchitectureGraph,
   work: readonly WorkItem[],
   revisions: readonly GitRevision[] = [],
-  defaultTheme: WebThemeMode = 'auto',
+  defaultTheme: string = AUTO_THEME,
   comparison?: Comparison,
   defaultControls?: MapControls,
+  themes: readonly ThemeDefinition[] = bundledThemes,
 ): ViewState {
   const params = new URLSearchParams(url.search)
   const inset = Number(params.get('inset'))
   const revision = revisions.find(candidate => candidate.id === params.get('revision'))?.id
-  const byId = new Map(world.elements.map(element => [element.id, element]))
-  const architecture = architectureSelection(params, byId, world)
-  const task = work.find(item => item.id === params.get('task'))
   const flows = activeFlows(params, world)
-  const flow = flows.at(-1)
-  const selection: Selection = architecture.length > 0
-    ? { kind: 'architecture', ids: architecture }
-    : task !== undefined ? selectTask(task.id)
-    : flow !== undefined ? { kind: 'flow', id: flow.id } : noSelection
+  const selection = readSelection(params, world, work, flows)
   const selected = selection.kind === 'architecture'
     ? world.elements.find(element => element.representationId === selection.ids.at(-1))
     : undefined
@@ -166,10 +190,22 @@ export function readView(
     ...source,
     selection,
     flows,
+    tagFocus: readTagFocus(params, world),
     tab: readTab(params, source.file, comparison?.components[selected?.id ?? '']),
-    theme: readTheme(url, defaultTheme),
+    theme: readTheme(url, defaultTheme, themes),
     hudVisible: params.get('hud') !== 'off',
   }
+}
+
+/** The architecture named by the link owns the pane first, then a task, then the last checked flow. */
+function readSelection(
+  params: URLSearchParams, world: ArchitectureGraph, work: readonly WorkItem[], flows: readonly FlowRef[],
+): Selection {
+  const architecture = architectureSelection(params, world)
+  if (architecture.kind !== 'none') return architecture
+  const task = work.find(candidate => candidate.id === params.get('task'))
+  if (task !== undefined) return selectTask(task.id)
+  return flowSelection(flows)
 }
 
 function relationshipEnds(
@@ -195,6 +231,7 @@ function appendSelection(
       const element = elements.get(id)
       const relationship = relationshipEnds(id, elements, world)
       if (element !== undefined) pairs.push([element.kind, element.id])
+      else if (world.groups.some(group => group.id === id)) pairs.push(['group', id])
       else if (relationship !== undefined) pairs.push(['relationship', relationship])
     }
     return
@@ -213,7 +250,14 @@ function appendFlow(pairs: [string, string][], flow: FlowRef | undefined, world:
 }
 
 /** The query string includes map-control defaults so recipients open the same presentation. */
-export function writeView(state: ViewState, world: ArchitectureGraph, work: readonly WorkItem[], pathname: string, comparison?: Comparison): string {
+export function writeView(
+  state: ViewState,
+  world: ArchitectureGraph,
+  work: readonly WorkItem[],
+  pathname: string,
+  comparison?: Comparison,
+  themes: readonly ThemeDefinition[] = bundledThemes,
+): string {
   const elements = new Map(world.elements.map(element => [element.representationId, element]))
   const selected = state.selection.kind === 'architecture'
     ? elements.get(state.selection.ids.at(-1) ?? '')
@@ -227,8 +271,9 @@ export function writeView(state: ViewState, world: ArchitectureGraph, work: read
   for (const flow of state.flows) {
     appendFlow(pairs, flow === state.flows.at(-1) ? flow : { id: flow.id }, world)
   }
+  appendTagFocus(pairs, state.tagFocus)
   pairs.push(...mapControlEntries(state))
-  if (state.theme !== (pathTheme(pathname) ?? 'auto')) pairs.push(['theme', state.theme])
+  if (state.theme !== (pathTheme(pathname, themes) ?? AUTO_THEME)) pairs.push(['theme', state.theme])
   if (!state.hudVisible) pairs.push(['hud', 'off'])
   if (state.inset !== undefined) pairs.push(['inset', String(state.inset)])
   return pairs.length === 0 ? '' : `?${pairs.map(([key, value]) => `${key}=${value}`).join('&')}`

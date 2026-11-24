@@ -2,23 +2,40 @@ import { parseMarkdown, parseFrontmatter } from 'comark'
 import { renderFrontmatter } from 'comark/render'
 
 import { GromaFileSystem } from './groma-filesystem.ts'
-import { buildArchitectureModel } from './architecture-model.ts'
+import { buildArchitectureModel, tagsOf } from './architecture-model.ts'
 import { requireText } from './naming.ts'
+import { parseTags } from './tags.ts'
 import { DRAFT_TYPE, c4Type, requireGromaMapping } from './okf-profile.ts'
 import type { ArchitectureDocument, C4Kind, CodeReference, ElementStatus } from './types.ts'
 
+/** The document the reader would produce from this text, for validating a write before it reaches the file. */
+export async function parsedDocument(sourceFilename: string, source: string): Promise<ArchitectureDocument> {
+  const tree = await parseMarkdown(source)
+  return { sourceFilename, body: parseFrontmatter(source).content, nodes: tree.nodes, frontmatter: tree.frontmatter } as ArchitectureDocument
+}
+
 /** Save must pass the same semantic validation as the next read before changing the file. */
 export async function validateElementSource(documents: ArchitectureDocument[], sourceFilename: string, source: string): Promise<void> {
-  const tree = await parseMarkdown(source)
-  const document = { sourceFilename, body: parseFrontmatter(source).content, nodes: tree.nodes, frontmatter: tree.frontmatter } as ArchitectureDocument
+  const document = await parsedDocument(sourceFilename, source)
   buildArchitectureModel([...documents.filter(item => item.sourceFilename !== sourceFilename), document])
 }
 
-export interface MeaningChanges {
+/** Comma-separated OKF tags to add to or remove from a record's current list. */
+export interface TagChanges {
+  addTags?: string
+  removeTags?: string
+}
+
+/** Authored fields one edit applies to the current element document. */
+export interface MeaningChanges extends TagChanges {
   title?: string
   overview?: string
   description?: string
   technology?: string
+  /** A color name from src/colors.ts; empty text removes it. */
+  color?: string
+  /** An icon name from src/icons.ts; empty text removes it. */
+  icon?: string
   draft?: string
 }
 
@@ -28,6 +45,9 @@ export function withMeaning(source: string, input: MeaningChanges): string {
   if (input.overview !== undefined) source = replaceLeadProse(source, input.overview)
   source = withDescription(source, input.description)
   if (input.technology !== undefined) source = withGromaField(source, 'technology', input.technology || undefined)
+  source = withTags(source, input)
+  if (input.color !== undefined) source = withGromaField(source, 'color', input.color || undefined)
+  if (input.icon !== undefined) source = withGromaField(source, 'icon', input.icon || undefined)
   if (input.draft !== undefined) source = withGromaField(source, 'draft', input.draft || undefined)
   return source
 }
@@ -75,7 +95,7 @@ export function withGromaCode(source: string, code: CodeReference[]): string {
 
 export function withGromaField(
   source: string,
-  field: 'id' | 'group' | 'parent' | 'draft' | 'technology',
+  field: 'id' | 'parent' | 'draft' | 'technology' | 'color' | 'icon',
   value: string | undefined,
 ): string {
   return withGromaChange(source, groma => {
@@ -87,6 +107,27 @@ export function withGromaField(
 export function withTitle(source: string, title: string): string {
   const { content, data } = documentParts(source)
   return sourceWithFrontmatter({ ...data, title }, content)
+}
+
+/** Keep the document's tag order and append new tags in the order the author gave them. */
+export function withTags(source: string, { addTags, removeTags }: TagChanges): string {
+  if (addTags === undefined && removeTags === undefined) return source
+  const added = parseTags(addTags ?? '')
+  const removed = new Set(parseTags(removeTags ?? ''))
+  const overlap = added.find(tag => removed.has(tag))
+  if (overlap !== undefined) throw new Error(`cannot both add and remove tag "${overlap}"`)
+  const { content, data } = documentParts(source)
+  const carried = tagsOf(data.tags, 'document') ?? []
+  const kept = carried.filter(tag => !removed.has(tag))
+  const gained = added.filter(tag => !carried.includes(tag))
+  const tags = [...kept, ...gained]
+  const frontmatter: Record<string, unknown> = {}
+  for (const [field, value] of Object.entries(data)) {
+    if (field === 'tags') continue
+    if (field === 'groma' && tags.length > 0) frontmatter.tags = tags
+    frontmatter[field] = value
+  }
+  return sourceWithFrontmatter(frontmatter, content)
 }
 
 export function withStatus(source: string, status: ElementStatus): string {

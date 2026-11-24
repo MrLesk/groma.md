@@ -12,7 +12,7 @@ Shopper of the shop.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [shopper](shopper.md) | [web-app](../systems/storefront/containers/web-app/container.md) | Uses web-app | HTTP |
-| [shopper](shopper.md) | [checkout](../systems/orders/containers/checkout/container.md) | Uses checkout | HTTP |
-| [shopper](shopper.md) | [catalog-api](../systems/catalog/containers/catalog-api/container.md) | Uses catalog-api | HTTP |
-| [shopper](shopper.md) | [accounts](../systems/identity/containers/accounts/container.md) | Uses accounts | HTTP |
+| [Shopper](shopper.md "shopper") | [Web App](../systems/storefront/containers/web-app/container.md "web-app") | Uses web-app | HTTP |
+| [Shopper](shopper.md "shopper") | [Checkout](../systems/orders/containers/checkout/container.md "checkout") | Uses checkout | HTTP |
+| [Shopper](shopper.md "shopper") | [Catalog Api](../systems/catalog/containers/catalog-api/container.md "catalog-api") | Uses catalog-api | HTTP |
+| [Shopper](shopper.md "shopper") | [Accounts](../systems/identity/containers/accounts/container.md "accounts") | Uses accounts | HTTP |

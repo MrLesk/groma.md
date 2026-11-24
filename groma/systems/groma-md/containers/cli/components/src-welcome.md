@@ -14,7 +14,6 @@ groma:
       file: src/welcome/view.ts
     - scanner: typescript
       file: src/empty-world.ts
-  group: Project commands
 description: Shows project state and the commands that open a viewer or settings
 ---
 

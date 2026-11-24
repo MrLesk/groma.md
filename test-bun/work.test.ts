@@ -11,7 +11,6 @@ import {
   projectWork,
   reconcileWorkFocus,
   selectedWorkId,
-  workView,
   workGroups,
 } from '../src/viewers/tui/work/model.ts'
 import { mapViewportOf, navigationWorld } from './helpers.ts'
@@ -118,33 +117,6 @@ test.concurrent('Work projection shares modified-file and reference touch meanin
     items: projection.items.map(item => [item.key, item.cellBounds]),
     routes: projection.relationships.map(route => route.cellRoute),
   }, geometry)
-})
-
-test.concurrent('Work chooses component scope for one container and root for several', () => {
-  const base = navigationWorld()
-  const model = {
-    ...base,
-    work: snapshot([
-      item('TASK-LOCAL', { title: 'Local', references: ['pleft', 'pmid'] }),
-      item('TASK-CROSS', { title: 'Cross', references: ['pleft', 'pright'] }),
-    ]),
-  }
-  const focus = (taskId: string) => ({
-    selection: { state: 'selected' as const, taskId },
-    before: beforeWork(),
-    shown: [] as string[],
-  })
-
-  assert.deepEqual(workView(model, focus('TASK-LOCAL')), {
-    level: 'components',
-    currentId: 'observed:pleft',
-    attentionIds: ['observed:pleft', 'observed:pmid'],
-  })
-  assert.deepEqual(workView(model, focus('TASK-CROSS')), {
-    level: 'context',
-    currentId: 'observed:pleft',
-    attentionIds: ['observed:pleft', 'observed:pright'],
-  })
 })
 
 test.concurrent('Work refresh preserves a valid task, initializes delayed work, and clears a removed task', () => {

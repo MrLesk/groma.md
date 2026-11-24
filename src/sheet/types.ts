@@ -1,3 +1,5 @@
+import type { ColorName } from '../colors.ts'
+import type { IconName } from '../icons.ts'
 import type { AnnotatedRelationship, C4Kind, Origin } from '../types.ts'
 
 /** A rectangle in map cells: `gx`, `gy` is the north corner, `w` runs along gx, `d` along gy. */
@@ -14,6 +16,10 @@ export interface SheetItem {
   id: string
   title: string
   origin: Origin
+  /** The element's authored color name, which each viewer theme resolves. */
+  color?: ColorName
+  /** The element's authored icon name; its name makes room for the icon's slot. */
+  icon?: IconName
 }
 
 export type IslandKind = 'actors' | 'external' | 'system'
@@ -33,6 +39,12 @@ export interface Island {
 export interface Zone {
   key: string
   name: string
+  /** The id of the stored group this zone draws, when it draws one. */
+  groupId?: string
+  /** The group's authored color name. It paints the zone's ground and outline, never the members. */
+  color?: ColorName
+  /** The group's authored icon name; the zone's name makes room for the icon's slot. */
+  icon?: IconName
   /** Derived display group for components whose system is known but container is not. */
   unidentifiedContainer?: true
   /** Island key or slab representation id the zone lies on. */

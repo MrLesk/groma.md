@@ -15,6 +15,7 @@ const unit = { x: 0, y: 0, width: 1, height: 1 }
 function chain(connections: number): ArchitectureGraph {
   return {
     flows: [],
+    groups: [{ id: 'Work', title: 'Work', overview: '' }],
     elements: [
       box('person', 'actor', unit),
       box('system', 'system', unit),
@@ -77,6 +78,7 @@ test.concurrent('dense sibling connections route every relationship without losi
   const count = 12
   const world: ArchitectureGraph = {
     flows: [],
+    groups: [],
     elements: [
       box('system', 'system', unit),
       box('container', 'container', unit, { parent: 'observed:system' }),
@@ -98,6 +100,7 @@ test.concurrent('direct system and container endpoints grow enough wall space fo
   for (const target of ['system', 'container'] as const) {
     const world: ArchitectureGraph = {
       flows: [],
+      groups: [],
       elements: [
         box('actor', 'actor', unit), box('system', 'system', unit),
         ...(target === 'container' ? [box('container', 'container', unit, { parent: 'observed:system' })] : []),

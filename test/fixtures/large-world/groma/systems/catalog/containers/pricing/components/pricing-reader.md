@@ -5,7 +5,6 @@ status: stable
 groma:
   id: pricing-reader
   parent: pricing
-  group: Support
   code:
     - scanner: typescript
       file: src/catalog/pricing/reader.ts

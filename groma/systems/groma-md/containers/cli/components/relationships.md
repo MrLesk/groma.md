@@ -2,10 +2,11 @@
 type: C4 Component
 title: Map connections
 status: stable
+tags:
+  - map
 groma:
   id: relationships
   parent: cli
-  group: Map layout
   code:
     - scanner: typescript
       file: src/sheet/route/route.ts

@@ -5,7 +5,6 @@ status: stable
 groma:
   id: catalog-api-worker
   parent: catalog-api
-  group: Support
   code:
     - scanner: typescript
       file: src/catalog/catalog-api/worker.ts

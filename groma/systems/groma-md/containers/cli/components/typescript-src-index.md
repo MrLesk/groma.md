@@ -2,6 +2,8 @@
 type: C4 Component
 title: TypeScript analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: typescript-src-index
   parent: cli
@@ -32,7 +34,9 @@ groma:
     - scanner: typescript
       file: plugins/scanners/typescript/src/source-symbols.ts
       symbol: exportSymbols
-  group: Language analysis
+    - scanner: typescript
+      file: plugins/scanners/typescript/src/compiler.ts
+      symbol: compilerApi
 description: Analyses TypeScript projects with the compiler
 ---
 

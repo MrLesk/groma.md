@@ -6,23 +6,18 @@ import { buildArchitectureModel, draftRecordOf } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { moveBlocker } from './movable.ts'
 import { resolveFlows } from './flow-model.ts'
+import { resolveGroups } from './group-model.ts'
+import { elementOrigin, relationshipOrigin } from './origin.ts'
 import type {
   AnnotatedArchitectureModel,
   AnnotatedElement,
   ArchitectureRecords,
   ArchitectureRelationship,
-  ElementStatus,
   FilesystemAccessHandler,
-  Origin,
 } from './types.ts'
 
 export { acceptGhost, type AcceptResult } from './accept.ts'
 export { reconcileScanObservations } from './scan-reconciler.ts'
-
-/** The map word for a lifecycle status: drafts are ghosts, everything stable was observed. */
-export function originOf(status: ElementStatus): Origin {
-  return status === 'draft' ? 'draft' : 'observed'
-}
 
 function withDirectChildren(elements: AnnotatedElement[]): AnnotatedElement[] {
   const childrenByParent = new Map<string, string[]>()
@@ -60,6 +55,7 @@ function connectionCounts(relationships: readonly ArchitectureRelationship[]): M
 }
 
 
+/** Resolves the stored records into the elements, relationships, groups and flows a viewer reads. */
 export function annotateArchitecture(
   records: ArchitectureRecords,
 ): AnnotatedArchitectureModel {
@@ -68,6 +64,8 @@ export function annotateArchitecture(
   const byId = new Map(model.elements.map(element => [element.id, element]))
   const documents = new Map(records.documents.map(document => [document.sourceFilename, document]))
   const flows = resolveFlows(records.flows, model)
+  const groups = resolveGroups(records.groups, model)
+  const groupOfMember = new Map(groups.flatMap(group => group.memberIds.map(memberId => [memberId, group.id] as const)))
   const elements = model.elements.map<AnnotatedElement>(element => ({
     representationId: element.id,
     id: element.id,
@@ -78,18 +76,22 @@ export function annotateArchitecture(
     parent: element.parentId,
     children: [],
     external: element.external,
-    ...(element.group === undefined ? {} : { group: element.group }),
+    ...(groupOfMember.has(element.id) ? { group: groupOfMember.get(element.id) } : {}),
     ...(element.technology === undefined ? {} : { technology: element.technology }),
+    ...(element.tags === undefined ? {} : { tags: element.tags }),
+    ...(element.color === undefined ? {} : { color: element.color }),
+    ...(element.icon === undefined ? {} : { icon: element.icon }),
     code: element.code.map(reference => ({ ...reference, ...(counts.get(reference.file) ?? { dependencies: 0, dependents: 0 }) })),
     // The web pane offers a new parent only for a component the write would move.
     movable: element.kind === 'component'
       && moveBlocker(element, documents.get(element.sourceFilename)!.body, model.relationships, flows) === undefined,
-    origin: originOf(element.status),
+    origin: elementOrigin(element),
     ...(element.draft === undefined ? {} : { draft: element.draft }),
   }))
 
   return {
     flows,
+    groups: groups.map(({ memberIds, sourceFilename, ...group }) => group),
     drafts: records.drafts.map(document => draftRecordOf(document).id).sort(),
     elements: withDirectChildren(elements),
     relationships: model.relationships.map((relationship, index) => {
@@ -101,7 +103,7 @@ export function annotateArchitecture(
         connections: relationship.connections,
         description: relationship.description,
         technology: relationship.technology,
-        origin: originOf(relationship.status),
+        origin: relationshipOrigin(relationship.status),
         ...(source.draft === undefined ? {} : { draft: source.draft }),
       }
     }),

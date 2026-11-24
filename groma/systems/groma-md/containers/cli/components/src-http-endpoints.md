@@ -2,6 +2,8 @@
 type: C4 Component
 title: TypeScript HTTP analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: src-http-endpoints
   parent: cli
@@ -14,7 +16,6 @@ groma:
       symbol: controllerEndpoints
     - scanner: typescript
       file: plugins/scanners/typescript/src/native-checker.ts
-  group: Language analysis
 description: Finds TypeScript HTTP clients and endpoints from compiler symbols
 ---
 

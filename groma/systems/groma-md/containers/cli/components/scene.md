@@ -2,6 +2,8 @@
 type: C4 Component
 title: Map placement
 status: stable
+tags:
+  - map
 groma:
   id: scene
   parent: cli
@@ -31,7 +33,6 @@ groma:
     - scanner: typescript
       file: src/sheet/pack-forces.ts
       symbol: balance
-  group: Map layout
 description: Places systems, containers, groups and components on the shared map sheet
 ---
 

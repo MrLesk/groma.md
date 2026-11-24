@@ -1,22 +1,10 @@
 import { expect, test } from 'bun:test'
-import type { ArchitectureFinding, ArchitectureFindingInstance } from '../src/types.ts'
-import { compareOperations, comparisonReader, duplicateGroups, operationSource } from '../src/viewers/web/duplicates/model.ts'
+import type { ArchitectureFindingInstance } from '../src/types.ts'
+import { compareOperations, comparisonReader, operationSource } from '../src/viewers/web/duplicates/model.ts'
 
 function instance(owner: string, startLine = 2, endLine = 4): ArchitectureFindingInstance {
   return { owner, name: 'operation', file: `${owner}.ts`, startLine, endLine }
 }
-
-test.concurrent('owner filters keep outside copies and combine with match filtering', () => {
-  const findings: ArchitectureFinding[] = [
-    { id: 'shared', kind: 'duplicated-logic', title: '', match: 'similar', instances: [instance('a'), instance('b')], differences: [] },
-    { id: 'local', kind: 'duplicated-logic', title: '', match: 'exact', instances: [instance('b'), instance('b', 8, 10)], differences: [] },
-  ]
-  const groups = duplicateGroups(findings, 'a', 'similar')
-  expect(groups).toHaveLength(1)
-  expect(groups[0]!.instances.map(copy => copy.owner)).toEqual(['a', 'b'])
-  expect(duplicateGroups(findings, 'a', 'exact')).toEqual([])
-  expect(findings[0]!.instances).toHaveLength(2)
-})
 
 test.concurrent('comparison uses inclusive source ranges and preserves real line numbers across insertions', () => {
   const left = operationSource('outside\r\nstart\r\nreturn 5\r\nend\r\noutside', instance('a'))

@@ -2,6 +2,8 @@
 type: C4 Component
 title: Scan results
 status: stable
+tags:
+  - scanning
 groma:
   id: src-scanner
   parent: cli
@@ -17,7 +19,6 @@ groma:
       symbol: sourceUnitGroups
     - scanner: typescript
       file: src/scan-entrypoints.ts
-  group: Source scanning
 description: Folds successful scanner results into stored ownership and records
 ---
 

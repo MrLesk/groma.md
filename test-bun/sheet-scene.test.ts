@@ -223,12 +223,29 @@ test.concurrent('a group becomes a zone around its members on the parent surface
   }
 })
 
+test.concurrent("a zone carries its group's color and icon, and the icon widens its name band", () => {
+  const world = worldOf([
+    box('shop', 'system', unit),
+    box('api', 'container', unit, { parent: 'observed:shop' }),
+    box('stock', 'component', unit, { parent: 'observed:api', group: 'checks' }),
+  ])
+  // A long name sets the width of this zone even before the icon needs room.
+  const group = { id: 'checks', title: 'Availability checks before placing an order', overview: '', color: 'blue' as const }
+  const withoutIcon = sheetScene({ ...world, groups: [group] })
+  const scene = sheetScene({ ...world, groups: [{ ...group, icon: 'board' }] })
+  const zone = scene.zones[0]!
+  assert.equal(zone.color, 'blue')
+  assert.equal(zone.icon, 'board')
+  assert.ok(zone.rect.w > withoutIcon.zones[0]!.rect.w)
+})
+
 test.concurrent('the same world gives the same sheet and the world is untouched', async () => {
   const fixture = await loadAnnotatedArchitecture(viewerFixtureRoot)
   const before = structuredClone(fixture)
   const first = sheetScene(fixture)
   const second = sheetScene({
     flows: fixture.flows,
+    groups: fixture.groups,
     elements: [...fixture.elements].reverse().map((element, index) => ({
       ...element,
       bounds: { x: 10_000 - index, y: -10_000 + index, width: 1, height: 1 },
@@ -296,6 +313,7 @@ test.concurrent('source files compress into nested project-relative floors witho
       parent: 'observed:api',
       code: [{ scanner: 'fixture', file: 'src/single.ts', lines: 0, dependencies: 0, dependents: 0 }],
     }),
+    box('review', 'component', unit, { parent: 'observed:api', origin: 'virtual' }),
     box('middle', 'component', unit, {
       parent: 'observed:api',
       code: code.slice(0, 4).map((reference, index) => ({ ...reference, file: `src/middle-${index}.ts` })),
@@ -306,6 +324,8 @@ test.concurrent('source files compress into nested project-relative floors witho
     }),
   ]))
   const single = scene.buildings.find(building => building.id === 'single')!
+  const plate = scene.buildings.find(building => building.id === 'review')!
+  assert.ok(plate.heightUnits > 0 && plate.heightUnits < single.heightUnits)
   const middle = scene.buildings.find(building => building.id === 'middle')!
   const tower = scene.buildings.find(building => building.id === 'tower')!
   assert.equal(single.floors.length, 1)

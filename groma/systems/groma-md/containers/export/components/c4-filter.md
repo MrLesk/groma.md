@@ -8,7 +8,10 @@ groma:
   code:
     - scanner: typescript
       file: src/viewers/web/chrome/c4-filter.ts
-  group: Browser controls
+    - scanner: typescript
+      file: src/viewers/web/tags/tag-focus.ts
+    - scanner: typescript
+      file: src/viewers/web/tags/tag-list.ts
 description: Shows or hides element kinds and relationships on the browser map
 ---
 

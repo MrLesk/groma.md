@@ -14,7 +14,7 @@ export function buildingLook(item: ProjectedMapItem, theme: ViewerTheme, state: 
     color: lit ? theme.selected : theme[item.origin],
     attributes: lit ? TextAttributes.BOLD : state.dimmed ? TextAttributes.DIM : 0,
     heavy: state.selected,
-    dashed: item.origin !== 'observed',
+    dashed: item.origin === 'draft',
     rounded: item.kind !== 'component',
     rank: state.selected ? 40 : lit ? 35 : 20,
   }

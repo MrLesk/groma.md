@@ -19,7 +19,7 @@ function task(id: string, title: string, status = 'In Progress'): WorkItem {
 test.concurrent('web search merges architecture and plugin tasks by match relevance', async () => {
   const world = await loadAnnotatedArchitecture(fixtureRoot)
   const element = world.elements.find(item => item.kind === 'component')!
-  const search = createWebSearch(world.elements, [
+  const search = createWebSearch(world.elements, [], [
     task('OPS-17', `${element.title} dispatch`),
     task('OPS-170', 'Archive completed work'),
   ])
@@ -34,7 +34,7 @@ test.concurrent('web search merges architecture and plugin tasks by match releva
 
 test.concurrent('task matches include unmapped work in every plugin status', () => {
   const items = ['Queued', 'Doing', 'Finished'].map((status, index) => task(`OPS-${index}`, 'Shipping', status))
-  const search = createWebSearch([], items)
+  const search = createWebSearch([], [], items)
   const matches = search.find('shiping')
   assert.deepEqual(matches.map(result => result.kind === 'task' && result.task.status), ['Queued', 'Doing', 'Finished'])
   assert.deepEqual(search.find('   '), [])
@@ -44,14 +44,14 @@ test.concurrent('missing optional work leaves core architecture results unchange
   const world = await loadAnnotatedArchitecture(fixtureRoot)
   const query = world.elements.find(element => element.kind === 'component')!.title
   const expected = createArchitectureSearch(world.elements).find(query)
-  const actual = createWebSearch(world.elements, []).find(query)
+  const actual = createWebSearch(world.elements, [], []).find(query)
   assert.deepEqual(actual, expected.map(result => ({ kind: 'architecture', ...result })))
 })
 
 test.concurrent('work updates replace task matches without changing architecture results', async () => {
   const world = await loadAnnotatedArchitecture(fixtureRoot)
   const query = world.elements.find(element => element.kind === 'component')!.title
-  const search = createWebSearch(world.elements, [task('OPS-1', 'Shipping')])
+  const search = createWebSearch(world.elements, [], [task('OPS-1', 'Shipping')])
   const architecture = search.find(query).filter(result => result.kind === 'architecture')
   search.updateTasks([task('OPS-2', 'Shipping')])
   assert.deepEqual(search.find('Shipping').map(result => result.kind === 'task' && result.task.id), ['OPS-2'])
