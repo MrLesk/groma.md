@@ -7,7 +7,7 @@
   "groma": {
     "scanner": {
       "id": "vue",
-      "entry": "./dist/package/dist/index.js",
+      "entry": "./src/index.ts",
       "include": [
         "**/*.vue",
         "**/*.ts",

@@ -7,7 +7,7 @@
   "groma": {
     "scanner": {
       "id": "react",
-      "entry": "./dist/package/dist/index.js",
+      "entry": "./src/index.ts",
       "include": [
         "**/*.ts",
         "**/*.tsx",
