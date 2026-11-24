@@ -152,7 +152,8 @@ test.concurrent('a scan never gives a new component the id of a group', async ()
 
 /** Names a group the way groma 0.7 did: in a `group` field of the document's own groma mapping. */
 async function writeOldGroupField(document: string, name: string): Promise<void> {
-  const source = await readFile(document, 'utf8')
+  // A Windows checkout stores the fixture with CRLF line endings.
+  const source = (await readFile(document, 'utf8')).replaceAll('\r\n', '\n')
   const named = source.replace(/^groma:\n {2}id: .+\n/m, line => `${line}  group: ${name}\n`)
   expect(named).not.toBe(source)
   await writeFile(document, named)
