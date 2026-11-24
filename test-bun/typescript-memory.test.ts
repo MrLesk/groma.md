@@ -5,15 +5,15 @@ import path from 'node:path'
 import { API } from 'typescript/async'
 
 import manifest from '../plugins/scanners/typescript/package.json'
+import { largestProgramSource } from '../plugins/scanners/typescript/src/program-memory.ts'
 import { scanTypeScriptSource } from '../plugins/scanners/typescript/src/scan.ts'
-import { largestProgramSource } from '../plugins/scanners/typescript/src/source-analysis.ts'
 import { scannerFiles } from '../src/scanner/modules/selection.ts'
 
 /** One byte more source than one program may hold on this machine. */
 const tooLarge = () => Math.floor(largestProgramSource()) + 1
 
 async function repository(files: Record<string, string>): Promise<string> {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-ts-memory-'))
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-ts-large-'))
   for (const [file, text] of Object.entries(files)) {
     await mkdir(path.dirname(path.join(root, file)), { recursive: true })
     await writeFile(path.join(root, file), text)
@@ -28,7 +28,7 @@ async function failure(root: string): Promise<string | undefined> {
   return scanTypeScriptSource(root, files).then(() => undefined, (error: Error) => error.message)
 }
 
-test.concurrent('a project whose own files need more memory than a scan may take is never compiled', async () => {
+test.concurrent('a project whose own files need more memory than one project may take is never compiled', async () => {
   const root = await repository({ 'tsconfig.json': JSON.stringify({ include: ['src'] }), 'src/huge.ts': '' })
   // The scan stops before anything reads the file, so only its size matters and nothing is written for it.
   await truncate(path.join(root, 'src/huge.ts'), tooLarge())
