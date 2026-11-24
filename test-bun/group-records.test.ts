@@ -182,9 +182,11 @@ test.concurrent('a project groma 0.7 wrote turns the group names on its componen
 test.concurrent('a group converted from groma 0.7 takes the next free id when its usual id is taken', async () => {
   const root = await shop()
   try {
+    // An element holds the usual id of both names, and the two names differ only in letter case.
     expect(await planned(root, 'Api checks', 'api')).toBe('api-checks')
     await writeOldGroupField(apiDocument(root, 'components/orders.md'), 'Checks')
+    await writeOldGroupField(apiDocument(root, 'components/stock.md'), 'checks')
 
-    expect(membership(await loadAnnotatedArchitecture(root))).toEqual({ 'api-checks-2': ['orders'] })
+    expect(membership(await loadAnnotatedArchitecture(root))).toEqual({ 'api-checks-2': ['orders'], 'api-checks-3': ['stock'] })
   } finally { await rm(root, { recursive: true, force: true }) }
 })

@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-11-24T20:23:00Z'
-updated_date: '2026-11-24T20:40:00Z'
+updated_date: '2026-11-24T20:46:00Z'
 labels: []
 dependencies: []
 modified_files:
@@ -75,6 +75,8 @@ Architecture: the scan placed src/group-upgrade.ts as a stand-alone component; m
 codehygiene: one duplicate_block flag at src/group-upgrade.ts:23 (the call of oldGroupName), a false positive; older flags in architecture-reader.ts and an earlier test are outside this change.
 
 Final bun run check after both reviews: passed (954 Bun and 28 Node tests, 0 failures; the 2 Biome warnings are in files outside this change).
+
+Codex review on pull request 244 (P2): groups were keyed by their kebab-case id, so `Order checks` in container `api` and `Checks` in container `api-order` merged into one group spanning two containers (the load still failed), and `Order checks` and `Order-checks` in one container silently became one group. Groups are now keyed by their container and exact name; only the record id is normalized and numbered. Test b covers two names that differ only in letter case (api-checks-2 and api-checks-3) and fails with the old keying. bun run check passed again (954 Bun and 28 Node tests).
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary

@@ -26,9 +26,10 @@ function freeGroupId(context: GroupContext, base: string, batch: ReadonlyMap<str
 }
 
 /**
- * The groups the old fields name: the components of one container that wrote the same name. A container, a
- * component without a container, and a name without a letter or a digit form no group, because a group holds
- * components of one container.
+ * The groups the old fields name: the components of one container that wrote exactly the same name. Names that
+ * only share a kebab-case form stay separate groups and get separate ids. A container, a component without a
+ * container, and a name without a letter or a digit form no group, because a group holds components of one
+ * container.
  */
 function namedGroups(named: readonly ArchitectureDocument[], context: GroupContext): BatchGroupInput[] {
   const groups = new Map<string, BatchGroupInput>()
@@ -37,10 +38,10 @@ function namedGroups(named: readonly ArchitectureDocument[], context: GroupConte
     const element = context.model.elements.find(candidate => candidate.sourceFilename === document.sourceFilename)
     const container = context.model.elements.find(candidate => candidate.id === element?.parentId)
     if (element?.kind !== 'component' || container?.kind !== 'container' || kebabCase(name) === '') continue
-    const base = kebabCase(`${container.id}-${name}`)
-    const group = groups.get(base) ?? { name, members: [], id: freeGroupId(context, base, groups) }
+    const key = JSON.stringify([container.id, name])
+    const group = groups.get(key) ?? { name, members: [], id: freeGroupId(context, kebabCase(`${container.id}-${name}`), groups) }
     group.members.push(element.id)
-    groups.set(base, group)
+    groups.set(key, group)
   }
   return [...groups.values()]
 }
