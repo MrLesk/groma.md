@@ -34,6 +34,9 @@ groma:
     - scanner: typescript
       file: plugins/scanners/typescript/src/source-symbols.ts
       symbol: exportSymbols
+    - scanner: typescript
+      file: plugins/scanners/typescript/src/compiler.ts
+      symbol: compilerApi
 description: Analyses TypeScript projects with the compiler
 ---
 
