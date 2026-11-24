@@ -1,8 +1,9 @@
 import path from 'node:path'
-import { API, ModuleKind, ModuleResolutionKind, type CompilerOptions } from 'typescript/async'
+import { ModuleKind, ModuleResolutionKind, type API, type CompilerOptions } from 'typescript/async'
 import { SyntaxKind, type SourceFile } from 'typescript/ast'
 import type { ScanDiagnostic, ScanHttpEndpoint, ScanHttpRequest, ScanSymbol, ScanOperation, ScanInvocation } from '@groma/scanner'
 
+import { compilerApi } from './compiler.ts'
 import { usedImportSpecifiers } from './source-usage.ts'
 import { buildOutputs, typescriptProjects, type TypeScriptProject } from './projects.ts'
 import { resolvedImports } from './source-imports.ts'
@@ -10,6 +11,7 @@ import { sourceOperations } from './source-operations.ts'
 import { exportSymbols } from './source-symbols.ts'
 import { nativeChecker, syntax } from './native-checker.ts'
 import { sourceBuildEntries } from '../../entry-points/source.ts'
+import { inBatches } from '../../http-checker.ts'
 import type { SourceEntry } from '../../entry-points/javascript.ts'
 import { packagePaths, type BuildOutput } from '../../workspace-packages.ts'
 
@@ -70,7 +72,7 @@ function mergedEvidence(programs: readonly ProjectEvidence[]): ProjectEvidence {
  */
 export async function analyzeSourceFiles(repositoryRoot: string, paths: string[], files: readonly string[]): Promise<SourceEvidence> {
   if (paths.length === 0) return { ...mergedEvidence([]), diagnostics: [], buildOutputs: [] }
-  const api = new API({ cwd: repositoryRoot })
+  const api = compilerApi(repositoryRoot)
   try {
     const { projects, diagnostics } = await typescriptProjects(api, repositoryRoot, paths, files)
     const outputs = buildOutputs(repositoryRoot, projects)
@@ -110,7 +112,7 @@ async function analyzeProject(
   const program = await api.createProgram(project.files,
     { ...options, paths: { ...workspacePaths, ...options.paths }, noEmit: true })
   try {
-    const sources = await Promise.all(paths.map(file => program.getSourceFile(path.join(repositoryRoot, file))))
+    const sources = await inBatches(paths, file => program.getSourceFile(path.join(repositoryRoot, file)))
     const selectedProgramSources = sources.filter((source): source is SourceFile => source !== undefined)
     // The program's selected files by the compiler's path, so an import is matched to its file without loading it.
     const selectedFiles = new Map(selectedProgramSources.map(source =>
@@ -121,12 +123,12 @@ async function analyzeProject(
     const evidence = await sourceOperations(repositoryRoot, selectedProgramSources, checker, sharedChecker)
     const owned = new Set(project.files.map(file => path.resolve(file)))
     const readsImports = ({ fileName }: SourceFile) => owned.has(path.resolve(fileName)) || !configured.has(path.resolve(fileName))
-    const files = await Promise.all(selectedProgramSources.filter(readsImports).map(async source => {
+    const files = await inBatches(selectedProgramSources.filter(readsImports), async source => {
       const file = selectedFiles.get(source.path)!
       const specifiers = await usedImportSpecifiers(source, checker)
       const imports = await resolvedImports(source, specifiers, checker, selectedFiles)
       return { file, imports, symbols: exportSymbols(file, source) }
-    }))
+    })
     const entries = await sourceBuildEntries(repositoryRoot, { ...syntax, SyntaxKind }, sharedChecker, selectedProgramSources)
     return { files, ...evidence, entries }
   } finally {

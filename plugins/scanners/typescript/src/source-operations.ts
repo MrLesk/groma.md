@@ -27,6 +27,8 @@ interface Values {
 const unknown = (): Values[] => [{ nodes: [], unresolved: true }]
 const MAX_DEPTH = 8
 const MAX_ALTERNATIVES = 32
+/** A large program has hundreds of thousands of names; both processes hold a request and its answer whole. */
+const NAMES_PER_REQUEST = 32_768
 
 /** Only these identifier positions can be followed by the value resolver. */
 function valueReference(node: Node): boolean {
@@ -81,13 +83,12 @@ class OperationResolver {
       node.forEachChild(child => visit(child, calls))
     }
     for (const source of sources) visit(source, this.calls)
-    const symbols = await this.checker.getSymbolAtLocation(names)
-    for (let index = 0; index < names.length; index++) this.symbols.set(names[index]!, symbols[index])
+    await this.askSymbols(names)
     for (const write of writes) {
       const symbol = this.symbols.get(write)
       if (symbol) this.writtenReceivers.add(symbol.id)
     }
-    await Promise.all(this.calls.map(async call => {
+    await inBatches(this.calls, async call => {
       const values = await this.resolve(call.expression, 0, false)
       for (const value of values) {
         if (value.unresolved) continue
@@ -97,10 +98,18 @@ class OperationResolver {
           this.callers.set(node, calls)
         }
       }
-    }))
+    })
     for (const calls of this.callers.values()) calls.sort((left, right) => {
       return left.getSourceFile().fileName.localeCompare(right.getSourceFile().fileName) || left.getStart() - right.getStart()
     })
+  }
+
+  private async askSymbols(names: Node[]): Promise<void> {
+    for (let offset = 0; offset < names.length; offset += NAMES_PER_REQUEST) {
+      const slice = names.slice(offset, offset + NAMES_PER_REQUEST)
+      const symbols = await this.checker.getSymbolAtLocation(slice)
+      for (let index = 0; index < slice.length; index++) this.symbols.set(slice[index]!, symbols[index])
+    }
   }
 
   private declaration(name: Node): Promise<Node | undefined> {
