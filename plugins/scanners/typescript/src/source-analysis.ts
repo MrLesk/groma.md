@@ -1,3 +1,5 @@
+import { stat } from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 import { API, ModuleKind, ModuleResolutionKind, type CompilerOptions } from 'typescript/async'
 import { SyntaxKind, type SourceFile } from 'typescript/ast'
@@ -94,9 +96,46 @@ export async function analyzeSourceFiles(repositoryRoot: string, paths: string[]
 }
 
 /**
+ * Analysing one program takes about this many bytes of memory for every byte of its source, at the highest point and
+ * in both processes together: the compiler holds the program's syntax trees and symbols, and the scanner its copy of
+ * the trees and what it resolves from them. Programs of 18 to 36 MB of source in three repositories took 184 to 258.
+ * To measure again, divide the highest memory of both processes by the source size of one such program.
+ */
+const MEMORY_PER_SOURCE_BYTE = 250
+
+/** One program's analysis may take this share of the machine's memory; the rest stays with everything else running. */
+const MACHINE_SHARE = 0.5
+
+/** The most source, in bytes, that one program may hold on this machine. */
+export function largestProgramSource(): number {
+  return os.totalmem() * MACHINE_SHARE / MEMORY_PER_SOURCE_BYTE
+}
+
+const gigabytes = (bytes: number) => `${Number((bytes / 2 ** 30).toFixed(1))} GB`
+
+/**
+ * Fails the scan before a program takes more memory than the machine can give it. A program that runs the machine out
+ * of memory freezes it or is killed without a word; this failure is a message, and core keeps the saved scanner data.
+ */
+function requireMemoryFor(project: string, files: number, sourceBytes: number): void {
+  if (sourceBytes <= largestProgramSource()) return
+  throw new Error(`stopped, ${project} (${files.toLocaleString('en-US')} files) would take about `
+    + `${gigabytes(sourceBytes * MEMORY_PER_SOURCE_BYTE)} of memory, more than the `
+    + `${gigabytes(os.totalmem() * MACHINE_SHARE)} a scan may take of this machine's ${gigabytes(os.totalmem())}`)
+}
+
+/** The size on disk of a project's files. A file removed since the files were listed counts as nothing. */
+async function sizeOnDisk(files: readonly string[]): Promise<number> {
+  const sizes = await Promise.all(files.map(file => stat(file).then(stats => stats.size, () => 0)))
+  return sizes.reduce((sum, size) => sum + size, 0)
+}
+
+/**
  * A program lives for one project's analysis. Its evidence is plain data, so the program and the source trees fetched
  * for it are released before the next project is compiled: a repository of many projects then needs the memory of its
- * largest one, not of all of them together.
+ * largest one, not of all of them together. That one has to fit the machine. Compiling takes most of the compiler's
+ * memory within a second, so the project's own files are measured before it; the files they import are known only
+ * once the program exists, so the program is measured again before its symbols are read.
  */
 async function analyzeProject(
   api: API, repositoryRoot: string, paths: string[], project: TypeScriptProject, workspacePaths: Record<string, string[]>,
@@ -106,12 +145,16 @@ async function analyzeProject(
     noLib: true, types: [], allowJs: true,
     moduleResolution: ModuleResolutionKind.Bundler, module: ModuleKind.Preserve,
   }
+  const name = project.config === undefined ? 'the files outside every tsconfig.json'
+    : path.relative(repositoryRoot, project.key).split(path.sep).join('/')
+  requireMemoryFor(name, project.files.length, await sizeOnDisk(project.files))
   // Repository packages resolve to their source without node_modules; an identical key in the config's own paths wins.
   const program = await api.createProgram(project.files,
     { ...options, paths: { ...workspacePaths, ...options.paths }, noEmit: true })
   try {
     const sources = await Promise.all(paths.map(file => program.getSourceFile(path.join(repositoryRoot, file))))
     const selectedProgramSources = sources.filter((source): source is SourceFile => source !== undefined)
+    requireMemoryFor(name, selectedProgramSources.length, selectedProgramSources.reduce((sum, source) => sum + source.text.length, 0))
     // The program's selected files by the compiler's path, so an import is matched to its file without loading it.
     const selectedFiles = new Map(selectedProgramSources.map(source =>
       [source.path, path.relative(repositoryRoot, source.fileName).split(path.sep).join('/')]))
