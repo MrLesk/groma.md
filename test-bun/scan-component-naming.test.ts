@@ -9,6 +9,7 @@ import { writes } from '../src/authoring.ts'
 import { loadArchitecture } from '../src/architecture-reader.ts'
 import { editArchitecture } from '../src/edit.ts'
 import { draftElement } from '../src/draft.ts'
+import { isArchitectureId } from '../src/naming.ts'
 import { componentNames } from '../src/scan-component-naming.ts'
 import { reconcileScanObservations } from '../src/scan-reconciler.ts'
 import { repositoryRoot, withFixture } from './helpers.ts'
@@ -211,5 +212,25 @@ test.concurrent('scanned IDs never take the word the CLI reads as a relation add
       .map(document => (document.frontmatter.groma as { id?: string } | undefined)?.id)
     expect(ids).not.toContain('relation')
     expect((await reconcileScanObservations(root, [scan])).created).toBe(0)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test.concurrent('long component IDs fit on disk and keep distinct file owners on a rescan', async () => {
+  const prefix = '𠀀'.repeat(55)
+  const files = [`src/${prefix}-item.ts`, `src/${prefix}-item.tsx`, `src/${prefix}-other.ts`]
+  const root = await repository()
+  const scan = observation(files)
+  try {
+    await reconcileScanObservations(root, [scan])
+    const initial = await components(root)
+    expect(initial).toHaveLength(files.length)
+    expect(initial.flatMap(component => component.code?.map(reference => reference.file) ?? []).sort())
+      .toEqual([...files].sort())
+    for (const { id } of initial) {
+      expect(Buffer.byteLength(id)).toBeLessThanOrEqual(160)
+      expect(isArchitectureId(id)).toBe(true)
+    }
+    expect((await reconcileScanObservations(root, [scan])).created).toBe(0)
+    expect(await components(root)).toEqual(initial)
   } finally { await rm(root, { recursive: true, force: true }) }
 })

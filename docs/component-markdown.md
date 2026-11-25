@@ -203,22 +203,24 @@ or when a scan finds a previously unknown source. A drafted concept keeps its
 ID and its file when accepted. Architecture IDs live in Markdown, not
 application source.
 
-For new scanned components, core compares the complete batch of unowned
-source files before allocating IDs. It starts with the file stem, then the
-container ID and stem. Collisions add source parent directories, nearest
-first, before the container ID and stem. For example, repeated build files
-under a `scanner` container can become `vue-scanner-build` and
-`react-scanner-build`. Remaining collisions climb further source parents.
-Reserved document names and the command word `relation`, which the CLI reads
-as an address, follow the same qualification rule.
+Core compares the batch of unowned source files before allocating component IDs.
+It starts with the file stem. Collisions add source parent directories, nearest
+first, then prefix the full candidate with the ID of the containing element.
+For example, repeated build files can become `vue-build` and `react-build`.
+Reserved document names and the command word `relation` use the same steps.
 
-If all readable context still collides after lowercase kebab normalization,
-core appends the first eight hexadecimal digits of SHA-256 of the exact
-repository-relative source path, including its extension before normalization.
-Matching hash prefixes grow until the IDs are unique. Contents and scanner
-identity do not enter that hash. Titles use the readable name without the
-hash. An already owned source keeps its stored ID on later scans, including
-when another scanner reports it.
+If all readable candidates still collide, core appends the first eight
+hexadecimal digits of SHA-256 of the exact repository-relative source path,
+including its extension. Matching hash prefixes grow until the IDs are unique.
+
+A new scanned component ID fits in 160 UTF-8 bytes, including its hash suffix.
+This leaves room for the Markdown extension and the temporary suffix used in a local
+write. If a candidate needs shortening, core keeps whole Unicode characters
+from the start of its readable part. When the candidate has no source-path hash,
+it appends the first eight hexadecimal digits of SHA-256 of the full candidate.
+
+Titles keep their readable names. An already owned source keeps its stored ID
+on later scans, including when another scanner reports it.
 
 ### Tags
 
