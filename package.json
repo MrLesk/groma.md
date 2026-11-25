@@ -76,6 +76,7 @@
     "typescript": "7.1.0-beta"
   },
   "patchedDependencies": {
-    "@parcel/watcher@2.6.0": "patches/@parcel%2Fwatcher@2.6.0.patch"
+    "@parcel/watcher@2.6.0": "patches/@parcel%2Fwatcher@2.6.0.patch",
+    "typescript@7.1.0-beta": "patches/typescript@7.1.0-beta.patch"
   }
 }

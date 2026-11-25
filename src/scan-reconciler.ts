@@ -9,7 +9,7 @@ import { loadArchitecture } from './architecture-reader.ts'
 import { architectureElementPath, isExternalPath } from './architecture-path.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
 import { renderArchitectureDocument, upsertCode, writeDocument } from './markdown-emitter.ts'
-import { fitId, isReservedId, kebabCase } from './naming.ts'
+import { isReservedId, kebabCase } from './naming.ts'
 import { componentNames, sourceStem } from './scan-component-naming.ts'
 import { entryPointPlacements } from './scan-entrypoints.ts'
 import { completeContainerPlacement } from './curate.ts'
@@ -94,9 +94,9 @@ function indexWorld(records: ArchitectureRecords): World {
 /** The IDs a record of this name may take, in order: plain, qualified by its parent, then numbered. */
 function candidateId(name: string, parent: WorldRecord | undefined, index: number): string {
   const base = kebabCase(name) || 'source'
-  if (index === 0) return fitId(base)
+  if (index === 0) return base
   const qualified = `${parent?.id ?? 'source'}-${base}`
-  return fitId(index === 1 ? qualified : `${qualified}-${index}`)
+  return index === 1 ? qualified : `${qualified}-${index}`
 }
 
 function isFree(world: World, id: string): boolean {

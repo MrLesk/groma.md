@@ -182,7 +182,20 @@ function targets(root: string, manifest: string, model: Manifest, enabled: Set<s
   return result
 }
 
+/** The shared directory rust-analyzer loads so a path module outside its own crate stays visible. */
+function sharedSourceDirectory(root: string, files: Files): string {
+  let directory: string | undefined
+  for (const file of files) {
+    if (!file.endsWith('.rs')) continue
+    directory ??= path.posix.parse(file).dir
+    while (!isUnder(file, directory)) directory = path.posix.parse(directory).dir
+    if (directory === '') break
+  }
+  return path.resolve(root, directory ?? '')
+}
+
 function sourceCrates(root: string, packages: Package[], model: Manifest, active: Map<string, Set<string>>, files: Files) {
+  const sourceDirectory = sharedSourceDirectory(root, files)
   const crates: Crate[] = []
   const libraries = new Map<string, number>()
   const owners: Package[] = []
@@ -198,8 +211,7 @@ function sourceCrates(root: string, packages: Package[], model: Manifest, active
       crates.push({ root_module: target.file, display_name: target.name,
         edition: typeof edition === 'string' ? edition : '2015', deps: [],
         cfg: [...enabled].filter(name => !name.includes('/') && !name.startsWith('dep:')).sort().map(name => `feature="${name}"`),
-        // A #[path] module may be shared across crates. One source root keeps it visible in each context.
-        source: { include_dirs: [root], exclude_dirs: [] } })
+        source: { include_dirs: [sourceDirectory], exclude_dirs: [] } })
       owners.push(pkg)
     }
   }

@@ -84,8 +84,12 @@ export interface PinLayer {
   paint(pins: readonly WorkPin[]): void
   /** Moves every pin to the surface point it stands on under the camera. */
   place(camera: Camera): void
-  /** Shows pins whose Backlog status is enabled; the pins still shown fan out anew. */
-  show(statuses: readonly string[]): void
+  /**
+   * Shows pins whose Backlog status is enabled; the pins still shown fan out anew. A pin that is finishing stays
+   * for its animation although its new status is not enabled. While `tasksShown` is false, the task island's
+   * switch has every task off: no status is enabled and no pin stays, a finishing one included.
+   */
+  show(statuses: readonly string[], tasksShown: boolean): void
   /** Colours the pins of the active tasks, greyscale otherwise, and marks those of the selected task, which is always one of the active ones. */
   activate(active: readonly string[], selected: string | undefined): void
   /** Recedes the pins that stand on elements a tag focus does not light; undefined ends it. */
@@ -103,6 +107,7 @@ export function createPins(host: HTMLElement, anchorOf: (id: string) => Point | 
   let travelFrame: number | undefined
   let pins: readonly WorkPin[] = []
   let enabledStatuses: readonly string[] = []
+  let tasksShown = true
   const finishing = new Map<string, number>()
   let camera: Camera | undefined
   /** The first paint is the page's baseline; only pins first seen after it announce their arrival. */
@@ -125,7 +130,7 @@ export function createPins(host: HTMLElement, anchorOf: (id: string) => Point | 
   }
   /** The pins the toggles allow fan out leftwards from their element's foot point, stems leaning back to it; the rest hide. */
   const fanOut = (): void => {
-    const shown = pins.filter(pin => pinned.has(pin.key) && (enabledStatuses.includes(pin.status) || finishing.has(pin.key)))
+    const shown = pins.filter(pin => pinned.has(pin.key) && tasksShown && (enabledStatuses.includes(pin.status) || finishing.has(pin.key)))
     const visible = new Set(shown.map(pin => pin.key))
     for (const [key, { node }] of pinned) node.hidden = !visible.has(key)
     const placed = new Map<string, number>()
@@ -208,8 +213,9 @@ export function createPins(host: HTMLElement, anchorOf: (id: string) => Point | 
       camera = current
       place(scaleChanged)
     },
-    show(statuses) {
+    show(statuses, shown) {
       enabledStatuses = statuses
+      tasksShown = shown
       fanOut()
     },
     recede(selection) {

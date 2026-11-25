@@ -7,6 +7,7 @@ import { withJavaScriptEntries } from '../../entry-points/javascript.ts'
 import { entrySourceInputs, type EntrySources } from '../../entry-points/source.ts'
 import { classicChecker } from '../../http-checker.ts'
 import { combineObservations } from '../../observations.ts'
+import { packageRootName } from '../../typescript-project.ts'
 import { sourceDirective } from './directives.ts'
 import { enclosingOperation, Evidence } from './evidence.ts'
 import { angularHttpRequests } from './http.ts'
@@ -72,9 +73,10 @@ async function scanProject(root: string, directory: string, programs: readonly A
   for (const file of new Set([...sourceUnits.flatMap(unit => unit.files), ...operations])) {
     if (!observed.has(file)) files.push({ file, symbols: [] })
   }
-  const manifest = JSON.parse(readFileSync(path.join(root, directory, 'package.json'), 'utf8'))
+  const packageDirectory = path.resolve(root, directory)
+  const manifest: Record<string, unknown> = JSON.parse(readFileSync(path.join(packageDirectory, 'package.json'), 'utf8'))
   return createScanObservation({ scanner: { id: 'angular', technology: 'typescript/angular', engine: '@angular/compiler', engineVersion: VERSION.full },
-    roots: [{ id: 'angular-project', kind: 'package', name: manifest.name, file: path.posix.join(directory, 'package.json') }],
+    roots: [{ id: 'angular-project', kind: 'package', name: packageRootName(manifest, packageDirectory), file: path.posix.join(directory, 'package.json') }],
     files: files.map(file => ({ ...file, roots: ['angular-project'] })),
     sourceUnits, operations: [...evidence.operations.values()], invocations: evidence.invocations, diagnostics: evidence.diagnostics,
     ...(httpRequests.length ? { httpRequests } : {}) })

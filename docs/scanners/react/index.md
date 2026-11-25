@@ -42,6 +42,8 @@ config's own settings and reports a `react-missing-config-base` warning.
 Invalid configuration and source syntax fail with a diagnostic; missing external
 types do not prevent local callback extraction.
 The scanner does not run application code or require successful type checking.
+A `package.json` name supplies the package's root name when present; otherwise
+the directory name is used.
 
 ## Evidence and tooling
 

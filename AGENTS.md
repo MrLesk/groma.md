@@ -180,6 +180,17 @@ Do not repeat the diff, list changed files, or report routine passing checks and
 that add no useful context. Keep required issue or task links; if no explanation is needed, those links can be the
 whole description.
 
+## Merging PRs
+
+Pull requests land on `main` by squash merge, one commit per pull request: `gh pr merge <number> --squash`, or
+`gh stack merge --squash` for a stack. Name the method on every merge. The repository also allows merge commits and
+rebase merges, which put every commit of the pull request on `main`, and `gh stack merge` otherwise reuses the method
+used last.
+
+GitHub takes the squashed commit's subject from the pull request's title, appends the pull request number, and uses the
+description as the commit body. Give the pull request the same `<TASK-ID> - <task title>` title as its commits, so
+`main` reads `TASK-28.3 - Supply annotated architecture through Groma core (#123)`.
+
 ## Minimum sufficient product
 
 Build the smallest complete result that matches the requested outcome and any approved example. Keep the concrete

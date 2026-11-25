@@ -13,13 +13,14 @@ const rustFiles = (root: string) => scannerFiles(root, { include, exclude })
 /** The files the package's include list names, before exclusions: what the source listing narrows. */
 const candidates = (root: string) => scannerFiles(root, { include })
 
-async function fixture(action: (root: string) => Promise<void>) {
+async function fixture(action: (root: string) => Promise<void>, directory = '') {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-rust-workspace-'))
   try {
     const files = JSON.parse(await readFile(path.resolve(import.meta.dir, '../test/fixtures/rust-workspace.json'), 'utf8'))
     for (const [file, source] of Object.entries(files)) {
-      await mkdir(path.dirname(path.join(root, file)), { recursive: true })
-      await writeFile(path.join(root, file), source as string)
+      const filename = path.join(root, directory, file)
+      await mkdir(path.dirname(filename), { recursive: true })
+      await writeFile(filename, source as string)
     }
     await execute('git', ['init', '--quiet', root])
     await action(root)
@@ -39,6 +40,14 @@ test.concurrent('implicit path members inherit editions only when declared and r
     // Dev dependencies contribute workspace membership, but not calls in the library graph.
     expect(dependencies).toEqual({ app: ['service'], service: [], support: ['service'] })
   })
+})
+
+test.concurrent('a nested workspace loads its shared Rust sources without walking the rest of the repository', async () => {
+  await fixture(async root => {
+    const project = await readRustProject(root, { manifest: 'nested/Cargo.toml' }, await rustFiles(root))
+    const sharedDirectory = path.join(root, 'nested')
+    for (const crate of project.crates) expect(crate.source.include_dirs).toEqual([sharedDirectory])
+  }, 'nested')
 })
 
 test.concurrent('a workspace is one project when its members are listed before its manifest', async () => {

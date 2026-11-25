@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 
-import { displayName, fitId, isReservedId, kebabCase } from './naming.ts'
+import { displayName, isReservedId, kebabCase } from './naming.ts'
 
 interface ComponentSource {
   file: string
@@ -20,7 +20,27 @@ function readableNames(source: ComponentSource): string[] {
     names.push(kebabCase(`${parents.slice(-depth).join('-')}-${stem}`))
   }
   names.push(`${source.parent}-${names[names.length - 1]}`)
-  return [...new Set(names.map(fitId))]
+  return [...new Set(names)]
+}
+
+const MAX_COMPONENT_ID_BYTES = 160
+
+/** Leave room for the Markdown extension and the atomic write's temporary suffix. */
+function fitComponentId(readable: string, sourceHash?: string): string {
+  const id = sourceHash === undefined ? readable : `${readable}-${sourceHash}`
+  if (Buffer.byteLength(id) <= MAX_COMPONENT_ID_BYTES) return id
+  const hash = sourceHash ?? createHash('sha256')
+    .update(readable)
+    .digest('hex')
+    .slice(0, 8)
+  let bytesLeft = MAX_COMPONENT_ID_BYTES - hash.length - 1
+  let prefix = ''
+  for (const character of readable) {
+    bytesLeft -= Buffer.byteLength(character)
+    if (bytesLeft < 0) break
+    prefix += character
+  }
+  return `${prefix.replace(/-+$/, '')}-${hash}`
 }
 
 function advance(candidate: { position: number; names: string[]; hashLength: number }): void {
@@ -42,7 +62,8 @@ export function componentNames(
   }))
   const idFor = (candidate: typeof candidates[number]) => {
     const name = candidate.names[candidate.position]!
-    return candidate.hashLength === 0 ? name : `${name}-${candidate.hash.slice(0, candidate.hashLength)}`
+    const sourceHash = candidate.hashLength === 0 ? undefined : candidate.hash.slice(0, candidate.hashLength)
+    return fitComponentId(name, sourceHash)
   }
   while (true) {
     const counts = new Map<string, number>()

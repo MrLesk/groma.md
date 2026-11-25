@@ -1,27 +1,7 @@
-import { createHash } from 'node:crypto'
-
 import { isReservedDocument } from './architecture-path.ts'
 
 export function kebabCase(name: string): string {
   return name.toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu)?.join('-') ?? ''
-}
-
-/**
- * An element id is its file name, and filesystems cap names at 255 bytes. Keep generated ids well under that,
- * leaving room for ".md" and the atomic-write temporary suffix. A longer id keeps its readable start and ends
- * in a hash of the whole id, so distinct long ids stay distinct and the same source keeps the same id.
- */
-const MAX_ID_BYTES = 160
-
-export function fitId(id: string): string {
-  if (Buffer.byteLength(id) <= MAX_ID_BYTES) return id
-  const hash = createHash('sha256').update(id).digest('hex').slice(0, 8)
-  let start = ''
-  for (const character of id) {
-    if (Buffer.byteLength(start + character) > MAX_ID_BYTES - hash.length - 1) break
-    start += character
-  }
-  return `${start.replace(/-+$/, '')}-${hash}`
 }
 
 /** Architecture identities use the same Unicode word format that new names receive. */

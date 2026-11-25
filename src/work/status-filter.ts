@@ -31,6 +31,15 @@ export function workStatusFilters(
   }
 }
 
+/**
+ * The statuses whose tasks the map shows. The task island's mark turns every
+ * task off without changing the status filters: the map then gets no status,
+ * and the enabled statuses return unchanged when tasks are turned on again.
+ */
+export function shownWorkStatuses(enabled: readonly string[], tasksShown: boolean): readonly string[] {
+  return tasksShown ? enabled : []
+}
+
 /** Returns the same filter state with one status enabled or disabled. */
 export function toggleWorkStatus(state: WorkStatusFilterState, status: string): WorkStatusFilterState {
   return {

@@ -242,7 +242,7 @@ export function vueProject(root: string, repositoryRoot: string, files: readonly
   const readable = new Set(files)
   const manifestFile = path.join(root, 'package.json')
   if (!readable.has(relative(repositoryRoot, manifestFile))) return undefined
-  const manifest = JSON.parse(readFileSync(manifestFile, 'utf8'))
+  const manifest: Record<string, unknown> = JSON.parse(readFileSync(manifestFile, 'utf8'))
   if (!hasDependency(manifest, 'vue')) return undefined
   try {
     return { manifest, project: new VueProject(root, repositoryRoot, sources, owners, readable) }

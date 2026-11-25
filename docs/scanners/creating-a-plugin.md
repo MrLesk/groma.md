@@ -591,7 +591,9 @@ The TypeScript scanner and Angular scanner identify their respective
 Code contributions as `typescript` and `angular`, even when they inspect the
 same file. Core keeps one owner for that source path.
 
-All paths are repository-relative. Root parents and file memberships must resolve
+All paths are repository-relative. Every root must have a name: when the file that
+defines a root declares none, as a `package.json` without `name` does, name the root
+after its directory. Root parents and file memberships must resolve
 inside the observation, and the root hierarchy must have no cycles. Invocation
 endpoints and HTTP facts must identify declared operations. A scanner's exclusions
 drop HTTP facts whose operation is in an excluded file. Duplicate primary keys
@@ -711,4 +713,9 @@ Use `groma plugin list` and `groma scanner check` to inspect the result;
 
 Updates are explicit. Scanning, starting a viewer or upgrading groma.md does not
 select a newer scanner. Local plugins continue to run from their configured
-folder; rebuild their entry and restart groma.md after changing their code.
+folder. Start a new groma.md process after editing a local plugin. Rebuild it
+first if its entry points to a generated file.
+
+In the groma.md checkout, the Angular, React, and Vue scanner entries point to
+TypeScript source. Run `bun install --frozen-lockfile --ignore-scripts` in the
+checkout to install their dependencies.
