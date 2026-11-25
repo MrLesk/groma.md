@@ -84,6 +84,49 @@ export function pluginSettingAction(plugin: PluginSetting): PluginSettingsAction
   return plugin.installSource ? { action: 'install', id: plugin.id } : undefined
 }
 
+/** A plugin action that is running, with the rows as they were when it started. */
+export interface RunningPluginAction {
+  action: PluginSettingsAction
+  before: readonly PluginSetting[]
+}
+
+const INSTALLING = 'Installing…'
+
+/**
+ * What a row says while an action runs on it, in the place of its status; undefined when the action leaves the
+ * row alone. A row an action acts on shows no status until the action has ended: config.json lists a new plugin
+ * while the same action still scans with it, so what its status says by then is not the result yet.
+ *
+ * Each case names the rows its action acts on, as changePluginSettings in settings.ts carries the action out.
+ * `was` is the row as it was when the action started.
+ */
+export function pluginProgress({ action, before }: RunningPluginAction, plugin: PluginSetting): string | undefined {
+  const was = before.find(row => row.id === plugin.id)
+  /** The words for a row the action acts on, and nothing for any other row. */
+  const says = (actsOnRow: boolean, words: string): string | undefined => actsOnRow ? words : undefined
+  switch (action.action) {
+    case 'install': case 'restore': return says(plugin.id === action.id, INSTALLING)
+    case 'update': return says(plugin.id === action.id, 'Updating…')
+    case 'remove': return says(plugin.id === action.id, 'Removing…')
+    // Add names a source, not a row: its row is the one config.json lists now and did not list at the start.
+    case 'add': return says(plugin.listed && was?.listed !== true, INSTALLING)
+    case 'install-recommended': return says(was?.kind === 'scanner' && !was.listed && Boolean(was.installSource), INSTALLING)
+    case 'install-missing': return says(was?.status === 'missing', INSTALLING)
+    case 'retry': return says(was?.status === 'blocked', 'Scanning…')
+    case 'automatic-updates': return undefined
+  }
+}
+
+/**
+ * The plugin Add is installing while it has no row of its own: the typed source, and what a row for it says.
+ * Once config.json lists the new plugin its own row says it (pluginProgress), and this is undefined.
+ */
+export function pendingPlugin(running: RunningPluginAction, plugins: readonly PluginSetting[]): { source: string; progress: string } | undefined {
+  const { action } = running
+  if (action.action !== 'add' || plugins.some(plugin => pluginProgress(running, plugin) !== undefined)) return undefined
+  return { source: action.source, progress: INSTALLING }
+}
+
 export function scannerMatchReason(scanner: ScannerSetting): string {
   const folders = [...new Set(scanner.matches.map(file => file.includes('/') ? file.slice(0, file.lastIndexOf('/') + 1) : 'project root'))]
   if (!folders.length) return scanner.match === 'unknown' ? 'Project match unknown' : 'No matching project files'
