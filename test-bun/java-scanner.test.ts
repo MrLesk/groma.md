@@ -148,6 +148,23 @@ public class Caller {
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('javac crashes after reported errors cost only the classes they crashed on', async () => {
+  const { root, worker } = await fixture()
+  try {
+    const sources = {
+      'B.java': 'abstract class B<T extends I> { void f() { Object o = (T) this; } }\n',
+      'C.java': 'abstract class C<T extends I> { void g() { Object o = (T) this; } }\n',
+      'I.java': 'interface I<T extends I> extends Missing {}\n',
+      'Later.java': 'class Later { private static void step() {} static void run() { step(); } }\n',
+    }
+    for (const [file, source] of Object.entries(sources)) await writeFile(path.join(root, 'src/main/java', file), source)
+    const files = Object.keys(sources).map(file => `src/main/java/${file}`).join('\n')
+    const observation = parseScanObservation(await run(javaCommand(), ['-jar', worker, root, '25', 'UTF-8'], root, files))
+    expect(calls(observation).find(call => call.member === 'step')).toMatchObject({ providers: ['Later#step()'], unresolved: false })
+    expect(observation.diagnostics.find(item => item.code === 'JAVA_ATTRIBUTION_CRASHED')?.message).toContain('NullPointerException')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('a modular Java project keeps authored local calls', async () => {
   const { root, worker } = await fixture()
   try {
