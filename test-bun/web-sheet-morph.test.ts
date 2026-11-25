@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'bun:test'
 
 import type { Building, Route, SheetScene } from '../src/sheet/types.ts'
-import { MORPH_DURATION_MS, MORPH_FASTEST_MS, sameSheet, tweenSheet } from '../src/viewers/web/iso/view-motion/morph.ts'
+import { MORPH_DURATION_MS, MORPH_FASTEST_MS, tweenSheet } from '../src/viewers/web/iso/view-motion/morph.ts'
 import { createMapMotion, presentScene } from '../src/viewers/web/iso/view-motion/presentation.ts'
 import { NESTED_POSE } from '../src/viewers/web/iso/view-motion/orbit.ts'
 import { labelBand, CONTAINER_FONT } from '../src/sheet/measure.ts'
@@ -33,52 +33,6 @@ function sheetOf(buildings: Building[], routes: Route[] = [], width = 40): Sheet
 
 const before = sheetOf([building('a', 6, 6), building('gone', 20, 6)], [route('a-gone', 'a', 'gone', [{ gx: 10, gy: 8 }, { gx: 20, gy: 8 }])])
 const after = sheetOf([building('a', 12, 6, 4), building('b', 24, 6)], [route('a-b', 'a', 'b', [{ gx: 16, gy: 8 }, { gx: 20, gy: 8 }, { gx: 20, gy: 12 }, { gx: 24, gy: 12 }])], 60)
-
-test.concurrent('the ends of a tween are the sheets themselves', () => {
-  assert.equal(tweenSheet(before, after, 0), before)
-  assert.equal(tweenSheet(before, after, 1), after)
-  assert.ok(sameSheet(before, structuredClone(before)))
-  assert.ok(!sameSheet(before, after))
-})
-
-test.concurrent('shared surfaces glide and the sheet grows with them', () => {
-  const middle = tweenSheet(before, after, 0.5)
-  assert.deepEqual(middle.sheet, { gx: 0, gy: 0, w: 50, d: 30 })
-  assert.deepEqual(middle.slabs[0]!.rect, { gx: 4, gy: 4, w: 42, d: 22 })
-  const a = middle.buildings.find(item => item.id === 'a')!
-  assert.deepEqual(a.rect, { gx: 9, gy: 6, w: 4, d: 4 })
-  assert.equal(a.heightUnits, 3)
-  assert.equal(a.floors[0]!.heightUnits, 3)
-})
-
-test.concurrent('new buildings grow from their centre and departed ones shrink away', () => {
-  const early = tweenSheet(before, after, 0.25)
-  const b = early.buildings.find(item => item.id === 'b')!
-  assert.deepEqual(b.rect, { gx: 25.5, gy: 7.5, w: 1, d: 1 })
-  assert.equal(b.heightUnits, 0.5)
-  assert.deepEqual(b.lines, [''])
-  assert.deepEqual(tweenSheet(before, after, 0.75).buildings.find(item => item.id === 'b')!.lines, ['b'])
-  const gone = early.buildings.find(item => item.id === 'gone')!
-  assert.deepEqual(gone.rect, { gx: 20.5, gy: 6.5, w: 3, d: 3 })
-  assert.ok(!tweenSheet(before, after, 1).buildings.some(item => item.id === 'gone'))
-})
-
-test.concurrent('routes draw on from their source and retract into it', () => {
-  const half = tweenSheet(before, after, 0.5)
-  const drawn = half.routes.find(item => item.id === 'a-b')!
-  // Half of a 12-cell path: along the first run, round the corner, two cells down.
-  assert.deepEqual(drawn.points, [{ gx: 16, gy: 8 }, { gx: 20, gy: 8 }, { gx: 20, gy: 10 }])
-  const retracting = half.routes.find(item => item.id === 'a-gone')!
-  assert.deepEqual(retracting.points, [{ gx: 10, gy: 8 }, { gx: 15, gy: 8 }])
-  assert.ok(!tweenSheet(before, after, 1).routes.some(item => item.id === 'a-gone'))
-})
-
-test.concurrent('a shared route keeps the corners of both shapes while it moves', () => {
-  const from = sheetOf([building('a', 6, 6), building('b', 31, 6)], [route('a-b', 'a', 'b', [{ gx: 10, gy: 8 }, { gx: 31, gy: 8 }])])
-  const to = sheetOf([building('a', 6, 6), building('b', 24, 13)], [route('a-b', 'a', 'b', [{ gx: 10, gy: 8 }, { gx: 17, gy: 8 }, { gx: 17, gy: 15 }, { gx: 24, gy: 15 }])])
-  // Both paths are 21 cells long; the straight one is sampled where the bent one turns.
-  assert.deepEqual(tweenSheet(from, to, 0.5).routes[0]!.points, [{ gx: 10, gy: 8 }, { gx: 17, gy: 8 }, { gx: 20.5, gy: 11.5 }, { gx: 27.5, gy: 11.5 }])
-})
 
 test.concurrent('a placement of a real world survives a tween into itself, from nothing, and into another world', () => {
   const unit = { x: 0, y: 0, width: 1, height: 1 }

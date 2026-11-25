@@ -19,9 +19,12 @@ import { registerLintCommand } from './lint-command.ts'
 import { registerPluginCommands } from './plugins/cli.ts'
 import { registerScannerCommands } from './scanner/cli.ts'
 import { formatScanReport, scanRepository, watchScan } from './scanner.ts'
+import { parseTags } from './tags.ts'
+import type { TagFocus } from './tag-selection.ts'
 import { startBackgroundScannerUpdates } from './scanner/background-updates.ts'
 import { renderPlainWelcome, startWelcome } from './welcome.ts'
 import { registerWriteCommands } from './write-commands.ts'
+import type { WebListening } from './viewers/web/server.ts'
 import type { WelcomeActionId, WelcomeScreen } from './welcome.ts'
 
 const program = new Command()
@@ -30,11 +33,20 @@ function interactiveTerminal(): boolean {
   return process.stdin.isTTY === true && process.stdout.isTTY === true
 }
 
-async function startWebOnNextPort(port: number, scan: boolean, onListening: (url: string) => void) {
+/**
+ * Every start of `groma web` prints through here: the address, then on standard error the warning the server gives
+ * when config.json's webHost lets other computers use it.
+ */
+function announceWeb({ url, networkWarning }: WebListening): void {
+  console.log(`groma web at ${url}`)
+  if (networkWarning !== undefined) console.error(networkWarning)
+}
+
+async function startWebOnNextPort(port: number, scan: boolean) {
   const { startWebViewer } = await import('./viewers/web/server.ts')
   while (true) {
     try {
-      return await startWebViewer(process.cwd(), { port: ++port, scan, onListening })
+      return await startWebViewer(process.cwd(), { port: ++port, scan, onListening: announceWeb })
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw error
     }
@@ -44,10 +56,9 @@ async function startWebOnNextPort(port: number, scan: boolean, onListening: (url
 async function openWeb(port?: number, scan = true): Promise<void> {
   try {
     const { startWebViewer } = await import('./viewers/web/server.ts')
-    const onListening = (url: string) => console.log(`groma web at ${url}`)
     let viewer: { close: () => Promise<void> }
     try {
-      viewer = await startWebViewer(process.cwd(), { port, scan, onListening })
+      viewer = await startWebViewer(process.cwd(), { port, scan, onListening: announceWeb })
     } catch (error) {
       if (port === 0 || (error as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw error
       const message = error instanceof Error ? error.message : String(error)
@@ -57,7 +68,7 @@ async function openWeb(port?: number, scan = true): Promise<void> {
         initialValue: false,
       })
       if (accepted !== true) return
-      viewer = await startWebOnNextPort(port ?? 4747, scan, onListening)
+      viewer = await startWebOnNextPort(port ?? 4747, scan)
     }
     stopOnSignal(() => viewer.close())
   } catch (error) {
@@ -132,10 +143,27 @@ async function initializeProject(
   }
 }
 
-async function exportWeb(directory: string, options: { url?: string; revision?: string; from?: string }): Promise<void> {
+interface ExportCommandOptions {
+  url?: string
+  revision?: string
+  from?: string
+  /** Comma-separated tags, as typed. */
+  includeFilter?: string
+  excludeFilter?: string
+}
+
+async function exportWeb(directory: string, options: ExportCommandOptions): Promise<void> {
   const root = process.cwd()
   const { exportWebViewer } = await import('./viewers/web/export.ts')
-  const exported = await exportWebViewer(root, directory, options)
+  const filter: TagFocus = {
+    focused: parseTags(options.includeFilter ?? ''),
+    match: 'any',
+    excluded: parseTags(options.excludeFilter ?? ''),
+  }
+  const filtered = filter.focused.length > 0 || filter.excluded.length > 0
+  const exported = await exportWebViewer(root, directory, {
+    url: options.url, revision: options.revision, from: options.from, ...(filtered ? { filter } : {}),
+  })
   console.log(`groma export at ${path.resolve(directory)}`)
   await exported.close()
 }
@@ -244,13 +272,20 @@ program
   .option('--url <url>', 'public URL of the exported directory, for social previews')
   .option('--revision <commit>', 'export this commit instead of the working tree')
   .option('--from <commit>', 'compare this starting commit with --revision')
+  .option('--include-filter <tags>', 'export the elements these comma-separated tags light, including group members, flow step ends and their parents')
+  .option('--exclude-filter <tags>', 'omit elements matching these comma-separated tags and groups or flows that carry them')
   .addOption(new Option('--watch').hideHelp())
   .on('option:watch', () => {
     console.log('Coming soon.')
     process.exit(0)
   })
-  .action(async (directory: string, options: { url?: string; revision?: string; from?: string }) => {
-    await exportWeb(directory, options)
+  .action(async (directory: string, options: ExportCommandOptions) => {
+    try {
+      await exportWeb(directory, options)
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error))
+      process.exitCode = 1
+    }
   })
 
 withListWindowOptions(program

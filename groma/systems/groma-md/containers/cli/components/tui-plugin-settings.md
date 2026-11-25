@@ -2,10 +2,12 @@
 type: C4 Component
 title: Terminal plugin settings
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: tui-plugin-settings
   parent: cli
-  group: Terminal map
   code:
     - scanner: typescript
       file: src/viewers/tui/plugin-settings.ts

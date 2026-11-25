@@ -10,7 +10,6 @@ groma:
       file: src/viewers/web/data.ts
     - scanner: typescript
       file: src/viewers/web/authoring.ts
-  group: Browser session
 description: Loads live or exported architecture data into the browser
 ---
 
@@ -26,4 +25,4 @@ Reads live updates from the local server or saved data from a static export. Sen
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [src/viewers/web/authoring.ts](../../../../../../src/viewers/web/authoring.ts) | [src/viewers/web/render.ts](../../../../../../src/viewers/web/render.ts) | Invokes supplied callbacks: live, world | typescript |
+| [src/viewers/web/authoring.ts](../../../../../../src/viewers/web/authoring.ts) | [src/viewers/web/render.ts](../../../../../../src/viewers/web/render.ts) | Invokes supplied callbacks: live, repaint, select, showStoredWorld, world | typescript |

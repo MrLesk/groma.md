@@ -12,5 +12,5 @@ Designs how the shop fits together.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [shop-architect](shop-architect.md) | [api](../systems/shop/containers/api/container.md) | Reviews the order rules | Browser |
-| [shop-architect](shop-architect.md) | [order-viewer](../systems/shop/containers/order-viewer/container.md) | Watches orders arrive | Browser |
+| [Shop architect](shop-architect.md "shop-architect") | [Api](../systems/shop/containers/api/container.md "api") | Reviews the order rules | Browser |
+| [Shop architect](shop-architect.md "shop-architect") | [Order viewer](../systems/shop/containers/order-viewer/container.md "order-viewer") | Watches orders arrive | Browser |

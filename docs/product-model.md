@@ -17,30 +17,14 @@ People and agents use groma.md. They do not edit architecture element or draft
 Markdown by hand. groma.md writes those files so paths, identity, and metadata
 stay consistent. The root `groma/project.md` is different: standard `title` and
 optional `description` fields are frontmatter, while its normal Markdown body
-is the complete project overview. Bare `groma` opens a terminal launcher for
-the current repository: Up and Down choose an executable action, Instructions,
-or the Advanced commands row. Enter runs an action or opens the selected screen.
-The Advanced commands screen contains a read-only table with one concise
-description beside each command: `<name>` is required, `[option]` is optional,
-and `…` means more options. Up and Down select a command, the table keeps it
-visible, and its explanation appears below the table. Tab switches between list
-and reading focus. In reading focus, Up and Down scroll the explanation. J and K
-scroll it one line in either focus; Page Up and Page Down move it one page. The repository
-context, Back row, plugin readiness, and footer remain fixed. Commands stay
-read-only. Enter returns from the selected Back row; Backspace always returns
-with Advanced commands still selected.
-Instructions uses the same logo and repository context,
-selects Overview by default, and shows each shipped guide below its guide table.
-Up and Down choose a guide in list focus. Tab switches to reading focus, where
-arrows scroll content, and back to the guide list. J/K and page keys scroll in
-either focus. The footer names the active focus. Backspace or the Back row
-returns to the launcher, whose arrows continue to select actions.
-Bare `groma instructions` opens this screen on a TTY. Named guides,
-non-interactive use, and `--plain` remain plain text. This catalog is for
-people. `groma agent-instructions [guide]` is a separate, always-plain catalog
-of agent operating rules. Without a guide name it prints an index naming each
-task-focused guide, when to read it, and the command that prints it. Every
-human guide and the agent index point readers to both catalogs.
+is the complete project overview.
+
+Bare `groma` opens an interactive terminal launcher with quick actions,
+`Instructions` (the human guide catalog, also available via `groma instructions`),
+and `Advanced commands` (a reference table of CLI commands and options).
+`groma agent-instructions [guide]` is a separate, always-plain catalog of
+operating rules for coding agents. Without a guide name it prints an index
+naming each task-focused guide, when to read it, and the command that prints it.
 
 `groma init` is the explicit repository-registration action for coding agents.
 It reconciles one short managed groma.md block in each distinct root `AGENTS.md`
@@ -98,24 +82,26 @@ operation before opening a map.
    project. The [browser map](viewers/web/index.md) describes its setup and
    creation controls.
 2. Publish a snapshot with `groma export <directory>`. The generated static
-   site contains the current project profile, architecture map and flows,
-   mapped Backlog work with task details and diffs, and architecture-owned
-   source inspection. It has no editor and never reads the repository or a
-   running groma.md server. Everything in the output directory is public data.
-   Export reads stored architecture without starting a scanner, writes one
-   snapshot, and exits. Run it again to publish updated data. Hosting and
-   access control belong to the chosen static host, outside groma.md.
+   site contains the current project profile, architecture map and flows, and
+   architecture-owned source outlines. It excludes Backlog tasks and editing
+   controls, and never reads the repository or a running groma.md server.
+   Everything in the output directory is public data. Export reads stored
+   architecture without starting a scanner, writes one snapshot, and exits.
+   `--include-filter` and `--exclude-filter` export only the part
+   [selected by tags](viewers/web/index.md#filtered-exports).
+   Run it again to publish updated data. Hosting and access control belong to
+   the chosen static host, outside groma.md.
 3. `groma scan`: scan this repo. Core folds structural scan evidence into Markdown
    and counts architecture findings in the command summary, naming `groma lint`
    to read them. Findings are review
    questions about similar implementations; they are not relationship rows.
    The command prints `ok` and a short summary. It does not print the
    architecture. Scan is the one plain command without paging, because a second
-   page would scan again. The scanner alone creates systems, containers, and
-   components; nothing writes them by hand.
+   page would scan again. The scan creates systems, containers, and components
+   from source evidence.
 4. Change the architecture through groma.md's commands; no viewer edits element
    or draft documents.
-   - A **new part** is drafted. `groma draft <kind> <name> --parent <id>
+   - A **planned part** is drafted. `groma draft <kind> <name> --parent <id>
      --overview <markdown>` writes a ghost at the path it will keep once
      accepted; the kind is system, container, or component. `--draft
      <draft-id>` files the ghost under a draft record.
@@ -126,10 +112,16 @@ operation before opening a map.
      <markdown>` updates that leading body prose. `groma edit <draft-id>
      --overview <markdown>` sets the draft outcome. The optional concise OKF
      field is changed separately with `--description`. `--title` renames a
-     part or a draft record while its id and file stay; `--technology` sets or
-     clears an element's technology. In the web map the details pane edits
-     title, description, overview and technology in place and tags the element
-     with a draft; every field posts the input `groma edit` takes.
+     part or a draft record while its id and file stay. `--technology` sets or
+     clears an element's technology. One or several elements can take the same
+     `--add-tags` and `--remove-tags` changes to their [OKF tags](component-markdown.md#tags)
+     (a group and a flow take them too),
+     `--color` for their [map color](component-markdown.md#colors), and `--icon`
+     for their [map icon](component-markdown.md#icons) (a group takes these two as well). An empty color or icon
+     clears it. The web map's [Edit form](viewers/web/index.md#reading-and-editing)
+     offers tags, color and icon for one element or several. On one element it
+     also offers title, description, overview and technology. Save posts one
+     `groma edit` input.
    - Atomic scan evidence is curated with `groma edit`: combine empty scan
      records, including two systems into one product, move an empty scanned
      component to another container or a container to another system, detach
@@ -137,7 +129,8 @@ operation before opening a map.
      or absorbed record takes every document stored under it to its new path.
      `--id <new-id>` renames an element: its document and the documents under it
      move to the paths of the new ID, children name the new parent, and
-     concept-addressed relationship rows and flow steps are repointed. Scans
+     concept-addressed relationship rows, flow steps and group members are
+     repointed. Scans
      match elements through owned files, so a renamed ID survives them. These
      operations validate the whole change before writing.
      `--detach <file...>` removes those files from the component's Code.
@@ -145,28 +138,34 @@ operation before opening a map.
      document. The next scan transfers them to the new source owner and returns
      them to the map. Scan before removing an empty component that still holds
      waiting rows. Combining components carries their outgoing rows together.
-   - A group is a name on each sibling component and is addressed as
-     `<container-id>/<group-kebab>`: `groma add group <name> <ids...>` names
-     it, `groma edit group <address> --title <text>` renames every member,
-     `groma remove group <address> [ids...]` takes members out or dissolves
-     it. In the web map a multi-selection of components offers Group as and
-     Combine into (the person picks the survivor), and a pressed zone opens
-     Rename and Dissolve.
-   - An interaction is authored with `groma add relation <source-file>
-     <target-file> --description <prose> --technology <text>`. Exact source
-     files identify code endpoints; actor and external-system declarations
-     may use concept IDs. The source element document holds one authored row per
+   - A [group](component-markdown.md#groups) is its own record that lists
+     components of one container: `groma add group <name> <ids...>` creates it
+     and prints its ID, `groma edit <group-id>` changes its title, description
+     and overview, `groma edit <component-id> --group <group-id>` or
+     `--ungroup` changes one membership, and `groma remove <group-id>` deletes
+     the record and leaves its members in place. In the web map the
+     pane of several selected components offers Group and Combine (the person
+     picks the survivor).
+   - An interaction is authored with `groma add relation <source>
+     <target> --description <prose> --technology <text>`. Exact source
+     files identify code endpoints. A virtual component uses its ID. Actor
+     and external-system declarations may use concept IDs. The source element
+     document holds one authored row per
      ordered endpoint pair across the architecture. `groma edit relation` rewords it; `groma draft
      relation` creates a planned row, and `groma accept relation` accepts it.
-     Only draft rows may be removed. The web editor chooses the participating
-     files and lets a reader inspect each claim represented by a map connection.
+     A draft row, or a current row with a virtual component as an endpoint,
+     can be removed when no flow uses it. The web map shows the claims behind a connection. Its Edit
+     view rewords the displayed endpoint pair.
    - **People and outside systems** are declared, never scanned: `groma add
      actor <name> --overview <markdown>` and `groma add external <name>
      [--technology <text>] --overview <markdown>` write them stable at once.
      `groma add draft <name> --overview <markdown>` writes a draft record.
-     `groma add component <name>` refuses and names `groma draft`.
+   - A **virtual component** explains a manual step or another responsibility
+     that no source shows. `groma add component <name> --parent <container-id>
+     --overview <prose>` creates it in an internal container. It accepts an
+     optional `--description` and `--technology`.
    - **Removing** takes the id alone: `groma remove <id>` deletes a person, an
-     external, a ghost, or a draft record no ghost belongs to; it refuses and
+     external, a virtual component, a ghost, or a draft record no ghost belongs to. It refuses and
      names what blocks it while other elements relate to the part, while a
      ghost still contains parts, or while ghosts still carry the draft's tag.
      A scanned component can be removed after its Code list is empty: delete its
@@ -200,7 +199,7 @@ ID. `groma view <id>` resolves exactly one element.
   keeps when accepted, in the same file.
 - A part a draft touches keeps its ID and its file; the tag is the only
   change.
-- Core assigns an ID only when a scan finds an unknown file, derived from its
+- When a scan finds an unknown file, core derives its ID from its
   recognizable file name. It compares new files together, qualifies collisions
   with the existing container and source parent context, and uses a short
   exact-source-path hash only when readable context is exhausted. Titles omit
@@ -216,8 +215,9 @@ The architecture is one tree under `groma/` (or `.groma/`): `actors/` holds the
 people who use the software, `externals/` the systems outside its boundary,
 `systems/` the software itself with its containers and components, and
 `drafts/` one record per draft. It may be empty. groma.md writes it from scans,
-accepted drafts, drafting, and the curation people apply through groma.md. The
-scanner alone creates stable systems, containers, and components.
+accepted drafts, drafting, and the curation people apply through groma.md.
+Scans create stable internal systems, containers and components from code.
+People can also add virtual components: stable components without Code references.
 
 After the first write of a document, later scans may refresh only nested
 `groma.code` frontmatter. They do not rewrite explanations, unowned metadata,
@@ -235,10 +235,10 @@ with `ok` and a short summary of what changed. It does not print elements,
 IDs, or a machine-readable architecture. If someone later needs that, it is
 a different command, not scan.
 
-`groma scan --watch` is the same scan, left running. It watches supported
-TypeScript and C# source and project files. It does not open a viewer. `groma
-view` and `groma web` run one scan before opening, then start that watch
-in-process.
+`groma scan --watch` is the same scan, left running. It watches source and
+project files selected by the enabled scanners in `config.json`. It does not
+open a viewer. `groma view` and `groma web` run one scan before opening, then
+start that watch in-process.
 
 Each language scanner returns a validated observation of source files, symbols,
 source roots, supported execution and interaction facts, and diagnostics. Core
@@ -255,6 +255,8 @@ Core applies the batch like this:
    directories and imports alone do not create containers.
 3. An unknown file becomes a singleton component, unless explicit source-unit
    evidence groups companion files. A matching ghost receives Code and stays a draft.
+   A scan never matches a virtual component. A new file of the same name gets
+   its own owner and the virtual component keeps its ID.
 4. Positive execution-entry evidence lets core create an application container
    and place its unambiguous components. Later scans can complete unidentified
    placement while preserving IDs, source ownership, authored meaning and links.
@@ -371,7 +373,7 @@ the configured statuses and
 default status plus one `task list --json` summary containing every configured
 task, including terminal history. It reads `task view <id> --json` only for the
 task whose full details a developer opens. The last configured status is
-terminal. groma.md never reads or watches Backlog storage directly. Static export reads a current task snapshot. Web and terminal
+terminal. groma.md never reads or watches Backlog storage directly. Web and terminal
 share live updates from the Backlog work source: `task list --json --watch`
 provides complete replacement lists, and the plugin notifies its host after
 each complete JSON response. Closing the subscription stops the CLI process.
@@ -382,19 +384,16 @@ file. Each element appears once. References describe planned scope before edits;
 modified files record actual changes and supply task diffs. Unmatched references,
 including external URLs, remain task context.
 
-Loaded architecture snapshots share the derived source lookup in `src/source-index.ts`.
-It reads existing IDs and code references without IO or path normalization. A replacement
-elements array gets a new index; task-only updates reuse it. Each loaded revision has
-its own snapshot. Mutable scanner reconciliation keeps its changing ownership map.
-This is an in-memory lookup for the current filesystem delivery, with no stored metadata
-or new C4 concept. The terminal map marks tasks in its currently shown
+The terminal map marks tasks in its currently shown
 statuses on those elements; default and intermediate statuses start shown. The web map stands one pin per assignee and task
 on the element the task touched last; an unassigned mapped task gets one generic
 Backlog pin. The Live work island filters pins and chips by the configured
 statuses, showing a filter only while that status has a mapped pin. A filter
 appears when the first matching pin arrives. The configured terminal status starts
 hidden. The configured default status represents future work, starts shown, and uses
-draft treatment on the map; every other configured status starts shown. Draft treatment
-belongs to the work projection and does not change groma.md architecture records or
-Markdown. Without the CLI, the plugin supplies empty work and every architecture flow
+draft treatment on the map; every other configured status starts shown. The
+island's Backlog mark is the tasks switch: one click takes every pin and task
+highlight off the web map, and the next brings them back with the status filters
+as they were. The switch never changes the filters, so a work update that
+arrives while tasks are off leaves them off. Without the CLI, the plugin supplies empty work and every architecture flow
 remains available.

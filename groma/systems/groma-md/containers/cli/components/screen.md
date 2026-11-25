@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal panels
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: screen
   parent: cli
@@ -21,7 +24,6 @@ groma:
       file: src/viewers/tui/panes/hierarchy.ts
     - scanner: typescript
       file: src/viewers/tui/panes/text.ts
-  group: Terminal map
 description: Shows the terminal tree, details and source beside the map
 ---
 

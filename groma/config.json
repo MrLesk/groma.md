@@ -192,6 +192,7 @@
     "/plugins/scanners/csharp/dotnet/test/",
     "/examples/",
     "/plugins/scanners/*/build.ts",
+    "/plugins/scanners/*/generate-parser.ts",
     "/plugins/scanners/framework-package.ts",
     "/plugins/scanners/jvm-package.ts",
     "/plugins/scanners/rust/notices.ts"

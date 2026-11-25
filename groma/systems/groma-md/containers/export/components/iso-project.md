@@ -2,10 +2,11 @@
 type: C4 Component
 title: Map projection
 status: stable
+tags:
+  - map
 groma:
   id: iso-project
   parent: export
-  group: Map drawing
   code:
     - scanner: typescript
       file: src/viewers/web/iso/projection/project.ts

@@ -2,13 +2,14 @@
 type: C4 Component
 title: Shared source outlines
 status: stable
+tags:
+  - scanning
 groma:
   id: scanners-typescript-outline
   parent: cli
   code:
     - scanner: typescript
       file: plugins/scanners/typescript-outline.ts
-  group: Scanner support
 description: Reads TypeScript declarations for language and framework scanners
 ---
 

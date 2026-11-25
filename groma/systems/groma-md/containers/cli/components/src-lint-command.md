@@ -9,7 +9,6 @@ groma:
     - scanner: typescript
       file: src/lint-command.ts
       symbol: registerLintCommand
-  group: Project commands
 description: Reports possible duplicate logic from current scanner evidence
 ---
 

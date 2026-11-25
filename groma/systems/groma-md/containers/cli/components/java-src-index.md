@@ -2,6 +2,8 @@
 type: C4 Component
 title: Java scanner adapter
 status: stable
+tags:
+  - scanning
 groma:
   id: java-src-index
   parent: cli
@@ -24,7 +26,6 @@ groma:
       symbol: summarizeMissingTypes
     - scanner: typescript
       file: plugins/scanners/java/src/worker.ts
-  group: Language analysis
 description: Starts the bundled Java worker and returns its scan results
 ---
 

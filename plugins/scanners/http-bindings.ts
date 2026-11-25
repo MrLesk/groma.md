@@ -1,4 +1,4 @@
-import type { Checker, CheckerSymbol } from './http-checker.ts'
+import { inBatches, type Checker, type CheckerSymbol } from './http-checker.ts'
 import type { Node, SourceFile, TextNode as Identifier } from './http-syntax.ts'
 import {
   exported, importedName, indexSources, objectUse, scriptFile, settingEffect, startsWith, topLevel, typePosition, useAt,
@@ -42,7 +42,9 @@ export interface Bindings {
 }
 
 /**
- * Index the sources' names once, then resolve the uses of a variable when a fold first asks about it.
+ * Index the sources' names once. The first fold that asks about a variable resolves every name an import
+ * binds, and `default`, in one pass and files each under the variable it stands for. A variable's own
+ * spelling is resolved when a fold first asks about a variable spelled so.
  * A program scan sees every importer of an export, but a module object used other than to read one
  * export by name can reach and change every export it holds. `fileAlone` marks a scan that reads each
  * file by itself: other files can change what a file exports, and a script's top-level names, which are
@@ -53,7 +55,6 @@ export function bindingUses(
 ): Bindings {
   let index: Index | undefined
   const indexed = (): Index => { index ??= indexSources(ts, sources); return index }
-  const uses = new Map<Node, Promise<Use[]>>()
   const symbols = new Map<Node, Promise<CheckerSymbol | undefined>>()
   const shorthand = (node: Node): boolean => ts.isShorthandPropertyAssignment(node.parent) && node.parent.name === node
   /** Resolve names in one request to the checker, and a shorthand property's value one by one. */
@@ -70,28 +71,75 @@ export function bindingUses(
     }
     return found
   }
-  /** Whether a name stands for the variable: directly, or through an import or export of it. */
-  const refersTo = async (node: Node, declaration: Node): Promise<boolean> => {
-    const symbol = await symbolOf(node)
-    if (symbol === undefined || node.parent === declaration) return false
-    if (await checker.declaration(symbol) === declaration) return true
-    if (importedName(ts, node)) return false
-    return await checker.declaration(await checker.aliased(symbol)) === declaration
+  /**
+   * The uses found so far of each variable. A fold reads the names spelled like the variable first, then the
+   * names an import or `default` gives it, so the two are kept apart.
+   */
+  const references = new Map<Node, { sameName: Use[]; aliases: Use[] }>()
+  /** The spellings resolved because a variable spelled so was asked about, each once. */
+  const indexedNames = new Map<string, Promise<void>>()
+
+  /**
+   * File a name under a variable it stands for. A name spelled differently from the variable counts only
+   * when that spelling can stand for another variable: `default`, or a local name an import binds.
+   */
+  function recordReference(declaration: (Node & { name?: Node }) | undefined, name: Identifier): void {
+    if (declaration === undefined || name.parent === declaration) return
+    const declaredName = declaration.name
+    if (declaredName === undefined || !ts.isIdentifier(declaredName)) return
+    const sameName = declaredName.text === name.text
+    if (!sameName && name.text !== 'default' && !indexed().imported.has(name.text)) return
+
+    const uses = references.get(declaration) ?? { sameName: [], aliases: [] }
+    const group = sameName ? uses.sameName : uses.aliases
+    group.push(useAt(ts, name))
+    references.set(declaration, uses)
   }
-  const usesOf = (declaration: Node & { name?: Node }): Promise<Use[]> => {
-    let found = uses.get(declaration)
-    if (found !== undefined) return found
-    found = (async () => {
-      const { names, imported } = indexed()
-      const name = declaration.name !== undefined && ts.isIdentifier(declaration.name) ? declaration.name.text : undefined
-      const texts = name === undefined ? [] : [name, 'default', ...imported]
-      const candidates = [...new Set(texts.flatMap(text => names.get(text) ?? []))].filter(node => !typePosition(ts, node))
-      resolveAll(candidates)
-      const referring = await Promise.all(candidates.map(node => refersTo(node, declaration)))
-      return candidates.filter((_, position) => referring[position]).map(node => useAt(ts, node))
-    })()
-    uses.set(declaration, found)
-    return found
+
+  /**
+   * The variables a name stands for: the one it names and, through an import or export of it, the one behind
+   * that. The name an import binds stands only for the import.
+   */
+  async function declarationsOf(name: Identifier): Promise<(Node | undefined)[]> {
+    const symbol = await symbolOf(name)
+    if (symbol === undefined) return []
+    const direct = await checker.declaration(symbol)
+    if (importedName(ts, name)) return [direct]
+    const target = await checker.declaration(await checker.aliased(symbol))
+    return direct === target ? [direct] : [direct, target]
+  }
+
+  /** Resolve every name outside types spelled as one of `texts` and file it under the variables it stands for. */
+  async function indexNames(texts: Iterable<string>): Promise<void> {
+    const { names } = indexed()
+    const candidates = [...texts]
+      .flatMap(text => names.get(text) ?? [])
+      .filter(node => !typePosition(ts, node))
+    resolveAll(candidates)
+    const declarations = await inBatches(candidates, declarationsOf)
+    for (const [position, name] of candidates.entries()) {
+      for (const declaration of declarations[position] ?? []) recordReference(declaration, name)
+    }
+  }
+
+  let importUses: Promise<void> | undefined
+  /**
+   * The uses of a variable. Every variable shares one pass over the names imports bind; the variable's own
+   * spelling is resolved the first time a variable spelled so is asked about.
+   */
+  async function usesOf(declaration: Node & { name?: Node }): Promise<Use[]> {
+    if (declaration.name === undefined || !ts.isIdentifier(declaration.name)) return []
+    const name = declaration.name.text
+    const { imported } = indexed()
+    importUses ??= indexNames(new Set(['default', ...imported]))
+    await importUses
+    if (name !== 'default' && !imported.has(name)) {
+      const local = indexedNames.get(name) ?? indexNames([name])
+      indexedNames.set(name, local)
+      await local
+    }
+    const uses = references.get(declaration)
+    return uses === undefined ? [] : [...uses.sameName, ...uses.aliases]
   }
   /** Whether a dynamic import's module object is used as a whole, through its binding or by being handed on. */
   const dynamicEscapes = async ({ binding }: DynamicImport): Promise<boolean> => {

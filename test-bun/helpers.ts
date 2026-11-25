@@ -7,6 +7,7 @@ import { DETAILS_PANE_WIDTH, HIERARCHY_PANE_WIDTH, type PaneVisibility } from '.
 import { sheetScene } from '../src/sheet/scene.ts'
 import type { TerminalViewModel } from '../src/viewers/tui/model.ts'
 import type {
+  AnnotatedGroup,
   ArchitectureWorld,
   ArchitectureFlow,
   Bounds,
@@ -149,6 +150,11 @@ export function navigationWorld(): ArchitectureWorld & TerminalViewModel {
   return { ...world, drafts: [], sheet: sheetScene(world) }
 }
 
+/** One group for every group id the boxes name, titled by that id. */
+function groupsNamedBy(elements: readonly { group?: string }[]): AnnotatedGroup[] {
+  return [...new Set(elements.flatMap(element => element.group ?? []))].map(id => ({ id, title: id, overview: '' }))
+}
+
 /** A world of hand-built boxes with no layout bounds of its own. */
 export function worldOf(
   elements: WorldElement[],
@@ -158,7 +164,7 @@ export function worldOf(
   const world: ArchitectureWorld = {
     bounds: { x: 0, y: 0, width: 1, height: 1 },
     elements,
-    groups: [],
+    groups: groupsNamedBy(elements),
     relationships,
     flows,
   }

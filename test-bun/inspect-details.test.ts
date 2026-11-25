@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { detailsTabs, detailsTabAfterSelection, detailsTabAfterWork, inspectDetails } from '../src/viewers/web/organisms/details.ts'
+import { inspectDetails } from '../src/viewers/web/organisms/details.ts'
 
 import type {
   ArchitectureWorld,
@@ -106,24 +106,6 @@ test.concurrent('details list a combined pair once with its exact relationships 
   const toBackend = site.relationships.find(pair => ends(pair) === 'site>backend')!
   expect(toBackend.relationships.map(ends).sort()).toEqual(['speakers>people', 'talks>people', 'talks>sessions'])
   expect(pairDescriptions(toBackend)).toHaveLength(2)
-})
-
-test.concurrent('the Tasks tab exists only while the selected component has linked work', () => {
-  const inspected = { technology: '', files: [] }
-  expect(detailsTabs(inspected, [])).toEqual(['what'])
-  expect(detailsTabs(inspected, [{ items: [] }])).toEqual(['what'])
-  expect(detailsTabs(inspected, [{ items: [{}] }])).toEqual(['what', 'tasks'])
-  expect(detailsTabs({ ...inspected, technology: 'Bun' }, [])).toEqual(['what', 'how'])
-})
-
-test.concurrent('the build tab resets only when the primary selection changes', () => {
-  expect(detailsTabAfterSelection('how', 'component-a', 'component-b')).toBe('what')
-  expect(detailsTabAfterSelection('how', 'component-a', 'component-a')).toBe('how')
-})
-
-test.concurrent('live work closes Tasks when the selected component has no linked task', () => {
-  expect(detailsTabAfterWork('tasks', false)).toBe('what')
-  expect(detailsTabAfterWork('tasks', true)).toBe('tasks')
 })
 
 test.concurrent('the details pane offers Remove only where the verb would succeed', () => {

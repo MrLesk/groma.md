@@ -5,7 +5,6 @@ status: stable
 groma:
   id: directory-writer
   parent: directory
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/directory/writer.ts

@@ -1,8 +1,14 @@
-import path from 'node:path'
 import { isStringLiteral, type SourceFile, type Node } from 'typescript/ast'
 import type { Checker } from 'typescript/async'
 
-export async function resolvedImports(root: string, source: SourceFile, specifiers: string[], checker: Checker): Promise<string[]> {
+/**
+ * The selected files `source` imports through the `specifiers` it uses. `selectedFiles` names each selected file of
+ * the program by the compiler's path for it. Anything else an import reaches, a library or an unselected file, is
+ * left out without loading it.
+ */
+export async function resolvedImports(
+  source: SourceFile, specifiers: string[], checker: Checker, selectedFiles: ReadonlyMap<SourceFile['path'], string>,
+): Promise<string[]> {
   const used = new Set(specifiers)
   const nodes: Node[] = []
   function visit(node: Node): void {
@@ -11,10 +17,12 @@ export async function resolvedImports(root: string, source: SourceFile, specifie
   }
   visit(source)
   const symbols = await checker.getSymbolAtLocation(nodes)
-  const declarations = await Promise.all(symbols.flatMap(symbol => symbol?.declarations ?? []).map(handle => handle.resolve()))
-  const own = path.relative(root, source.fileName).split(path.sep).join('/')
-  // `declare module 'x'` beside an import of 'x' augments that module here; a file never imports itself.
-  return [...new Set(declarations.flatMap(declaration => declaration
-    ? [path.relative(root, declaration.getSourceFile().fileName).split(path.sep).join('/')] : []))]
-    .filter(file => file !== own).sort()
+  const imports = new Set<string>()
+  // The handle already names its file. Resolving it would load the whole source from the compiler.
+  for (const declaration of symbols.flatMap(symbol => symbol?.declarations ?? [])) {
+    const file = selectedFiles.get(declaration.path)
+    // A module augmentation can have a declaration in the importing file itself.
+    if (file !== undefined && declaration.path !== source.path) imports.add(file)
+  }
+  return [...imports].sort()
 }

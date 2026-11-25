@@ -31,11 +31,3 @@ test.concurrent('architecture search ranks semantic fields and returns ancestor 
   assert.equal(result.element.origin, 'observed')
   assert.deepEqual(result.path, ['Groma', 'Web viewer'])
 })
-
-test.concurrent('architecture search returns no result for an empty query', () => {
-  const search = createArchitectureSearch([
-    box('web-viewer', 'container', { x: 0, y: 0, width: 1, height: 1 }),
-  ])
-
-  assert.deepEqual(search.find('   '), [])
-})

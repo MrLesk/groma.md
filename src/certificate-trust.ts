@@ -116,7 +116,8 @@ export async function withCertificateTrust<T>(
     // native Git must retain its own CA, proxy and verification configuration.
     const environment: NodeJS.ProcessEnv = {
       NODE_EXTRA_CA_CERTS: cafile, NODE_USE_SYSTEM_CA: '0', NODE_TLS_REJECT_UNAUTHORIZED: '1',
-      NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --use-openssl-ca`.trim(),
+      // Node rejects the OpenSSL and bundled stores when both are explicitly enabled.
+      NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --no-use-bundled-ca --use-openssl-ca`.trim(),
     }
     return await operation(cafile, environment)
   } finally { await rm(directory, { recursive: true, force: true }) }

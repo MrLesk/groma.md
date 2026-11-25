@@ -4,22 +4,12 @@ import { test } from 'bun:test'
 
 import {
   preservedWorkStatuses,
+  shownWorkStatuses,
   toggleWorkStatus,
   workStatusFilters,
 } from '../src/work/status-filter.ts'
 
 const statuses = ['To Do', 'In Progress', 'Done']
-
-test.concurrent('only statuses with pins become filters while future and intermediate work starts visible', () => {
-  const empty = workStatusFilters(statuses, 'To Do', [])
-  assert.deepEqual(empty, { available: [], enabled: ['To Do', 'In Progress'] })
-
-  const arrived = workStatusFilters(statuses, 'To Do', ['Done', 'In Progress', 'To Do'], empty.enabled)
-  assert.deepEqual(arrived, {
-    available: ['To Do', 'In Progress', 'Done'],
-    enabled: ['To Do', 'In Progress'],
-  })
-})
 
 test.concurrent('an unconfigured cold start cannot become an empty user filter choice', () => {
   const boot = workStatusFilters([], '', [])
@@ -33,17 +23,6 @@ test.concurrent('an unconfigured cold start cannot become an empty user filter c
   assert.deepEqual(arrived, { available: ['In Progress'], enabled: ['To Do', 'In Progress'] })
 })
 
-test.concurrent('custom intermediate statuses start enabled when their first pin arrives', () => {
-  const configured = ['To Do', 'In Progress', 'Review', 'Done']
-  const empty = workStatusFilters(configured, 'To Do', [])
-  const arrived = workStatusFilters(configured, 'To Do', ['Review'], empty.enabled)
-
-  assert.deepEqual(arrived, {
-    available: ['Review'],
-    enabled: ['To Do', 'In Progress', 'Review'],
-  })
-})
-
 test.concurrent('a filter choice survives an empty snapshot and a later pin', () => {
   const initial = workStatusFilters(statuses, 'To Do', ['In Progress'])
   const disabled = toggleWorkStatus(initial, 'In Progress')
@@ -51,4 +30,13 @@ test.concurrent('a filter choice survives an empty snapshot and a later pin', ()
   const returned = workStatusFilters(statuses, 'To Do', ['In Progress'], empty.enabled)
 
   assert.deepEqual(returned, { available: ['In Progress'], enabled: ['To Do'] })
+})
+
+test.concurrent('tasks turned off show no status and return with the status choice made before', () => {
+  const chosen = toggleWorkStatus(workStatusFilters(statuses, 'To Do', ['To Do', 'In Progress']), 'To Do')
+  assert.deepEqual(shownWorkStatuses(chosen.enabled, false), [])
+
+  const updatedWhileOff = workStatusFilters(statuses, 'To Do', ['To Do', 'In Progress', 'Done'], chosen.enabled)
+  assert.deepEqual(shownWorkStatuses(updatedWhileOff.enabled, false), [])
+  assert.deepEqual(shownWorkStatuses(updatedWhileOff.enabled, true), ['In Progress'])
 })

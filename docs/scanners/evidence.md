@@ -82,6 +82,7 @@ The official producers currently recognize these source forms:
 | Kotlin | Top-level `fun main` | The selected `.kt` files under the nearest directory with a Maven or Gradle build declaration |
 | Python | Module execution guard, `__main__.py`, or `project.scripts` | Resolved local imports within the declared project |
 | Ruby | File execution guard, literal gemspec executables, or a `config.ru` run declaration | Selected local requires within the declared project; an explicit Rails launch also supplies its standard Ruby application/configuration inputs and declared library autoload inputs |
+| Elixir | A Mix project's literal application callback (`mod:`), or its escript `main_module:` when it declares no callback | The sources that Mix project compiles (`elixirc_paths`); no dependency |
 | JavaScript, TypeScript, React, Vue, Angular | Source-backed package commands/bins, HTML script entries, Angular CLI and Nx build targets, and readable Bun browser/compiled build entries | Resolved local modules within the declared package; the polyfills and environment replacements a build target names; framework companion files join their source unit |
 | PHP | Source-backed Composer bins and literal PHP script commands | Explicitly included local sources within that Composer package |
 | Dart | A top-level `main` function with a body | Its physical file and explicit selected library parts; no import or framework closure |
@@ -93,13 +94,6 @@ These are declared extraction limits, not separate C4 policies. Dynamic build
 configuration, unresolved launch commands and unobserved members remain unknown.
 These official scanners emit the same evidence contract, with no C4 kinds,
 container IDs, architecture parents or ownership choices.
-
-In OKF, the result remains ordinary typed Markdown concepts and links; the facts
-are not stored as new knowledge concepts or metadata. An ordinary reader can read
-the existing container and component documents and follow their links. In C4,
-the result uses the existing container level. groma.md interprets the temporary facts
-and its application profile decides placement; neither OKF nor C4 mandates this
-automatic inference rule.
 
 ## Vocabulary and introduction order
 
@@ -202,10 +196,7 @@ Conflicts are successful scan results, reported through
 enabled scanner failing to complete: failed scanners contribute no fresh
 observation, while successful scanners reconcile. Stored Code references and
 relationships that depend on a failed scanner are retained. Repeat scans preserve authored relationships and
-curated file membership in either observer order. Source offsets, provider
-sets, and conflict details stay in memory; they are not new OKF fields or C4
-elements. Ordinary Markdown readers retain the existing Code links and
-authored relationship meaning. The independent
+curated file membership in either observer order. The independent
 [composition fixture](../../test/fixtures/scanner-composition/) exercises this
 contract; framework extraction has its own scanner fixture.
 
@@ -308,8 +299,7 @@ annotations with server routes reports requests, never endpoints. Scanners that
 inspect the same file may report the same fact without creating ambiguity, and
 an unknown request does not veto another scanner's known one.
 
-The facts are temporary evidence. They add no OKF field or stored route and do
-not become C4 elements. A derived row is an ordinary relationship between the
+A derived row is an ordinary relationship between the
 requesting and providing files, so a Markdown reader sees a linked statement
 such as `Calls HTTP endpoint: GET /talks/:id`.
 
@@ -454,52 +444,6 @@ not load the live groma.md architecture. Language-specific examples must satisfy
 the same fact semantics: for example, TypeScript resolves module aliases while
 C# resolves language symbols and retains uncertainty about virtual dispatch.
 Neither plugin decides component ownership.
-
-## Bounded Jelly comparison
-
-**Status:** completed for the alias control and groma.md initialization callback.
-The [recorded comparison](../relationship-inference.md#first-implementation-and-jelly-comparison)
-includes results, limits, and costs. Jelly is not a production dependency.
-
-Question: can [Jelly](https://github.com/cs-au-dk/jelly) identify useful provider
-or callback wiring that the existing TypeScript analysis misses, at a cost
-appropriate for an interactive scan?
-
-First establish the canonical-provider example above as a control. Then inspect
-one groma.md callback: the CLI supplies `openViewer` to `runInitCommand`, which
-invokes it after initialization. The source is
-[`src/cli.ts`](../../src/cli.ts) and
-[`src/init-command.ts`](../../src/init-command.ts). Review the actual binding
-and targets before judging either analyzer's output.
-
-Record the exact source snapshot, explicit owned-file manifest, analyzer
-versions, commands, dependency scope, and deterministic analysis bounds. Use
-the same source set for both analyzers; directory-discovery heuristics must not
-quietly change the comparison. Run static analysis only and distinguish a
-completed result from partial output.
-
-Compare correctly established targets, incorrect targets, and unresolved cases
-against the reviewed source witnesses. Also record elapsed time and peak
-process memory. Additional edges alone are not an improvement. Do not combine
-analyzer outputs by union and call the result verified.
-
-Jelly targets JavaScript/TypeScript on Node.js, documents incomplete modeling,
-and treats Node standard-library code as unknown. Its support claim does not
-establish Bun-specific communication semantics. Check the installed version's
-actual command options and limits before running; do not copy a time limit
-into production as an architecture-selection rule.
-
-The decision is whether to reuse Jelly, reproduce a small useful extraction
-technique with the existing compiler, or retain the limitation. Useful output
-must fit the language-neutral evidence semantics. A tool-specific result must
-not dictate the shared contract.
-
-After human review of the groma.md result, freeze the first rule before
-checking Backlog's constructor-injected task handler. Record the result and
-decision in the [inference document](../relationship-inference.md#evaluation-and-recording-decisions)
-before extending the experiment. Do not expand into more frameworks or global
-analysis to improve a graph count.
-
 
 ## Concrete binding scope
 

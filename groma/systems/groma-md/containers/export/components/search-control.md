@@ -15,7 +15,6 @@ groma:
       symbol: createSearchSession
     - scanner: typescript
       file: src/viewers/web/search/view.ts
-  group: Architecture panels
 description: Searches elements and tasks from the browser map
 ---
 

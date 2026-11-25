@@ -29,7 +29,11 @@ test.concurrent('publication paths select a theme before the saved browser prefe
 test.concurrent('paths without a publication theme keep the saved browser preference', async () => {
   const world = await loadTestWorld()
   for (const pathname of ['/', '/repository/', '/repository/architecture/unknown/']) {
-    assert.equal(readView(new URL(pathname, 'https://example.test'), world, [], [], 'dark').theme, 'dark')
+    const url = new URL(pathname, 'https://example.test')
+    assert.equal(readView(url, world, [], [], 'dark').theme, 'dark')
+    // Auto on such a path stays out of the link, so the recipient keeps their own saved theme.
+    const auto = { ...readView(url, world, []), theme: 'auto' }
+    assert.equal(new URLSearchParams(writeView(auto, world, [], url.pathname)).has('theme'), false)
   }
 })
 

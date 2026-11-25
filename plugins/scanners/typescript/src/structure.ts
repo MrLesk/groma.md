@@ -1,10 +1,10 @@
 import path from 'node:path'
 
-import { API } from 'typescript/async'
 import { SyntaxKind } from 'typescript/ast'
 
 import type { CodeFile, SourceReference } from '@groma/scanner'
 import { outlineSource } from '../../typescript-outline.ts'
+import { compilerApi } from './compiler.ts'
 
 /**
  * Outline each referenced file under the shared TypeScript-family rules. The program parses only those files: an outline
@@ -16,7 +16,7 @@ export async function readCodeStructure(
 ): Promise<CodeFile[]> {
   if (references.length === 0) return []
   const filenames = references.map(reference => path.join(repositoryRoot, reference.file))
-  const api = new API({ cwd: repositoryRoot })
+  const api = compilerApi(repositoryRoot)
   try {
     const program = await api.createProgram(filenames, { noLib: true, types: [], noResolve: true })
     const files: CodeFile[] = []

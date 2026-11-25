@@ -1,0 +1,25 @@
+diff --git a/dist/api/async/client.js b/dist/api/async/client.js
+index c655734e307730a687a3946cd5197fe8fcff7d4d..fa0b49419d2081239deb2b656a18a208dbb06980 100644
+--- a/dist/api/async/client.js
++++ b/dist/api/async/client.js
+@@ -60,6 +60,7 @@ export class Client {
+             }
+             this.process = spawn(resolveExePath(options), args, {
+                 stdio: ["pipe", "pipe", "inherit"],
++                env: options.env,
+             });
+             this.process.once("error", error => {
+                 reject(new Error(`Failed to start tsgo process: ${error.message}`));
+diff --git a/dist/api/options.d.ts b/dist/api/options.d.ts
+index 83509855262e069c5a849d2d59c098f6a8e2f3fe..32ab75b8b1999f2ac0a4dcc311f5603e9d4a2978 100644
+--- a/dist/api/options.d.ts
++++ b/dist/api/options.d.ts
+@@ -13,6 +13,8 @@ export interface ClientSpawnOptions {
+     tsserverPath?: string | undefined;
+     /** Current working directory */
+     cwd?: string | undefined;
++    /** Environment of the spawned process (async API only). Defaults to the parent's environment. */
++    env?: Record<string, string | undefined> | undefined;
+     /** Host filesystem callbacks. */
+     fs?: FileSystemCallbacks | undefined;
+     /** Whether file names are case-sensitive. Inferred from the client filesystem when omitted. */

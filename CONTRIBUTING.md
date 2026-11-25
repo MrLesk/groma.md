@@ -10,10 +10,7 @@ is the source of truth for what groma.md represents and shows. It follows groma.
 the [component Markdown contract](docs/component-markdown.md) defines its reserved files, metadata, body, and
 relationships.
 
-Keep each contribution focused on one approved outcome and one supported example. Every pull request must be linked to
-one Backlog.md task, including documentation-only pull requests. Create or identify the task before opening the PR and
-include its ID in the PR title or description. Small documentation corrections may still be made directly when they do
-not need a pull request.
+Keep each contribution focused on one approved outcome and one supported example. Pull requests that include code changes must be linked to one Backlog.md task: create or identify the task before opening the PR and include its ID in the PR title or description. Standalone documentation changes do not require a Backlog task.
 
 ## Set up the repository
 
@@ -66,39 +63,14 @@ bun run build
 ```
 
 Windows produces `dist/groma.exe`. Pass an output path after `bun run build` to choose a different location.
-The CLI, welcome screen, and web credits statically import `package.json` as JSON. Web lockup and mark files use Bun file and text imports. The compiled executable embeds the browser renderer, dependency credit files, and the agent guide under `docs/` as asset directories, so it does not read those from the source checkout or run a bundler at runtime. Code locates an embedded asset through `compiledAsset` in `src/compiled-asset.ts`: `Bun.isStandaloneExecutable` tells a compiled binary from source mode, and embedded directories live under `import.meta.dir`, which is the embedded root on every platform (`/$bunfs/root` on POSIX, `B:\~BUN\root` on Windows). Do not detect compiled mode by inspecting paths. The build also embeds the build target's native TypeScript worker (`tsc` and its `lib.d.ts` from `@typescript/typescript-<os>-<cpu>`); because a process cannot be spawned from the embedded filesystem, the compiled scanner unpacks it once per TypeScript version into the OS temp directory and reuses it from there, so compiled and source scans produce the same TypeScript evidence.
+The compiled executable embeds the browser renderer, dependency credit files, and the agent guide under `docs/` as asset directories (resolved through `compiledAsset` in `src/compiled-asset.ts` using `Bun.isStandaloneExecutable`), so it does not read those from the source checkout or run a bundler at runtime.
 
 A release starts on the GitHub releases page: publish a release with a new `v*.*.*` tag on `main` and the release
 notes. Publishing creates the tag and starts the release workflow; do not push tags by hand. Release CI sets
 `package.json.version` directly from that tag, without its leading `v`, in the disposable build checkout before running
-`bun run build`. A build for tag `v0.2.0` therefore already reports `0.2.0`. The workflow attaches the binaries and
-`SHA256SUMS` to the release it was started from.
+`bun run build`. The workflow attaches the binaries and `SHA256SUMS` to the release, publishes the platform npm packages (`groma.md-<platform>-<arch>`) before the root `groma.md` wrapper package, and commits the released version back to `main`.
 
-The build accepts `GROMA_BUILD_TARGET` and `GROMA_BUILD_OUTFILE` for cross-target release jobs. It embeds the shipped
-instruction guide, web assets, package metadata, and dependency credit metadata into each executable, so the binary
-does not need the source checkout at runtime. All binary builds and npm package manifests must use the prepared version.
-The release workflow publishes platform packages before `groma.md` and commits the released version to `main` after
-publication. macOS ships `groma.md-darwin-arm64` only; Intel Macs are unsupported. The source manifest keeps the
-Node and Bun requirements used to develop and publish Groma. They are not copied into the published CLI package.
-
-`scripts/package-cli.ts` stages the npm package with its own Node 16.20.2 minimum. It does not copy the checkout's
-development requirements. npm installs the exact-version optional platform dependency and links `groma` to
-`scripts/npm/cli.cjs` (published as `cli.cjs`). That small Node launcher selects and starts the native executable;
-the application runs in embedded Bun. Lifecycle scripts can remain disabled. Direct downloads from the release
-page run without external Node or Bun. Platform packages contain the payload only; the root npm package owns the command.
-The same staging script writes platform manifests. The macOS payload accepts x64 npm so Rosetta installations receive
-the ARM64 executable; the launcher still checks the hardware and rejects Intel Macs.
-
-The Node minimum describes launcher compatibility. Security maintenance of the user's installation tools and
-certificate store belongs to that environment; the launcher does not repair those settings or block compatible Node
-versions. Groma owns the runtime it ships, release tooling, and certificate checks for downloads it performs.
-
-The native CLI owns server, watcher, and terminal cleanup. Web and scan-watch shutdown share `src/cli-lifecycle.ts`:
-cleanup starts once, and repeated `SIGTERM` waits for it to finish. A second Ctrl+C can still interrupt cleanup.
-`test-bun/npm-packaging.test.ts` verifies local and global npm installs with scripts disabled and strict engine checks,
-including shell entry points, arguments, exit status, and cleanup. CI runs these checks with Node 16.20.2 and its npm.
-macOS also runs them with x64 Node under Rosetta.
-The full executable is also tested with an empty runtime `PATH`; its npm command is tested with only Node available.
+`scripts/package-cli.ts` stages the npm packages. The root `groma.md` package installs the matching optional platform dependency and links `groma` to `scripts/npm/cli.cjs`, which launches the native executable. Direct downloads from the release page run without Node or Bun installed.
 
 After every successful groma.md release, update the `groma-version` default in
 [`groma.md-action/action.yml`](https://github.com/MrLesk/groma.md-action/blob/main/action.yml) and follow the
@@ -165,9 +137,6 @@ Run the checks relevant to the change:
 ```sh
 bun run check
 ```
-
-`bun src/typescript-scanner.ts` prints the C4 candidates the scanner reads from this repository's import graph
-without writing Markdown; `--glob` replaces the files it reads and `--ignore` adds to the files it skips.
 
 For a terminal feature, finish by running its approved scenario through the real TUI in a PTY when the task requires a
 terminal walkthrough.

@@ -2,13 +2,14 @@
 type: C4 Component
 title: Python scanner adapter
 status: stable
+tags:
+  - scanning
 groma:
   id: src-index
   parent: cli
   code:
     - scanner: typescript
       file: plugins/scanners/python/src/index.ts
-  group: Language analysis
 description: Starts the Python analysis runtime and returns its scan results
 ---
 

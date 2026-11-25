@@ -4,10 +4,9 @@ title: Find elements and flows by words from the CLI
 status: To Do
 assignee: []
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-08 15:31'
+updated_date: '2026-11-02T16:19:00Z'
 labels: []
-dependencies:
-  - TASK-571
+dependencies: []
 references:
   - search
   - src-cli
@@ -29,7 +28,7 @@ Add `groma find <words...>`, deterministic and literal:
 - Searched fields: element ids, titles, descriptions, overviews and group names; flow ids, titles, overviews and step actions.
 - Rank by the lowest-priority field needed to match all the words: id or title first, then description or group name, then overview or flow text. Break ties by id.
 - One line per hit: id, kind (`flow` for a flow), title, parent (`-` for a flow and for a top-level element), and for a component the first source path it owns in lexical order, or `-` when it owns none. A hit that needs prose to match adds an excerpt of at most 120 characters around the first match.
-- Page through the shared list window (TASK-571) and support `--count`.
+- Page through the existing list window (src/list-window.ts) and support `--count`. TASK-571 extends paging to more outputs; this command does not wait for it.
 - Like grep, exit 1 when nothing matches, and say that no stored text matches: the map is partial, so no hit does not mean the feature is absent.
 <!-- SECTION:DESCRIPTION:END -->
 

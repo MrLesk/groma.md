@@ -171,6 +171,26 @@ For work associated with a Backlog task, use the exact task ID and title as the 
 
 For example: `TASK-28.3 - Supply annotated architecture through Groma core`.
 
+## PR descriptions
+
+Keep PR descriptions brief and include only what is not obvious from the code. Explain unclear reasons, tradeoffs,
+limitations, or dependencies in a few short sentences. Link to detailed validation or documentation instead of copying it.
+
+Do not repeat the diff, list changed files, or report routine passing checks and review steps. Omit template sections
+that add no useful context. Keep required issue or task links; if no explanation is needed, those links can be the
+whole description.
+
+## Merging PRs
+
+Pull requests land on `main` by squash merge, one commit per pull request: `gh pr merge <number> --squash`, or
+`gh stack merge --squash` for a stack. Name the method on every merge. The repository also allows merge commits and
+rebase merges, which put every commit of the pull request on `main`, and `gh stack merge` otherwise reuses the method
+used last.
+
+GitHub takes the squashed commit's subject from the pull request's title, appends the pull request number, and uses the
+description as the commit body. Give the pull request the same `<TASK-ID> - <task title>` title as its commits, so
+`main` reads `TASK-28.3 - Supply annotated architecture through Groma core (#123)`.
+
 ## Minimum sufficient product
 
 Build the smallest complete result that matches the requested outcome and any approved example. Keep the concrete
@@ -213,6 +233,18 @@ frame rate only when a rendering regression is suspected; do not make manual FPS
 Do not add subtitles, helper text, or descriptive copy beneath headings, labels, cards, or settings by default. Prefer
 one concise, self-explanatory heading or label. Only add supporting copy when the user explicitly asks for it or when it
 is necessary to prevent misunderstanding or error, and never use it to restate the heading.
+
+## Web map writes
+
+Reading never writes. A pane writes only from a write view the person opens, and every write view is approved the
+same way: what the write needs, then Cancel and the button that approves it, which says Save unless another word tells
+better what happens. Before designing or changing a control that writes from the web map, read
+[Reading and editing](docs/viewers/web/index.md#reading-and-editing) and place the write by that rule. Describe a new
+pane write as data in `src/viewers/web/organisms/commands.ts`; do not build controls, a confirmation step, or a button
+that writes for it. A dialog that writes is a write form (`src/viewers/web/atoms/write-form.ts`): its form carries the
+class `write-form` and ends with the shared approval bar, and it styles no field and builds no Cancel or approving
+button of its own. Do not add a control that stores a change from a reading view, and do not give reading code a write
+hook.
 
 ## Product-first scope
 
@@ -278,6 +310,10 @@ and understand correct use from names and contracts. Ask what they might misunde
 code, state, or indirection can be removed without changing required behavior. Prefer clearer structure over comments
 that explain hidden conventions.
 
+After `bun run check` passes, use the `codehygiene` skill to review changed code for readability. Run it on the files
+changed by the task and focus on findings in the lines you changed. Apply suggestions that make the code easier to
+follow and preserve its behavior. [Code Hygiene instructions](https://github.com/brianbell-x/codehygiene#use)
+
 Apply reasonable findings from any review within the approved scope without asking for approval, and rerun affected
 checks. Ask the user only when applying a finding would change the approved scope.
 
@@ -321,6 +357,11 @@ Do not spawn agents for other reviews unless the user explicitly asks.
 
 Test domain rules and observable behavior: scanner inference, ownership, navigation state, projection and layout
 invariants, camera rules, world immutability, and lifecycle.
+
+Before adding a unit test for a single function, run `cccc --pretty <source-file>` and read that function's `cognitive`
+score. If the score is **5 or lower**, skip the unit test unless the behavior being tested depends on a regular
+expression. In every case, identify a specific wrong result that existing tests would miss. Tests of a supported flow
+may exercise functions of any score. [cccc documentation](https://github.com/moznion/cccc#usage)
 
 Before adding a test or extending its assertions, inspect existing coverage and briefly record in the task plan:
 

@@ -5,7 +5,6 @@ status: stable
 groma:
   id: auth-worker
   parent: auth
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/auth/worker.ts

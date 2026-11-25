@@ -33,8 +33,9 @@ interface ElementDocumentFixture {
   status?: unknown
   parent?: string | null
   draft?: unknown
-  group?: unknown
   technology?: unknown
+  /** The top-level OKF tags value, valid or not. */
+  tags?: unknown
   code?: unknown
   /** Extra groma fields, for documents that claim something the profile does not know. */
   extraGroma?: Record<string, unknown>
@@ -49,8 +50,8 @@ export function elementDocument({
   status = 'stable',
   parent,
   draft,
-  group,
   technology,
+  tags,
   code,
   extraGroma = {},
 }: ElementDocumentFixture): ArchitectureDocument {
@@ -60,15 +61,13 @@ export function elementDocument({
     title,
     ...(description === undefined ? {} : { description }),
     ...(status === null ? {} : { status }),
+    ...(tags === undefined ? {} : { tags }),
     groma,
   }
   if (parent !== undefined) {
     groma.parent = parent
   }
   if (draft !== undefined) groma.draft = draft
-  if (group !== undefined) {
-    groma.group = group
-  }
   if (technology !== undefined) groma.technology = technology
   if (code !== undefined) groma.code = code
 

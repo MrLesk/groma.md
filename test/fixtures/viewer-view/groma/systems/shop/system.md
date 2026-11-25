@@ -12,4 +12,4 @@ Sells goods and records what was ordered.
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [shop](system.md) | [vault](../../externals/vault.md) | Stores takings | HTTPS |
+| [Shop](system.md "shop") | [Vault](../../externals/vault.md "vault") | Stores takings | HTTPS |

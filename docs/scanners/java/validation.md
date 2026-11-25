@@ -1,6 +1,6 @@
 # Java scanner validation
 
-TASK-326.4 reuses `Declarations.java`, `Uses.java`, `Json.java`, `Main.java`, the
+The Java scanner reuses `Declarations.java`, `Uses.java`, `Json.java`, `Main.java`, the
 adapter/package structure and independent semantic fixtures from
 `origin/research/java-scanner-prototype`. The prototype's manual source/JAR
 configuration and bundled-runtime delivery were replaced by Maven model export

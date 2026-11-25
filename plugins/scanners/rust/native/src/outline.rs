@@ -6,7 +6,7 @@ use ra_ap_syntax::{AstNode, Edition, SyntaxNode};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use crate::text::line;
+use crate::text::SourceText;
 
 #[derive(Deserialize)]
 pub struct Input {
@@ -46,9 +46,9 @@ enum Declaration {
 pub fn outline(input: Input) -> anyhow::Result<Value> {
     let mut files = Vec::new();
     for reference in &input.references {
-        let text = std::fs::read_to_string(Path::new(&input.root).join(&reference.file))?;
+        let text = SourceText::read(&Path::new(&input.root).join(&reference.file))?;
         // A file alone has no crate edition; the 2021 grammar reads current Rust.
-        let tree = ast::SourceFile::parse(&text, Edition::Edition2021).tree();
+        let tree = ast::SourceFile::parse(text.normalized(), Edition::Edition2021).tree();
         let outline = Outline { text: &text, symbols: &reference.symbols };
         let declarations = outline.declarations(&top_level(tree.items(), &[]));
         if !declarations.is_empty() {
@@ -59,7 +59,7 @@ pub fn outline(input: Input) -> anyhow::Result<Value> {
 }
 
 struct Outline<'a> {
-    text: &'a str,
+    text: &'a SourceText,
     /// Symbols the Code reference names.
     symbols: &'a [String],
 }
@@ -140,7 +140,7 @@ impl Outline<'_> {
     fn symbol(&self, name: &SyntaxNode, visibility: &'static str) -> Symbol {
         let text = name.text().to_string();
         Symbol {
-            line: line(self.text, name.text_range().start()),
+            line: self.text.line(name.text_range().start()),
             visibility,
             entry: self.symbols.contains(&text),
             name: text,

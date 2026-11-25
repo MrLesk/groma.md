@@ -5,7 +5,6 @@ status: stable
 groma:
   id: media-router
   parent: media
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/media/router.ts

@@ -79,8 +79,12 @@ export function bindMapView(host: HTMLElement, choose: (view: MapView) => void):
 }
 
 export const mapViewCss = `
+  #map-toolbar {
+    position: absolute; top: 74px; z-index: 8; display: flex; align-items: start; gap: 12px;
+    container-type: inline-size; pointer-events: none;
+  }
   #map-view {
-    position: absolute; top: 74px; z-index: 7; width: fit-content; margin: 0 auto; padding: 5px; gap: 2px;
+    position: relative; flex: none; padding: 5px; gap: 2px; pointer-events: auto;
   }
   #map-view .view-indicator {
     position: absolute; left: 0; top: 5px; height: 34px; border-radius: 20px; background: var(--ink); pointer-events: none;
@@ -90,6 +94,16 @@ export const mapViewCss = `
   #map-view svg { width: 16px; height: 16px; flex: none; }
   #map-view button:hover { color: var(--ink); }
   #map-view [aria-selected="true"], #map-view [aria-selected="true"]:hover { color: var(--paper); }
+  /* When the panes leave the toolbar little room, the view switch shows its icons only. */
+  @container (max-width: 520px) {
+    #map-view button { width: 28px; justify-content: center; padding: 0; }
+    #map-view button span { display: none; }
+  }
+  /* At the page's minimum width of 900px the toolbar has 212px for the view switch and the Tags bar. */
+  @container (max-width: 260px) {
+    #map-view { gap: 0; padding-inline: 2px; }
+    #map-view button { width: 24px; }
+  }
   @media (prefers-reduced-motion: reduce) {
     #map-view .view-indicator, #map-view button { transition: none; }
   }

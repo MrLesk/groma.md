@@ -5,7 +5,6 @@ status: stable
 groma:
   id: import-gateway
   parent: import
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/import/gateway.ts

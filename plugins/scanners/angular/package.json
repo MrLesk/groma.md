@@ -1,13 +1,13 @@
 {
   "name": "@groma/scanner-angular",
-  "version": "0.2.6",
+  "version": "0.2.8",
   "private": false,
   "type": "module",
   "license": "MIT",
   "groma": {
     "scanner": {
       "id": "angular",
-      "entry": "./dist/package/dist/index.js",
+      "entry": "./src/index.ts",
       "include": [
         "**/*.ts",
         "**/*.html",

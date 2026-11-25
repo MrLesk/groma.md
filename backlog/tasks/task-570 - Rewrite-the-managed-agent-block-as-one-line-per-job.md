@@ -4,10 +4,11 @@ title: Rewrite the managed agent block as one line per job
 status: To Do
 assignee: []
 created_date: '2026-10-08 15:14'
-updated_date: '2026-10-08 15:31'
+updated_date: '2026-11-02T16:19:00Z'
 labels: []
 dependencies:
   - TASK-569
+  - TASK-646
 references:
   - instructions
   - src-initialize
@@ -34,7 +35,7 @@ In a review on 2026-10-08, five coding agents (Claude Fable 5.1, Claude Opus 5.5
 - It does not say the map is partial.
 - It names a plugin, Backlog.md, in core text. Most groma.md projects do not use Backlog.md.
 
-Replace it with a minimal block that any agent can follow, including small local models that run offline: one line per job, each naming one exact command, with no conditions to interpret. A starting point, not a requirement:
+TASK-646 rewrites the block's wording first, with the commands that ship today and the Backlog line kept. This task finishes it. Replace it with a minimal block that any agent can follow, including small local models that run offline: one line per job, each naming one exact command, with no conditions to interpret. A starting point, not a requirement:
 
     ## Groma
     The architecture map is in groma/. It is partial. Never edit its architecture files by hand.

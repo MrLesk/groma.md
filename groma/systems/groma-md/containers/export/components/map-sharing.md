@@ -10,9 +10,9 @@ groma:
       file: src/viewers/web/sharing/cover.ts
     - scanner: typescript
       file: src/viewers/web/sharing/images.ts
+      symbol: generateCover
     - scanner: typescript
       file: src/viewers/web/sharing/metadata.ts
-  group: Browser session
 description: Produces shareable map covers, PNG images and page metadata
 ---
 

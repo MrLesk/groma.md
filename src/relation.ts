@@ -2,13 +2,15 @@ import { buildArchitectureModel } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
 import { resolveFlows } from './flow-model.ts'
 import { requireText } from './naming.ts'
-import { storedRelationships, type StoredRelationship } from './relationship-markdown.ts'
+import { isVirtualComponent } from './origin.ts'
+import { allowsNamedElements, storedRelationships, type StoredRelationship } from './relationship-markdown.ts'
 import { placeRelationships, saveRelationships } from './relationship-storage.ts'
+import { relationshipRemovalBlocker } from './removable.ts'
 import { sourceIndex } from './source-index.ts'
 import type { ArchitectureElement, RelationshipConnection, ElementStatus } from './types.ts'
 import { checkEdit, type EditValues } from './authoring-conflict.ts'
 
-/** Code interactions use repository-relative files; actor/external declarations may use concept IDs. */
+/** Exact source files or the element IDs a relationship names by document. */
 export interface RelationEnds {
   source: string
   target: string
@@ -41,8 +43,10 @@ async function loadEnds(repositoryRoot: string, input: RelationEnds): Promise<En
   if (!source) throw new Error(`unknown source "${input.source}"`)
   const target = index.owner(input.target) ?? index.resolve(input.target)
   if (!target) throw new Error(`unknown target "${input.target}"`)
-  const declaredConcept = [source, target].some(element => element.kind === 'actor' || element.external)
-  if (!declaredConcept && (!index.byFile.has(input.source) || !index.byFile.has(input.target))) {
+  // An endpoint that is not an owned source file names its element by ID.
+  const namedSource = index.byFile.has(input.source) ? undefined : source
+  const namedTarget = index.byFile.has(input.target) ? undefined : target
+  if (!allowsNamedElements(namedSource, namedTarget)) {
     throw new Error('code relationships require source-file endpoints')
   }
   const connections = storedRelationships(documents, model.elements, (_code, filename, message) => {
@@ -105,12 +109,15 @@ export async function acceptRelation(repositoryRoot: string, input: RelationEnds
   return writeRow(repositoryRoot, ends, { drop: current, add: { ...current, status: 'stable' } })
 }
 
+/** Removes the row unless `relationshipRemovalBlocker` names a reason to keep it. */
 export async function removeRelation(repositoryRoot: string, input: RelationEnds): Promise<string> {
   const ends = await loadEnds(repositoryRoot, input)
   const current = requireRow(ends)
-  const flows = resolveFlows(ends.records.flows, ends.model)
+  const flowIds = resolveFlows(ends.records.flows, ends.model)
     .filter(flow => flow.steps.some(step => step.source === ends.source.id && step.target === ends.target.id))
-  if (flows.length) throw new Error(`cannot remove relationship: used by flows ${flows.map(flow => flow.id).join(', ')}`)
-  if (!current.authored || current.status !== 'draft') throw new Error('only draft relationships can be removed')
+    .map(flow => flow.id)
+  const hasVirtualEnd = isVirtualComponent(ends.source) || isVirtualComponent(ends.target)
+  const blocker = relationshipRemovalBlocker(current, hasVirtualEnd, flowIds)
+  if (blocker !== undefined) throw new Error(blocker)
   return writeRow(repositoryRoot, ends, { drop: current })
 }

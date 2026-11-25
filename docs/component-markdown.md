@@ -74,10 +74,8 @@ architecture; they take no original-value option. Web forms also compare the
 original values of changed fields, returning a conflict before any write when
 another edit changed one of them. An already-applied value succeeds.
 
-Lock timeout and field conflicts make no architecture changes. The lock and
-temporary files are filesystem implementation details, not OKF metadata or C4
-elements. Domain validation and conflict checks are independent of storage.
-Ordinary Markdown readers continue to see the same document format.
+Lock timeout and field conflicts make no architecture changes. Domain validation
+and conflict checks are independent of storage.
 
 This protects cooperating local Groma processes. Separate clones and direct
 file editors do not share this boundary. Changes across several files are not
@@ -109,6 +107,11 @@ the outcome. Concepts that belong to the draft carry `groma.draft: checkout-v2`;
 a drafted concept has `status: draft`, and a stable concept may carry the tag
 too when the draft touches it. A draft with no `status: draft` concept left is
 complete, and its record remains.
+
+A virtual component is an ordinary `C4 Component` with `status: stable` and
+no `groma.code`. Its overview explains a responsibility the source does not
+show. Nothing else marks it. A component whose last source file went away is
+virtual too. A ghost has `status: draft` and can receive code from a matching scan.
 
 groma.md does not invent `generated`, `verified`, source provenance, or other
 human trust claims.
@@ -155,6 +158,7 @@ Each C4 concept has these standard top-level fields:
 | `type` | yes | Exactly `C4 Actor`, `C4 System`, `C4 Container`, or `C4 Component`. |
 | `title` | yes | The readable concept name. |
 | `description` | no | A concise standard OKF description. |
+| `tags` | no | The standard OKF list of short strings that name cross-cutting categories. |
 | `status` | yes | `draft` for a concept that does not exist yet; `stable` otherwise. |
 
 groma.md-only fields live together under `groma`:
@@ -164,15 +168,17 @@ groma.md-only fields live together under `groma`:
 | `id` | yes | Stable lowercase kebab-case ID, unique in the tree. |
 | `parent` | for containers and components | ID of the containing system or container. |
 | `draft` | no | ID of the draft record this concept belongs to or that touches it. |
-| `group` | no | Readable name of a hand-authored sibling cluster. |
 | `technology` | no | Free text naming implementation technology, comma-separated. |
+| `color` | no | One named map color: `red`, `orange`, `yellow`, `blue`, `violet`, or `pink`. |
+| `icon` | no | One named map icon, such as `database`; see [Icons](#icons). |
 | `code` | no | Scanner-produced source evidence. |
 
 Architecture IDs use lowercase Unicode words separated by hyphens. Each word
 starts with a letter or digit and keeps its letters, digits, and combining
 marks. For example, `Студент` receives `студент` and `Вход студента` receives
-`вход-студента`. Elements, parent references, draft records and tags, and flows
-use this same Groma naming rule; it does not add an OKF or C4 requirement.
+`вход-студента`. Elements, parent references, draft records, the `groma.draft`
+field, and flows use this same Groma naming rule; it does not add an OKF or C4
+requirement.
 
 There is no `kind` field. The standard `type` carries the C4 type, and the
 body does not repeat `title` as a level-one heading.
@@ -183,9 +189,8 @@ unowned fields during supported edits. It remains strict about its own nested
 fields, C4 containment, and relationships. This preservation makes a groma.md
 package usable by OKF tooling; it is not a generic OKF import contract.
 
-A group is a narrative overlay on one hierarchy level. It never becomes a
-parent and owns no relationships. Scanners never derive groups. `groma edit
---group` and `--ungroup` are the supported writers. `groma edit --combine`
+A [group](#groups) of components is stored in its own record, not in a field
+of its members. `groma edit --combine`
 folds unique Code references from empty scan records into one component, and
 `groma edit --parent` moves an empty scanned component without changing its
 identity. Scanning can also complete a component's unidentified placement: positive
@@ -193,7 +198,7 @@ execution evidence can move it from its system into an application container.
 This preserves its ID, source ownership and authored meaning, and rebases incoming
 and outgoing Markdown links. An existing container assignment is never replaced.
 
-The architecture model owns IDs. groma.md assigns an ID when it drafts a concept
+The architecture model owns IDs. groma.md assigns an ID when it adds or drafts a concept
 or when a scan finds a previously unknown source. A drafted concept keeps its
 ID and its file when accepted. Architecture IDs live in Markdown, not
 application source.
@@ -204,8 +209,8 @@ container ID and stem. Collisions add source parent directories, nearest
 first, before the container ID and stem. For example, repeated build files
 under a `scanner` container can become `vue-scanner-build` and
 `react-scanner-build`. Remaining collisions climb further source parents.
-Reserved document names and the command words `group` and `relation`, which the
-CLI reads as addresses, follow the same qualification rule.
+Reserved document names and the command word `relation`, which the CLI reads
+as an address, follow the same qualification rule.
 
 If all readable context still collides after lowercase kebab normalization,
 core appends the first eight hexadecimal digits of SHA-256 of the exact
@@ -215,10 +220,194 @@ identity do not enter that hash. Titles use the readable name without the
 hash. An already owned source keeps its stored ID on later scans, including
 when another scanner reports it.
 
-This is a groma.md naming rule for existing C4 components, not another C4 boundary
-or OKF metadata field. Ordinary Markdown and OKF readers see readable titles,
-filenames, and source references; groma.md core owns collision allocation and
-the existing `groma.id` identity.
+### Tags
+
+`tags` is the OKF field for categories that cut across the hierarchy, such as a
+business area, an owning team, or a quality like `legacy`. It is authored
+project vocabulary. Groma never derives tags from source and scans keep them.
+
+```markdown
+---
+type: C4 Container
+title: Checkout API
+status: stable
+tags:
+  - payments
+  - legacy
+groma:
+  id: checkout-api
+  parent: shop
+---
+```
+
+Any OKF reader sees the two categories. Groma reads the list on actors, systems,
+external systems, containers, components, groups, and flows. `groma view <id>`
+shows the record's own tags. A tag adds no C4 element, parent, or relationship,
+and it is unrelated to the `groma.draft` field that links a concept to a draft
+record. There is no
+`groma.tags` field and no separate tag catalog.
+
+`groma edit checkout-api orders --add-tags payments --remove-tags legacy`
+adds and removes tags on both elements. A single element, group, or flow ID takes
+the same options. They write `tags` in that record's front matter. Each record
+keeps its other tags in order, with new tags at the end. Removing the last tag clears
+the field. In the web map, **Edit** opens the same Tags field
+([`tagsField`](../src/viewers/web/tags/tags-field.ts)) for one element or several.
+Enter, a comma, or a suggestion adds a tag to all. A partial chip
+shows how many carry it. Press its name to give it to all, or × on any chip to
+take it from all. **Save** applies the changes. Edits take comma-separated
+names, skip blanks and add each tag once. Groma reads any OKF list of non-empty strings.
+
+#### Focusing on tags
+
+Open **Tags** beside the web map's view switch to find, preview or focus a tag.
+A row or a details chip toggles focus. The × on a bar chip clears it.
+[`selectByTags`](../src/tag-selection.ts) reads each element's own tags and those
+of its system, container, and group. A flow's tags also count for both ends of
+each of its steps, so a focused flow tag lights those elements. A flow itself
+matches on its own tags.
+
+- **any** matches an element or flow with at least one focused tag.
+- **all** requires every focused tag to match the same element or the same flow.
+  For an element, the tags of the flows whose steps end at it count beside its
+  own. The switch appears with two or more.
+- **not** removes any element or flow matching an excluded tag. A flow with an
+  excluded tag is removed before its tags count for anything, so excluding a
+  flow leaves its ends eligible. An excluded end stays out even when a matching
+  flow uses it. With only exclusions, all other elements and flows match.
+  Parents of the lit elements stay as context.
+
+In system `shop`, the `checkout-api` container carries `payments` and its
+`refunds` component carries `internal`. In the `storefront` container, `cart`
+carries `payments` and `catalog` has no tags. The `storefront-basket` group carries
+`store-team` and lists `cart`. The `browse-cart` flow carries `shopping` and
+has one step from `catalog` to `cart`.
+
+| Focus | Matches |
+| --- | --- |
+| `payments` or `internal` | `checkout-api`, all its components, and `cart`. |
+| `payments` and `internal` | Only `refunds`. Its container and system stay as context. |
+| `payments`, not `internal` | `checkout-api`, its components except `refunds`, and `cart`. |
+| Only not `internal` | Everything except `refunds`. |
+| `store-team` | Only the group member `cart` lights, along with its zone. |
+| `shopping` | `browse-cart` matches. Its ends `catalog` and `cart` light, along with their route. |
+| `shopping` and `payments` | Only `cart`: it carries `payments` and the step of `browse-cart` ends at it. The flow carries one of the two tags, so it does not match. |
+
+A link carries `tag=<tag>` for each focused tag, `match=all` for **all**, and
+`not=<tag>` for each exclusion. Opening it frames the matches. For example,
+`?tag=payments&not=internal` opens the third row.
+
+The map then decides what it draws around those elements
+([`IsoMap.focusTags`](../src/viewers/web/iso/painting/map.ts)). A group zone
+lights when one of its members is lit, and a relationship lights when both ends
+are lit. Flows that do not match recede among the flows under **Actors** in the hierarchy pane.
+
+Focusing changes emphasis only. Positions, containment and the stored
+architecture stay as they are.
+
+#### Exporting a subset
+
+`groma export --include-filter <tags> --exclude-filter <tags>` uses the same
+selection to decide what a static export contains. Include keeps the lit elements
+and their parents, including a tagged group's members and a tagged flow's step
+ends. Exclude wins over include. Excluding a group's tag leaves out the group
+and its members. A group is exported when one of its members is. Excluding a flow's tag
+leaves out the flow and keeps its otherwise included ends. A relationship stays
+when both ends stay, and a flow with no excluded tag stays when all its steps stay.
+
+In the same example, `--include-filter payments --exclude-filter internal` exports:
+
+| Part | Exported |
+| --- | --- |
+| `checkout-api` and its other components | Yes. |
+| `refunds` | No. Exclude wins, although its container is included. |
+| `cart` | Yes. |
+| `shop` and `storefront` | Yes, as the parents of exported parts. |
+| `catalog` | No. |
+| A relationship from `cart` to a component of `checkout-api` | Yes: both ends are exported. |
+| A relationship from `catalog` to `cart`, or to `refunds` | No: one end is absent. |
+| A flow with a step over an absent relationship | No. |
+
+### Colors
+
+`groma.color` gives a concept one named color so the large parts of a map can be
+told apart at a glance. It is Groma presentation metadata: it adds no C4 element,
+parent, or relationship, and an ordinary Markdown or OKF reader still has the
+title, description, body and links.
+
+```yaml
+groma:
+  id: checkout-api
+  parent: shop
+  color: violet
+```
+
+The document stores only the name. Every UI theme says what each name looks
+like, so one authored color reads well in Light, Dark and Blueprint, and a hex
+value is never stored. No name is green, because green marks selection and lit
+flows. [`src/colors.ts`](../src/colors.ts) holds the list.
+
+`groma edit <id> --color violet` sets the color of an actor, system, external
+system, container, component, or group, and an empty value removes it. In the web map
+the Edit form offers the same names as its Color field. Nothing is
+colored automatically, a color is not inherited by what the element contains,
+and scans keep it. The color on a [group](#groups) record marks its zone, and each member keeps its own color.
+
+### Icons
+
+`groma.icon` gives a concept one named icon that says what kind of thing it is,
+so a reader finds "the database" or "the web app" on the map without reading
+names. Like a color it is Groma presentation metadata: it adds no C4 element,
+parent, or relationship, and an ordinary Markdown or OKF reader still has the
+title, description, body and links.
+
+```yaml
+groma:
+  id: order-store
+  parent: shop
+  icon: database
+```
+
+The document stores only the name. A name is a generic kind of part that any
+architecture can have, never a vendor, a product or a programming language.
+
+Choose the icon for the area a part is about, not for what the part does to it.
+A group named Map drawing takes `map`, not `palette`; an order service takes
+`order`. What a part does is read by opening it. A part that is itself a
+well-known kind of thing, such as a database or a queue, takes that thing's
+icon. An activity such as `search` or `sync` fits only a part whose whole area
+is that activity.
+
+The names are listed in kinds. A kind only orders the list and is not stored:
+
+| Kind | Names |
+| --- | --- |
+| people | `person`, `admin`, `developer`, `agent`, `team`, `guest`, `support`, `organization`, `face` |
+| clients | `browser`, `mobile`, `desktop`, `terminal`, `chip`, `camera`, `laptop`, `display`, `device`, `router`, `pointer`, `vehicle` |
+| compute | `service`, `server`, `worker`, `scheduler`, `cloud`, `function`, `pipeline`, `workflow`, `crate`, `sandbox`, `cluster`, `datacenter` |
+| traffic | `gateway`, `route`, `globe`, `cdn`, `network`, `balancer`, `firewall`, `dns`, `vpn` |
+| data | `database`, `cache`, `storage`, `backup`, `document`, `search`, `migration`, `disk`, `warehouse`, `table`, `directory`, `registry`, `log`, `feed`, `folder`, `index`, `vector`, `calendar`, `tree`, `history`, `copy` |
+| messaging | `mail`, `queue`, `stream`, `notification`, `webhook`, `broker`, `chat`, `inbox`, `broadcast` |
+| security | `lock`, `key`, `identity`, `certificate`, `shield`, `fingerprint`, `vault`, `policy` |
+| watching | `chart`, `gauge`, `pulse`, `dashboard`, `bug`, `eye`, `radar`, `funnel`, `trace`, `alert`, `target` |
+| tooling | `settings`, `plugin`, `integration`, `api`, `tools`, `blocks`, `repository`, `package`, `board`, `code`, `checklist`, `palette`, `form`, `edit`, `power`, `release`, `sync`, `download`, `cleanup`, `timer`, `wand`, `check`, `ticket`, `blueprint`, `upload`, `link`, `tag`, `book`, `test`, `diff` |
+| ai | `model`, `ai` |
+| media | `image`, `video`, `play`, `location`, `audio`, `translate`, `map`, `home`, `text`, `motion` |
+| commerce | `payment`, `store`, `cart`, `order`, `money`, `discount`, `delivery`, `pos`, `inventory`, `bank`, `contract` |
+| shapes | `layers`, `grid`, `cube`, `star`, `flag`, `trigger`, `core` |
+
+[`src/icons.ts`](../src/icons.ts) holds the list, and `groma edit --help`
+prints it. `groma edit <id> --icon database` sets the icon of an actor, system,
+external system, container, component, or group, and an empty value removes it.
+In the web map the Edit form offers the same names as its Icon field, kind by
+kind. No icon is assigned automatically, an icon is not inherited by what the element contains, and scans
+keep it. The icon on a [group](#groups) record stands before its zone's name, and each member keeps its own icon.
+
+The [web map](viewers/web/index.md) draws each name as one small object that
+lies on the map beside the element's name. The 2D view, the hierarchy and the
+details look at the object from straight above; the tilted views look at the
+same object from the map's angle, where its height shows. Plain terminal
+output prints the name.
 
 ### Code references
 
@@ -264,11 +453,31 @@ These level-two sections are supported:
 Other named sections remain authored Markdown. groma.md preserves them when it
 edits overview or owned metadata.
 
+## Element links
+
+Relationship rows, a flow's Steps and a group's Members name elements by
+ordinary Markdown links. groma.md writes each of these links in one form:
+
+```markdown
+[Release approval](release-approval.md "release-approval")
+```
+
+The text is the element's title, so an ordinary Markdown or OKF reader sees the
+names the map shows. The link title is the element's ID: Markdown viewers show
+it on hover, and it is the ID that commands take. groma.md reads only the link
+target; the text and the title carry no meaning for it. It writes them, and
+writes them again in every record that links an element when
+`groma edit <id> --title` or `--id` gives that element a new title or ID.
+Only a link that names a member or an end of a row is written this way. A link
+in a Description or Action cell or in prose is its author's text. So is a
+reference-style link, and an inline link whose text has brackets of its own.
+The form lives in [`src/element-links.ts`](../src/element-links.ts).
+
 ## Relationships
 
 Authored and automatically derived outgoing relationships live in the source
-C4 element document: a component for a source file, or the named element for
-an actor/external-system declaration. They use ordinary Markdown tables and
+C4 element document. A source file uses its owning component's document.
+A source named by ID uses its own document. The rows use ordinary Markdown tables and
 links inside the existing OKF concept. There is no separate relationship
 concept, C4 element, parent, or map level.
 
@@ -279,9 +488,12 @@ For example, a component document may contain:
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [Checkout client](../../../../../../src/checkout-client.ts) | [Payment endpoint](../../../../../../src/payment-endpoint.ts) | Requests payment authorization | HTTPS |
+| [src/checkout-client.ts](../../../../../../src/checkout-client.ts) | [src/payment-endpoint.ts](../../../../../../src/payment-endpoint.ts) | Requests payment authorization | HTTPS |
+| [src/release.ts](../../../../../../src/release.ts) | [Release approval](release-approval.md "release-approval") | Requests approval | Review form |
 ```
 
+An endpoint that names a source file shows the file's repository-relative path.
+One that names an element is an [element link](#element-links).
 An actor document stores its outgoing concept-addressed declarations in the
 same table, with links relative to that actor document. Both endpoints remain
 explicit even when the source file belongs to the containing component.
@@ -290,7 +502,10 @@ Code-to-code declarations require exact repository-relative source files with
 known component owners. They never use internal component, container, or
 system IDs as endpoints. This includes interactions without imports, such as
 an HTTP client and its endpoint. An actor or external-system declaration may
-use C4 concept links. Each ordered endpoint pair has one authored row.
+use element IDs on the command line and C4 concept links in the table.
+A virtual component uses its ID on the command line and
+a link to its document in the table. Between components, a component that owns
+code is still named by an exact file. Each ordered endpoint pair has one authored row.
 `Description` states the interaction; `Technology` states its mechanism or a
 required constraint. Both cells are required and non-empty. A stored row may
 name a file that currently has no component owner, for example after a detach:
@@ -301,19 +516,28 @@ their target file links continue to resolve through current ownership. An empty
 former owner cannot be removed while it holds these waiting rows; scan first
 to place them, then remove the empty component.
 
-`groma add relation <source-file> <target-file> --description <text>
+`groma add relation <source> <target> --description <text>
 --technology <text>` declares a current interaction. `groma edit relation`
-changes its text. The web editor selects the participating source files;
-relationship details distinguish derived interactions from authored rows. Editing
+changes its text. The web Edit view addresses the displayed endpoint pair.
+Relationship details distinguish derived interactions from authored rows. Editing
 a derived interaction creates authored text for that exact endpoint pair.
-An actor or external-system declaration accepts its concept IDs instead.
 
 Planned interactions use the same columns under `## Draft relationships`.
-`groma draft relation <source-file> <target-file> --description <text>
+`groma draft relation <source> <target> --description <text>
 --technology <text>` creates a planned row. Edits keep its status. `groma accept
-relation <source-file> <target-file>` explicitly accepts it; only draft rows
-may be removed. This lifecycle is independent of the endpoint statuses.
+relation <source> <target>` explicitly accepts it. A relationship's status is
+independent of the endpoint statuses.
 Finding a source dependency does not accept a draft interaction.
+
+`groma remove relation <source> <target>` removes a draft row or a current
+row with a virtual component as an endpoint. A flow that uses it blocks removal.
+Other current rows stay: the next scan would derive them again.
+
+Once a virtual component takes source files through `groma edit <id> --combine`,
+it is named by a file like any component that owns code. The combine is
+therefore refused while a row between components names it by its document.
+Remove those rows first and add them again with a source file afterwards.
+Rows of actors and external systems keep naming it by its document.
 
 Core writes selected current interactions under `## Derived relationships`,
 using the same four columns. The derived Technology cell lists contributing
@@ -342,7 +566,8 @@ an application constraint, not a universal OKF or C4 rule. Many other files
 may use it. A scan preserves curated membership and never follows dependencies
 to claim ownership. Source ownership does not establish runtime placement.
 
-Core projects file connections through their current owners. Several file
+Core projects file connections through their current owners. A file linked to a
+virtual component connects its owner to that component on the map. Several file
 pairs become one directed component connection while retaining their exact
 endpoints and individual claims. Connections inside one component add no map self-link. Regrouping preserves
 the stored claims and transfers outgoing rows into the surviving source owner; the next scan omits derived interactions whose providers
@@ -381,7 +606,8 @@ the scenario meaning and order; the existence of an interaction alone does
 not establish execution order. A flow uses an
 explicit, ordered subset of the directed relationships. It is an OKF concept with type `Groma Flow`, stored at
 `<groma-root>/flows/<id>.md`. It is not a C4 element and has no parent,
-Code references, footprint, or routes of its own.
+Code references, footprint, or routes of its own. A flow may carry `tags` in
+its front matter.
 
 ```markdown
 ---
@@ -398,16 +624,14 @@ The customer submits an order. Ordering checks the payment before recording it.
 
 | From | To | Action |
 | --- | --- | --- |
-| [Customer](../actors/customer.md) | [Ordering][ordering] | Submit the order |
-| [Ordering][ordering] | [Payments][payments] | Authorize this payment |
-
-[ordering]: ../systems/shop/containers/api/components/ordering.md
-[payments]: ../systems/shop/containers/api/components/payments.md
+| [Customer](../actors/customer.md "customer") | [Ordering](../systems/shop/containers/api/components/ordering.md "ordering") | Submit the order |
+| [Ordering](../systems/shop/containers/api/components/ordering.md "ordering") | [Payments](../systems/shop/containers/api/components/payments.md "payments") | Authorize this payment |
 ```
 
 `title`, a unique stable `groma.id`, overview prose, and the Steps table are
 required. `description` is optional. From and To accept normal inline or
-reference-style Markdown links to C4 documents. Each row must resolve exactly
+reference-style Markdown links to C4 documents. groma.md stores an inline one
+as an [element link](#element-links), whatever text was typed. Each row must resolve exactly
 one existing directed relationship in the loaded revision. Missing endpoints,
 missing relationships, and ambiguous endpoint pairs are errors.
 
@@ -418,10 +642,102 @@ outgoing connections to extend a flow.
 
 `groma add flow <title> --overview <prose> --steps <markdown-table>` authors a
 record. The table may include Markdown link definitions. `groma edit <flow-id>`
-accepts `--title`, `--description`, `--overview`, and `--steps`;
+accepts `--title`, `--description`, `--overview`, `--steps`, `--add-tags`, and `--remove-tags`.
 `groma remove <flow-id>` removes it. A referenced relationship or endpoint
 cannot be removed while a flow still uses it. Live, historical, and static
 viewers all read these same records.
+On a live current web map, the flow pane edits the title, description, overview, and tags.
+
+## Groups
+
+A group names components that belong together inside one container, such as
+`Map painting` or `Scan lifecycle`. People and agents create groups; scanners
+never do, and scans keep them. A group is an OKF concept with type
+`Groma Group`, stored at `<groma-root>/groups/<id>.md`. It is not a C4 element
+and not another containment level: it never becomes a parent, owns no Code
+references, and is never a relationship end. The maps draw it as a zone around
+its members. A group may carry `tags`, `groma.color`, and `groma.icon` in its front matter.
+Click the zone on the web map to select the group and use **Edit** in its pane on a live current map.
+
+```markdown
+---
+type: Groma Group
+title: Order checks
+description: What runs before an order is placed.
+groma:
+  id: api-order-checks
+---
+
+Both checks must pass before Ordering records an order.
+
+## Members
+
+- [Stock](../systems/shop/containers/api/components/stock.md "stock")
+- [Fraud check](../systems/shop/containers/api/components/fraud-check.md "fraud-check")
+```
+
+`title` and a unique stable `groma.id` are required. `description` and the
+overview prose are optional. The Members section holds one bullet list and
+nothing else, and each bullet is one [element link](#element-links) to a
+component document. An ordinary Markdown or OKF reader sees a titled page that
+names its members as the map does. groma.md reads the link targets as
+membership and applies these rules:
+
+| Rule | Reason |
+| --- | --- |
+| Every member is a component: never an actor, a system, a container, or another group. | A zone is drawn around buildings on a container. |
+| All members have the same container. A component whose container is unidentified cannot be a member. | One group draws one zone. |
+| At most one group lists a component. | Zones do not overlap. |
+
+A group that breaks a rule, or links to a document that does not exist, stops
+the architecture from loading with an error that names the group file. A group
+without members is valid and draws no zone.
+
+The record is the only place that stores membership; a component document says
+nothing about its group. Core resolves the links
+([`resolveGroups`](../src/group-model.ts)) and gives every view the groups
+and, on each member, the ID of its group: a view finds a group's members among
+the elements whose `group` is that ID, as it finds children by `parent`.
+
+groma 0.7 stored a group as a name in each member's `groma.group` field. Loading
+a project that still has the field converts it
+([`upgradeGroupFields`](../src/group-upgrade.ts)): the components of one
+container that name the same group become the members of the record
+`groma add group` would create, and the field is removed, so this happens once.
+When that record's ID is already taken, the record gets the first free numbered
+ID, such as `api-checks-2`. A container or a component without an identified
+container loses the field without a group. An old Git revision is converted the
+same way inside its temporary snapshot each time it is read; the repository does
+not change.
+
+`groma add group <name> <component-id...>` creates a record and prints its ID:
+the container's ID followed by the kebab-case name, so two containers can each
+have a group of the same name. `--description` and `--overview` add its
+meaning. When the container already has a group with exactly this title, the
+components join that group instead, which is how Group in the web map adds
+to an existing group. `groma edit <group-id>` accepts `--title`, `--description`,
+`--overview`, `--add-tags`, `--remove-tags`, `--color`, and `--icon`. `groma edit <component-id> --group <group-id>` puts a component
+in an existing group and takes it out of the group it was in; `--ungroup` only
+takes it out. `groma remove <group-id>` deletes the record and leaves its
+members in place. `groma view <group-id>` prints the record.
+
+Other commands keep every group loadable and its Members list current:
+
+| Command | Effect on groups |
+| --- | --- |
+| `groma remove <component-id>` | The component leaves its group. |
+| `groma edit <component-id> --title <text>` | The member's link shows the new title. |
+| `groma edit <id> --id <new-id>` | Member links follow the renamed component or container, and a renamed member's link carries the new ID. |
+| `groma edit <container-id> --parent <system-id>` | Member links follow the components that move with their container. |
+| `groma edit <component-id> --parent <container-id>` | The component leaves its group, which stays in its container. |
+| `groma edit <id> --combine <component-id>` | Refused while a group lists the absorbed component. |
+
+The group commands live in [`src/group.ts`](../src/group.ts). The effects in
+the table live where each command is implemented: `leavingWrites` in that file
+serves removal and moves, `relinkElement` in [`src/edit.ts`](../src/edit.ts)
+serves a new title or ID, and
+`groupWritesForMoves` in [`src/curate.ts`](../src/curate.ts) decides between
+leaving and following.
 
 ## Component example
 
@@ -448,5 +764,5 @@ TypeScript, NestJS, and PostgreSQL.
 
 ```
 
-The live [groma.md system](../groma/systems/groma/system.md) and
-[MVP draft](../groma/drafts/mvp.md) are a complete package example.
+The live [groma.md system](../groma/systems/groma-md/system.md) and
+[project record](../groma/project.md) are a complete package example.

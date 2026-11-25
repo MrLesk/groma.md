@@ -2,6 +2,8 @@
 type: C4 Component
 title: Duplicate review data
 status: stable
+tags:
+  - scanning
 groma:
   id: src-architecture-findings
   parent: cli
@@ -10,7 +12,6 @@ groma:
       file: src/architecture-findings.ts
     - scanner: typescript
       file: src/architecture-findings-worker.ts
-  group: Source scanning
 description: Compares operation bodies and reports possible duplicated logic
 ---
 

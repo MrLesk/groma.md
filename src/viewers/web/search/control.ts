@@ -1,6 +1,6 @@
 import type { WorkItem } from '@groma/work-source'
 
-import type { AnnotatedElement } from '../../../types.ts'
+import type { AnnotatedElement, AnnotatedGroup } from '../../../types.ts'
 import { bindPopover } from '../atoms/popover.ts'
 import { createWebSearch, type WebSearchResult } from './model.ts'
 import { paintSearchResults } from './view.ts'
@@ -8,6 +8,7 @@ import { paintSearchResults } from './view.ts'
 interface SearchControlOptions {
   root: HTMLElement
   elements: readonly AnnotatedElement[]
+  groups: readonly AnnotatedGroup[]
   tasks: readonly WorkItem[]
   onOpen: () => void
   onPreview: (result: WebSearchResult | undefined) => void
@@ -58,7 +59,7 @@ export function createSearchControl(options: SearchControlOptions) {
   const applePlatform = /Mac|iPhone|iPad/.test(navigator.platform)
   shortcut.textContent = applePlatform ? '⌘K' : 'Ctrl K'
 
-  let search = createWebSearch(options.elements, options.tasks)
+  let search = createWebSearch(options.elements, options.groups, options.tasks)
   let results = search.find('')
   let activeIndex = -1
   let opened = false
@@ -164,8 +165,8 @@ export function createSearchControl(options: SearchControlOptions) {
   }, true)
 
   return {
-    update(elements: readonly AnnotatedElement[], tasks: readonly WorkItem[]) {
-      search = createWebSearch(elements, tasks)
+    update(elements: readonly AnnotatedElement[], groups: readonly AnnotatedGroup[], tasks: readonly WorkItem[]) {
+      search = createWebSearch(elements, groups, tasks)
       if (opened && input.value.trim().length > 0) query()
     },
     updateTasks(tasks: readonly WorkItem[]) {

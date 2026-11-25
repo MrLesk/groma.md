@@ -4,6 +4,7 @@ import { parseMarkdown, parseFrontmatter } from 'comark'
 
 import {
   FLOW_TYPE,
+  GROUP_TYPE,
   c4Kind,
   requireBundleIndex,
   requireConceptType,
@@ -12,6 +13,7 @@ import {
 } from './okf-profile.ts'
 import { isReservedDocument } from './architecture-path.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
+import { upgradeGroupFields } from './group-upgrade.ts'
 
 import type {
   ArchitectureDocument,
@@ -146,13 +148,22 @@ async function requireGromaPackage(
   requireProjectOverview(project.nodes, project.body, project.sourceFilename)
 }
 
-/** Reads the one architecture tree: element documents wherever they sit, draft records under drafts/. */
+/**
+ * Reads the one architecture tree: element, flow and group documents by their type, draft records under drafts/.
+ * A tree that groma 0.7 wrote still names groups on its components; it is converted to group records first.
+ * That conversion is the only write a load makes: once in a working copy, and inside the temporary snapshot
+ * each time an old revision is read.
+ */
 export async function loadArchitecture(
   repositoryRoot: string,
   options: { onFilesystemAccess?: FilesystemAccessHandler } = {},
 ): Promise<ArchitectureRecords> {
   const filesystem = GromaFileSystem.open(repositoryRoot)
-  return filesystem.withAccess(() => readArchitecture(filesystem, options.onFilesystemAccess))
+  return filesystem.withAccess(async () => {
+    const records = await readArchitecture(filesystem, options.onFilesystemAccess)
+    if (!await upgradeGroupFields(repositoryRoot, records)) return records
+    return readArchitecture(filesystem, options.onFilesystemAccess)
+  })
 }
 
 async function readArchitecture(
@@ -163,6 +174,7 @@ async function readArchitecture(
   const documents: ArchitectureDocument[] = []
   const drafts: ArchitectureDocument[] = []
   const flows: ArchitectureDocument[] = []
+  const groups: ArchitectureDocument[] = []
 
   const filenames = (await listMarkdownFiles(filesystem, '', onFilesystemAccess))
     .filter(filename => !rootDocuments.has(filename) && !isReservedDocument(filename))
@@ -177,8 +189,9 @@ async function readArchitecture(
     }
     const type = requireConceptType(document.frontmatter, document.sourceFilename)
     if (type === FLOW_TYPE) flows.push(document)
+    if (type === GROUP_TYPE) groups.push(document)
     if (c4Kind(type) !== undefined) documents.push(document)
   }
 
-  return deepFreeze({ documents, drafts, flows })
+  return deepFreeze({ documents, drafts, flows, groups })
 }

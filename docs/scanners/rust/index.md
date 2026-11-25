@@ -40,9 +40,9 @@ Test, example, benchmark and build-script targets are outside this extraction.
 External crates and standard-library types remain unresolved. This source
 loader does not evaluate custom target configurations or build-generated flags.
 
-Crates share the repository source root so `#[path]` modules can refer to source
-outside a crate's own directory. Source listing includes selected target directories
-and follows literal `#[path = "..."]` references to shared files outside them.
+Crates share the smallest directory containing all selected Rust source files.
+This keeps `#[path]` modules visible outside a crate's own directory. Source
+listing includes selected target directories and follows literal `#[path = "..."]` references to shared files outside them.
 Module declarations still select the analyzed files; making a file reachable
 does not create a source owner by itself.
 
@@ -70,18 +70,20 @@ targets. Executable wrappers remain separate operations. Trait dispatch,
 function-pointer and callback value flow, calls in closure and async-block
 bodies, macro-expanded call bodies and generated sources are not extracted.
 
+The worker reads each Rust file as the Rust compiler does: a `\r\n` line ending
+counts as `\n`. A file checked out with Windows line endings therefore reports
+the same declarations, calls and comparison tokens as its `\n` copy, including
+a string literal that a `\` continues on the next line. Positions and lines
+still refer to the file on disk.
+
 A physical file shared by multiple module contexts appears once, with no guessed
 declarations or targets and a `rust-unsupported-compilation-contexts` diagnostic.
 This includes a file reached through a symlink.
 Invalid syntax or an engine module-loading error in a file the scan reads fails
 the observation.
 Unresolved external semantics do not fail the source scan. A completed scan
-does not claim that the application compiles.
-
-Crates and compiler contexts are temporary evidence, not new OKF concepts or
-C4 levels. Core owns curated file membership and relationship policy. Markdown
-readers retain readable Code links and responsibilities. Ordinary Rust calls
-do not automatically become architecture relationships.
+does not claim that the application compiles. Ordinary Rust calls do not
+automatically become architecture relationships.
 
 The [rust-analyzer project JSON format](https://rust-analyzer.github.io/book/non_cargo_based_projects.html)
 provides the source graph interface. See
@@ -272,3 +274,13 @@ The standard library is not loaded, so rust-analyzer cannot tell an unresolved
 name in a pattern from a new binding. An identifier pattern that starts with an
 uppercase letter, such as `None` or a glob-imported `Less`, stays text,
 because Rust names enum variants and constants that way.
+
+## Scan time
+
+The worker's own work stays proportional to source size. It never reads a file
+again to find a position or a line: it answers from tables of offsets that it
+builds when it reads the file. It reads the operations once to list each
+file's symbols. The engine's analysis is outside this rule.
+
+The native suite's scaling check checks the rule on one long file;
+[Reproduce the checks](validation.md#reproduce-the-checks) says how to run it.

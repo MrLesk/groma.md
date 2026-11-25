@@ -265,10 +265,21 @@ function sourceUnits(input: unknown, paths: Set<string>): Pick<ScanObservation, 
     .sort((a, b) => compare(a.primary, ...a.files).localeCompare(compare(b.primary, ...b.files))) }
 }
 
+/**
+ * Every root has a name. The type alone cannot ensure it: a scanner that takes the name from a parsed manifest passes
+ * whatever that file holds, and a manifest may hold none, as a package.json without `name` does.
+ */
+function requireRootName(root: ScanRoot): void {
+  if (typeof root.name === 'string') return
+  const declaredIn = root.file === undefined ? '' : ` (${root.file})`
+  throw new Error(`root has no name: ${root.id}${declaredIn}`)
+}
+
 function validateRoots(input: ScanRoot[]): ScanRoot[] {
   const roots = uniqueBy(input, root => root.id, 'root id')
   const byId = new Map(roots.map(root => [root.id, root]))
   for (const root of roots) {
+    requireRootName(root)
     const visited = new Set<string>([root.id])
     let parent = root.parent
     while (parent !== undefined) {

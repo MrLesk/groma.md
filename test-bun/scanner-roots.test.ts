@@ -28,8 +28,13 @@ function observation() {
   })
 }
 
-test.concurrent('root hierarchy rejects invalid parentage and duplicate identities', () => {
+test.concurrent('roots reject a missing name, invalid parentage and duplicate identities', () => {
   const value = observation()
+  // An untyped manifest value reaches the contract unchecked, as the absent `name` of a parsed package.json does.
+  const manifest = JSON.parse('{}')
+  expect(() => createScanObservation({ ...value,
+    roots: value.roots.map(root => root.id === 'tools' ? { ...root, name: manifest.name } : root),
+  })).toThrow('tools')
   expect(() => createScanObservation({ ...value,
     roots: [{ id: 'api', kind: 'project', name: 'Api', parent: 'missing' }],
   })).toThrow()

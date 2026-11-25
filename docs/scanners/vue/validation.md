@@ -63,16 +63,3 @@ the test suite.
 Execution used macOS arm64, Bun 1.4.1 and compiled groma.md. Public publication,
 public package naming, and Windows/Linux execution remain separate release
 gates. No additional-platform or public-availability claim is made.
-The coordinator approved the real map, including the curated CodeMirror
-responsibility and the direction and Vue provenance of its callback. Cold
-simplicity, implementer specification/quality and final full-context reviews
-passed without required changes. The shared `bun run check` passed: 110 Node
-tests and 398 Bun tests passed, seven existing tooling-dependent tests were
-skipped, and no tests failed. The Vue watcher test passed in that shared suite.
-Six pre-existing complexity warnings remain.
-
-One earlier focused watcher run timed out after 20 seconds. Two traced runs
-showed normal event dispatch, and the restored test then passed both focused
-and shared checks. No assertions or timeouts were changed, and no retries
-were added. The isolated timeout has no established root cause; the
-investigation remains recorded in TASK-326.10.

@@ -5,7 +5,6 @@ status: stable
 groma:
   id: catalog-api-cache
   parent: catalog-api
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/catalog-api/cache.ts

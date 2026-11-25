@@ -2,6 +2,8 @@
 type: C4 Component
 title: Project scan support
 status: stable
+tags:
+  - scanning
 groma:
   id: scanners-projects
   parent: cli
@@ -21,7 +23,6 @@ groma:
       symbol: withJavaScriptEntries
     - scanner: typescript
       file: plugins/scanners/entry-points/source.ts
-  group: Scanner support
 description: Finds language project roots and reports paths from the repository root
 ---
 

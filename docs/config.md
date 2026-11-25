@@ -13,7 +13,8 @@ colleagues who pull the project get the same selected plugins and project settin
   ],
   "exclude": ["/test/"],
   "useGitignore": true,
-  "automaticUpdates": true
+  "automaticUpdates": true,
+  "webHost": "127.0.0.1"
 }
 ```
 
@@ -31,8 +32,9 @@ the conversion does not run again.
 
 ## Plugins
 
-Each section lists the plugins of one kind. No plugin runs unless the file lists
-it. Ids are lowercase kebab-case; one id names one plugin across all sections.
+Each section lists the plugins of one kind. No scanner or work source runs
+unless the file lists it. Ids are lowercase kebab-case; one id names one entry
+across all sections, [themes](#themes) included.
 
 - `scanners`: `id`, `source` and `include`, optionally `settings` and `exclude`.
   [Scanner settings](scanners/setup.md) describes them.
@@ -46,6 +48,60 @@ recorded as its commit), and a local `./path` runs from the repository.
 A plugin without a `source` is bundled: it ships inside groma.md and has its
 version. The Backlog.md work source reads tasks through the Backlog.md CLI; its
 `version` is the lowest CLI version the project uses.
+
+## Themes
+
+`themes` lists the UI themes the web map offers, in picker order. A theme owns
+the interface and the map background: surfaces, text, grid, controls, and what
+each [named color](component-markdown.md#colors) looks like. It never changes
+which color an element has.
+
+```json
+{
+  "themes": [
+    { "id": "light" },
+    { "id": "dark" },
+    { "id": "midnight", "source": "./groma/midnight.theme.json" }
+  ]
+}
+```
+
+- An entry without a `source` is a bundled theme: `light`, `dark` or `blueprint`.
+- An entry with a `source` is a theme file in the repository, at a path relative
+  to the repository root.
+- Without a `themes` list a project offers the three bundled themes. With one,
+  the picker offers exactly the listed themes, after a reload.
+
+Bundled themes and theme files have one shape and one loader
+([`src/themes/`](../src/themes/definition.ts)). A theme file is JSON:
+
+| Field | Meaning |
+| --- | --- |
+| `title` | The name the picker shows. |
+| `scheme` | `light` or `dark`: the system appearance the theme suits. |
+| `chromeOpacity` | Share of the paper colour in the translucent panels, from 0 to 1. |
+| `palette` | Every colour of the interface and the map, each as `#RRGGBB`; `hover` may be any CSS colour. |
+| `palette.colors` | One value for each named color: `red`, `orange`, `yellow`, `blue`, `violet`, `pink`. |
+
+A theme file must define every value; one that does not fails to load with the
+name of the missing field, and one whose JSON does not parse with the path of
+the file. A theme file sets colours and panel opacity. The
+bundled Dark and Blueprint also carry a few line treatments of their own, such
+as Blueprint's underlined keywords in the source view, which a clone does not
+take. **Auto** shows the first listed theme whose `scheme`
+matches the system appearance, so the order of the list decides which light and
+which dark theme Auto uses. A theme chosen by name stays chosen.
+
+To make your own theme, clone one and edit the file:
+
+```sh
+groma plugin clone dark midnight
+```
+
+This writes `<groma-root>/midnight.theme.json` with every value of Dark and adds
+it to `themes`. `groma plugin add blueprint` or `groma plugin add ./theme.json`
+enables a theme, `groma plugin remove dark` takes one out of the picker, and
+`groma plugin list` shows the enabled themes.
 
 `exclude` and `useGitignore` apply to every scanner; see
 [Scanners](scanners/index.md).
@@ -73,6 +129,25 @@ so another plugin change or settings edit is preserved. If the same scanner's
 selection changed during a manual update, Groma reports the conflict.
 
 Missing packages still need the normal plugin installation or restoration flow.
+
+## Web host
+
+`webHost` is the host name or address `groma web` listens on. It defaults to
+`127.0.0.1`, which serves this computer only. Initialization writes that value
+into a new project's `config.json`; a file without `webHost` means the same.
+
+Any other host can serve the map over the network. The server has no sign-in:
+a computer that can reach it can read the project's source and use the editing
+and plugin controls. `groma web` prints a warning on standard error at every
+start unless `webHost` is exactly `127.0.0.1`, `localhost` or `::1`.
+
+`config.json` is shared, so the host applies to everyone who pulls the project.
+A specific address works only on the computer that has it.
+
+`groma web` prints an address it listens on: `http://127.0.0.1:<port>` by
+default, and the configured host otherwise. `0.0.0.0` and `::` listen on every
+network interface and are printed as their loopback address,
+`http://127.0.0.1:<port>` and `http://[::1]:<port>`.
 
 ## Restoring plugins on another computer
 
@@ -118,7 +193,3 @@ version. An explicit npm version is eligible for automatic background updates un
 The plugins screen, **Settings → Plugins** in `groma web` or `s` on the welcome
 screen, offers the same operations and lists the bundled plugins the project
 does not use yet, each with **Install**.
-
-`config.json` is operational configuration, not architecture knowledge: it adds
-no OKF concept or C4 element, and a Markdown reader of the architecture sees
-nothing of it.

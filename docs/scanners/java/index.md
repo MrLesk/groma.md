@@ -325,9 +325,7 @@ injection or runtime collaborations.
 
 The shared relationship rule selects concrete callback bindings. Ordinary Java
 calls do not become architecture arrows. Core owns curated source membership
-and relationship selection. Build settings and compiler facts are temporary
-evidence, not new OKF records or C4 elements. Markdown readers retain ordinary
-Code links and reviewed responsibilities.
+and relationship selection.
 
 Run `bun test test-bun/java-scanner.test.ts` with the maintainer JDK to test
 local resolution and uncertainty. `bun test test-bun/java-gradle.test.ts` covers
