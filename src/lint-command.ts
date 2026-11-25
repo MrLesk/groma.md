@@ -2,16 +2,18 @@ import type { Command } from 'commander'
 import { architectureFindingItems, detectDuplicatedLogic } from './architecture-findings.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { loadArchitecture } from './architecture-reader.ts'
+import { GromaFileSystem } from './groma-filesystem.ts'
 import { sourceIndex } from './source-index.ts'
 import { parseListWindow, printListPage, withListWindowOptions, type ListWindow } from './list-window.ts'
 import { loadScannerRegistry } from './scanner/registry.ts'
 
 /** Inspect current scanner evidence without folding it into saved architecture. */
 async function lintArchitecture(repositoryRoot: string, window: ListWindow): Promise<number> {
-  const records = await loadArchitecture(repositoryRoot)
-  const model = buildArchitectureModel(records.documents)
-  const owners = sourceIndex(model.elements).byFile
-  const registry = await loadScannerRegistry(repositoryRoot)
+  const { owners, registry } = await GromaFileSystem.open(repositoryRoot).withRead(async () => {
+    const records = await loadArchitecture(repositoryRoot)
+    const model = buildArchitectureModel(records.documents)
+    return { owners: sourceIndex(model.elements).byFile, registry: await loadScannerRegistry(repositoryRoot) }
+  })
   const { observations, failures } = await registry.collectObservations(repositoryRoot)
   const findings = detectDuplicatedLogic(observations, owners)
   printListPage(architectureFindingItems(findings), window)

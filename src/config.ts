@@ -242,7 +242,7 @@ function parseGromaConfig(
 
 export async function readGromaConfig(repositoryRoot: string): Promise<GromaConfig> {
   const filesystem = GromaFileSystem.open(repositoryRoot)
-  return filesystem.withAccess(async () => {
+  return filesystem.withRead(async () => {
     if (filesystem.exists('config.json')) {
       return parseGromaConfig(await filesystem.read('config.json'), filesystem.sourceFilename('config.json'))
     }
@@ -254,8 +254,6 @@ export async function readGromaConfig(repositoryRoot: string): Promise<GromaConf
       const backlog = await backlogPlugin.readiness()
       config.workSources = backlog.status === 'found' ? [{ id: 'backlog', version: backlog.version }] : []
     }
-    await writeGromaConfig(repositoryRoot, config)
-    await filesystem.removeSource(filesystem.sourceFilename('scanners.json'))
     return config
   })
 }
@@ -284,10 +282,13 @@ export async function updateGromaConfig(
   repositoryRoot: string,
   change: (config: GromaConfig) => GromaConfig | undefined,
 ): Promise<boolean> {
-  return GromaFileSystem.open(repositoryRoot).withAccess(async () => {
+  const filesystem = GromaFileSystem.open(repositoryRoot)
+  return filesystem.withAccess(async () => {
+    const upgradesLegacy = !filesystem.exists('config.json') && filesystem.exists('scanners.json')
     const next = change(await readGromaConfig(repositoryRoot))
     if (next === undefined) return false
     await writeGromaConfig(repositoryRoot, next)
+    if (upgradesLegacy) await filesystem.removeSource(filesystem.sourceFilename('scanners.json'))
     return true
   })
 }

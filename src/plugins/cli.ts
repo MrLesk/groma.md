@@ -1,4 +1,5 @@
 import type { Command } from 'commander'
+import { GromaFileSystem } from '../groma-filesystem.ts'
 import { parseListWindow, printListPage, withListWindowOptions } from '../list-window.ts'
 import { cloneTheme, enabledThemes } from '../themes/management.ts'
 import { addPlugin, pluginPresence, removePlugin, restoreFailure, restoreMissingPlugins, themeSelection, updatePlugin, type PluginSelection } from './management.ts'
@@ -80,10 +81,14 @@ export function registerPluginCommands(program: Command): void {
     .description('List the plugins config.json lists and whether this computer has them'))
     .action(async options => {
       await runPluginCommand(async () => {
-        const lines = (await pluginPresence(process.cwd())).map(item =>
-          pluginLine([item.kind, item.id, item.present ? 'found' : 'missing', item.selection, item.message]))
-        // Themes have nothing to install, so they are listed as enabled rather than found or missing.
-        lines.push(...(await enabledThemes(process.cwd())).map(theme => selectionLine(themeSelection(theme))))
+        const root = process.cwd()
+        const lines = await GromaFileSystem.open(root).withRead(async () => {
+          const plugins = (await pluginPresence(root)).map(item =>
+            pluginLine([item.kind, item.id, item.present ? 'found' : 'missing', item.selection, item.message]))
+          // Themes have nothing to install, so list them as enabled.
+          const themes = (await enabledThemes(root)).map(theme => selectionLine(themeSelection(theme)))
+          return [...plugins, ...themes]
+        })
         printListPage(lines, parseListWindow(options, process.argv.slice(2)))
       })
     })

@@ -11,24 +11,33 @@ import {
   readFile,
   realpath,
   rename,
+  stat,
   unlink,
   writeFile,
 } from 'node:fs/promises'
 import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 
-const access = new AsyncLocalStorage<ReadonlySet<string>>()
+type AccessMode = 'read' | 'write'
+const access = new AsyncLocalStorage<ReadonlyMap<string, AccessMode>>()
 const LOCK_TIMEOUT_MS = 5000
 const LOCK_FILENAME = '.groma.lock'
+const STATE_DIRECTORY = '.groma-state'
 
 export class GromaBusyError extends Error {
   readonly code = 'groma_busy'
   readonly timeoutMs: number
 
   constructor(timeoutMs: number) {
-    super(`Groma is busy. Could not acquire the project lock within ${timeoutMs} ms.`)
+    super(`Groma is busy. The project did not become available within ${timeoutMs} ms.`)
     this.timeoutMs = timeoutMs
   }
+}
+
+async function waitForProject(deadline: number, timeoutMs: number): Promise<void> {
+  const remaining = deadline - performance.now()
+  if (remaining <= 0) throw new GromaBusyError(timeoutMs)
+  await delay(Math.min(25, remaining))
 }
 
 async function acquire(filename: string, timeoutMs: number): Promise<() => Promise<void>> {
@@ -41,10 +50,72 @@ async function acquire(filename: string, timeoutMs: number): Promise<() => Promi
       const code = (error as NodeJS.ErrnoException).code
       // Windows can deny creation while the previous lock is pending deletion.
       if (code !== 'EEXIST' && !(process.platform === 'win32' && code === 'EPERM')) throw error
-      const remaining = deadline - performance.now()
-      if (remaining <= 0) throw new GromaBusyError(timeoutMs)
-      await delay(Math.min(25, remaining))
+      await waitForProject(deadline, timeoutMs)
     }
+  }
+}
+
+async function replaceFile(filename: string, source: string): Promise<void> {
+  const temporary = `${filename}.${randomUUID()}.tmp`
+  try {
+    await writeFile(temporary, source, { flag: 'wx' })
+    await rename(temporary, filename)
+  } finally {
+    await unlink(temporary).catch(error => { if (error.code !== 'ENOENT') throw error })
+  }
+}
+
+function revisionFile(root: string): string {
+  return path.join(root, STATE_DIRECTORY, 'write-revision')
+}
+
+async function readRevision(filename: string): Promise<string | undefined> {
+  try {
+    return await readFile(filename, 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
+}
+
+/** Advance the revision under the exclusive lock before changing project files. */
+async function markWrite(root: string): Promise<void> {
+  const filename = revisionFile(root)
+  const state = path.dirname(filename)
+  await mkdir(state, { recursive: true })
+  const ignore = path.join(state, '.gitignore')
+  if (!existsSync(ignore)) await writeFile(ignore, '*\n', { flag: 'wx' })
+  const revision = BigInt(await readRevision(filename) ?? '0') + 1n
+  await replaceFile(filename, revision.toString())
+}
+
+async function lockExists(filename: string): Promise<boolean> {
+  try {
+    await stat(filename)
+    return true
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    return false
+  }
+}
+
+async function readConsistently<T>(root: string, operation: () => Promise<T>, timeoutMs: number): Promise<T> {
+  const lock = path.join(root, LOCK_FILENAME)
+  const filename = revisionFile(root)
+  const deadline = performance.now() + timeoutMs
+  for (;;) {
+    // Read the revision before checking the lock, and check the lock before rereading the revision.
+    const revision = await readRevision(filename)
+    if (!await lockExists(lock)) {
+      const result = await operation().then(
+        value => ({ ok: true as const, value }),
+        error => ({ ok: false as const, error }),
+      )
+      if (!await lockExists(lock) && revision === await readRevision(filename)) {
+        if (!result.ok) throw result.error
+        return result.value
+      }
+    }
+    await waitForProject(deadline, timeoutMs)
   }
 }
 
@@ -130,19 +201,43 @@ export class GromaFileSystem {
     return path.join(this.repositoryRoot, this.directory, ...relative.split('/'))
   }
 
-  /** Protect a complete read or read/change/write operation across local processes.
-   * Nested storage calls share access; the lock is never held while a person edits.
-   * Files are replaced atomically. Several replacements are not a crash-recovery transaction.
-   */
-  async withAccess<T>(operation: () => Promise<T>, timeoutMs = LOCK_TIMEOUT_MS): Promise<T> {
+  /** Protect a full write, including the reads that decide what it changes. */
+  withAccess<T>(operation: () => Promise<T>, timeoutMs = LOCK_TIMEOUT_MS): Promise<T> {
+    return this.withProjectAccess('write', operation, timeoutMs)
+  }
+
+  /** Retry a read if a writer overlapped it. Nested reads share the outer scope. */
+  withRead<T>(operation: (underWriteLock: boolean) => Promise<T>, timeoutMs = LOCK_TIMEOUT_MS): Promise<T> {
+    return this.withProjectAccess('read', operation, timeoutMs)
+  }
+
+  private async withProjectAccess<T>(
+    mode: AccessMode,
+    operation: (underWriteLock: boolean) => Promise<T>,
+    timeoutMs: number,
+  ): Promise<T> {
     const held = access.getStore()
-    if (held?.has(this.absolute())) return operation()
-    await mkdir(this.absolute(), { recursive: true })
-    const root = await realpath(this.absolute())
-    if (held?.has(root)) return operation()
+    const absolute = this.absolute()
+    let root = absolute
+    if (!held?.has(absolute)) {
+      if (mode === 'write') await mkdir(absolute, { recursive: true })
+      root = await realpath(absolute)
+    }
+
+    const existing = held?.get(root)
+    if (existing !== undefined) {
+      if (mode === 'write' && existing === 'read') throw new Error('Groma writes require a write operation.')
+      return operation(existing === 'write')
+    }
+
+    const scope = new Map<string, AccessMode>([...held ?? [], [root, mode], [absolute, mode]])
+    const run = async () => access.run(scope, () => operation(mode === 'write'))
+    if (mode === 'read') return readConsistently(root, run, timeoutMs)
+
     const release = await acquire(path.join(root, LOCK_FILENAME), timeoutMs)
     try {
-      return await access.run(new Set([...held ?? [], root, this.absolute()]), operation)
+      await markWrite(root)
+      return await run()
     } finally {
       await release()
     }
@@ -152,12 +247,13 @@ export class GromaFileSystem {
     return existsSync(this.absolute(relative))
   }
 
-  list(relative: string): Promise<Dirent[]> {
-    return readdir(this.absolute(relative), { withFileTypes: true })
+  async list(relative: string): Promise<Dirent[]> {
+    const entries = await readdir(this.absolute(relative), { withFileTypes: true })
+    return relative === '' ? entries.filter(entry => entry.name !== STATE_DIRECTORY) : entries
   }
 
   read(relative: string): Promise<string> {
-    return this.withAccess(() => readFile(this.absolute(relative), 'utf8'))
+    return this.withRead(() => readFile(this.absolute(relative), 'utf8'))
   }
 
   readSource(sourceFilename: string): Promise<string> {
@@ -170,13 +266,7 @@ export class GromaFileSystem {
         && !this.exists(relative.split('/')[0]!)
       const filename = this.absolute(relative)
       await mkdir(path.dirname(filename), { recursive: true })
-      const temporary = `${filename}.${randomUUID()}.tmp`
-      try {
-        await writeFile(temporary, source, { flag: 'wx' })
-        await rename(temporary, filename)
-      } finally {
-        await unlink(temporary).catch(error => { if (error.code !== 'ENOENT') throw error })
-      }
+      await replaceFile(filename, source)
       if (addsIndexEntry) await this.refreshIndex()
     })
   }
@@ -219,7 +309,9 @@ export class GromaFileSystem {
       if (error) throw error
       for (const event of events) {
         if (path.basename(event.path) === LOCK_FILENAME || event.path.endsWith('.tmp')) continue
-        listener(path.relative(root, event.path).split(path.sep).join('/'))
+        const relative = path.relative(root, event.path).split(path.sep)
+        if (relative[0] === STATE_DIRECTORY) continue
+        listener(relative.join('/'))
       }
     })
   }

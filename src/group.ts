@@ -16,7 +16,13 @@ import {
 } from './markdown-emitter.ts'
 import { kebabCase, requireText } from './naming.ts'
 import { GROUP_TYPE } from './okf-profile.ts'
-import type { ArchitectureElement, ArchitectureGroup, ArchitectureModel, ArchitectureRecords } from './types.ts'
+import type {
+  ArchitectureDocument,
+  ArchitectureElement,
+  ArchitectureGroup,
+  ArchitectureModel,
+  ArchitectureRecords,
+} from './types.ts'
 
 /** What a group write reads: the stored documents, the elements their links name, and the groups they resolve to. */
 export interface GroupContext {
@@ -98,19 +104,30 @@ async function joiningWrites(
   ]
 }
 
-/**
- * The one way to write a group's meaning and members: loads the groups as these writes would leave them,
- * then writes. A refused change writes nothing. (relinkElement in edit.ts writes again the text of member
- * links, which no load reads.)
- */
-export async function writeGroups(context: GroupContext, writes: readonly GroupWrite[]): Promise<void> {
+/** Validate the resulting group documents before applying any change. */
+async function applyGroupChanges(
+  context: GroupContext,
+  writes: readonly GroupWrite[],
+  persist: boolean,
+): Promise<ArchitectureDocument[]> {
   const written = new Set(writes.map(write => write.sourceFilename))
+  const changed = await Promise.all(writes.map(async ({ sourceFilename, source }) => ({
+    ...await parsedDocument(sourceFilename, source), markdown: source,
+  })))
   const documents = [
     ...context.records.groups.filter(document => !written.has(document.sourceFilename)),
-    ...await Promise.all(writes.map(write => parsedDocument(write.sourceFilename, write.source))),
+    ...changed,
   ]
   resolveGroups(documents, context.model)
-  for (const write of writes) await writeDocument(context.repositoryRoot, write.sourceFilename, write.source)
+  if (persist) {
+    for (const write of writes) await writeDocument(context.repositoryRoot, write.sourceFilename, write.source)
+  }
+  return documents
+}
+
+/** Save validated changes to group meaning and membership. */
+export async function writeGroups(context: GroupContext, writes: readonly GroupWrite[]): Promise<void> {
+  await applyGroupChanges(context, writes, true)
 }
 
 function requireComponent(model: ArchitectureModel, id: string): ArchitectureElement {
@@ -210,15 +227,15 @@ export interface BatchGroupInput extends AddGroupInput {
   id: string
 }
 
-/**
- * Several groups at once, each planned as addGroup plans it, but all against the records as they were before
- * this call: the inputs must name different groups and their ids must differ. The writes are checked together,
- * then stored one by one.
- */
-export async function addGroups(context: GroupContext, inputs: readonly BatchGroupInput[]): Promise<void> {
+/** Convert independent groups against the same set of existing documents. */
+export async function convertGroups(
+  context: GroupContext,
+  inputs: readonly BatchGroupInput[],
+  persist: boolean,
+): Promise<ArchitectureDocument[]> {
   const writes: GroupWrite[] = []
   for (const input of inputs) writes.push(...inWriteOrder(await groupingWrites(context, input, input.id)))
-  await writeGroups(context, writes)
+  return applyGroupChanges(context, writes, persist)
 }
 
 /**

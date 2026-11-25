@@ -60,12 +60,19 @@ never a concept, and the scanner never gives an element one of those names.
 
 ## Local updates
 
-Local CLI and web authoring operations and scanner reconciliation share one
-filesystem access boundary. `GromaFileSystem.withAccess` owns the project lock,
-waits up to five seconds, and releases it after the operation. Architecture
-readers use the same boundary so they do not load a structural change halfway
-through. Nested storage calls reuse the current operation. New write entry
-points use the shared `writes` API in `src/authoring.ts`.
+Local CLI and web authoring operations and scanner reconciliation use the same
+project lock. `GromaFileSystem.withAccess` waits up to five seconds to take it.
+With the lock held, a writer advances the project's local write revision
+before changing any records.
+
+Readers use `GromaFileSystem.withRead`. A reader checks the lock and revision
+around its read. It retries if the lock is active or the revision changes.
+This catches a write that starts and finishes during the read. Reading uses
+only filesystem read permissions, so commands such as `groma view --plain`
+work in a read-only checkout. Nested storage calls share the current operation.
+The write revision lives in the Git-ignored `.groma-state/` directory, outside
+the bundle index. New write entry points use the shared `writes` API in
+`src/authoring.ts`.
 
 The lock covers reading the current architecture, checking the change, and
 writing its result. Each file is replaced by renaming a completed temporary
@@ -701,16 +708,15 @@ nothing about its group. Core resolves the links
 and, on each member, the ID of its group: a view finds a group's members among
 the elements whose `group` is that ID, as it finds children by `parent`.
 
-groma 0.7 stored a group as a name in each member's `groma.group` field. Loading
-a project that still has the field converts it
-([`upgradeGroupFields`](../src/group-upgrade.ts)): the components of one
-container that name the same group become the members of the record
-`groma add group` would create, and the field is removed, so this happens once.
-When that record's ID is already taken, the record gets the first free numbered
+groma 0.7 stored a group as a name in each member's `groma.group` field.
+A read builds the equivalent group records in memory
+([`upgradeGroupFields`](../src/group-upgrade.ts)). Components of one container
+that name the same group become members of the record `groma add group` would
+create. When its ID is already taken, the record gets the first free numbered
 ID, such as `api-checks-2`. A container or a component without an identified
-container loses the field without a group. An old Git revision is converted the
-same way inside its temporary snapshot each time it is read; the repository does
-not change.
+container loses the field without a group. An architecture write saves this
+conversion by writing the group records and removing the old fields. This
+also lets views of old Git revisions show their groups.
 
 `groma add group <name> <component-id...>` creates a record and prints its ID:
 the container's ID followed by the kebab-case name, so two containers can each

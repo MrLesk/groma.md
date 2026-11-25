@@ -6,6 +6,7 @@ import { createScanObservation } from '@groma/scanner'
 import { writes } from '../src/authoring.ts'
 import { loadAnnotatedArchitecture, reconcileScanObservations } from '../src/core.ts'
 import type { StructuralResult } from '../src/curate.ts'
+import { renderPlainRecord } from '../src/plain-world.ts'
 import type { AnnotatedArchitectureModel } from '../src/types.ts'
 import { repositoryRoot } from './helpers.ts'
 
@@ -161,7 +162,7 @@ async function writeOldGroupField(document: string, name: string): Promise<void>
 
 const apiDocument = (root: string, file: string) => path.join(root, 'groma/systems/shop/containers/api', file)
 
-test.concurrent('a project groma 0.7 wrote turns the group names on its components into group records', async () => {
+test.concurrent('0.7 groups are readable before the next architecture write stores their records', async () => {
   const root = await shop()
   try {
     // The container and a component without a container carry the name too, which no group can hold now.
@@ -175,6 +176,16 @@ test.concurrent('a project groma 0.7 wrote turns the group names on its componen
     ]
     for (const document of documents) await writeOldGroupField(document, 'Checks')
 
+    const before = await Promise.all(documents.map(document => readFile(document, 'utf8')))
+    const groupFile = path.join(root, 'groma/groups/api-checks.md')
+    expect(membership(await loadAnnotatedArchitecture(root))).toEqual({ 'api-checks': ['orders', 'stock'] })
+    const record = await renderPlainRecord(root, 'api-checks', false, { skip: 0, count: false, command: [] })
+    expect(record).toMatchObject({ ok: true, text: expect.stringContaining('components/orders.md') })
+    expect(await Bun.file(groupFile).exists()).toBe(false)
+    expect(await Promise.all(documents.map(document => readFile(document, 'utf8')))).toEqual(before)
+
+    await writes.edit(root, { id: 'stock', title: 'Inventory' })
+    expect(await Bun.file(groupFile).exists()).toBe(true)
     expect(membership(await loadAnnotatedArchitecture(root))).toEqual({ 'api-checks': ['orders', 'stock'] })
     for (const document of documents) expect(await readFile(document, 'utf8')).not.toMatch(/^ +group:/m)
   } finally { await rm(root, { recursive: true, force: true }) }

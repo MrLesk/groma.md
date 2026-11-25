@@ -2,6 +2,7 @@ import { draftRecordOf } from './architecture-model.ts'
 import { sourceIndex } from './source-index.ts'
 import { annotateArchitecture } from './core.ts'
 import { loadArchitecture } from './architecture-reader.ts'
+import { GromaFileSystem } from './groma-filesystem.ts'
 import { relationshipOrigin } from './origin.ts'
 import { emptyWorldLines, isEmptyWorld } from './empty-world.ts'
 import { loadProjectProfile } from './project-profile.ts'
@@ -196,14 +197,16 @@ function formatPlainElement(world: ArchitectureGraph, element: AnnotatedElement,
 }
 
 export async function renderPlainWorld(repositoryRoot: string, window: ListWindow): Promise<string> {
-  const records = await loadArchitecture(repositoryRoot)
-  const model = annotateArchitecture(records)
-  if (isEmptyWorld(model)) {
-    if (window.count) return '0'
-    const project = await loadProjectProfile(repositoryRoot)
-    return emptyWorldLines(project?.title ?? '').join('\n')
-  }
-  return formatPlainWorld(model, draftOutcomes(records), window)
+  return GromaFileSystem.open(repositoryRoot).withRead(async () => {
+    const records = await loadArchitecture(repositoryRoot)
+    const model = annotateArchitecture(records)
+    if (isEmptyWorld(model)) {
+      if (window.count) return '0'
+      const project = await loadProjectProfile(repositoryRoot)
+      return emptyWorldLines(project?.title ?? '').join('\n')
+    }
+    return formatPlainWorld(model, draftOutcomes(records), window)
+  })
 }
 
 export type PlainRecordResult =
@@ -288,22 +291,24 @@ export async function renderPlainRecord(
   plain: boolean,
   window: ListWindow,
 ): Promise<PlainRecordResult> {
-  const records = await loadArchitecture(repositoryRoot)
-  const model = annotateArchitecture(records)
-  const element = plain ? model.elements.find(item => item.id === target) : undefined
-  if (element !== undefined) return { ok: true, text: `${formatPlainElement(model, element, window)}\n` }
-  const documents = [...records.documents, ...records.flows, ...records.groups]
-  const documentById = new Map(documents.map(document => [
-    requireGromaMapping(document.frontmatter, document.sourceFilename).id,
-    document,
-  ]))
-  const document = documentById.get(target)
-  if (document !== undefined) {
-    return { ok: true, text: await readDocument(repositoryRoot, document.sourceFilename) }
-  }
-  const draft = draftOutcomes(records).find(item => item.id === target)
-  if (draft !== undefined) {
-    return { ok: true, text: `${formatDraftRecord(draft, draftItems(draft, model.elements), window)}\n` }
-  }
-  return fileAnswer(repositoryRoot, model, target, window)
+  return GromaFileSystem.open(repositoryRoot).withRead(async () => {
+    const records = await loadArchitecture(repositoryRoot)
+    const model = annotateArchitecture(records)
+    const element = plain ? model.elements.find(item => item.id === target) : undefined
+    if (element !== undefined) return { ok: true, text: `${formatPlainElement(model, element, window)}\n` }
+    const documents = [...records.documents, ...records.flows, ...records.groups]
+    const documentById = new Map(documents.map(document => [
+      requireGromaMapping(document.frontmatter, document.sourceFilename).id,
+      document,
+    ]))
+    const document = documentById.get(target)
+    if (document !== undefined) {
+      return { ok: true, text: document.markdown ?? await readDocument(repositoryRoot, document.sourceFilename) }
+    }
+    const draft = draftOutcomes(records).find(item => item.id === target)
+    if (draft !== undefined) {
+      return { ok: true, text: `${formatDraftRecord(draft, draftItems(draft, model.elements), window)}\n` }
+    }
+    return fileAnswer(repositoryRoot, model, target, window)
+  })
 }

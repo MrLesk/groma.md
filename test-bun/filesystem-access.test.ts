@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
-import { cp, link, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { parseFrontmatter } from 'comark'
+import { chmod, cp, link, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -17,6 +18,54 @@ async function fixture() {
   await cp(path.join(repository, 'test/fixtures/edit'), root, { recursive: true })
   return { root, filesystem: GromaFileSystem.open(root) }
 }
+
+test.skipIf(process.platform === 'win32' || process.getuid?.() === 0).concurrent(
+  'groma view --plain reads a checkout whose architecture directory is read-only', async () => {
+    const { root, filesystem } = await fixture()
+    try {
+      await chmod(filesystem.absolute(), 0o555)
+      const process = Bun.spawn(['bun', path.join(repository, 'src/cli.ts'), 'view', '--plain'], {
+        cwd: root, stdout: 'pipe', stderr: 'pipe',
+      })
+      const [exit, stdout, stderr] = await Promise.all([
+        process.exited, new Response(process.stdout).text(), new Response(process.stderr).text(),
+      ])
+      expect({ exit, stderr }).toEqual({ exit: 0, stderr: '' })
+      expect(stdout).toContain('shop  system')
+    } finally {
+      await chmod(filesystem.absolute(), 0o755)
+      await rm(root, { recursive: true, force: true })
+    }
+  },
+)
+
+test.concurrent('a read retries a mixed snapshot after a whole write finishes during the read', async () => {
+  const { root, filesystem } = await fixture()
+  const orders = 'systems/shop/containers/api/components/orders.md'
+  const readFirst = Promise.withResolvers<void>()
+  const writeDone = Promise.withResolvers<void>()
+
+  const snapshot = filesystem.withRead(async () => {
+    const first = await filesystem.read(stock)
+    readFirst.resolve()
+    await writeDone.promise
+    const second = await filesystem.read(orders)
+    return [first, second].map(source => parseFrontmatter(source).data.title)
+  })
+  try {
+    await Promise.race([readFirst.promise, snapshot])
+    await filesystem.withAccess(async () => {
+      await writes.edit(root, { id: 'stock', title: 'Inventory' })
+      await writes.edit(root, { id: 'orders', title: 'Shipments' })
+    })
+    writeDone.resolve()
+    expect(await snapshot).toEqual(['Inventory', 'Shipments'])
+  } finally {
+    writeDone.resolve()
+    await snapshot.catch(() => {})
+    await rm(root, { recursive: true, force: true })
+  }
+})
 
 test.concurrent('separate CLI processes preserve independent field updates in one checkout', async () => {
   const { root, filesystem } = await fixture()

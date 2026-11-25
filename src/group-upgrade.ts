@@ -1,5 +1,5 @@
 import { buildArchitectureModel, idConflict } from './architecture-model.ts'
-import { addGroups, groupContext, type BatchGroupInput, type GroupContext } from './group.ts'
+import { convertGroups, groupContext, type BatchGroupInput, type GroupContext } from './group.ts'
 import { parsedDocument, readDocument, withoutGroupField, writeDocument } from './markdown-emitter.ts'
 import { kebabCase } from './naming.ts'
 import type { ArchitectureDocument, ArchitectureRecords } from './types.ts'
@@ -46,30 +46,29 @@ function namedGroups(named: readonly ArchitectureDocument[], context: GroupConte
   return [...groups.values()]
 }
 
-/**
- * groma 0.7 stored a component's group as a name in the component's own `groma.group` field. A group is now a
- * record under groups/ (src/group.ts). This converts a project or a revision that still has the field: each
- * named group becomes the record `groma add group` writes, then the field leaves every document. A working copy
- * is converted once; a revision is converted in its temporary snapshot each time it is read, and the repository
- * does not change. The records are checked together against one model, so a conversion costs about one load.
- * Returns whether anything was converted.
- */
-export async function upgradeGroupFields(repositoryRoot: string, records: ArchitectureRecords): Promise<boolean> {
+/** Interpret the old group fields as group records. An architecture write also saves the conversion. */
+export async function upgradeGroupFields(
+  repositoryRoot: string,
+  records: ArchitectureRecords,
+  persist: boolean,
+): Promise<ArchitectureRecords> {
   const named = records.documents.filter(document => oldGroupName(document) !== undefined)
-  if (named.length === 0) return false
+  if (named.length === 0) return records
 
   const sources = new Map(await Promise.all(named.map(async document => [
     document.sourceFilename,
     withoutGroupField(await readDocument(repositoryRoot, document.sourceFilename)),
   ] as const)))
-  const documents = await Promise.all(records.documents.map(document => {
-    const source = sources.get(document.sourceFilename)
-    return source === undefined ? document : parsedDocument(document.sourceFilename, source)
+  const documents = await Promise.all(records.documents.map(async document => {
+    const markdown = sources.get(document.sourceFilename)
+    return markdown === undefined ? document : { ...await parsedDocument(document.sourceFilename, markdown), markdown }
   }))
   const context = groupContext(repositoryRoot, { ...records, documents }, buildArchitectureModel(documents))
-
-  // Records before fields: a conversion stopped in between finds these records and joins them on the next load.
-  await addGroups(context, namedGroups(named, context))
-  for (const [sourceFilename, source] of sources) await writeDocument(repositoryRoot, sourceFilename, source)
-  return true
+  // Persist the group records before removing the old fields, so a later load can resume a stopped conversion.
+  const groups = await convertGroups(context, namedGroups(named, context), persist)
+  if (persist) {
+    for (const [sourceFilename, source] of sources) await writeDocument(repositoryRoot, sourceFilename, source)
+  }
+  groups.sort((left, right) => left.sourceFilename.localeCompare(right.sourceFilename))
+  return { ...records, documents, groups }
 }
