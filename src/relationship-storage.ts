@@ -77,11 +77,12 @@ export function withStoredRelationships(
     const element = elementsById.get(endpoint)
     return element === undefined ? `[${endpoint}](${markdownHref(filename, endpoint)})` : elementLink(filename, element)
   }
+  const tableText = (text: string): string => text.replace(/(?<!\\)\|/g, '\\|')
   const sections = new Map<string, string[]>()
   for (const row of rows) {
     const heading = row.authored ? (row.status === 'draft' ? DRAFTED : AUTHORED) : DERIVED
     const lines = sections.get(heading) ?? []
-    lines.push(`| ${link(row.source)} | ${link(row.target)} | ${row.description} | ${row.technology} |`)
+    lines.push(`| ${link(row.source)} | ${link(row.target)} | ${tableText(row.description)} | ${tableText(row.technology)} |`)
     sections.set(heading, lines)
   }
   const tables = [...sections].map(([heading, lines]) =>

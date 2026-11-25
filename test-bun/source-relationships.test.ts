@@ -241,6 +241,24 @@ test.concurrent('editing a derived interaction takes authorship and preserves it
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
+test.concurrent('authored relationship text retains literal pipes', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma-relationship-text-'))
+  try {
+    await cp(path.resolve(import.meta.dir, '../test/fixtures/edit'), root, { recursive: true })
+    const input = {
+      source: 'src/stock.ts',
+      target: 'src/orders.ts',
+      description: 'Reports current | projected stock levels',
+      technology: 'Callback | event',
+    }
+    await addRelation(root, input)
+    const { relationships } = await loadAnnotatedArchitecture(root)
+    expect(relationships.flatMap(row => row.connections ?? [])).toContainEqual(
+      expect.objectContaining({ ...input, authored: true }),
+    )
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
 test.concurrent('draft interactions stay separate from current derivation and require explicit acceptance', async () => {
   const root = await repository()
   try {
