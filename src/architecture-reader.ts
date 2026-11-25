@@ -148,21 +148,15 @@ async function requireGromaPackage(
   requireProjectOverview(project.nodes, project.body, project.sourceFilename)
 }
 
-/**
- * Reads the one architecture tree: element, flow and group documents by their type, draft records under drafts/.
- * A tree that groma 0.7 wrote still names groups on its components; it is converted to group records first.
- * That conversion is the only write a load makes: once in a working copy, and inside the temporary snapshot
- * each time an old revision is read.
- */
+/** Read the complete architecture tree from one consistent version of the project. */
 export async function loadArchitecture(
   repositoryRoot: string,
   options: { onFilesystemAccess?: FilesystemAccessHandler } = {},
 ): Promise<ArchitectureRecords> {
   const filesystem = GromaFileSystem.open(repositoryRoot)
-  return filesystem.withAccess(async () => {
+  return filesystem.withRead(async underWriteLock => {
     const records = await readArchitecture(filesystem, options.onFilesystemAccess)
-    if (!await upgradeGroupFields(repositoryRoot, records)) return records
-    return readArchitecture(filesystem, options.onFilesystemAccess)
+    return deepFreeze(await upgradeGroupFields(repositoryRoot, records, underWriteLock))
   })
 }
 
@@ -193,5 +187,5 @@ async function readArchitecture(
     if (c4Kind(type) !== undefined) documents.push(document)
   }
 
-  return deepFreeze({ documents, drafts, flows, groups })
+  return { documents, drafts, flows, groups }
 }

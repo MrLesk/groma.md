@@ -50,6 +50,8 @@ export interface ArchitectureFrontmatter extends Record<string, unknown> {
 
 export interface ArchitectureDocument {
   sourceFilename: string
+  /** Complete Markdown for a record converted in memory during a load. */
+  markdown?: string
   body: string
   nodes: MarkdownNode[]
   frontmatter: ArchitectureFrontmatter

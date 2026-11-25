@@ -3,6 +3,7 @@ import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
 import { watchArchitecture } from '../../architecture-watch.ts'
 import { loadAnnotatedArchitecture } from '../../core.ts'
+import { GromaFileSystem } from '../../groma-filesystem.ts'
 import { compareArchitecture, ownedFiles, type SourceTexts } from '../../history/comparison.ts'
 import { olderFirst, readGitRevision, type GitRevision } from '../../history/revisions.ts'
 import { atRevision, readSourceTexts } from '../../history/snapshots.ts'
@@ -163,14 +164,20 @@ export async function exportWebViewer(
   const finished = new Promise<void>(resolve => { closePromise = resolve })
 
   async function publish(): Promise<void> {
-    // The working tree's config.json chooses the themes, also when the map comes from another commit.
-    const themes = await loadThemes(repositoryRoot)
-    const snapshot = await publishedSnapshot(repositoryRoot, revisions, ++generation, filter, themes)
+    generation += 1
+    const snapshot = await GromaFileSystem.open(repositoryRoot).withRead(async () => {
+      // The working tree's config.json chooses the themes, also when the map comes from another commit.
+      const themes = await loadThemes(repositoryRoot)
+      return publishedSnapshot(repositoryRoot, revisions, generation, filter, themes)
+    })
     if (closed) return
     // Nothing is written before the snapshot exists, so an export that fails leaves no directory and no half-written site.
     await mkdir(output, { recursive: true })
     await replaceFile(path.join(output, 'render.js'), renderer)
-    for (const theme of themes) await replaceFile(path.join(output, coverFile(theme.id)), await generateCover(snapshot, theme))
+    for (const theme of snapshot.themes) {
+      const cover = await generateCover(snapshot, theme)
+      await replaceFile(path.join(output, coverFile(theme.id)), cover)
+    }
     await replaceFile(path.join(output, 'snapshot.js'), snapshotScript(snapshot))
     await replaceFile(path.join(output, 'index.html'), renderPage(snapshot, url))
     await replaceFile(path.join(output, 'version.js'), versionScript(snapshot.generation))

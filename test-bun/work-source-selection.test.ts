@@ -32,7 +32,7 @@ async function withFakeBacklog(root: string, version: string, script: string, av
   await writeFile(file, `
     import { readFile, writeFile } from 'node:fs/promises'
     import { addPlugin, pluginPresence, removePlugin } from ${JSON.stringify(path.join(source, 'plugins/management.ts'))}
-    import { readGromaConfig } from ${JSON.stringify(path.join(source, 'config.ts'))}
+    import { readGromaConfig, updateGromaConfig } from ${JSON.stringify(path.join(source, 'config.ts'))}
     import { workSourceSession } from ${JSON.stringify(path.join(source, 'work/sources.ts'))}
     const root = ${JSON.stringify(root)}
     const calls = () => readFile(root + '/calls', 'utf8').then(text => text.trim().split('\\n'), () => [])
@@ -203,7 +203,7 @@ test.concurrent('groma init reports a Backlog.md that cannot be added and contin
 })
 
 
-test.concurrent('the configuration upgrade preserves scanner choices and registers the installed Backlog CLI once', async () => {
+test.concurrent('reading old settings preserves their choices and saving them registers Backlog once', async () => {
   const root = await project()
   const legacy = {
     scanners: [{ id: 'typescript', source: '@groma/scanner-typescript@0.2.2', include: ['**/*.ts'],
@@ -215,6 +215,9 @@ test.concurrent('the configuration upgrade preserves scanner choices and registe
     await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify(legacy))
     const result = await withFakeBacklog(root, '1.53.0', `
       result.config = await readGromaConfig(root)
+      result.configAfterRead = await Bun.file(root + '/groma/config.json').exists()
+      result.legacyAfterRead = await Bun.file(root + '/groma/scanners.json').exists()
+      await updateGromaConfig(root, current => current)
       result.saved = JSON.parse(await readFile(root + '/groma/config.json', 'utf8'))
       result.legacyExists = await Bun.file(root + '/groma/scanners.json').exists()
       await removePlugin(root, 'backlog')
@@ -222,7 +225,10 @@ test.concurrent('the configuration upgrade preserves scanner choices and registe
       result.calls = await calls()
     `)
     const converted = { ...legacy, workSources: [{ id: 'backlog', version: '1.53.0' }] }
-    expect(result).toEqual({ config: converted, saved: converted, legacyExists: false, afterRemoval: [], calls: ['--version'] })
+    expect(result).toEqual({
+      config: converted, configAfterRead: false, legacyAfterRead: true, saved: converted,
+      legacyExists: false, afterRemoval: [], calls: ['--version', '--version'],
+    })
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
@@ -233,6 +239,7 @@ test.concurrent('an old .groma configuration converts without installing a missi
     await rm(path.join(root, '.groma/config.json'))
     await writeFile(path.join(root, '.groma/scanners.json'), JSON.stringify({ scanners: [] }))
     const result = await withFakeBacklog(root, '1.53.0', `
+      await updateGromaConfig(root, current => current)
       result.config = await readGromaConfig(root)
       result.saved = JSON.parse(await readFile(root + '/.groma/config.json', 'utf8'))
       result.legacyExists = await Bun.file(root + '/.groma/scanners.json').exists()
@@ -266,6 +273,7 @@ test.concurrent('the upgrade preserves a legacy scanner that already owns the ba
     await rm(path.join(root, 'groma/config.json'))
     await writeFile(path.join(root, 'groma/scanners.json'), JSON.stringify(legacy))
     const result = await withFakeBacklog(root, '1.53.0', `
+      await updateGromaConfig(root, current => current)
       result.config = await readGromaConfig(root)
       result.saved = JSON.parse(await readFile(root + '/groma/config.json', 'utf8'))
       result.legacyExists = await Bun.file(root + '/groma/scanners.json').exists()

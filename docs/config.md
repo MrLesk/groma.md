@@ -20,15 +20,14 @@ colleagues who pull the project get the same selected plugins and project settin
 
 ## Upgrading from scanners.json
 
-On first use, when `config.json` is absent, Groma converts an existing
-`scanners.json`. Scanner sources, settings, include/exclude lists and global
-options are preserved. If the Backlog.md CLI is already installed and no scanner
-uses the `backlog` ID, its version is recorded too; nothing is installed or
-initialized. An existing scanner keeps that ID. Groma removes the old file after
-saving `config.json`.
+When `config.json` is absent, Groma reads `scanners.json` and converts the
+settings in memory. The conversion keeps scanner sources, settings,
+include and exclude lists, and global options. If the Backlog.md CLI is
+installed and its ID is available, the converted settings include its version.
 
-An existing `config.json` always wins. Removing Backlog.md later stays effective;
-the conversion does not run again.
+A settings write saves the converted settings to `config.json` and removes the
+old file. An existing `config.json` takes precedence, so removing Backlog.md
+later stays effective.
 
 ## Plugins
 
