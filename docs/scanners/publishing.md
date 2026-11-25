@@ -27,6 +27,20 @@ the shared workflow for both scanner packages and the main groma.md CLI.
 To release changed scanners without a new groma.md version, run the same workflow
 manually with `publish_scanners` enabled. Leave it disabled for a build-only run.
 
+If the scanners published and the CLI failed before any CLI package or release
+binary was published, finish the existing release with its tag and version.
+Check the fixed workflow on a branch first, then run it from the release tag.
+
+```sh
+gh workflow run release.yml --ref <fix-branch> -f cli_release=check
+gh workflow run release.yml --ref v0.8.0 -f cli_release=publish
+```
+
+The check builds and exercises all five CLI binaries without publishing. The
+publish run requires an existing published GitHub release tag with no attached
+binaries. Confirm its CLI package versions are still absent from npm before
+starting it. Both runs use the exact scanner versions already on npm.
+
 The author contract is `@groma/scanner`. Official packages use
 `@groma/scanner-<id>`; the main CLI remains `groma.md`. Scanner manifests declare
 their minimum groma.md API version in `groma.scanner.discovery.compatibility.groma`,

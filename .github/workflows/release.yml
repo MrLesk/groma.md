@@ -8,6 +8,11 @@ on:
         description: Publish changed scanner packages without releasing Groma
         type: boolean
         default: false
+      cli_release:
+        description: Check CLI binaries or finish publishing an existing release tag with published scanners
+        type: choice
+        options: [none, check, publish]
+        default: none
   release:
     types: [published]
 
@@ -22,6 +27,7 @@ env:
 
 jobs:
   validate:
+    if: inputs.cli_release != 'check'
     name: validate-release
     runs-on: ubuntu-24.04
     steps:
@@ -96,6 +102,22 @@ jobs:
           }
           fs.appendFileSync(process.env.GITHUB_ENV, Object.entries(settings).map(([key, value]) => `${key}=${value}\n`).join(''));
           NODE
+      - name: Verify the existing release
+        if: inputs.cli_release == 'publish'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_TYPE" != tag ]]; then
+            printf '%s\n' 'Choose an existing GitHub release tag.' >&2
+            exit 1
+          fi
+          release=$(gh release view "$GITHUB_REF_NAME" --json tagName,isDraft,assets --jq 'select(.isDraft == false and (.assets | length) == 0) | .tagName')
+          if [[ "$release" != "$GITHUB_REF_NAME" ]]; then
+            printf '%s\n' 'The GitHub release must be published and have no uploaded binaries.' >&2
+            exit 1
+          fi
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v7.1.0
         with:
@@ -124,7 +146,7 @@ jobs:
         run: node scripts/check-native-tls.cjs
         shell: bash
       - name: Set version from tag
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || inputs.cli_release == 'publish'
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
@@ -143,6 +165,7 @@ jobs:
         run: bun run check
 
   build-scanners:
+    if: inputs.cli_release != 'check' && inputs.cli_release != 'publish'
     name: build-scanners-${{ matrix.platform }}
     strategy:
       fail-fast: false
@@ -323,9 +346,14 @@ jobs:
           if-no-files-found: error
 
   build:
-    if: github.event_name == 'release'
+    if: >-
+      ${{ !cancelled() && (
+        inputs.cli_release == 'check' ||
+        (inputs.cli_release == 'publish' && needs.validate.result == 'success') ||
+        (github.event_name == 'release' && needs.publish-scanners.result == 'success')
+      ) }}
     name: build-${{ matrix.target }}
-    needs: publish-scanners
+    needs: [validate, publish-scanners]
     strategy:
       fail-fast: false
       matrix:
@@ -371,6 +399,7 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
       - name: Set version from tag
+        if: inputs.cli_release != 'check'
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
@@ -386,14 +415,18 @@ jobs:
         shell: bash
       - parallel:
           - name: Install all Bun target dependencies
-            run: bun install --frozen-lockfile --cafile="$SSL_CERT_FILE" --os="*" --cpu="*"
+            # The CLI bundles prebuilt dependencies. Scanner workspace install scripts belong to scanner builds.
+            run: bun install --frozen-lockfile --cafile="$SSL_CERT_FILE" --os="*" --cpu="*" --ignore-scripts
             shell: bash
           - uses: actions/download-artifact@v8.0.2
+            if: github.event_name == 'release'
             with:
               name: published-scanner-packages
               path: published-scanner-packages
       - name: Embed published scanner metadata
-        run: bun scripts/scanner-release.ts catalog published-scanner-packages
+        env:
+          SCANNER_MANIFESTS: ${{ github.event_name == 'release' && 'published-scanner-packages' || 'plugins/scanners' }}
+        run: bun scripts/scanner-release.ts catalog "$SCANNER_MANIFESTS"
         shell: bash
       - name: Prepare verified standalone runtime
         run: node scripts/prepare-bun-runtime.cjs "${{ matrix.target }}"
@@ -420,6 +453,7 @@ jobs:
           if-no-files-found: error
 
   release-assets:
+    if: github.event_name == 'release' || inputs.cli_release == 'publish'
     name: release-assets
     needs: build
     runs-on: ubuntu-latest
@@ -451,6 +485,7 @@ jobs:
         run: gh release upload "$GITHUB_REF_NAME" release/* --clobber
 
   publish-platform:
+    if: github.event_name == 'release' || inputs.cli_release == 'publish'
     name: publish-${{ matrix.package }}
     needs: build
     strategy:
