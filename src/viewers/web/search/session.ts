@@ -1,11 +1,12 @@
 import type { WorkItem } from '@groma/work-source'
 
-import type { AnnotatedElement, Point } from '../../../types.ts'
+import type { AnnotatedElement, AnnotatedGroup, Point } from '../../../types.ts'
 import type { MapFrame } from '../chrome/frame.ts'
 import { pan, type Camera } from '../iso/camera/camera.ts'
 import { detailsTabAfterSelection, type DetailsTab } from '../organisms/details.ts'
-import { noSelection, primarySelection, selectArchitecture, type Selection } from '../selection.ts'
+import { primarySelection, selectOne, type Selection } from '../selection.ts'
 import { createSearchControl } from './control.ts'
+import type { WebSearchResult } from './model.ts'
 
 interface SearchViewState {
   selection: Selection
@@ -17,10 +18,11 @@ interface SearchViewState {
 interface SearchSessionOptions {
   root: HTMLElement
   elements: readonly AnnotatedElement[]
+  groups: readonly AnnotatedGroup[]
   tasks: readonly WorkItem[]
   snapshot(): SearchViewState
   apply(state: SearchViewState, commitUrl: boolean): void
-  previewMap(elementIds: readonly string[] | undefined, camera?: Camera): void
+  previewMap(ids: readonly string[] | undefined, camera?: Camera): void
   taskElements(task: WorkItem): string[]
   openTask(id: string): void
   clearSource(): void
@@ -45,12 +47,18 @@ function reveal(camera: Camera, point: Point | undefined, frame: MapFrame): Came
   return dx === 0 && dy === 0 ? undefined : pan(camera, dx, dy)
 }
 
+/** The id the map selects for a result that is not a task: an element's or a stored group's. */
+function selectionId(result: Exclude<WebSearchResult, { kind: 'task' }>): string {
+  return result.kind === 'group' ? result.group.id : result.element.representationId
+}
+
 /** Owns transient map preview and the opening snapshot restored on cancel. */
 export function createSearchSession(options: SearchSessionOptions) {
   let returnState: SearchViewState | undefined
   return createSearchControl({
     root: options.root,
     elements: options.elements,
+    groups: options.groups,
     tasks: options.tasks,
     onOpen() {
       returnState = options.snapshot()
@@ -60,9 +68,7 @@ export function createSearchSession(options: SearchSessionOptions) {
         options.previewMap(undefined)
         return
       }
-      const ids = result.kind === 'architecture'
-        ? [result.element.representationId]
-        : options.taskElements(result.task)
+      const ids = result.kind === 'task' ? options.taskElements(result.task) : [selectionId(result)]
       const current = options.snapshot()
       const point = ids.length === 0 ? undefined : options.anchorOf(ids[0]!)
       const camera = reveal(current.camera, point, options.viewport())
@@ -78,10 +84,10 @@ export function createSearchSession(options: SearchSessionOptions) {
         options.openTask(result.task.id)
         return
       }
-      const id = result.element.representationId
+      const id = selectionId(result)
       options.apply({
         ...current,
-        selection: selectArchitecture(noSelection, id, false),
+        selection: selectOne(id),
         detailsTab: detailsTabAfterSelection(current.detailsTab, primarySelection(current.selection), id),
       }, true)
     },

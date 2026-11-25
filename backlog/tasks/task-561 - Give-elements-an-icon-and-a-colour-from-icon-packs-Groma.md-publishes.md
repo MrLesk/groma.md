@@ -1,28 +1,84 @@
 ---
 id: TASK-561
-title: 'Give elements an icon and a colour, from icon packs Groma.md publishes'
-status: To Do
-assignee: []
-created_date: '2026-10-07 23:16'
-updated_date: '2026-10-08 15:22'
+title: Assign icons to actors, systems, containers and components
+status: Done
+assignee:
+  - '@claude'
+created_date: 2026-10-07 23:16
+updated_date: '2026-11-19T07:52:00Z'
 labels:
-  - senior
+  - personalization
+milestone: m-6
 dependencies: []
 references:
-  - src-architecture-model
-  - src-authoring
-  - src-cli
-  - organisms-details
-  - map
-  - shell
-  - settings-control
-  - package
-  - modules-settings
-  - scanners-settings
-  - map-sharing
-  - screen
+  - src/icons.ts
+  - src/viewers/web/icons/objects.ts
+  - src/viewers/web/icons/glyphs.ts
+  - src/viewers/web/iso/painting/icons.ts
+  - src/sheet/measure.ts
+  - src/architecture-model.ts
+  - src/edit.ts
+  - src/viewers/web/organisms/icon-picker.ts
+documentation:
+  - ROADMAP.md
   - docs/component-markdown.md
-  - docs/scanners/publishing.md
+  - docs/product-model.md
+modified_files:
+  - src/viewers/web/iso/projection/project.ts
+  - src/icons.ts
+  - src/viewers/web/icons/parts.ts
+  - src/viewers/web/icons/objects.ts
+  - src/viewers/web/icons/glyphs.ts
+  - src/viewers/web/iso/painting/icons.ts
+  - src/types.ts
+  - src/architecture-model.ts
+  - src/core.ts
+  - src/sheet/types.ts
+  - src/sheet/place.ts
+  - src/sheet/measure.ts
+  - src/sheet/compose.ts
+  - src/viewers/web/iso/painting/text.ts
+  - src/viewers/web/iso/painting/buildings.ts
+  - src/viewers/web/iso/painting/ground.ts
+  - src/viewers/web/iso/painting/scale.ts
+  - src/viewers/web/iso/painting/style.ts
+  - src/markdown-emitter.ts
+  - src/edit.ts
+  - src/write-commands.ts
+  - src/curate.ts
+  - src/plain-world.ts
+  - src/history/comparison.ts
+  - src/viewers/web/icons/glyph-element.ts
+  - src/viewers/web/organisms/icon-picker.ts
+  - src/viewers/web/organisms/writes.ts
+  - src/viewers/web/authoring.ts
+  - src/viewers/web/organisms/details.ts
+  - src/viewers/web/organisms/sidebar-row.ts
+  - src/viewers/web/organisms/hierarchy.ts
+  - src/viewers/tui/tree.ts
+  - src/viewers/web/page.ts
+  - src/viewers/web/flow/list.ts
+  - src/viewers/web/sharing/cover.ts
+  - src/viewers/web/comparison/details.ts
+  - src/instructions.ts
+  - docs/component-markdown.md
+  - docs/product-model.md
+  - docs/viewers/web/index.md
+  - docs/agent-instructions/describe.md
+  - test-bun/architecture-icons.test.ts
+  - test-bun/editing.test.ts
+  - groma/systems/groma-md/containers/cli/components/src-architecture-model.md
+  - groma/systems/groma-md/containers/export/components/button.md
+  - groma/systems/groma-md/containers/export/components/map.md
+  - groma/systems/groma-md/containers/export/components/organisms-details.md
+  - src/viewers/web/iso/painting/icon-camera.ts
+  - src/viewers/web/iso/painting/names.ts
+  - src/viewers/web/organisms/instant-choice.ts
+  - src/viewers/web/organisms/color-swatches.ts
+  - src/viewers/web/organisms/editable.ts
+  - src/authoring-conflict.ts
+  - src/viewers/web/editing/appearance-preview.ts
+  - test-bun/web-appearance-preview.test.ts
 type: feature
 ordinal: 1
 ---
@@ -30,27 +86,64 @@ ordinal: 1
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-People want the map to speak their project's language: a database with a database icon, the payment components in one colour, a legend that explains the colours. Icons come from icon packs: packages that Groma.md publishes for everyone's projects, the way it publishes scanners, and that anyone else can publish too. A project installs a pack and the map draws from it. Theme palettes are a separate thing and stay untouched: an icon and an accent colour draw the same way in every theme.
-
-Build on what exists. Elements carry groma.technology through src/architecture-model.ts, src/markdown-emitter.ts, groma edit and the web details form. Scanner packages declare themselves in their package.json under groma.scanner, are resolved from npm, a local folder or git by src/scanner/modules/package.ts, are recorded in groma/scanners.json and listed in the web settings dialog. Vendor marks are inline SVG in src/viewers/web/atoms/marks.ts. Buildings are painted in src/viewers/web/iso/painting/. Covers are rendered with resvg, which draws inline SVG but has no emoji font.
-
-TASK-568 replaces scanners.json with one plugin file, `<groma-root>/plugins.json`, with a section per plugin kind, and adds the generic `groma plugin add|list|remove|install|update` commands. Icon packs are one of those kinds: record them in its `icons` section. If that work has not landed yet, add the `icons` section and icon support in those commands yourself, in the shape TASK-568 describes.
+An architecture author gives an actor, system, external system, container or component one named icon that says what kind of thing it is, so readers recognize it on the map. Groma presentation metadata under groma owns the name; C4 boundaries stay unchanged and ordinary Markdown readers keep title, description, body and links. Group icons are not part of this task: when it was built a group was a name on its members and had no document. Since TASK-657 a group has its own record, and TASK-666 gives it an icon. Icon packs, vendor logos, uploads and automatic inference are outside this task.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 An element can carry an icon name and an accent colour in its groma fields, set with groma edit <id> --icon <name> --colour <name> and in the web details form, validated like the other fields, documented in docs/component-markdown.md, and preserved by scans.
-- [ ] #2 An icon pack is a package whose package.json declares under groma.icons the SVG icons it ships. groma plugin add <package> installs a pack: it resolves npm, a local folder or git the way scanners are resolved and records the pack in the icons section of <groma-root>/plugins.json. groma plugin list and groma plugin remove manage it, and the web settings dialog shows the installed packs.
-- [ ] #3 An icon name resolves through the installed packs or is an emoji. An unknown name leaves the building without an icon and appears in groma lint as a finding, never as a failed map.
-- [ ] #4 The web map draws the icon and the accent colour on the building and its label the same way in light, dark and blueprint. The web details pane and the terminal details pane show them. The cover export includes the icon and the colour.
-- [ ] #5 A legend on the map lists the accent colours in use with a count each, and hides when no element has one.
-- [ ] #6 One pack lives under plugins/icons/ with at least twelve generic architecture icons (database, queue, cache, browser, mobile app, service, scheduler, file store, mail, identity, gateway, search), built and published the same way as the scanner packages, and docs/ describes how to make and publish a pack.
+- [x] #1 An author can assign, change, and clear an icon on an actor, system, external system, container, and component through a documented Groma authoring action.
+- [x] #2 The web map shows each assigned icon on its element in the Iso, 2D and Layers views, in the hierarchy and in the details.
+- [x] #3 Assignments survive reloads and scans and remain the same when the UI theme changes.
+- [x] #4 The documented storage uses Groma presentation metadata without changing C4 containment, and no icon is assigned automatically.
+- [x] #5 In the web map the icon is the Icon field of the element's Edit form: Save stores it with the form's other fields under the same conflict check, the reading pane has no icon control, and Save and Cancel stay visible while the form scrolls
+- [x] #6 While the Edit form of an element is open, the map shows the picked icon on that element without storing it, in the room the element has now; the map lays itself out for the icon after Save
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria have objective verification evidence.
-- [ ] #2 Relevant checks pass and changes remain task-scoped.
-- [ ] #3 Public contracts or documentation are updated when behavior changes.
-- [ ] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
+- [x] #1 Acceptance criteria have objective verification evidence.
+- [x] #2 Relevant checks pass and changes remain task-scoped.
+- [x] #3 Public contracts or documentation are updated when behavior changes.
+- [x] #4 Implementation Plan reflects the final approach; correction history and verification are recorded in Implementation Notes.
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Store one icon name per element in groma.icon; src/icons.ts lists the 23 generic names (people, applications, running parts, data, other). groma edit --icon sets and clears it; it follows the same path as groma.color (model validation, emitter, edit guards, combine refusal, plain view, comparison).
+2. Draw every name twice. An object (src/viewers/web/icons/objects.ts, built with parts.ts from boxes, upright prisms and balls in a 1 x 1 footprint) is projected with the map's own boxFaces and curvedFaces, so it turns with the map in Iso and Layers. A flat glyph (icons/glyphs.ts) is drawn in the 2D view, the hierarchy rows, the details title and the picker. Icon parts carry their own classes (icon-part, icon-top, icon-left, icon-right, icon-line, icon-solid, icon-screen), so no building rule reaches them; they read the element's tint variables, so they take its authored color.
+3. Position is automatic: the icon stands in a square slot before the element's name. sheet/measure.ts owns the slot (roofIconSlot for roofs, TITLE_ICON_LEAD and surfaceLabelLayout for title bands), so a roof or band grows and the name never lies under the icon. iso/painting/names.ts draws each name together with its icon from that one slot.
+4. Camera rules live in iso/painting/icon-camera.ts, each as a function for a still image and as the stylesheet expression for the live map, side by side: the icon before a system's or container's title is a landmark that is enlarged to stay readable when the map is zoomed out; a roof icon shrinks with the map and fades out when tiny; inner lines fade on small objects; line width follows the icon's screen size.
+5. Details pane: an Icon grid applies a choice at once through the shared edit write. The Color row and the Icon grid share organisms/instant-choice.ts.
+6. Tests. (a) Rule: an author sets, changes and clears an icon, an unknown name and the project record are refused, and edits and scans keep it; authority: acceptance criteria 1 and 3; failure caught: icon lost by a scan or an invalid name stored; gap: no icon coverage existed; one test beside the color edit test. (b) Rule: a name starts after its icon slot and the building grows to hold both; authority: Alex's statement that positioning is automatic; failure caught: icon drawn over the name; one painter-level test on a three-element world. (c) Rule: a container icon is a landmark and a component icon is not; failure caught: component icons flooding the overview. (d) Rule: every object stays inside its footprint; failure caught: an object standing on the name beside it. The cold review removed a test of landmarkZoom because it restated the function.
+7. Docs: component-markdown Icons section and field table, product-model, web viewer index, agent describe guide, agent instruction line.
+
+Revision 2026-11-16 (owner direction: no editing outside the Edit form). The Icon grid that stored on click and organisms/instant-choice.ts are withdrawn. icon-picker.ts supplies the choices of an Icon field in the Edit form, drawn by the choice field the Color field uses; EditValues and MeaningEdit include icon and onIcon is deleted. The form is now taller than a small pane, so its Save and Cancel bar is pinned to the bottom of the pane (CSS in organisms/editable.ts). No new test: the conflict check is generic over the form's fields and the color assertion in test-bun/editing.test.ts covers a picked value; the form is verified on the live map.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-11-10. Decision record. Alex left the artwork open (animated isometric, static isometric or flat) and on 2026-11-10 asked to see icons that are made nice, isometric or flat, saying earlier icon notes were obsolete. I decided: static isometric objects in the tilted views and flat glyphs in the 2D view and the panes, both drawn by me in code, no animation, no icon pack. Reasons: an object built from the map's own faces belongs to the map and turns with it; the 2D view and the panes need a flat drawing anyway; only lit flows animate on the map. Groups carried no icon in this task, by a decision of the agent that the owner rejected on 2026-11-12; TASK-666 gives a group an icon.
+Verification on groma's own map (icons assigned on every level in a scratch copy, never committed): objects on component, actor and external roofs and before system and container titles in Iso and Layers; glyphs in 2D, hierarchy rows, the details title and the picker; a click in the picker applied and cleared an icon at once; Light and Dark; the cover shows the container icons.
+Groma's own map sets no icon in this branch: the architecture comparison job reads pull requests with the released groma.md, which rejects a new groma field until the next release.
+Reviews. Cold review and full-context review ran on the first snapshot. Fixed from them: icon parts no longer share the buildings' face classes (hover, draft, comparison and colored covers repainted them); parts are drawn back to front with a part over what it stands on (the cache chip's front pins were covered); only title icons are landmarks (an enlarged roof icon left its roof); the camera rules sit side by side in icon-camera.ts and the still path now fades inner lines by the same ramp as the live map; one slot function and one painter per name kind; a still is a named option; wall marks only type-check on boxes; cylinder renamed from round; Color row and Icon grid share one control. Left for Alex: a table of authored name fields (color and icon are now two hand-kept copies of the same path), and whether the live map should use the painter path for camera rules so one mechanism remains.
+
+2026-11-16 revision: the Icon grid that stored on click was withdrawn after the owner asked that no editing happens outside the Edit form. Verified on the live map of this repository: the reading pane has no icon choice and no input; the Edit form shows Icon after Color with 24 choices and No icon checked; picking database and Save puts the object on the roof and the glyph in the details title; picking No icon and Save removes both; in a 600 px high window the form scrolls under the pinned Save and Cancel bar, which sits flush with the bottom of the pane. Full check: 959 Bun tests and the Node suite pass, 0 failures.
+
+2026-11-16, after Alex tried the form ("I cannot preview icon and color changes"): the preview the colors task added (editing/appearance-preview.ts) now carries the picked icon too. The icon object stands on the roof while it is picked; the layout does not move until Save, because core owns layout and a preview stores nothing. The test of withAppearance gained the icon. Checked on the live map at the top of the stack: picking database shows the object on the building, Cancel and selecting another element show the saved state again.
+
+Same day, own critical pass: the preview now keeps a saved icon on the map until the saved map arrives, as it does for the color, so the element does not flash back after Save.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+An actor, system, external system, container or component can carry one of 23 named icons in groma.icon, set with groma edit --icon or the Icon grid in the web details pane. The web map draws each name as an isometric object built from the map's own boxes and cylinders in the Iso and Layers views, and as a flat glyph in the 2D view, the hierarchy rows and the details title. The icon stands in a slot the layout reserves before the name. The icon before a system's or container's title stays readable when the map is zoomed out; roof icons shrink with the map and fade out when tiny. Covers draw the same icons.
+Verified: bun run check passes (28 Node tests, 959 Bun tests, 64 environment-dependent skips, 0 failures); icons assigned on every level of a scratch copy of groma's own map and inspected in Iso, 2D, Layers, Light, Dark and the cover; the picker applied and cleared an icon at once.
+Not included: icons on groups (TASK-666 adds them), icon packs, vendor logos, animation, icons in the terminal map (plain output prints the name). Groma's own map sets no icon until a release knows the field. Open for Alex: his verdict on the artwork, a table for authored name fields, and whether the live map should use the painter path for the camera rules.
+
+Revision 2026-11-16: in the web map the icon is the Icon field of the element's Edit form, stored by Save under the conflict check; organisms/instant-choice.ts and the onIcon hook are deleted, the reading pane has no icon control, and the form's Save and Cancel bar is pinned to the bottom of the pane.
+
+Later the same day: the map previews the icon picked in the open Edit form on that element, without storing it.
+<!-- SECTION:FINAL_SUMMARY:END -->

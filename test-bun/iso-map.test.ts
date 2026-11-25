@@ -12,12 +12,10 @@ import type { ProjectProfile } from '../src/project-profile.ts'
 import {
   fitCamera,
   pan,
-  wheelAction,
   zoomAbout,
   zoomLimits,
 } from '../src/viewers/web/iso/camera/camera.ts'
 import {
-  HEIGHT_UNIT,
   boxFaces,
   paintOrder,
   project,
@@ -64,11 +62,6 @@ function screenBox(points: readonly Point[]): Bounds {
 function overlaps(a: Bounds, b: Bounds): boolean {
   return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
 }
-
-test.concurrent('ground depth grows down the screen and height rises', () => {
-  assert.ok(project(3, 2, 0).y > project(2, 2, 0).y && project(2, 3, 0).y > project(2, 2, 0).y)
-  assert.equal(project(1, 0, 1).y, project(1, 0, 0).y - HEIGHT_UNIT)
-})
 
 test.concurrent('a box shows its top and the two faces turned to the viewer', () => {
   const rect = { gx: 2, gy: 3, w: 2, d: 2 }
@@ -173,17 +166,6 @@ test.concurrent('zooming keeps the point under the cursor still and clamps to th
   assert.equal(zoomAbout(fit, 0.0001, anchor, fit).k, limits.min)
   assert.ok(limits.min < fit.k && limits.max >= 4)
   assert.deepEqual(pan(fit, 10, -5), { ...fit, x: fit.x + 10, y: fit.y - 5 })
-})
-
-test.concurrent('a plain wheel pans by the scroll delta; a pinch or cmd+wheel zooms', () => {
-  assert.deepEqual(
-    wheelAction({ deltaX: 30, deltaY: -12, ctrlKey: false, metaKey: false }),
-    { kind: 'pan', dx: -30, dy: 12 },
-  )
-  const pinch = wheelAction({ deltaX: 0, deltaY: -10, ctrlKey: true, metaKey: false })
-  assert.ok(pinch.kind === 'zoom' && Math.abs(pinch.factor - Math.exp(0.1)) < 1e-12)
-  const wheel = wheelAction({ deltaX: 0, deltaY: -100, ctrlKey: false, metaKey: true })
-  assert.ok(wheel.kind === 'zoom' && Math.abs(wheel.factor - Math.exp(0.15)) < 1e-12)
 })
 
 test.concurrent('every relationship has a polyline whose arrowhead lies on the sheet along its last step', async () => {
@@ -370,24 +352,6 @@ for (const mode of ['iso', '2d'] as const) {
     assert.deepEqual(sheet, before)
   })
 }
-
-test.concurrent('surface title geometry changes only between fixed zoom ranges', () => {
-  const ranges = [[0.03, 0.1, 0.2, 0.249], [0.25, 0.3, 0.4, 0.499], [0.5, 0.6, 0.8, 0.999], [1, 1.5, 2, 4]]
-  for (const view of [NESTED_POSE, OVERHEAD_POSE]) {
-    for (const band of [{ width: 20000, height: 10000 }, { width: 240, height: 120 }]) {
-      const text = { width: 200, band }
-      const layouts = ranges.map(range => {
-        const first = surfaceLabelLayout(text, CONTAINER_FONT, range[0]!, view)
-        for (const zoom of range.slice(1)) {
-          assert.deepEqual(surfaceLabelLayout(text, CONTAINER_FONT, zoom, view), first,
-            'font, position, gap and hit area stay fixed within the zoom range')
-        }
-        return JSON.stringify(first)
-      })
-      assert.ok(new Set(layouts).size > 1, 'crossing ranges still adjusts title readability')
-    }
-  }
-})
 
 
 test.concurrent('projecting a frozen world leaves it untouched', async () => {

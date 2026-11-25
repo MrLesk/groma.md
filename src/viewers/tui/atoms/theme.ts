@@ -43,6 +43,7 @@ export function viewerTheme(): ViewerTheme {
       type: RGBA.fromIndex(4),
     },
     observed: foreground,
+    virtual: foreground,
     draft: quiet,
   }
 }

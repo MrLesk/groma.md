@@ -2,6 +2,8 @@
 type: C4 Component
 title: Scanner contract
 status: stable
+tags:
+  - scanning
 groma:
   id: scanner-src-index
   parent: cli
@@ -16,7 +18,6 @@ groma:
       file: packages/scanner/src/values.ts
     - scanner: typescript
       file: packages/scanner/src/runtime.ts
-  group: Scanner support
 description: Defines the data contract every scanner plugin must satisfy
 ---
 

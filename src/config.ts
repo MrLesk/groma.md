@@ -3,6 +3,7 @@ import type { ScannerSettings } from '@groma/scanner'
 import { backlogPlugin } from '@groma/work-source-backlog'
 import ignore from 'ignore'
 import { GromaFileSystem } from './groma-filesystem.ts'
+import { AUTO_THEME } from './themes/definition.ts'
 
 export interface ConfiguredScanner {
   id: string
@@ -22,6 +23,13 @@ export interface ConfiguredWorkSource {
   version: string
 }
 
+/** A UI theme the project enables: a bundled theme by its id, or a theme file by its repository-relative source. */
+export interface ConfiguredTheme {
+  id: string
+  /** The theme's JSON file, relative to the repository root; absent for a theme that ships inside groma.md. */
+  source?: string
+}
+
 /**
  * config.json as the application holds it: the project's one groma.md configuration. Every plugin section is present,
  * empty when the project uses nothing of that kind.
@@ -30,15 +38,27 @@ export interface GromaConfig {
   scanners: ConfiguredScanner[]
   /** At most one in this revision. */
   workSources: ConfiguredWorkSource[]
+  /** The UI themes the picker offers, in order; absent means every bundled theme. */
+  themes?: ConfiguredTheme[]
   /** Git ignore patterns every scanner leaves out; Groma never writes them. */
   exclude?: string[]
   /** Whether files Git ignores stay out of every scan; true unless set to false. */
   useGitignore?: boolean
   /** Check for npm scanner updates in the background; true unless set to false. */
   automaticUpdates?: boolean
+  /** The host name or address `groma web` listens on; `defaultWebHost` unless set. */
+  webHost?: string
 }
 
+/** Where `groma web` listens when config.json sets no `webHost`: this computer only. */
+export const defaultWebHost = '127.0.0.1'
+
 const pluginId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+/** Whether text can be a plugin id: lowercase kebab-case. */
+export function isPluginId(value: string): boolean {
+  return pluginId.test(value)
+}
 
 /** An exact semantic version, as config.json records every plugin version. */
 export const exactVersion = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
@@ -131,6 +151,25 @@ function configuredWorkSources(value: unknown, filename: string): ConfiguredWork
   })
 }
 
+function configuredThemes(value: unknown, filename: string): ConfiguredTheme[] | undefined {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value) || value.length === 0) throw new Error(`${filename} themes must be an array with at least one theme`)
+  return value.map(entry => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)
+      || Object.keys(entry).some(key => !['id', 'source'].includes(key))) {
+      throw new Error(`${filename} themes entries must contain id, and source for a theme file`)
+    }
+    if (typeof entry.id !== 'string' || !pluginId.test(entry.id)) {
+      throw new Error(`${filename} themes id must be lowercase kebab-case`)
+    }
+    if (entry.id === AUTO_THEME) throw new Error(`${filename} themes id ${AUTO_THEME} is reserved for following the system appearance`)
+    if (entry.source !== undefined && (typeof entry.source !== 'string' || entry.source.trim() === '')) {
+      throw new Error(`${filename} themes source must be non-empty`)
+    }
+    return { id: entry.id, ...(entry.source === undefined ? {} : { source: entry.source }) }
+  })
+}
+
 function configuredScanners(values: unknown[], sourceFilename: string): ConfiguredScanner[] {
   const scanners = values.map((scanner, index) => {
     return configuredScanner(scanner, index, sourceFilename)
@@ -160,6 +199,14 @@ function configuredBoolean(value: unknown, filename: string, field: string): boo
   return value
 }
 
+/** An empty host would make the server listen on every address of this computer, so it is not accepted. */
+function configuredWebHost(value: unknown, filename: string): string | undefined {
+  if (value !== undefined && (typeof value !== 'string' || value.trim() === '')) {
+    throw new Error(`${filename} webHost must be a host name or address`)
+  }
+  return value
+}
+
 function parseGromaConfig(
   source: string,
   sourceFilename: string,
@@ -169,23 +216,27 @@ function parseGromaConfig(
     throw new Error(`${sourceFilename} must be an object`)
   }
   const config = value as Record<string, unknown>
-  if (Object.keys(config).some(key => !['scanners', 'workSources', 'exclude', 'useGitignore', 'automaticUpdates'].includes(key)) || !Array.isArray(config.scanners)) {
-    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, an exclude array, useGitignore and automaticUpdates`)
+  if (Object.keys(config).some(key => !['scanners', 'workSources', 'themes', 'exclude', 'useGitignore', 'automaticUpdates', 'webHost'].includes(key)) || !Array.isArray(config.scanners)) {
+    throw new Error(`${sourceFilename} must contain a scanners array, and optionally a workSources array, a themes array, an exclude array, useGitignore, automaticUpdates and webHost`)
   }
   if (config.exclude !== undefined && !stringArray(config.exclude)) {
     throw new Error(`${sourceFilename} exclude must be an array of strings`)
   }
   const useGitignore = configuredBoolean(config.useGitignore, sourceFilename, 'useGitignore')
   const automaticUpdates = configuredBoolean(config.automaticUpdates, sourceFilename, 'automaticUpdates')
+  const webHost = configuredWebHost(config.webHost, sourceFilename)
   const workSources = configuredWorkSources(config.workSources, sourceFilename)
   const scanners = configuredScanners(config.scanners, sourceFilename)
-  requireUniqueIds([...scanners, ...workSources], sourceFilename)
+  const themes = configuredThemes(config.themes, sourceFilename)
+  requireUniqueIds([...scanners, ...workSources, ...themes ?? []], sourceFilename)
   return {
     scanners,
     workSources,
+    ...(themes === undefined ? {} : { themes }),
     ...(config.exclude === undefined ? {} : { exclude: config.exclude as string[] }),
     ...(useGitignore === undefined ? {} : { useGitignore }),
     ...(automaticUpdates === undefined ? {} : { automaticUpdates }),
+    ...(webHost === undefined ? {} : { webHost }),
   }
 }
 
@@ -218,9 +269,11 @@ export async function writeGromaConfig(
   const text = `${JSON.stringify({
     scanners: [...config.scanners].sort((left, right) => left.id.localeCompare(right.id)),
     workSources: config.workSources,
+    ...(config.themes === undefined ? {} : { themes: config.themes }),
     ...(config.exclude === undefined ? {} : { exclude: config.exclude }),
     ...(config.useGitignore === undefined ? {} : { useGitignore: config.useGitignore }),
     ...(config.automaticUpdates === undefined ? {} : { automaticUpdates: config.automaticUpdates }),
+    ...(config.webHost === undefined ? {} : { webHost: config.webHost }),
   }, null, 2)}\n`
   parseGromaConfig(text, filesystem.sourceFilename('config.json'))
   await filesystem.write('config.json', text)
@@ -237,4 +290,12 @@ export async function updateGromaConfig(
     await writeGromaConfig(repositoryRoot, next)
     return true
   })
+}
+
+/**
+ * Writes the default `webHost` into config.json so that the setting is visible there. A value the file already sets
+ * is kept.
+ */
+export async function recordDefaultWebHost(repositoryRoot: string): Promise<void> {
+  await updateGromaConfig(repositoryRoot, config => ({ webHost: defaultWebHost, ...config }))
 }

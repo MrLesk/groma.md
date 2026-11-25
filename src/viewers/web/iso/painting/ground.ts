@@ -2,8 +2,9 @@ import { CONTAINER_FONT, GROUP_FONT, ISLAND_FONT, ISLAND_SPACING, textWidth } fr
 import type { Compass, PlateText, ProjectPlate, RichPlateText, Segment } from '../projection/blueprint.ts'
 import type { ProjectedScene, ProjectedZone, ProjectionView } from '../projection/project.ts'
 import { planeMatrix } from '../projection/project.ts'
-import { node, pointsAttribute, round, type SvgNode } from './svg.ts'
-import { surfaceLabel } from './text.ts'
+import type { Still } from './icon-camera.ts'
+import { surfaceTitle } from './names.ts'
+import { colorAttribute, node, pointsAttribute, round, type SvgNode } from './svg.ts'
 
 function pathOf(segments: readonly Segment[]): string {
   return segments.map(segment =>
@@ -84,43 +85,55 @@ export function sheetSvg(scene: ProjectedScene): SvgNode[] {
   ]
 }
 
-function zoneGroup(zone: ProjectedZone, view: ProjectionView, zoom: number): SvgNode {
-  const attributes: Record<string, string> = zone.zone.unidentifiedContainer
-    ? { 'data-id': zone.zone.key, 'aria-label': zone.zone.name } : {}
+/**
+ * A zone selects what it draws when a person clicks anywhere on it. A stored group's zone carries
+ * `data-group`, not `data-id`, so a gesture that needs the element under the pointer still finds the
+ * container the zone lies on. The zone of the placement group carries `data-id`, as an element does.
+ */
+function zoneGroup({ zone, polygon, text }: ProjectedZone, view: ProjectionView, zoom: number, still?: Still): SvgNode {
+  const attributes: Record<string, string> = { 'data-zone': zone.key, ...colorAttribute(zone) }
+  if (zone.unidentifiedContainer) attributes['data-id'] = zone.key
+  if (zone.groupId !== undefined) attributes['data-group'] = zone.groupId
+  if (zone.unidentifiedContainer || zone.groupId !== undefined) attributes['aria-label'] = zone.name
+  const points = pointsAttribute(polygon)
   return node('g', attributes, 'zone', [
-    node('polygon', { points: pointsAttribute(zone.polygon) }, 'ground'),
-    surfaceLabel(zone.text, GROUP_FONT, view, 0, zoom),
+    node('polygon', { points }, 'ground'),
+    node('polygon', { points }, 'pattern'),
+    ...surfaceTitle(text, GROUP_FONT, view, 0, zoom, zone.icon, still),
   ])
 }
 
-/** System islands carry their architecture identity; actor and external grounds do not. */
-export function islandsSvg(scene: ProjectedScene, zoom = 1): SvgNode[] {
+/**
+ * System islands carry their architecture identity; actor and external grounds do not. `zoom` picks the titles'
+ * size step. `still` is set for a drawing without a live stylesheet, such as a cover; the live map passes none.
+ */
+export function islandsSvg(scene: ProjectedScene, zoom = 1, still?: Still): SvgNode[] {
   return [
     ...scene.islands.map(({ island, polygon, text }) => {
       const attributes: Record<string, string> = island.element === null
-        ? {} : { 'data-id': island.element.representationId, 'aria-label': island.name }
+        ? {} : { 'data-id': island.element.representationId, 'aria-label': island.name, ...colorAttribute(island.element) }
       return node('g', attributes, `island ${island.kind}`, [
         node('polygon', { points: pointsAttribute(polygon) }, 'ground'),
         ...(island.kind === 'system' ? [] : [node('polygon', { points: pointsAttribute(polygon) }, 'pattern')]),
-        surfaceLabel(text, ISLAND_FONT, scene.view, ISLAND_SPACING, zoom),
+        ...surfaceTitle(text, ISLAND_FONT, scene.view, ISLAND_SPACING, zoom, island.element?.icon, still),
       ])
     }),
     ...scene.zones.filter(zone => scene.islands.some(item => item.island.key === zone.zone.parent))
-      .map(zone => zoneGroup(zone, scene.view, zoom)),
+      .map(zone => zoneGroup(zone, scene.view, zoom, still)),
   ]
 }
 
-/** Container slabs have hanging sides, external names and zones on top. */
-export function slabsSvg(scene: ProjectedScene, zoom = 1): SvgNode[] {
+/** Container slabs have hanging sides, external names and zones on top. `zoom` and `still` are as for islandsSvg. */
+export function slabsSvg(scene: ProjectedScene, zoom = 1, still?: Still): SvgNode[] {
   return scene.slabs.map(({ slab, faces, text }) => {
-    const ghost = slab.origin === 'observed' ? '' : ` ghost ${slab.origin}`
+    const ghost = slab.origin === 'draft' ? ' ghost draft' : ''
     const top = faces.find(face => face.side === 'top')!
-    return node('g', { 'aria-label': slab.title, 'data-id': slab.representationId }, `slab${ghost}`, [
+    return node('g', { 'aria-label': slab.title, 'data-id': slab.representationId, ...colorAttribute(slab) }, `slab${ghost}`, [
       ...faces.map(face => node('polygon', { points: pointsAttribute(face.points) }, `face ${face.side}`)),
       node('polygon', { points: pointsAttribute(top.points) }, 'pattern'),
-      surfaceLabel(text, CONTAINER_FONT, scene.view, 0, zoom),
+      ...surfaceTitle(text, CONTAINER_FONT, scene.view, 0, zoom, slab.icon, still),
       ...scene.zones.filter(zone => zone.zone.parent === slab.representationId)
-        .map(zone => zoneGroup(zone, scene.view, zoom)),
+        .map(zone => zoneGroup(zone, scene.view, zoom, still)),
     ])
   })
 }

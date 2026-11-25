@@ -1,4 +1,5 @@
 import { animateRow } from '../chrome/motion.ts'
+import type { TagSelection } from '../../../tag-selection.ts'
 import type { Comparison } from '../../../history/comparison.ts'
 import { chromeButton } from '../atoms/button.ts'
 import { comparisonTree, changeStatuses, changeMarks, changeLabels, isChange, type ChangeCounts, type VisibleStatus } from '../comparison/tree.ts'
@@ -28,12 +29,12 @@ function hierarchyRow(
   counts?: ChangeCounts,
   former = false,
 ): HTMLButtonElement {
-  const button = sidebarRow(row.title, row.kind, row.hasChildren
+  const button = sidebarRow(row.id, row.title, row.kind, row.hasChildren
     ? { expanded: row.expanded, count: row.count, toggle: () => onToggle(row) }
-    : undefined)
+    : undefined, row.icon)
   button.dataset.id = row.id
   if (selectedIds.has(row.id)) button.classList.add('selected')
-  if (row.origin !== 'observed') button.classList.add('ghost')
+  if (row.origin === 'draft') button.classList.add('ghost')
 
   const change = Object.values(comparison?.components ?? {}).find(item => (item.after ?? item.before)?.representationId === row.id)
   if (change?.status === 'removed' || former) button.classList.add('former')
@@ -130,10 +131,20 @@ function paintHierarchy(
   }
   const heading = sectionHeading('Structure', unfolded, () => {
     unfolded = !unfolded
-    paintHierarchy(host, rows, selectedIds, onSelect, onToggle, comparison, changes)
+    // Keep the rows so opening Structure again preserves their current tag emphasis.
+    heading.setAttribute('aria-expanded', String(unfolded))
+    list.hidden = !unfolded
   })
   list.hidden = !unfolded
   replaceComparisonTree(host, heading, list, comparison !== undefined)
+}
+
+/** Rows the focused tags do not select recede, as their buildings do on the map. */
+function recedeRows(host: HTMLElement, tagSelection: TagSelection | undefined): void {
+  for (const row of host.querySelectorAll<HTMLElement>('.row[data-id]')) {
+    const id = row.dataset.id!
+    row.classList.toggle('receded', tagSelection !== undefined && !tagSelection.lit.has(id) && !tagSelection.parents.has(id))
+  }
 }
 
 /** The architecture tree beside the map; it keeps the branches a person opened or closed across repaints. */
@@ -141,6 +152,8 @@ export function createHierarchy(host: HTMLElement, onSelect: (id: string, additi
   let tree = initialTree()
   let changesOnly = true
   let lastSelection = ''
+  /** Rows created by expanding a branch receive the same emphasis as the rows already on screen. */
+  let tagSelection: TagSelection | undefined
   const modes = document.createElement('div')
   modes.className = 'comparison-modes controls'
   modes.setAttribute('aria-label', 'Hierarchy view')
@@ -161,6 +174,7 @@ export function createHierarchy(host: HTMLElement, onSelect: (id: string, additi
       tree = toggleExpansion(tree, row)
       paint(world, selectedIds, comparison, enabled)
     }, comparison, changesOnly ? changes : changes === undefined ? undefined : { ...changes, relationships: [] })
+    recedeRows(host, tagSelection)
     const selected = selectedIds.at(-1) ?? ''
     if (selected !== lastSelection) {
       host.querySelector<HTMLElement>('.row.selected[data-id]')?.scrollIntoView({ block: 'nearest' })
@@ -169,12 +183,19 @@ export function createHierarchy(host: HTMLElement, onSelect: (id: string, additi
   }
   return {
     paint,
+    recede(selection: TagSelection | undefined): void {
+      tagSelection = selection
+      recedeRows(host, selection)
+    },
     /** Another revision starts on its complete changes list. */
     reset(): void { tree = initialTree(); changesOnly = true; lastSelection = '' },
   }
 }
 
 export const hierarchyComparisonCss = `
+  #tree .row { transition: opacity 200ms ease; }
+  #tree .row.receded { opacity: 0.4; }
+  @media (prefers-reduced-motion: reduce) { #tree .row { transition: none; } }
   .comparison-modes { display: flex; gap: 2px; margin-right: 6px; }
   .comparison-modes[hidden] { display: none; }
   .comparison-modes .chrome-button { padding: 4px 6px; font-size: 10px; }

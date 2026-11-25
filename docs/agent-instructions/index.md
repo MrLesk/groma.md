@@ -43,6 +43,8 @@ ordered relationships. Neither adds a C4 containment level.
 - Combine implementation details that serve one responsibility. Keep distinct
   responsibilities separate, and group related siblings when it helps readers.
   Box count and file size do not determine the architecture.
+- Add a virtual component to explain a responsibility no source shows.
+  Scan existing code and draft planned software. The structure guide gives the commands.
 - Add relationships that explain actual interactions: who uses whom, for what,
   and how. Imports are evidence to investigate, not sufficient descriptions of
   collaborations. Add flows for important scenarios whose steps are supported.
@@ -65,8 +67,10 @@ relationships in that order. An inspection request only calls for an
 explanation of the current architecture.
 Ask the user only when missing context materially changes the interpretation.
 Settle structure before adding prose: current moves and combines have
-restrictions on authored meaning. Current relationships cannot be removed, so
-check a claim before adding it. If a CLI restriction blocks the required
+restrictions on authored meaning. Check a claim before adding it. A current
+relationship can be removed only when one of its endpoints is a virtual
+component and no flow uses it.
+If a CLI restriction blocks the required
 correction, explain the blocker; do not erase useful meaning to bypass it.
 
 Before handing back the map:
@@ -90,7 +94,7 @@ syntax and operation-specific restrictions belong in these guides and
 | --- | --- | --- |
 | Inspecting a scan | scan the repository or read and explain the current architecture | `groma agent-instructions inspect` |
 | Curating structure | decide which elements exist, where they belong, and which files each owns | `groma agent-instructions structure` |
-| Describing elements | write titles, summaries, responsibilities, or technology | `groma agent-instructions describe` |
+| Describing elements | write titles, summaries, responsibilities, or technology, or tag elements, groups, and flows | `groma agent-instructions describe` |
 | Relationships and flows | record how elements interact or walk through a scenario | `groma agent-instructions relationships` |
 | Backlog task links | change repository files for a Backlog task and the `backlog` CLI is available | `groma agent-instructions backlog` |
 

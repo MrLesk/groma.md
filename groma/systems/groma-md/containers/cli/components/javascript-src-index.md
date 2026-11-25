@@ -2,6 +2,8 @@
 type: C4 Component
 title: JavaScript analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: javascript-src-index
   parent: cli
@@ -26,7 +28,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/javascript/src/entries.ts
       symbol: javaScriptEntries
-  group: Language analysis
 description: Analyses JavaScript source with the TypeScript compiler
 ---
 

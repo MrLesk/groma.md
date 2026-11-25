@@ -42,6 +42,8 @@ config's own settings and reports a `react-missing-config-base` warning.
 Invalid configuration and source syntax fail with a diagnostic; missing external
 types do not prevent local callback extraction.
 The scanner does not run application code or require successful type checking.
+A `package.json` name supplies the package's root name when present; otherwise
+the directory name is used.
 
 ## Evidence and tooling
 
@@ -75,11 +77,9 @@ has no file of its own.
 Operation, call, and attribute positions are original zero-based UTF-16 offsets;
 lines are one-based. The named prop supplies the existing `member` field.
 Ordinary TypeScript can remain unresolved while React supplies this binding.
-No compiler objects or raw graph are persisted.
-
-In OKF, the result remains readable Code links and relationship rows. In C4,
-React components remain source evidence, not automatic architecture components
-or a new containment level. Core owns interpretation and curated ownership.
+No compiler objects or raw graph are persisted. React components remain source
+evidence, not automatic architecture components. Core owns interpretation and
+curated ownership.
 
 ## Source outline
 

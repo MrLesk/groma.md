@@ -12,6 +12,7 @@ import type { ElementWorkGroup } from '../../../work/pins.ts'
 import type { Zone } from '../../../sheet/types.ts'
 import { findingsForOwner } from '../../../architecture-findings.ts'
 import { removalBlocker } from '../../../removable.ts'
+import { carriedTags, knownTags } from '../../../tags.ts'
 import { flowsThrough } from '../../flows.ts'
 import type { FlowRef } from '../../flows.ts'
 import { kindGlyph, kindLabel } from '../../atoms/kind.ts'
@@ -20,14 +21,13 @@ import { createFlowList } from '../flow/list.ts'
 import type { CodeFile } from '../../source/structure.ts'
 import { paintElementWork } from '../work/component-tasks.ts'
 import { codeList } from './code-lists.ts'
-import { heading, paragraph } from '../atoms/text.ts'
-import { editButton, isEditing, type EditField } from './editable.ts'
-import type { PaneWrites } from './writes.ts'
-import {
-  paintAcceptControl,
-  paintSelectionControls,
-} from './writes.ts'
-import { paintRemoveControl } from './remove.ts'
+import type { IconName } from '../../../icons.ts'
+import { factRow } from '../atoms/fact-row.ts'
+import { heading, paintPaneTitle, paragraph, showIdOnHover } from '../atoms/text.ts'
+import { acceptEntry, addComponentEntry, colorAndIconFields, editEntry, removeEntry, type EditField } from './commands.ts'
+import { isWriteViewOpen, paintWriteEntries, type WriteEntry } from './write-view.ts'
+import { tagRow } from '../tags/tag-row.ts'
+import type { PaneWrites, ParentOption } from './writes.ts'
 import { relationshipCard, relationshipPairCard, type RelationshipPairData } from './relationship-card.ts'
 import {
   parentOfElements,
@@ -39,6 +39,8 @@ export interface InspectedChild {
   title: string
   kind: C4Kind
   external: boolean
+  /** The group the element is in, named after its title where a list shows it, as the selection of several does. */
+  group?: { id: string; title: string }
 }
 
 export interface Inspected {
@@ -49,6 +51,13 @@ export interface Inspected {
   origin: Origin
   overview: string
   runtimeConfiguration?: string
+  /** The group a component is in. */
+  group?: { id: string; title: string }
+  tags: string[]
+  /** The authored color name, or '' when the element has none. */
+  color: string
+  /** The authored icon name, or '' when the element has none. */
+  icon: '' | IconName
   relationships: RelationshipPairData[]
   flows: FlowRowData[]
   children: InspectedChild[]
@@ -61,6 +70,8 @@ export interface Inspected {
   matchedGhost: boolean
   /** An empty, unrelated component can move to another container. */
   movable: boolean
+  /** A container takes the virtual components a person adds. */
+  takesComponents: boolean
   parent: string | null
 }
 
@@ -136,6 +147,7 @@ export function inspectDetails(
       })),
     }
   })
+  const group = world.groups.find(candidate => candidate.id === element.group)
   const children: InspectedChild[] = []
   for (const childId of element.children) {
     const child = byId.get(childId)
@@ -154,6 +166,10 @@ export function inspectDetails(
     origin: element.origin,
     overview: element.overview,
     ...(element.runtimeConfiguration === undefined ? {} : { runtimeConfiguration: element.runtimeConfiguration }),
+    ...(group === undefined ? {} : { group: { id: group.id, title: group.title } }),
+    tags: element.tags ?? [],
+    color: element.color ?? '',
+    icon: element.icon ?? '',
     relationships,
     flows: flowsThrough(element.representationId, world).map(flow => ({
       flow: { id: flow.id }, title: flow.title,
@@ -165,6 +181,7 @@ export function inspectDetails(
     removable: removalBlocker(world, element.id) === undefined,
     matchedGhost: isMatchedGhost(element),
     movable: element.movable === true,
+    takesComponents: element.kind === 'container',
     parent: element.parent,
   }
 }
@@ -186,34 +203,63 @@ export function inspectUnidentifiedContainer(zone: Zone, world: ArchitectureGrap
     children: world.elements.filter(element => members.has(element.representationId)).map(element => ({
       id: element.representationId, title: element.title, kind: element.kind, external: element.external,
     })),
-    relationships: [], flows: [], technology: '', files: [], findings: [],
-    removable: false, matchedGhost: false, movable: false, parent: zone.parent,
+    tags: [], color: '', icon: '', relationships: [], flows: [], technology: '', files: [], findings: [],
+    removable: false, matchedGhost: false, movable: false, takesComponents: false, parent: zone.parent,
   }
 }
 
-function marked(
-  kind: C4Kind | null,
-  external: boolean,
-  text: string,
-): HTMLElement {
-  const row = document.createElement('span')
-  if (kind !== null) {
+/** Short authored labels, such as technology parts, as one wrapping row of chips. */
+function chipList(labels: readonly string[], name: string): HTMLUListElement {
+  const list = document.createElement('ul')
+  list.className = 'chips'
+  list.setAttribute('aria-label', name)
+  for (const label of labels) {
+    const chip = document.createElement('li')
+    chip.className = 'chip'
+    chip.textContent = label
+    list.append(chip)
+  }
+  return list
+}
+
+/** Elements as a list of links, each with its kind mark. A click selects it; a shift-click adds or drops it. */
+export function elementLinks(elements: readonly InspectedChild[], onSelect: (id: string, additive: boolean) => void): HTMLUListElement {
+  const list = document.createElement('ul')
+  for (const element of elements) {
     const mark = document.createElement('span')
     mark.className = 'mark'
-    mark.textContent = kindGlyph(kind)
-    if (external) mark.classList.add('ghost')
-    row.append(mark, ' ')
+    mark.textContent = kindGlyph(element.kind)
+    if (element.external) mark.classList.add('ghost')
+    const link = document.createElement('button')
+    link.type = 'button'
+    link.className = 'link'
+    link.append(mark, ' ', element.title)
+    showIdOnHover(link, element.id)
+    if (element.group !== undefined) {
+      const groupName = document.createElement('span')
+      groupName.className = 'note'
+      groupName.textContent = element.group.title
+      showIdOnHover(groupName, element.group.id)
+      link.append(groupName)
+    }
+    link.addEventListener('click', event => onSelect(element.id, event.shiftKey))
+    const item = document.createElement('li')
+    item.append(link)
+    list.append(item)
   }
-  row.append(text)
-  return row
+  return list
 }
 
-export interface DetailsOptions extends PaneWrites {
+/** What the pane reads and where its clicks navigate. It carries no write hook: reading never writes. */
+export interface DetailsOptions {
   world: ArchitectureGraph
   comparison?: Comparison
   onSelect: (id: string, additive: boolean) => void,
   onToggleFlow: (flow: FlowRef) => void,
   activeFlows: readonly FlowRef[]
+  /** The tags the map is focused on, and the toggle a tag chip calls. */
+  focusTags: readonly string[]
+  onToggleTag: (tag: string) => void
   tab: DetailsTab
   onTab: (tab: DetailsTab) => void,
   code: readonly CodeFile[]
@@ -222,7 +268,7 @@ export interface DetailsOptions extends PaneWrites {
   onTask: (id: string) => void
 }
 
-const paintDetailFlows = createFlowList()
+const { paint: paintDetailFlows } = createFlowList()
 
 function paintTabs(tabsHost: HTMLElement, availableTabs: DetailsTab[], shownTab: DetailsTab, onTab: (tab: DetailsTab) => void): void {
   tabsHost.replaceChildren()
@@ -272,15 +318,18 @@ function paintComparedRelationships(list: HTMLElement, pair: RelationshipPairDat
   }
 }
 
-export function paintDetails(host: HTMLElement, inspected: Inspected, options: DetailsOptions): void {
-  const { onSelect, onToggleFlow, activeFlows, tab, onTab, code, onSource, workGroups, onTask, onEdit, selection } = options
-  if (onEdit !== undefined && isEditing(host, inspected.id)) return
+/**
+ * Paints the pane of one element. Its sections only read and navigate, from `options`. The one control that
+ * leads to writing, the Edit entry, is painted last, from `writes`.
+ */
+export function paintDetails(host: HTMLElement, inspected: Inspected, options: DetailsOptions, writes: PaneWrites): void {
+  const { onSelect, onToggleFlow, activeFlows, tab, onTab, code, onSource, workGroups, onTask } = options
+  if (writes.onEdit !== undefined && isWriteViewOpen(host, inspected.id)) return
   const title = host.querySelector('h1')!
   const meta = host.querySelector('.meta')!
   const tabsHost = host.querySelector<HTMLElement>('.tabs')!
   const body = host.querySelector('.body')!
-  title.replaceChildren()
-  title.textContent = inspected.title
+  paintPaneTitle(title, inspected.title, inspected.icon)
   meta.textContent = `${inspected.kindLabel} · ${inspected.origin}`
 
   const change = options.comparison?.components[inspected.id]
@@ -301,6 +350,8 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
       if (inspected.overview !== '') body.append(paragraph('overview', inspected.overview))
       if (inspected.runtimeConfiguration) body.append(heading('Runtime configuration'),
         paragraph('runtime-configuration', inspected.runtimeConfiguration))
+      if (inspected.group !== undefined) body.append(groupRow(inspected.group, onSelect))
+      if (inspected.tags.length > 0) body.append(tagRow(inspected.tags, options.focusTags, options.onToggleTag))
     },
 
     relationships: () => {
@@ -324,34 +375,14 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
 
     children: () => {
       if (inspected.children.length === 0) return
-      body.append(heading('Children'))
-      const list = document.createElement('ul')
-      for (const child of inspected.children) {
-        const item = document.createElement('li')
-        const link = document.createElement('button')
-        link.type = 'button'
-        link.className = 'link'
-        link.append(marked(child.kind, child.external, child.title))
-        link.addEventListener('click', event => onSelect(child.id, event.shiftKey))
-        item.append(link)
-        list.append(item)
-      }
-      body.append(list)
+      body.append(heading('Children'), elementLinks(inspected.children, onSelect))
     },
 
     technology: () => {
       if (change !== undefined) { comparisonTechnology(body, change); return }
       if (inspected.technology.length === 0) return
-      body.append(heading('Technology'))
-      const list = document.createElement('ul')
-      list.className = 'chips'
-      for (const part of inspected.technology.split(',').map(part => part.trim()).filter(Boolean)) {
-        const chip = document.createElement('li')
-        chip.className = 'chip'
-        chip.textContent = part
-        list.append(chip)
-      }
-      body.append(list)
+      const parts = inspected.technology.split(',').map(part => part.trim()).filter(Boolean)
+      body.append(heading('Technology'), chipList(parts, 'Technology'))
     },
 
     code: () => {
@@ -361,17 +392,41 @@ export function paintDetails(host: HTMLElement, inspected: Inspected, options: D
     },
 
   }
-  if (shownTab === 'what' && selection !== undefined) paintSelectionControls(body, selection)
   if (shownTab === 'tasks') paintElementWork(body, workGroups, onTask)
   else for (const key of tabSections(shownTab)) sections[key]()
-  paintEditingControls(host, body, inspected, options, shownTab)
+  paintEditEntry(host, inspected, writes, knownTags(options.world))
 }
 
-function paintEditingControls(host: HTMLElement, body: Element, inspected: Inspected, options: DetailsOptions, tab: DetailsTab): void {
-  const { onAccept, onEdit, onRead, onRemove } = options
-  if (tab === 'what' && inspected.matchedGhost && onAccept !== undefined) paintAcceptControl(body, onAccept)
-  if (onEdit !== undefined && onRead !== undefined) body.prepend(editButton(host, inspected.id, elementFields(inspected, options), onEdit, onRead))
-  if (tab === 'what' && inspected.removable && onRemove !== undefined) paintRemoveControl(body, inspected.title, onRemove)
+/** Paints Edit, the pane's only write entry: its view holds the element's fields and offers its other writes. */
+function paintEditEntry(host: HTMLElement, inspected: Inspected, writes: PaneWrites, tagsInUse: readonly string[]): void {
+  const { onEdit, onRead } = writes
+  if (onEdit === undefined || onRead === undefined) return
+  const fields = elementFields(inspected, writes.parents ?? [], tagsInUse)
+  paintWriteEntries(host, inspected.id, [editEntry(fields, onEdit, otherWrites(inspected, writes))], onRead)
+}
+
+/**
+ * The other writes one element takes: Add component in a container, Accept on a matched draft, Remove where
+ * `groma remove` would succeed.
+ */
+function otherWrites(inspected: Inspected, writes: PaneWrites): WriteEntry[] {
+  const { onAccept, onAddComponent, onRemove } = writes
+  return [
+    ...(inspected.takesComponents && onAddComponent !== undefined ? [addComponentEntry(onAddComponent)] : []),
+    ...(inspected.matchedGhost && onAccept !== undefined ? [acceptEntry(inspected.title, onAccept)] : []),
+    ...(inspected.removable && onRemove !== undefined ? [removeEntry(inspected.title, onRemove)] : []),
+  ]
+}
+
+/** The group a component is in, as a link that selects the group. */
+function groupRow(group: { id: string; title: string }, onSelect: (id: string, additive: boolean) => void): HTMLElement {
+  const link = document.createElement('button')
+  link.type = 'button'
+  link.className = 'link'
+  link.textContent = group.title
+  showIdOnHover(link, group.id)
+  link.addEventListener('click', () => onSelect(group.id, false))
+  return factRow('Group', [link])
 }
 
 /** Empties the pane while nothing is selected. */
@@ -379,15 +434,31 @@ export function clearDetails(host: HTMLElement): void {
   for (const part of ['h1', '.meta', '.tabs', '.body']) host.querySelector(part)!.replaceChildren()
 }
 
-function elementFields(inspected: Inspected, options: PaneWrites): EditField[] {
-  const fields: EditField[] = [
+/**
+ * Every field a person can set on an element, in the order the Edit view shows them. A new editable field
+ * is one entry here; nothing outside the Edit view changes an element's fields. Put a field that several
+ * elements can share in `sharedElementFields`.
+ */
+function elementFields(inspected: Inspected, parents: readonly ParentOption[], tagsInUse: readonly string[]): EditField[] {
+  return [
     { name: 'title', label: 'Title', value: inspected.title, required: true },
     { name: 'description', label: 'Description', value: inspected.description },
     { name: 'overview', label: 'Overview', value: inspected.overview, multiline: true },
     { name: 'technology', label: 'Technology', value: inspected.technology },
+    ...(inspected.movable ? [{ name: 'parent' as const, label: 'Parent', value: inspected.parent ?? '', options: parents }] : []),
+    ...sharedElementFields([inspected], tagsInUse),
   ]
-  if (inspected.movable) fields.push({
-    name: 'parent', label: 'Parent', value: inspected.parent ?? '', options: options.parents ?? [],
-  })
-  return fields
+}
+
+/**
+ * Tags, Color and Icon are the fields a person can edit on one element or on a selection. The core decides
+ * which fields several elements take (`fieldsOfSeveralElements` in src/edit.ts); a field added only here is refused on Save.
+ */
+export function sharedElementFields(
+  records: readonly { tags?: string[]; color?: string; icon?: string }[], tagsInUse: readonly string[],
+): EditField[] {
+  return [
+    { label: 'Tags', carried: carriedTags(records), recordCount: records.length, suggestions: tagsInUse },
+    ...colorAndIconFields(records),
+  ]
 }

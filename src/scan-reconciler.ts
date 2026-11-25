@@ -238,7 +238,7 @@ async function reconcileFiles(
   }
   const names = componentNames(unowned.map(candidate => ({
     file: candidate.file, parent: candidate.parent.id,
-  })), new Set([...world.byId.values()].flatMap(record => [record.id, kebabCase(record.title)])))
+  })), new Set([...world.otherIds, ...[...world.byId.values()].flatMap(record => [record.id, kebabCase(record.title)])]))
   return unowned.map(candidate => reserveRecord(repositoryRoot, world, {
     kind: 'component', ...names.get(candidate.file)!, parent: candidate.parent,
     code: candidate.references.sort((a, b) => a.scanner.localeCompare(b.scanner)),

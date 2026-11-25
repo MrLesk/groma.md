@@ -5,7 +5,6 @@ status: stable
 groma:
   id: catalog-api-mapper
   parent: catalog-api
-  group: Support
   code:
     - scanner: typescript
       file: src/catalog/catalog-api/mapper.ts

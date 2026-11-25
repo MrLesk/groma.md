@@ -56,12 +56,13 @@ function fileContext({ file, syntax }: JavaScriptSource, evidence: FileEvidence)
   }
 }
 
-/** The HTTP facts one file states, named against the operations its evidence already recorded. */
-export async function javaScriptHttpFacts(source: JavaScriptSource, evidence: FileEvidence): Promise<{
+export interface HttpFacts {
   httpEndpoints: ScanHttpEndpoint[]
   httpRequests: ScanHttpRequest[]
-}> {
-  const context = fileContext(source, evidence)
+}
+
+/** The HTTP facts the shared readers find in one file, named against the operations its evidence already recorded. */
+async function statedFacts(context: RouterContext, source: JavaScriptSource, evidence: FileEvidence): Promise<HttpFacts> {
   const httpRequests: ScanHttpRequest[] = []
   for (const call of evidence.calls) {
     const request = await httpRequest(context, call)
@@ -69,4 +70,31 @@ export async function javaScriptHttpFacts(source: JavaScriptSource, evidence: Fi
   }
   const placed = await routerEndpoints(context, [source.syntax], evidence.calls)
   return { httpEndpoints: [...withOrder(placed), ...await serveEndpoints(context, evidence.calls)], httpRequests }
+}
+
+/** Whether the runtime ran out of call stack, which Bun and Node both report as a RangeError with this message. */
+function stackExhausted(error: unknown): boolean {
+  return error instanceof RangeError && error.message.startsWith('Maximum call stack size exceeded')
+}
+
+/**
+ * The HTTP facts one file states, or `'too-deep'` when the compiler exhausts the call stack answering about it.
+ * To name what a member call such as `host.send(url)` calls, the compiler infers the type of `host`, and in
+ * JavaScript that means inferring a function's return type from its body, which calls the next function. A
+ * large generated bundle nests those inferences deeper than the stack allows.
+ */
+export async function javaScriptHttpFacts(source: JavaScriptSource, evidence: FileEvidence): Promise<HttpFacts | 'too-deep'> {
+  // Creating the checker binds the file, and the binder keeps its working state in the compiler, shared by
+  // every file. An interrupted bind would leave that state behind for the next file, so the checker is
+  // created outside the guard and an error there stays a scan failure.
+  const context = fileContext(source, evidence)
+  try {
+    return await statedFacts(context, source, evidence)
+  } catch (error) {
+    // Any other error is a defect and stays visible.
+    if (!stackExhausted(error)) throw error
+    // An interrupted checker is in an unknown state, so nothing it answered about the file is kept. The
+    // checker belongs to this file alone, so no other file is affected.
+    return 'too-deep'
+  }
 }

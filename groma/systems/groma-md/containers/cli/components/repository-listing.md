@@ -2,6 +2,8 @@
 type: C4 Component
 title: Repository inventory
 status: stable
+tags:
+  - scanning
 groma:
   id: repository-listing
   parent: cli
@@ -9,7 +11,6 @@ groma:
     - scanner: typescript
       file: src/repository-listing.ts
       symbol: repositoryListing
-  group: Source scanning
 description: Lists tracked, unignored project files through Git
 ---
 

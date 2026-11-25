@@ -2,6 +2,8 @@
 type: C4 Container
 title: Browser map
 status: stable
+tags:
+  - web
 groma:
   id: export
   parent: groma-md

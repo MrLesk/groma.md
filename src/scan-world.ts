@@ -1,3 +1,4 @@
+import { otherRecordIds } from './architecture-model.ts'
 import { architectureElementPath } from './architecture-path.ts'
 import { GromaFileSystem } from './groma-filesystem.ts'
 import { renderArchitectureDocument, writeDocument } from './markdown-emitter.ts'
@@ -30,6 +31,8 @@ export interface WorldRecord {
 export interface World {
   byId: Map<string, WorldRecord>
   byCodeFile: Map<string, WorldRecord>
+  /** IDs held by flows, groups, and draft records. */
+  otherIds: Set<string>
 }
 
 function worldRecord(document: ArchitectureDocument): WorldRecord | undefined {
@@ -51,7 +54,7 @@ function worldRecord(document: ArchitectureDocument): WorldRecord | undefined {
 }
 
 export function indexWorld(records: ArchitectureRecords): World {
-  const world: World = { byId: new Map(), byCodeFile: new Map() }
+  const world: World = { byId: new Map(), byCodeFile: new Map(), otherIds: new Set(otherRecordIds(records).keys()) }
   for (const document of records.documents) {
     const record = worldRecord(document)
     if (record === undefined) continue
@@ -72,7 +75,7 @@ export function candidateId(name: string, parent: WorldRecord | undefined, index
 }
 
 export function isFree(world: World, id: string): boolean {
-  return !world.byId.has(id) && !isReservedId(id)
+  return !world.byId.has(id) && !world.otherIds.has(id) && !isReservedId(id)
 }
 
 /** The first candidate ID no record holds. */

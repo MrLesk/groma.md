@@ -106,8 +106,7 @@ Malformed or unsupported syntax fails the whole request with a source location.
 The [repository trials](https://github.com/MrLesk/groma.md/blob/main/docs/scanners/mql5/validation.md)
 record full selected-file coverage separately from missing architecture evidence.
 A successful parse does not mean all generated APIs or collaborations are known.
-Groma core owns C4 boundaries, relationships and OKF Markdown. Classes, filenames
-and imports do not establish architecture boundaries or add language metadata.
+Classes, filenames and imports do not establish architecture boundaries.
 
 ## Development
 

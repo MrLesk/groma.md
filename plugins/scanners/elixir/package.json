@@ -1,0 +1,61 @@
+{
+  "name": "@groma/scanner-elixir",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "description": "Experimental Elixir declarations, code outlines, Phoenix routes and Ash actions, code interfaces and JSON:API routes.",
+  "groma": {
+    "scanner": {
+      "id": "elixir",
+      "entry": "./src/index.ts",
+      "include": [
+        "**/*.ex",
+        "**/mix.exs"
+      ],
+      "exclude": [
+        "deps/",
+        "_build/",
+        "test/"
+      ],
+      "discovery": {
+        "technologies": [
+          "elixir",
+          "phoenix",
+          "ash"
+        ],
+        "rules": [
+          {
+            "type": "text",
+            "files": [
+              "**/mix.exs"
+            ],
+            "technology": "elixir",
+            "kind": "language",
+            "versionPattern": "\\belixir:\\s*\"([^\"]+)\"",
+            "declaration": "Mix project"
+          },
+          {
+            "type": "file",
+            "files": [
+              "**/lib/*_web/router.ex"
+            ],
+            "technology": "phoenix",
+            "kind": "framework",
+            "declaration": "Phoenix router in the generator layout"
+          }
+        ],
+        "compatibility": {
+          "groma": ">=0.6.6"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@groma/scanner": "workspace:*",
+    "web-tree-sitter": "0.27.1"
+  },
+  "devDependencies": {
+    "tree-sitter-elixir": "0.3.5"
+  }
+}

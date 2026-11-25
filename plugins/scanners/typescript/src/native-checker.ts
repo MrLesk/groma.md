@@ -51,6 +51,17 @@ export function nativeChecker(checker: NativeChecker): Checker {
   // The readers ask about the same symbols many times; each answer crosses the process boundary once.
   const aliases = new Map<number, Promise<object>>()
   const declarations = new Map<number, Promise<ast.Node | undefined>>()
+  const symbolsByNode = new Map<Node, Promise<NativeSymbol | undefined>>()
+  function symbolsAt(nodes: readonly Node[]): Promise<(NativeSymbol | undefined)[]> {
+    const missing = [...new Set(nodes)].filter(node => !symbolsByNode.has(node))
+    if (missing.length > 0) {
+      const batch = checker.getSymbolAtLocation(missing.map(native))
+      missing.forEach((node, index) => {
+        symbolsByNode.set(node, batch.then(symbols => symbols[index]))
+      })
+    }
+    return Promise.all(nodes.map(node => symbolsByNode.get(node)))
+  }
   function once<T>(answers: Map<number, Promise<T>>, handle: object, answer: () => Promise<T>): Promise<T> {
     let found = answers.get(symbol(handle).id)
     if (found === undefined) {
@@ -60,7 +71,7 @@ export function nativeChecker(checker: NativeChecker): Checker {
     return found
   }
   return {
-    symbolsAt: nodes => checker.getSymbolAtLocation(nodes.map(native)),
+    symbolsAt,
     shorthandValue: property => checker.getShorthandAssignmentValueSymbol(native(property)),
     aliased: handle => once(aliases, handle, async () =>
       symbol(handle).flags & SymbolFlags.Alias ? checker.getAliasedSymbol(symbol(handle)) : handle),

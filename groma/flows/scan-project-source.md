@@ -11,7 +11,7 @@ A developer runs groma scan for a project with configured scanners. Groma collec
 
 | From | To | Action |
 | --- | --- | --- |
-| [Developer](../actors/developer.md) | [Command interface](../systems/groma-md/containers/cli/components/src-cli.md) | Run groma scan |
-| [Command interface](../systems/groma-md/containers/cli/components/src-cli.md) | [Scan results](../systems/groma-md/containers/cli/components/src-scanner.md) | Start the requested source scan |
-| [Scan results](../systems/groma-md/containers/cli/components/src-scanner.md) | [Scanner execution](../systems/groma-md/containers/cli/components/scanner-registry.md) | Collect evidence from the configured scanners |
-| [Scan results](../systems/groma-md/containers/cli/components/src-scanner.md) | [Markdown storage](../systems/groma-md/containers/cli/components/src-architecture-reader.md) | After successful analysis, write reconciled source ownership and architecture records |
+| [Developer](../actors/developer.md "developer") | [Command interface](../systems/groma-md/containers/cli/components/src-cli.md "src-cli") | Run groma scan |
+| [Command interface](../systems/groma-md/containers/cli/components/src-cli.md "src-cli") | [Scan results](../systems/groma-md/containers/cli/components/src-scanner.md "src-scanner") | Start the requested source scan |
+| [Scan results](../systems/groma-md/containers/cli/components/src-scanner.md "src-scanner") | [Scanner execution](../systems/groma-md/containers/cli/components/scanner-registry.md "scanner-registry") | Collect evidence from the configured scanners |
+| [Scan results](../systems/groma-md/containers/cli/components/src-scanner.md "src-scanner") | [Markdown storage](../systems/groma-md/containers/cli/components/src-architecture-reader.md "src-architecture-reader") | After successful analysis, write reconciled source ownership and architecture records |

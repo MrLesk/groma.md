@@ -5,7 +5,6 @@ status: stable
 groma:
   id: directory-cache
   parent: directory
-  group: Core
   code:
     - scanner: typescript
       file: src/identity/directory/cache.ts

@@ -2,6 +2,8 @@
 type: C4 Component
 title: Task map links
 status: stable
+tags:
+  - work
 groma:
   id: src-work-pins
   parent: cli
@@ -10,7 +12,6 @@ groma:
       file: src/work/pins.ts
     - scanner: typescript
       file: src/work/status-filter.ts
-  group: Project work
 description: Pins tasks onto the components that own their source files
 ---
 

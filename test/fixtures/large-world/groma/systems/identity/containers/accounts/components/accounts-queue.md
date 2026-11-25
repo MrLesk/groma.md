@@ -5,7 +5,6 @@ status: stable
 groma:
   id: accounts-queue
   parent: accounts
-  group: Support
   code:
     - scanner: typescript
       file: src/identity/accounts/queue.ts

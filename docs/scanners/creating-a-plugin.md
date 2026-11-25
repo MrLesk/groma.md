@@ -170,8 +170,10 @@ rules. Live inputs also respect the configured Git-ignore policy; historical
 inputs come from the requested Git tree. Use this context for declarations in
 other components, such as NASM macros, or package language versions. Read these
 paths from `repositoryRoot`, which may be a historical source snapshot without
-Git metadata. Return declarations only for the requested references; context
-files do not change their ownership or become architecture elements.
+Git metadata. Such a snapshot holds every file as committed, and a symbolic
+link as a file holding its target path. Return declarations only for the
+requested references; context files do not change their ownership or become
+architecture elements.
 
 Each reference holds one owned `file` and the `symbols` its Code links name.
 When a file has Code links from several configured scanners, the one with the
@@ -188,7 +190,8 @@ declaration inside another type or function is nested and is not listed. PHP
 also counts a function declared directly inside `if (!function_exists('name'))`
 as top-level when the guard names that function. C# top-level statements, with
 the local functions and lambdas they declare, form the program's entry point
-and are not listed.
+and are not listed. Elixir modules namespace each other, so a module declared
+inside another module is its own top-level type, named `Outer.Inner`.
 
 - `kind: 'function'` is a top-level function, or a function literal (arrow
   function, function expression, or lambda) assigned directly to a top-level
@@ -198,7 +201,7 @@ and are not listed.
   It has no `members` list. Programs are Code declarations, not C4 containers;
   nested programs are omitted.
 - `kind: 'type'` is a top-level class, interface, struct, union, record, enum, trait,
-  or protocol, a Scala or Kotlin object, or a Go defined type such as `type X struct{}` or `type X int`.
+  or protocol, a Scala or Kotlin object, an Elixir module, or a Go defined type such as `type X struct{}` or `type X int`.
   A named type whose form is a function, such as a C# `delegate` or a Go
   `type X func(...)`, is a type with an empty `members` list. Type aliases are
   never listed: TypeScript `type X = ...`, Go `type X = Y`, and Rust
@@ -234,7 +237,10 @@ constructor; see [Dart outlines](dart/index.md#inputs-and-source-structure).
 Ruby members match qualified `Module::Type#method` instance methods and
 `Module::Type.method` singleton methods. A concern's `class_methods` block matches
 `Concern::ClassMethods#method`, the instance method of the module Rails defines
-for including classes, and appears under its declaring concern in the outline. Other
+for including classes, and appears under its declaring concern in the outline.
+Elixir members match `Module.name/arity`, the outline row shows `name/arity`, and
+clauses of one name and arity are one member; a function an Ash code interface
+generates matches `Module.name` and shows its bare name. Other
 members and scanners match bare names. A link naming a type
 never marks its members.
 
@@ -272,6 +278,7 @@ follows; a dash means the language has no such case.
 | Python | Other names, including `__init__` and other `__dunder__` names | Members named `_name` | - | Members named `__name`; top-level names starting with `_` |
 | R | Top-level source bindings; package export visibility is unverified | - | - | - |
 | Ruby | Class/module methods by default; `public`; singleton methods | `protected` | - | `private`; instance `initialize`; top-level methods |
+| Elixir | Modules; `def`, `defmacro`, `defguard` and `defdelegate`; Ash code interface functions | - | - | `defp`, `defmacrop` and `defguardp` |
 | PHP | `public`; members without a modifier; top-level functions and types | `protected` | - | `private` |
 | Swift | `open`, `public` | - | `package`, `internal`; no modifier elsewhere | `fileprivate`, `private` |
 
@@ -445,10 +452,6 @@ a new scan or restart the active viewer or watch session. A change to a file the
 scanner's `include` list names triggers a rescan; it does not reload groma.md
 settings.
 
-These settings are groma.md runtime configuration, not OKF knowledge records or
-C4 elements. The scanner module loader owns their delivery; the plugin owns
-their meaning. Architecture Markdown stays readable without interpreting them.
-
 ## Observation contract
 
 Return an observation when the declared analysis succeeds. Throw when it fails;
@@ -532,12 +535,6 @@ merge different compilation contexts into a contradictory certain call target.
 The C# scanner currently rejects files shared by multiple loaded compilation
 contexts; the shared contract does not extend that scanner's supported analysis.
 
-Roots remain temporary evidence, not stored OKF concepts or new C4 boxes.
-An ordinary Markdown or OKF reader sees the existing architecture records,
-Code links, and relationship statements. groma.md core owns source placement and
-identity under its existing architecture profile. This distinction applies to
-solutions, monorepos, and source groupings in other languages as well.
-
 ### Symbols, operations, and invocations
 
 A symbol describes a declaration in a file. Its `id` is chosen by the scanner
@@ -594,7 +591,9 @@ The TypeScript scanner and Angular scanner identify their respective
 Code contributions as `typescript` and `angular`, even when they inspect the
 same file. Core keeps one owner for that source path.
 
-All paths are repository-relative. Root parents and file memberships must resolve
+All paths are repository-relative. Every root must have a name: when the file that
+defines a root declares none, as a `package.json` without `name` does, name the root
+after its directory. Root parents and file memberships must resolve
 inside the observation, and the root hierarchy must have no cycles. Invocation
 endpoints and HTTP facts must identify declared operations. A scanner's exclusions
 drop HTTP facts whose operation is in an excluded file. Duplicate primary keys
@@ -714,4 +713,9 @@ Use `groma plugin list` and `groma scanner check` to inspect the result;
 
 Updates are explicit. Scanning, starting a viewer or upgrading groma.md does not
 select a newer scanner. Local plugins continue to run from their configured
-folder; rebuild their entry and restart groma.md after changing their code.
+folder. Start a new groma.md process after editing a local plugin. Rebuild it
+first if its entry points to a generated file.
+
+In the groma.md checkout, the Angular, React, and Vue scanner entries point to
+TypeScript source. Run `bun install --frozen-lockfile --ignore-scripts` in the
+checkout to install their dependencies.

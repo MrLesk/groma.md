@@ -5,7 +5,6 @@ status: stable
 groma:
   id: product-db-router
   parent: product-db
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/product-db/router.ts

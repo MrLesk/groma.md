@@ -5,7 +5,6 @@ status: stable
 groma:
   id: search-queue
   parent: search
-  group: Support
   code:
     - scanner: typescript
       file: src/storefront/search/queue.ts

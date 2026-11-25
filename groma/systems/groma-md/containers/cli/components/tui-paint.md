@@ -2,6 +2,9 @@
 type: C4 Component
 title: Terminal drawing
 status: stable
+tags:
+  - terminal
+  - map
 groma:
   id: tui-paint
   parent: cli
@@ -39,7 +42,6 @@ groma:
       symbol: drawWorkCorner
     - scanner: typescript
       file: src/viewers/tui/atoms/lines.ts
-  group: Terminal map
 description: Draws the terminal plan with box-drawing lines, names, arrows and pulses
 ---
 

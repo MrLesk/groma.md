@@ -369,10 +369,6 @@ measurements below cover the current callback rule.
   meaning. [Graph backbone filtering](https://arxiv.org/abs/0904.2389) measures
   significance under a network model, not confidence in a C4 statement.
 
-The next analyzer experiment is specified in
-[Scanner evidence](scanners/evidence.md#bounded-jelly-comparison).
-
-
 ## First implementation and Jelly comparison
 
 On 6 September 2026, the four-file alias control resolved the caller directly

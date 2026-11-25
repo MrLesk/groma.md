@@ -2,10 +2,11 @@
 type: C4 Component
 title: Map view motion
 status: stable
+tags:
+  - map
 groma:
   id: presentation
   parent: export
-  group: Map drawing
   code:
     - scanner: typescript
       file: src/viewers/web/iso/view-motion/presentation.ts

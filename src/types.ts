@@ -1,7 +1,12 @@
 import type { ScanDiagnostic, ScannerIdentity } from '@groma/scanner'
+import type { ColorName } from './colors.ts'
+import type { IconName } from './icons.ts'
 
 export type C4Kind = 'actor' | 'system' | 'container' | 'component'
-export type Origin = 'observed' | 'draft'
+/** How the map presents a relationship: observed, or planned by a draft. */
+export type RelationshipOrigin = 'observed' | 'draft'
+/** How the map presents an element. Only a component can be virtual; `src/origin.ts` decides. */
+export type Origin = RelationshipOrigin | 'virtual'
 /** The OKF lifecycle word every element document carries. */
 export type ElementStatus = 'draft' | 'stable'
 export type TerminalLevel = 'context' | 'components'
@@ -39,6 +44,7 @@ export interface ArchitectureFrontmatter extends Record<string, unknown> {
   type?: unknown
   title?: unknown
   description?: unknown
+  tags?: unknown
   groma?: unknown
 }
 
@@ -52,6 +58,8 @@ export interface ArchitectureDocument {
 /** Every Markdown record under the Groma directory, read in one pass. */
 export interface ArchitectureRecords {
   flows: ArchitectureDocument[]
+  /** Group records under groups/. */
+  groups: ArchitectureDocument[]
   /** C4 element documents, including their outgoing relationships. */
   documents: ArchitectureDocument[]
   /** Draft records under drafts/. */
@@ -96,8 +104,13 @@ export interface ArchitectureElement {
   runtimeConfiguration?: string
   parentId: string | null
   external: boolean
-  group?: string
   technology?: string
+  /** OKF tags: authored categories that cut across the hierarchy. Omitted when the element has none. */
+  tags?: string[]
+  /** The authored color name; each UI theme decides what it looks like. */
+  color?: ColorName
+  /** The authored icon name; each viewer decides how to draw it. */
+  icon?: IconName
   code: CodeReference[]
   status: ElementStatus
   /** The draft record this element belongs to; a stable element may carry it too. */
@@ -105,7 +118,7 @@ export interface ArchitectureElement {
   sourceFilename: string
 }
 
-/** One exact file interaction, or a declared actor/external-system connection. */
+/** One interaction addressed by exact source files or declared element IDs. */
 export interface RelationshipConnection {
   source: string
   target: string
@@ -143,8 +156,15 @@ export interface AnnotatedElement {
   parent: string | null
   children: string[]
   external: boolean
+  /** The id of the group whose record lists this component. */
   group?: string
   technology?: string
+  /** OKF tags: authored categories that cut across the hierarchy. Omitted when the element has none. */
+  tags?: string[]
+  /** The authored color name; each UI theme decides what it looks like. */
+  color?: ColorName
+  /** The authored icon name; each viewer decides how to draw it. */
+  icon?: IconName
   code: CodeReference[]
   /** Total lines across the code files; absent only in hand-built worlds. */
   codeLines?: number
@@ -161,13 +181,14 @@ export interface AnnotatedRelationship {
   target: string
   description: string
   technology: string
-  origin: Origin
+  origin: RelationshipOrigin
   draft?: string
 }
 
 /** Semantic architecture needed by a view before any renderer adds geometry. */
 export interface ArchitectureGraph {
   flows: ArchitectureFlow[]
+  groups: AnnotatedGroup[]
   elements: AnnotatedElement[]
   relationships: AnnotatedRelationship[]
   /** Review questions from the current scan; omitted when the process has not scanned. */
@@ -197,10 +218,36 @@ export interface ArchitectureFlow {
   id: string
   title: string
   description?: string
+  tags?: string[]
   overview: string
   sourceFilename: string
   steps: FlowStep[]
 }
+
+/**
+ * A named set of components of one container, read from its own document. It is an overlay on the
+ * hierarchy: never a parent, never a relationship end.
+ */
+export interface ArchitectureGroup {
+  id: string
+  title: string
+  description?: string
+  tags?: string[]
+  /** The color of the group's zone and the icon before its name. Members keep their own appearance. */
+  color?: ColorName
+  icon?: IconName
+  overview: string
+  /** The components the document links under "## Members", in its order. */
+  memberIds: string[]
+  sourceFilename: string
+}
+
+/**
+ * A group as a view sees it. A view finds the members the other way round: each one names its
+ * group in AnnotatedElement.group, as it names its parent. Every other field of the stored group
+ * reaches the views and the exports, so a field added to ArchitectureGroup is published too.
+ */
+export type AnnotatedGroup = Omit<ArchitectureGroup, 'memberIds' | 'sourceFilename'>
 
 export interface FlowStep {
   relationshipId: string
@@ -222,18 +269,10 @@ export interface WorldRelationship extends AnnotatedRelationship {
   label: Bounds | null
 }
 
-/** A named cluster of siblings; a narrative overlay, never a parent. */
-export interface WorldGroup {
-  id: string
-  name: string
-  parent: string | null
-  bounds: Bounds
-}
-
 export interface ArchitectureWorld {
   flows: ArchitectureFlow[]
   bounds: Bounds
   elements: WorldElement[]
-  groups: WorldGroup[]
+  groups: AnnotatedGroup[]
   relationships: WorldRelationship[]
 }

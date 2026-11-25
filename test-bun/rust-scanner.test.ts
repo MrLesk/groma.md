@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test'
-import { appendFile, cp, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
+import { appendFile, cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import rustPackage from '../plugins/scanners/rust/package.json'
-import rustScanner, { scanRustSource } from '../plugins/scanners/rust/src/index.ts'
+import rustScanner, { checkRustReadiness, scanRustSource } from '../plugins/scanners/rust/src/index.ts'
 
 import { execute } from '../plugins/scanners/rust/src/project.ts'
 import { loadAnnotatedArchitecture } from '../src/core.ts'
@@ -73,6 +73,40 @@ rustTest('inactive cfg branches and test functions produce no ordinary source fa
     expect(observation.invocations!.filter(call => call.source === conditional.id)).toHaveLength(1)
     expect(conditional.tokens).not.toContain('create')
     expect(observation.operations!.some(operation => operation.name === 'test_only')).toBeFalse()
+  })
+}, 60000)
+
+rustTest('a file with Windows line endings scans like its LF copy, with positions in the file on disk', async () => {
+  await fixture('rust-semantic', async root => {
+    const file = path.join(root, 'src/provider.rs')
+    // A `\` that ends a line inside a string literal continues the literal on the next line. `é`, `中` and `😀` take
+    // 2, 3 and 4 bytes in the file and 1, 1 and 2 units of a position.
+    const added = 'pub fn joined() -> String {\n    format!("first é 中 😀 \\\n        second")\n}\npub fn after() { run(); }\n'
+    const unix = `${await readFile(file, 'utf8')}${added}`.replaceAll('\r\n', '\n')
+    const windows = unix.replaceAll('\n', '\r\n')
+    const scan = async (source: string) => {
+      await writeFile(file, source)
+      return scanRustSource(root, {}, await rustFiles(root), worker)
+    }
+    // Operations and calls without their offsets, which count the carriage returns of the file on disk.
+    // An observation orders them by offset, so they are sorted here.
+    const facts = (observation: ScanObservation) => [
+      ...observation.operations!.map(({ file, name, startLine, endLine, tokens }) => JSON.stringify({ file, name, startLine, endLine, tokens })),
+      ...evidence(observation).map(call => JSON.stringify({
+        caller: call.caller.name, line: call.line, member: call.member, unresolved: call.unresolved,
+        providers: call.providers.map(provider => provider.name),
+      })),
+    ].sort()
+    const expected = facts(await scan(unix))
+    const observation = await scan(windows)
+    expect(facts(observation)).toEqual(expected)
+    const after = observation.operations!.find(operation => operation.name === 'after')!
+    expect(after.position).toBe(windows.indexOf('pub fn after'))
+    expect(observation.invocations!.find(call => call.source === after.id)!.position).toBe(windows.lastIndexOf('run()'))
+    // An escape Rust does not have still fails the scan, at its byte offset in the file on disk.
+    const invalid = `${windows}pub fn broken() -> &'static str { "\\q" }\r\n`
+    const offset = Buffer.byteLength(invalid.slice(0, invalid.indexOf('"\\q"')))
+    await expect(scan(invalid)).rejects.toThrow(new RegExp(`invalid Rust syntax.*\\D${offset}\\.\\.`))
   })
 }, 60000)
 
@@ -354,4 +388,55 @@ rustTest('registered Rust scans preserve curated ownership and a failed scan pre
     expect((await scanRepository(root)).scannerFailures?.map(error => error.scanner)).toEqual(['rust'])
     expect(await architecture()).toEqual(before)
   })
+}, 60000)
+
+/** A Rust source file of `count` functions; each one after the first calls the one before it. */
+function chainOfFunctions(count: number): string {
+  const functions = ['pub fn step_0(value: u64) -> u64 {\n    value\n}\n']
+  for (let index = 1; index < count; index++) {
+    functions.push(`pub fn step_${index}(value: u64) -> u64 {\n    let doubled = value * 2;\n    let shifted = doubled + ${index};\n    step_${index - 1}(shifted)\n}\n`)
+  }
+  return functions.join('')
+}
+
+/**
+ * The CPU time, in milliseconds, of one worker process that scans a Cargo package whose only source file holds
+ * `functionCount` functions. CPU time leaves out the time the worker waits while the machine runs other work.
+ */
+async function scanCpuTime(functionCount: number): Promise<number> {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'groma rust '))
+  try {
+    await mkdir(path.join(root, 'src'))
+    await writeFile(path.join(root, 'Cargo.toml'), '[package]\nname = "long"\nversion = "0.1.0"\nedition = "2021"\n')
+    await writeFile(path.join(root, 'src/lib.rs'), chainOfFunctions(functionCount))
+    // The input `scanRustSource` gives the worker. The worker is started here because only the process that starts
+    // it can read its CPU time.
+    const project = await checkRustReadiness(root, {}, ['Cargo.toml', 'src/lib.rs'], worker)
+    const scan = Bun.spawn([worker!], {
+      cwd: root, stdin: new TextEncoder().encode(JSON.stringify({ ...project, files: ['src/lib.rs'] })), stdout: 'pipe', stderr: 'pipe',
+    })
+    const [code, output, error] = await Promise.all([scan.exited, new Response(scan.stdout).text(), new Response(scan.stderr).text()])
+    expect(code, error).toBe(0)
+    // Every function is reported, so the time is that of a scan of the whole file.
+    expect((JSON.parse(output) as ScanObservation).operations).toHaveLength(functionCount)
+    return Number(scan.resourceUsage()!.cpuTime.total) / 1000
+  } finally { await rm(root, { recursive: true, force: true }) }
+}
+
+rustTest('scan time stays proportional to source size', async () => {
+  // The function counts of the two files. A worker that reads the file again for every function and call costs about
+  // 3.7 times as much for the longer file. Shorter files hide that: with 500 and 1000 functions it costs about 2.6
+  // times as much and would pass.
+  const [shorter, longer] = [4000, 8000]
+  // How many times the CPU time of the shorter file the longer file, twice as long, may cost.
+  const limit = 2.8
+  // On a busy machine the same scan takes more CPU time, never less. Each file is scanned three times, the two in
+  // turn, and the least time of each is compared.
+  let [shorterTime, longerTime] = [Infinity, Infinity]
+  for (let run = 0; run < 3; run++) {
+    shorterTime = Math.min(shorterTime, await scanCpuTime(shorter))
+    longerTime = Math.min(longerTime, await scanCpuTime(longer))
+  }
+  const ratio = longerTime / shorterTime
+  expect(ratio, `CPU time: ${shorterTime.toFixed(0)} ms for ${shorter} functions, ${longerTime.toFixed(0)} ms for ${longer} functions`).toBeLessThan(limit)
 }, 60000)

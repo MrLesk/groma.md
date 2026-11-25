@@ -52,7 +52,8 @@ function componentConfig(configFile: string, repositoryRoot: string, typescriptS
 
 /** A React package's compiler program and the source files it reports. */
 export interface ReactProject {
-  manifest: { name: string }
+  /** The package.json as parsed; any field may be absent. */
+  manifest: Record<string, unknown>
   program: ts.Program
   routers: Routers
   /** Every source the program compiles that the scanner reads, where components, handlers and values resolve. */

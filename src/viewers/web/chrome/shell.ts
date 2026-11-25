@@ -1,7 +1,21 @@
 import { ownsDetails, primarySelection } from '../selection.ts'
 import type { Selection } from '../selection.ts'
 import { bindPopover } from '../atoms/popover.ts'
+import { animateControl } from './motion.ts'
 import { bindShortcuts, type ShortcutActions } from './shortcuts.ts'
+
+/** How far one press of a zoom button or key zooms. */
+const ZOOM_STEP = 1.25
+
+/** The zoom and fit actions the header's buttons and the map keys share: each gives its button brief feedback, then moves the camera. */
+export function cameraActions(camera: { zoomBy(factor: number): void; refit(): void }): Pick<ShortcutActions, 'zoomIn' | 'zoomOut' | 'fit'> {
+  const press = (id: string, kind: 'fit' | 'zoom'): void => animateControl(document.getElementById(id)!, kind)
+  return {
+    zoomIn: () => { press('zoom-in', 'zoom'); camera.zoomBy(ZOOM_STEP) },
+    zoomOut: () => { press('zoom-out', 'zoom'); camera.zoomBy(1 / ZOOM_STEP) },
+    fit: () => { press('fit', 'fit'); camera.refit() },
+  }
+}
 
 /** Buttons and keys use the same actions; shell events stay outside map orchestration. */
 export function bindChromeActions(actions: ShortcutActions): void {
@@ -57,6 +71,8 @@ export function createWebShell(
   details: HTMLElement,
   map: HTMLElement | SVGSVGElement,
 ): WebShell {
+  // The room a classic scrollbar takes between the pane's border and its content; none with overlay scrollbars.
+  details.style.setProperty('--details-gutter', `${details.offsetWidth - details.clientWidth - 2 * details.clientLeft}px`)
   let hierarchyOpen = true
   let previousSelection: Selection = { kind: 'none' }
   const expansion = createDetailsExpansion()
@@ -125,11 +141,16 @@ export const detailsPanelCss = `
   }
   body.details-expanded #details { --details-width: min(calc(640px + 48px + 2px), calc(var(--chrome-width) - 24px)); }
   body.details-expanded #details.file-open { --details-width: var(--details-file-width); }
-  /* Layout uses the final width while the frame animates, so text never rewraps mid-motion. */
-  #details > :is(.meta, h1, .tabs, .body) { width: calc(var(--details-width) - 50px); }
-  #details > .flow-back { max-width: calc(var(--details-width) - 50px); }
-  #details.file-open > :is(h1, .tabs) { width: calc(var(--details-width) - 46px); }
-  #details.file-open > .body { width: calc(var(--details-width) - 2px); }
+  /*
+   * Layout uses the final width while the frame animates, so text never rewraps mid-motion. That width
+   * leaves out the room a scrollbar takes inside the pane (--details-gutter, measured by the shell), so
+   * the content is never wider than what shows.
+   */
+  #details { --details-content: calc(var(--details-width) - var(--details-gutter, 0px)); }
+  #details > :is(.meta, h1, .tabs, .body) { width: calc(var(--details-content) - 50px); }
+  #details > .flow-back { max-width: calc(var(--details-content) - 50px); }
+  #details.file-open > :is(h1, .tabs) { width: calc(var(--details-content) - 46px); }
+  #details.file-open > .body { width: calc(var(--details-content) - 2px); }
   #details > .meta { padding-right: 76px; min-height: 32px; }
   #details > .details-controls { position: sticky; top: 0; height: 0; flex-shrink: 0; order: -2; z-index: 2; }
   #details.file-open > .details-controls { margin: 0 24px; }
@@ -143,7 +164,7 @@ export const detailsPanelCss = `
   #details-expand:hover, #details-close:hover { background: var(--hover); }
   #details-expand .collapse-arrows, #details-expand[aria-expanded="true"] .expand-arrows { display: none; }
   #details-expand[aria-expanded="true"] .collapse-arrows { display: block; }
-  #details.file-open > .file-toolbar { width: calc(var(--details-width) - 136px); margin-right: 112px; }
+  #details.file-open > .file-toolbar { width: calc(var(--details-content) - 136px); margin-right: 112px; }
   #details.file-open .file-context { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   @media (min-width: 1800px) {
     #details { --details-file-width: 960px; }

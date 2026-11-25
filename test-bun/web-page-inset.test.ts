@@ -2,18 +2,20 @@ import assert from 'node:assert/strict'
 
 import { test } from 'bun:test'
 
+import { bundledThemes } from '../src/themes/bundled.ts'
 import { renderPage } from '../src/viewers/web/page.ts'
 import type { WebBootPayload } from '../src/viewers/web/payload.ts'
 import { readView, writeView } from '../src/viewers/web/url.ts'
 
 const payload = {
   project: { title: 'Shop' },
-  world: { elements: [], relationships: [], flows: [] },
+  world: { elements: [], relationships: [], groups: [], flows: [] },
   work: { items: [] },
   pins: [],
   revisions: [],
   revision: null,
   delivery: { kind: 'live' },
+  themes: bundledThemes,
 } as unknown as WebBootPayload
 
 const body = (url?: string) => renderPage(payload, url === undefined ? undefined : new URL(url)).match(/<body[^>]*>/)![0]

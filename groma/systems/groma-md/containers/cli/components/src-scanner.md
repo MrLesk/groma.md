@@ -2,6 +2,8 @@
 type: C4 Component
 title: Scan results
 status: stable
+tags:
+  - scanning
 groma:
   id: src-scanner
   parent: cli
@@ -10,7 +12,6 @@ groma:
       file: src/scanner.ts
     - scanner: typescript
       file: src/scan-reconciler.ts
-      symbol: reconcileScanObservations
     - scanner: typescript
       file: src/scan-component-naming.ts
     - scanner: typescript
@@ -22,7 +23,6 @@ groma:
       file: src/scan-runtime.ts
     - scanner: typescript
       file: src/scan-world.ts
-  group: Source scanning
 description: Folds successful scanner results into stored ownership and records
 ---
 

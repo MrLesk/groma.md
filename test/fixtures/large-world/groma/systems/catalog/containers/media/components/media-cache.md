@@ -5,7 +5,6 @@ status: stable
 groma:
   id: media-cache
   parent: media
-  group: Core
   code:
     - scanner: typescript
       file: src/catalog/media/cache.ts

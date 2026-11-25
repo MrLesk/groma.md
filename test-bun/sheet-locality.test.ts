@@ -11,6 +11,7 @@ const helpers = ['helper-a', 'helper-b', 'helper-c']
 function localWorld(): ArchitectureGraph {
   return {
     flows: [],
+    groups: ['a', 'b', 'c', 'd'].map(region => ({ id: region, title: region, overview: '' })),
     elements: [
       box('person', 'actor', unit),
       box('system', 'system', unit),

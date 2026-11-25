@@ -11,7 +11,6 @@ groma:
       symbol: resolveFlows
     - scanner: typescript
       file: src/flow-authoring.ts
-  group: Architecture records
 description: Stores ordered flow steps over existing relationships
 ---
 

@@ -4,6 +4,8 @@ import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { EMPTY_WORK_SNAPSHOT } from '@groma/work-source'
+import { addThing } from '../src/add.ts'
+import { addRelation } from '../src/relation.ts'
 import { createWebMapSession } from '../src/viewers/web/map-session.ts'
 import type { WebPayload, WebRevision } from '../src/viewers/web/payload.ts'
 import { listGromaRevisions } from '../src/history/revisions.ts'
@@ -20,6 +22,9 @@ test.concurrent('web history includes source-only commits and reads the selected
     git('commit', '--quiet', '-m', 'Before architecture')
     const unsupported = git('rev-parse', 'HEAD')
     await cp(path.resolve(import.meta.dir, '../test/fixtures/source-view'), root, { recursive: true })
+    // The actor's document has a file name outside ASCII, and its relationship links to that document by name.
+    const actor = await addThing(root, { thing: 'actor', name: 'Säkerhetsoperatör', overview: 'Reviews orders.' })
+    await addRelation(root, { source: actor, target: 'orders', description: 'Reviews orders', technology: 'Browser' })
     git('add', '.')
     git('commit', '--quiet', '-m', 'Architecture snapshot')
     const before = git('rev-parse', 'HEAD')
@@ -29,6 +34,8 @@ test.concurrent('web history includes source-only commits and reads the selected
     git('add', '.')
     git('commit', '--quiet', '-m', 'Source-only receipt update', '-m', 'The architecture is unchanged.')
     const after = git('rev-parse', 'HEAD')
+    // From here Git converts line endings in every checkout. A revision must still hold the committed bytes.
+    git('config', 'core.autocrlf', 'true')
     const terminalHistory = await listGromaRevisions(root)
     expect(terminalHistory.map(revision => revision.id)).toEqual([before])
     expect(terminalHistory[0]?.compatible).toBe(true)

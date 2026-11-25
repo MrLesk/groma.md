@@ -18,15 +18,22 @@ groma:
       file: src/config.ts
     - scanner: typescript
       file: src/plugins/management.ts
-  group: Plugins
+    - scanner: typescript
+      file: src/scanner/modules/package-name.ts
+      symbol: isNpmPackageName
+    - scanner: typescript
+      file: src/scanner/modules/package-trust.ts
+      symbol: packageManagerCertificates
+    - scanner: typescript
+      file: src/certificate-trust.ts
 description: Reads config.json, owns the plugins it lists and restores them by kind
 ---
 
-Reads and writes config.json, the project's one groma.md configuration, and resolves, installs and restores scanner packages from exact npm, Git and local sources. plugin-management.ts is the one owner of the plugins config.json lists: it reports whether this computer has each of them and adds, updates, removes and restores them by kind, downloading a scanner package or installing the Backlog.md CLI. The plugin commands, groma init, the plugins screen and the groma web restore view all use it. Resolving a package never runs plugin code.
+Reads and writes config.json, the project's one groma.md configuration, and resolves, installs and restores scanner packages from exact npm, Git and local sources. plugin-management.ts is the one owner of the plugins config.json lists: it reports whether this computer has each of them and adds, updates, removes and restores them by kind, downloading a scanner package or installing the Backlog.md CLI. The plugin commands, groma init, the plugins screen and the groma web restore view all use it. Resolving a package never runs plugin code. Downloads of scanner packages, Git sources and the Backlog.md CLI keep the platform's certificate trust but drop certificate authority keys distrusted after a CA compromise.
 
 ## Relationships
 
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
-| [src/scanner/modules/package.ts](../../../../../../src/scanner/modules/package.ts) | [scanner-package-registry](../../../../../externals/scanner-package-registry.md) | Downloads scanner packages | Bun install and npm registry protocol |
-| [src/scanner/modules/published.ts](../../../../../../src/scanner/modules/published.ts) | [scanner-package-registry](../../../../../externals/scanner-package-registry.md) | Reads scanner releases | Bun package manager and npm registry protocol |
+| [src/scanner/modules/package.ts](../../../../../../src/scanner/modules/package.ts) | [Scanner package registry](../../../../../externals/scanner-package-registry.md "scanner-package-registry") | Downloads scanner packages | Bun install and npm registry protocol |
+| [src/scanner/modules/published.ts](../../../../../../src/scanner/modules/published.ts) | [Scanner package registry](../../../../../externals/scanner-package-registry.md "scanner-package-registry") | Reads scanner releases | Bun package manager and npm registry protocol |

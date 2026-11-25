@@ -1,5 +1,5 @@
 import { collectNodes, elementOverview, nodeText, relationshipTargetFilename, tableHeaderNames } from './architecture-markdown.ts'
-import { ArchitectureModelError } from './architecture-model.ts'
+import { ArchitectureModelError, tagsOf } from './architecture-model.ts'
 import { requireGromaMapping } from './okf-profile.ts'
 import { isArchitectureId } from './naming.ts'
 import type { ArchitectureDocument, ArchitectureFlow, ArchitectureModel, FlowStep, MarkdownElement, MarkdownNode } from './types.ts'
@@ -74,10 +74,12 @@ export function resolveFlows(documents: readonly ArchitectureDocument[], model: 
     textField(document, overview, 'overview')
     const description = document.frontmatter.description
     if (description !== undefined && typeof description !== 'string') invalid(document, 'description must be text')
+    const tags = tagsOf(document.frontmatter.tags, document.sourceFilename)
     return {
       id,
       title: textField(document, document.frontmatter.title, 'title'),
       ...(description === undefined ? {} : { description }),
+      ...(tags === undefined ? {} : { tags }),
       overview,
       sourceFilename: document.sourceFilename,
       steps: stepRows(document).map(row => resolveStep(document, row, model)),

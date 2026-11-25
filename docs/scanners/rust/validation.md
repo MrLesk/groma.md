@@ -2,7 +2,7 @@
 
 ## Codex workspace validation, 19 September 2026
 
-TASK-444 exercised the complete local Codex repository with the source adapter
+The complete local Codex repository was exercised with the source adapter
 and the packaged Rust 0.1.2 candidate on macOS arm64. Both returned two project
 roots, 2,586 physical source files and 25,502 operations without changing Codex
 source or installing its dependencies. The source scan took 18.8 seconds.
@@ -118,11 +118,15 @@ output, curated ownership across repeat scans, failed scan preservation,
 component that also holds a TypeScript file, outline members of same-named types
 in different inline modules beside test-only `cfg` conditions, every HTTP
 endpoint and request fact of the axum, actix-web, Rocket and reqwest fixture
-with its constraints, order and blockers, and the HTTP rows a registered scan of
-that fixture derives. Each test owns its temporary fixture and runs
+with its constraints, order and blockers, the HTTP rows a registered scan of
+that fixture derives, and the [scan time rule](index.md#scan-time) on one
+generated source file at two sizes. Each test owns its temporary fixture and runs
 concurrently. Native tests are opt-in because a
 general repository checkout need not contain a built Rust worker or project
 toolchain.
+
+Adding `-t "scan time stays proportional"` to the `bun test` command above runs
+the scaling check alone.
 
 The 9 September focused run, before the lint case existed, passed 6 tests and
 33 assertions. The complete repository check passed 110 Node tests and
@@ -135,8 +139,7 @@ the lint, outline and HTTP cases, the focused run of
 The historical smoke run used `npm pack` and extracted that actual artifact before
 loading it into compiled groma.md. It verified `scanner check`, a successful
 scan, curated repeat scans, and unchanged Markdown after malformed Rust fails.
-Only macOS arm64 was exercised. Public publication and other platforms remain
-TASK-326.7 release qualification work.
+Only macOS arm64 was exercised.
 
 ## Recorded artifact hashes
 

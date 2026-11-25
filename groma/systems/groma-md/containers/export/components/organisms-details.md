@@ -17,13 +17,26 @@ groma:
       file: src/viewers/web/organisms/relationship-details.ts
       symbol: paintRelationship
     - scanner: typescript
-      file: src/viewers/web/organisms/editable.ts
-    - scanner: typescript
       file: src/viewers/web/organisms/sidebar-section.ts
       symbol: sectionHeading
     - scanner: typescript
       file: src/viewers/web/comparison/details.ts
-  group: Architecture panels
+    - scanner: typescript
+      file: src/viewers/web/organisms/color-swatches.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/choice-field.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/icon-picker.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/selection-details.ts
+    - scanner: typescript
+      file: src/viewers/web/tags/tag-row.ts
+      symbol: tagRow
+    - scanner: typescript
+      file: src/viewers/web/tags/tags-field.ts
+    - scanner: typescript
+      file: src/viewers/web/organisms/group-details.ts
+      symbol: paintGroup
 description: Shows the selected element, its source and its relationships
 ---
 

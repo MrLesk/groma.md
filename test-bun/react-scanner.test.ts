@@ -166,6 +166,16 @@ test.concurrent('React binds no platform file to a component variant another pla
   } finally { await rm(temporary, { recursive: true, force: true }) }
 })
 
+test.concurrent('React names a package whose manifest has no name after its directory', async () => {
+  const { temporary, root, scanner } = await setup()
+  try {
+    // An application's package.json may omit the name, which only publishing requires.
+    await writeFile(path.join(root, 'package.json'), JSON.stringify({ dependencies: { react: '19.2.7' } }))
+    const react = (await scanner.scan(root, {}, await reactFiles(root)))!
+    expect(react.roots.map(item => item.name)).toEqual([path.basename(root)])
+  } finally { await rm(temporary, { recursive: true, force: true }) }
+})
+
 test.concurrent('a React package compiled by an ancestor config scans once beside the nested package it uses', async () => {
   const { temporary, root, scanner } = await setup()
   try {

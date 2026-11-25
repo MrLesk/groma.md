@@ -1,9 +1,28 @@
 import { expect, test } from 'bun:test'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-import { watchObservations } from '../src/scanner/source-watch.ts'
+import { repositoryFile, watchObservations } from '../src/scanner/source-watch.ts'
+
+// Creating symlinks needs developer mode or administrator rights on Windows, where the watcher reports names
+// relative to the root and never relates an absolute path.
+test.skipIf(process.platform === 'win32').concurrent('a change reported under another spelling of the repository path names the same repository file, and a path outside the repository names none', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'groma-source-spelling-'))
+  try {
+    await mkdir(path.join(directory, 'repository', 'src'), { recursive: true })
+    const root = await realpath(path.join(directory, 'repository'))
+    const otherSpelling = path.join(directory, 'link')
+    await symlink(root, otherSpelling)
+
+    expect(repositoryFile(root, path.join(otherSpelling, 'src', 'changed.ts'))).toBe('src/changed.ts')
+    // A removed folder is no longer on disk; the removal of its files is still a change to report.
+    expect(repositoryFile(root, path.join(otherSpelling, 'removed', 'gone.ts'))).toBe('removed/gone.ts')
+    expect(repositoryFile(root, path.join(directory, 'outside.ts'))).toBeUndefined()
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
 
 test.concurrent('an edit during the initial scan is collected after the initial batch', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-source-start-'))

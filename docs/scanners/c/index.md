@@ -193,11 +193,6 @@ one executable. Core owns initial placement and curated component ownership.
 Unresolved calls create no claimed architecture relationships. Use Groma's
 existing curation tools to describe supported boundaries and collaborations.
 
-C adds no OKF metadata or C4 concept. The resulting architecture uses the same
-Markdown documents and Code links as other scanners. An ordinary reader can
-follow those links; Groma interprets temporary scanner facts through the shared
-scanner contract and its existing component model.
-
 ## Real-project qualification
 
 An independent review tested the same packaged scanner through Groma installation,

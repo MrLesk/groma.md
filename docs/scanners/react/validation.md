@@ -53,20 +53,5 @@ bun run biome lint plugins/scanners/react/src plugins/scanners/react/build.ts te
 bun run typecheck
 ```
 
-The results below record the historical qualification run. Automated tests
-cover callback inference and ownership; package consumer checks are outside
-the test suite.
-
-## Review and qualification
-
-Cold simplicity review passed without findings. Implementer specification and
-quality reviews found no blocking issue in the supported flow. The coordinator
-reviewed the exported map: Cleanupmodal retains its curated responsibility,
-the derived `onSuccess` interaction points to Tasklist with React evidence,
-and the authored reverse relationship remains. Final full-context review passed
-without required changes. The serial `bun run check` passed: 110 Node tests and
-398 Bun tests passed, with seven existing tooling-dependent skips and no test
-failures. Lint reported six pre-existing complexity warnings.
-
 The executed environment is macOS arm64, Bun 1.4.1, and compiled groma.md. Public
 publication and unexecuted platforms are not qualified by this record.

@@ -2,6 +2,8 @@
 type: C4 Component
 title: PHP analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: php-src-index
   parent: cli
@@ -39,7 +41,6 @@ groma:
     - scanner: typescript
       file: plugins/scanners/php/src/entries.ts
       symbol: phpEntries
-  group: Language analysis
 description: Analyses PHP declarations, calls and HTTP evidence
 ---
 

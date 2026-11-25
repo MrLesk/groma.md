@@ -5,7 +5,6 @@ status: stable
 groma:
   id: events-reader
   parent: events
-  group: Support
   code:
     - scanner: typescript
       file: src/orders/events/reader.ts

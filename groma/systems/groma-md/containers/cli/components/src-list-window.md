@@ -8,7 +8,6 @@ groma:
   code:
     - scanner: typescript
       file: src/list-window.ts
-  group: Project commands
 description: Pages long command output and prints how to continue
 ---
 

@@ -2,6 +2,8 @@
 type: C4 Component
 title: Vue analysis
 status: stable
+tags:
+  - scanning
 groma:
   id: vue-src-index
   parent: cli
@@ -27,7 +29,6 @@ groma:
       symbol: addComparedOperations
     - scanner: typescript
       file: plugins/scanners/vue/src/sfc.ts
-  group: Language analysis
 description: Analyses Vue source, templates and HTTP bindings
 ---
 

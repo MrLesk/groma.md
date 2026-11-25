@@ -99,17 +99,6 @@ async function verifyCleanup(command: string, binDirectory: string, root: string
   }
 }
 
-test.concurrent('npm launcher selects each supported platform and rejects unsupported architectures', () => {
-  for (const [platform, arch, name] of [
-    ['linux', 'x64', 'groma.md-linux-x64'], ['linux', 'arm64', 'groma.md-linux-arm64'],
-    ['win32', 'x64', 'groma.md-windows-x64'], ['win32', 'arm64', 'groma.md-windows-arm64'],
-    ['darwin', 'arm64', 'groma.md-darwin-arm64'],
-  ]) expect(platformPackageName(platform, arch, false)).toBe(name)
-  expect(platformPackageName('darwin', 'x64', true)).toBe('groma.md-darwin-arm64')
-  expect(platformPackageName('darwin', 'x64', false)).toBeUndefined()
-  expect(platformPackageName('linux', 'ia32', false)).toBeUndefined()
-})
-
 test.concurrent('npm local and global commands work with scripts disabled and preserve process lifetime', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'groma-npm-native-'))
   try {

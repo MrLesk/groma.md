@@ -72,7 +72,7 @@ function fitPoints(
   return fittedCamera(boundsOf(points), viewport, maxZoom, margin)
 }
 
-/** Fits selected elements with their contents, or explicit routes with their endpoints. */
+/** Fits selected elements with their contents, a group's members, or explicit routes with their endpoints. */
 export function fitArchitecture(
   scene: LayeredScene,
   world: ArchitectureGraph,
@@ -80,8 +80,8 @@ export function fitArchitecture(
   viewport: Viewport,
 ): Camera | undefined {
   const wanted = new Set(ids)
-  const groups = scene.zones.filter(item => item.zone.unidentifiedContainer && wanted.has(item.zone.key))
-  for (const { zone } of groups) for (const member of zone.members) wanted.add(member)
+  const placementZones = scene.zones.filter(({ zone }) => zone.unidentifiedContainer && wanted.has(zone.key))
+  for (const { zone } of placementZones) for (const member of zone.members) wanted.add(member)
   const routes = scene.routes.filter(item => (item.route.relationshipIds ?? [item.route.id]).some(id => wanted.has(id)))
   for (const { route } of routes) {
     wanted.add(route.source)
@@ -89,10 +89,13 @@ export function fitArchitecture(
   }
   const parentOf = parentOfElements(world.elements)
   const bodies = new Set(world.elements
-    .filter(element => ancestorIds(element.representationId, parentOf).some(id => wanted.has(id)))
+    .filter(element => {
+      if (element.group !== undefined && wanted.has(element.group)) return true
+      return ancestorIds(element.representationId, parentOf).some(id => wanted.has(id))
+    })
     .map(element => element.representationId))
   return fitPoints([
-    ...groups.flatMap(item => item.polygon),
+    ...placementZones.flatMap(item => item.polygon),
     ...bodyPoints(scene, bodies),
     ...routes.flatMap(item => [...item.points, ...item.lifts.flatMap(lift => [lift.from, lift.to])]),
   ], viewport, FOCUS_ZOOM_MAX)

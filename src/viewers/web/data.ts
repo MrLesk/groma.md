@@ -19,7 +19,8 @@ export interface WebDataSource {
   readTaskDiff(id: string): Promise<TaskDiffPayload>
   /** The writers, absent in the published delivery, which has none. */
   draft?(input: DraftInput): Promise<void>
-  add?(input: AddInput): Promise<void>
+  /** Resolves to the id of the record it added. */
+  add?(input: AddInput): Promise<string>
   remove?(input: RemoveInput): Promise<void>
   edit?(input: EditArchitectureInput): Promise<void>
   accept?(input: AcceptInput): Promise<void>
@@ -35,7 +36,8 @@ async function responseJson<T>(path: string): Promise<T> {
   return response.json() as Promise<T>
 }
 
-async function send(path: string, body: unknown): Promise<void> {
+/** Posts a write. A refused write becomes an error that carries the server's message. */
+async function post(path: string, body: unknown): Promise<Response> {
   const response = await fetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -47,6 +49,18 @@ async function send(path: string, body: unknown): Promise<void> {
       : await response.text()
     throw new Error(message)
   }
+  return response
+}
+
+async function send(path: string, body: unknown): Promise<void> {
+  await post(path, body)
+}
+
+/** Posts a write that adds a record and resolves to the new record's id, which the server answers with. */
+async function sendForId(path: string, body: unknown): Promise<string> {
+  const response = await post(path, body)
+  const { id } = await response.json() as { id: string }
+  return id
 }
 
 function selected(path: string, values: Record<string, string | undefined>): string {
@@ -66,7 +80,7 @@ const liveWriters: Pick<WebDataSource, 'readPluginSettings' | 'changePluginSetti
     return response.json() as Promise<PluginSettings>
   },
   draft: input => send('/draft', input),
-  add: input => send('/add', input),
+  add: input => sendForId('/add', input),
   remove: input => send('/remove', input),
   edit: input => send('/edit', input),
   accept: input => send('/accept', input),
@@ -189,7 +203,7 @@ export function openWebBoot(boot: WebBootPayload, url: Pick<Location, 'search'>)
   const params = new URLSearchParams(url.search)
   if (boot.delivery.kind === 'live' || (!params.has('revision') && !params.has('from'))) return boot
   const view = publishedView(boot, params.get('revision') ?? undefined, params.get('from') ?? undefined)
-  return { ...view.payload, delivery: boot.delivery }
+  return { ...view.payload, delivery: boot.delivery, themes: boot.themes }
 }
 
 export function createWebDataSource(boot: WebBootPayload): WebDataSource {

@@ -1,13 +1,13 @@
 {
   "name": "@groma/scanner-react",
-  "version": "0.2.5",
+  "version": "0.2.7",
   "private": false,
   "type": "module",
   "license": "MIT",
   "groma": {
     "scanner": {
       "id": "react",
-      "entry": "./dist/package/dist/index.js",
+      "entry": "./src/index.ts",
       "include": [
         "**/*.ts",
         "**/*.tsx",

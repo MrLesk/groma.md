@@ -2,7 +2,7 @@ import { createScanObservation, type ScanObservation, type ScannerPlugin, type S
 import { VueEvidence } from './evidence.ts'
 import path from 'node:path'
 import { isUnder } from '../../projects.ts'
-import { frameworkProjects, frameworkSourceFiles, hasDependency } from '../../typescript-project.ts'
+import { frameworkProjects, frameworkSourceFiles, hasDependency, packageRootName } from '../../typescript-project.ts'
 import { combineObservations } from '../../observations.ts'
 import { vueHttpFacts } from './http.ts'
 import { addComparedOperations } from './operations.ts'
@@ -71,7 +71,8 @@ async function scanVueProject(projectRoot: string, root: string, sources: string
   }
   return withJavaScriptEntries(root, createScanObservation({
     scanner: { id: 'vue', technology: 'typescript/vue', engine: '@vue/language-core', engineVersion: '3.3.13' },
-    roots: [{ id: 'vue-project', kind: 'package', name: manifest.name, file: relative(root, path.join(projectRoot, 'package.json')) }],
+    roots: [{ id: 'vue-project', kind: 'package', name: packageRootName(manifest, projectRoot),
+      file: relative(root, path.join(projectRoot, 'package.json')) }],
     files: reported.map(file => ({ ...file, roots: ['vue-project'] })),
     sourceUnits,
     operations: [...evidence.operations.values()], invocations: evidence.invocations,

@@ -2,6 +2,8 @@
 type: C4 Component
 title: Web page builder
 status: stable
+tags:
+  - web
 groma:
   id: web-page
   parent: cli
@@ -13,7 +15,6 @@ groma:
       file: src/viewers/web/runtime.ts
     - scanner: typescript
       file: src/viewers/web/payload.ts
-  group: Browser delivery
 description: Builds the browser page, script and initial architecture payload
 ---
 

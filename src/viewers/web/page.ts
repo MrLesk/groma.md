@@ -15,7 +15,8 @@ import { chromeCss } from './atoms/chrome.ts'
 import { escaped } from './atoms/escape.ts'
 import { anchoredPopoverCss } from './atoms/popover.ts'
 import { kindGlyph, kindLabel } from '../atoms/kind.ts'
-import { cssBlock, palettes, themeLabel, themeModes, webFontFamily, type WebThemeMode } from './atoms/theme.ts'
+import { AUTO_THEME, shownTheme, type ThemeDefinition } from '../../themes/definition.ts'
+import { cssBlock, webFontFamily } from './atoms/theme.ts'
 import { addDialogCss } from './chrome/add.ts'
 import { creditsControl, creditsCss } from './chrome/credits.ts'
 import { editorCss } from './editing/gestures.ts'
@@ -23,12 +24,21 @@ import { emptyState, emptyStateCss } from './chrome/empty.ts'
 import { mapDebugCss } from './chrome/map-debug.ts'
 import { mapViewControl, mapViewCss } from './chrome/map-view.ts'
 import { c4FilterControl, c4FilterCss } from './chrome/c4-filter.ts'
+import { tagFocusCss } from './tags/tag-focus.ts'
+import { tagListCss } from './tags/tag-list.ts'
+import { choiceFieldCss } from './organisms/choice-field.ts'
+import { colorSwatchesCss } from './organisms/color-swatches.ts'
+import { iconPickerCss } from './organisms/icon-picker.ts'
+import { glyphCss } from './icons/glyph-element.ts'
 import { motionCss } from './chrome/motion.ts'
 import { detailsPanelCss } from './chrome/shell.ts'
 import { flowRowCss } from './flow/row.ts'
 import { mapCss } from './iso/painting/style.ts'
-import { editableCss } from './organisms/editable.ts'
-import { removeCss } from './organisms/remove.ts'
+import { factRowCss } from './atoms/fact-row.ts'
+import { writeFormCss } from './atoms/write-form.ts'
+import { writeViewCss } from './organisms/write-view.ts'
+import { tagsFieldCss } from './tags/tags-field.ts'
+import { selectionDetailsCss } from './organisms/selection-details.ts'
 import { relationshipCardCss } from './organisms/relationship-card.ts'
 import { tipCss } from './organisms/tip.ts'
 import type { WebBootPayload } from './payload.ts'
@@ -76,11 +86,9 @@ const style = `
   ${fontCss}
   ${pluginSettingsCss}${duplicatesCss}${projectReviewCss}${settingsCss}${settingsDialogCss}
   :root {
-    ${cssBlock(palettes.light)}
     --backlog-mark-image: url("data:image/png;base64,${backlogMark}");
     --chrome-radius: 10px;
     --control-radius: 6px;
-    --chrome-surface: color-mix(in srgb, var(--paper) 35%, transparent);
     --chrome-motion: 260ms;
     --chrome-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
     --tree-step: 16px;
@@ -88,11 +96,6 @@ const style = `
     --details-column: clamp(360px, 32vw, 420px);
     --hierarchy-inset: var(--hierarchy-column);
     --details-inset: var(--details-column);
-  }
-  [data-theme="dark"] { ${cssBlock(palettes.dark)} }
-  [data-theme="blueprint"] {
-    ${cssBlock(palettes.blueprint)}
-    --chrome-surface: color-mix(in srgb, var(--paper) 78%, transparent);
   }
   html { margin: 0; height: 100%; overflow-x: auto; overflow-y: hidden; background: var(--paper); }
   *, *::before, *::after { box-sizing: border-box; }
@@ -123,11 +126,11 @@ const style = `
   body.hud-hidden #hierarchy,
   body.hud-hidden #details,
   body.hud-hidden #work,
-  body.hud-hidden #map-view,
+  body.hud-hidden #map-toolbar,
   body.hud-hidden #pins { display: none; }
   button { font: inherit; color: inherit; background: transparent; cursor: pointer; }
   button:focus-visible { outline: 2px solid var(--highlight); outline-offset: -1px; }
-  #legend span, #details .meta, #details .section, #hierarchy .section, #tree .group, #zoom, #details .chip, #stats, .pane-label {
+  #legend span, #details .meta, #details .section, #details .fact-row .title, #hierarchy .section, #tree .group, #zoom, #details .chip, #stats, .pane-label {
     font-size: 10px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -283,14 +286,8 @@ const style = `
   }
   #details .meta { margin: 0 0 6px; }
   #details h1 { font-size: 21px; font-weight: 600; line-height: 1.3; margin: 0 0 16px; overflow-wrap: anywhere; }
+  #details h1 .glyph { margin: 0 8px -3px 0; }
   #details .description { margin: 0 0 10px; color: var(--muted); }
-  #details .selection-writes { display: grid; gap: 8px; margin: 0 0 16px; }
-  #details .selection-writes form { display: flex; gap: 8px; }
-  #details .selection-writes input, #details .selection-writes select { flex: 1; min-width: 0; border: 1px solid var(--hairline); border-radius: 4px; padding: 4px 6px; color: var(--ink); background: color-mix(in srgb, var(--paper) 72%, transparent); font: inherit; }
-  #details .selection-writes button { border: 1px solid var(--hairline); border-radius: 6px; padding: 4px 10px; background: transparent; color: var(--muted); white-space: nowrap; }
-  #details .selection-writes button:hover { color: var(--ink); background: var(--hover); }
-  #details .selection-writes .error { margin: 0; color: var(--highlight-text); font-size: 11px; }
-  #details .selection-writes .error:empty { display: none; }
   #details .overview { margin: 0 0 10px; line-height: 1.65; }
   #hierarchy .section, #details .section { padding-bottom: 6px; border-bottom: 1px solid var(--hairline); }
   #details .section {
@@ -334,7 +331,7 @@ const style = `
   #zoom-in, #zoom-out { justify-content: center; font-size: 12px; line-height: 1.2; }
   .control-glyph { display: block; transform-origin: center; }
   /* A bar placed from the window sets --window-inset to the chrome inset it has to add. */
-  body #work, body #map-view, body #changes {
+  body #work, body #map-toolbar, body #changes {
     left: calc(var(--hierarchy-inset) + var(--window-inset, 0px) + 24px);
     right: calc(var(--details-inset) + var(--window-inset, 0px) + 24px);
     max-width: calc(100% - var(--hierarchy-inset) - var(--details-inset) - 2 * var(--window-inset, 0px) - 48px);
@@ -372,6 +369,8 @@ const style = `
   .row .mark { display: grid; place-items: center; width: 8px; height: 12px; }
   .row .mark::before { content: ''; width: 7px; height: 7px; background: currentColor; }
   .row .kind-actor::before { border-radius: 50%; }
+  .row .mark.with-glyph { width: 14px; height: 14px; }
+  .row .mark.with-glyph::before { display: none; }
   .row .kind-container::before { height: 4px; border: 1px solid currentColor; background: transparent; transform: skewX(-25deg); }
   .row .kind-component::before { width: 4px; height: 4px; }
   .row .twist.toggle:hover, .tree-section .twist:hover { color: var(--accent-text); cursor: pointer; }
@@ -381,12 +380,12 @@ const style = `
   .mark { flex: none; }
   .ghost { opacity: 0.5; }
   @media (prefers-reduced-motion: reduce) {
-    #hierarchy, #hierarchy-toggle .hierarchy-chevron, #hierarchy-content, #hierarchy-title .pane-label, #details, body.details-hidden #details, body #work, body #map-view, #header > #web-search { transition: none; }
+    #hierarchy, #hierarchy-toggle .hierarchy-chevron, #hierarchy-content, #hierarchy-title .pane-label, #details, body.details-hidden #details, body #work, body #map-toolbar, #header > #web-search { transition: none; }
   }
 ${floatingBarCss}${chromeCss}${anchoredPopoverCss}${creditsCss}${motionCss}${revisionCss}${searchCss}${highlightCss}${sourceCss}${fileDiffCss}${taskDiffCss}${comparisonDetailsCss}${hierarchyComparisonCss}${comparisonControlCss}${backlogMarkCss}${workBadgeCss}${workDetailsCss}${flowRowCss}${mapCss}${pinsCss}${workCss}${tipCss}${projectEditorCss}
 ${emptyStateCss}
 ${addDialogCss}${editorCss}
-${relationshipCardCss}${removeCss}${editableCss}${mapDebugCss}${detailsPanelCss}${mapViewCss}${c4FilterCss}`
+${relationshipCardCss}${selectionDetailsCss}${writeFormCss}${writeViewCss}${factRowCss}${tagsFieldCss}${mapDebugCss}${detailsPanelCss}${tagFocusCss}${tagListCss}${mapViewCss}${c4FilterCss}${choiceFieldCss}${colorSwatchesCss}${iconPickerCss}${glyphCss}`
 
 function legend(): string {
   return legendKinds.map(line => {
@@ -397,17 +396,25 @@ function legend(): string {
   }).join('')
 }
 
-const themeIcons: Record<WebThemeMode, string> = {
-  auto: autoIcon,
-  light: sunIcon,
-  dark: moonIcon,
-  blueprint: blueprintIcon,
+/**
+ * One block of variables per enabled theme. The first block holds until the browser script sets data-theme: it is the
+ * theme Auto shows on a light system.
+ */
+function themeCss(themes: readonly ThemeDefinition[]): string {
+  return [`:root { ${cssBlock(shownTheme(AUTO_THEME, themes, false))} }`,
+    ...themes.map(theme => `[data-theme="${theme.id}"] { ${cssBlock(theme)} }`)].join('\n')
 }
 
-function themeControl(): string {
-  const options = themeModes
-    .map(mode => `<button class="anchored-option theme-option" type="button" data-theme-mode="${mode}" aria-current="${String(mode === 'auto')}">${themeIcons[mode]}<span>${themeLabel(mode)}</span></button>`)
-    .join('')
+function themeIcon(theme: ThemeDefinition): string {
+  if (theme.id === 'blueprint') return blueprintIcon
+  return theme.scheme === 'dark' ? moonIcon : sunIcon
+}
+
+/** The picker offers Auto and exactly the themes the project enables. */
+function themeControl(themes: readonly ThemeDefinition[]): string {
+  const option = (mode: string, icon: string, title: string) =>
+    `<button class="anchored-option theme-option" type="button" data-theme-mode="${escaped(mode)}" aria-current="${String(mode === AUTO_THEME)}">${icon}<span>${escaped(title)}</span></button>`
+  const options = [option(AUTO_THEME, autoIcon, 'Auto'), ...themes.map(theme => option(theme.id, themeIcon(theme), theme.title))].join('')
   return `<details id="theme" data-theme-mode="auto"><summary class="anchored-option" aria-label="Theme"><span>Theme</span><span class="label">Auto</span><span class="theme-chevron"></span></summary><div class="anchored-popover theme-menu">${options}</div></details>`
 }
 
@@ -435,7 +442,7 @@ function helpControl(): string {
       ['Open result', key('Enter')],
       ['Cancel search', key('Esc')],
     ]],
-    ['View', [['Map only', key('F1')], ['Layers', key('F2')], ['Map debug', key('F3')]]],
+    ['View', [['Tags', key('T')], ['Map only', key('F1')], ['Layers', key('F2')], ['Map debug', key('F3')]]],
     ['In layers', [['Orbit', 'Drag'], ['Pan', `${key('Shift')} + drag`]]],
   ]
   const body = sections.map(([title, rows]) => `<section><h2>${title}</h2><dl>`
@@ -459,14 +466,14 @@ export function renderPage(payload: WebBootPayload, url?: URL): string {
   const readOnly = payload.delivery.kind === 'live' && payload.delivery.readOnly
     ? '<span id="read-only" title="Run groma web again to restore the missing plugins.">Read-only: plugins missing</span>' : ''
   return `<!doctype html><html><head><meta charset="utf-8"><title>${escaped(payload.project?.title ?? 'Groma')}</title>`
-    + sharingMetadata(payload.project, url)
-    + `<style>${style}</style></head><body data-delivery="${payload.delivery.kind}"${chromeInset(url)}>`
+    + sharingMetadata(payload.project, payload.themes, url)
+    + `<style>${style}${themeCss(payload.themes)}</style></head><body data-delivery="${payload.delivery.kind}"${chromeInset(url)}>`
     + `<header id="header"><div class="header-context">${lockup}<span id="stats"></span>${readOnly}${revisionControl(payload, { history: historyIcon, loader: revisionLoader })}</div>`
     + searchControl({ search: searchIcon, close: closeIcon })
-    + `<div class="header-actions">${projectReviewControl}<div id="map-controls" class="controls" aria-label="Map controls"><button id="fit" aria-label="Fit map">${fitIcon}<span>Fit</span></button><button id="zoom-out" aria-label="Zoom out"><span class="control-glyph">−</span></button><span id="zoom" aria-live="polite"></span><button id="zoom-in" aria-label="Zoom in"><span class="control-glyph">+</span></button></div><div class="header-utilities">${settingsControl(themeControl())}${helpControl()}${creditsControl(infoIcon, lockup)}</div></div>`
+    + `<div class="header-actions">${projectReviewControl}<div id="map-controls" class="controls" aria-label="Map controls"><button id="fit" aria-label="Fit map">${fitIcon}<span>Fit</span></button><button id="zoom-out" aria-label="Zoom out"><span class="control-glyph">−</span></button><span id="zoom" aria-live="polite"></span><button id="zoom-in" aria-label="Zoom in"><span class="control-glyph">+</span></button></div><div class="header-utilities">${settingsControl(themeControl(payload.themes))}${helpControl()}${creditsControl(infoIcon, lockup)}</div></div>`
     + '</header>'
     + `<nav id="hierarchy" aria-label="Hierarchy"><div id="hierarchy-title"><span class="pane-label">Hierarchy</span>${writable ? '<button id="add" type="button" aria-label="Add">+</button>' : ''}<button id="hierarchy-toggle" type="button" aria-controls="hierarchy-content">${hierarchyIcon}</button></div><div id="hierarchy-content"><div id="flows"></div><div id="tree"></div><div id="legend">${legend()}</div></div></nav>`
-    + `<div id="map" role="tabpanel" aria-label="Architecture map"></div>${mapViewControl()}${c4FilterControl()}`
+    + `<div id="map" role="tabpanel" aria-label="Architecture map"></div><div id="map-toolbar">${mapViewControl()}<div id="tag-control" role="group" aria-label="Tag focus" hidden></div></div>${c4FilterControl()}`
     + emptyState(payload)
     + `<div id="details-dock"><aside id="details" aria-label="Details"><div class="details-controls"><button id="details-expand" aria-label="Expand details" title="Expand details" aria-expanded="false">${expandIcon}${collapseIcon}</button><button id="details-close" aria-label="Close details">${closeIcon}</button></div><p class="meta"></p><h1></h1><nav class="controls tabs"></nav><div class="body"></div></aside></div>`
     + `<script type="application/json" id="world">${json}</script>`

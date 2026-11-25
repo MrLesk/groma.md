@@ -32,7 +32,8 @@ export interface Checker {
 
 /**
  * Ask about each item concurrently, in bounded batches, with the answers in the items' order. A compiler behind a
- * process boundary answers many questions at once far faster than one at a time.
+ * process boundary answers many questions at once far faster than one at a time, and the bound keeps memory low:
+ * the native SDK sends all concurrent questions as one message and both processes hold its whole answer.
  */
 export async function inBatches<Item, Answer>(items: readonly Item[], ask: (item: Item) => Promise<Answer>): Promise<Answer[]> {
   const answers: Answer[] = []

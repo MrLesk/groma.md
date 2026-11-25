@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url'
 import compromised from '../test/fixtures/certificate-trust/compromised-cas.json'
 import { clean, directories, fixtures, fixtureTls } from './certificate-fixtures.ts'
 
-test.concurrent('npm global installation keeps npm CA configuration instead of project Bun trust', async () => {
+test.concurrent('npm global installation uses its configured CA when Node inherits the bundled CA option', async () => {
   const f = await directories()
   const manifest = { name: 'backlog.md', version: '1.0.0' }
   const tarball = await new Bun.Archive({ 'package/package.json': JSON.stringify(manifest) }, { compress: 'gzip' }).bytes()
@@ -32,7 +32,8 @@ test.concurrent('npm global installation keeps npm CA configuration instead of p
     const module = pathToFileURL(path.resolve(import.meta.dir, '../src/work/backlog-cli.ts')).href
     await writeFile(launcher, `import { installBacklogCli } from ${JSON.stringify(module)}; await installBacklogCli(false);`)
     const child = Bun.spawn([process.execPath, launcher], { cwd: f.project,
-      env: { ...process.env, ...f.environment, NPM_CONFIG_CAFILE: cafile, NPM_CONFIG_PREFIX: prefix,
+      env: { ...process.env, ...f.environment, NODE_OPTIONS: '--use-bundled-ca',
+        NPM_CONFIG_CAFILE: cafile, NPM_CONFIG_PREFIX: prefix,
         NPM_CONFIG_REGISTRY: server.url.href, NPM_CONFIG_CACHE: path.join(f.home, 'cache'), NPM_CONFIG_AUDIT: 'false',
         NPM_CONFIG_USERCONFIG: path.join(f.home, '.npmrc'), NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1' },
       stdout: 'pipe', stderr: 'pipe',
