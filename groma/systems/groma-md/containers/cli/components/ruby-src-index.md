@@ -31,6 +31,9 @@ groma:
       file: plugins/scanners/ruby/src/tokens.ts
       symbol: comparedMethod
     - scanner: typescript
+      file: plugins/scanners/ruby/src/erb.ts
+      symbol: embeddedRuby
+    - scanner: typescript
       file: plugins/scanners/ruby/src/runtime.ts
       symbol: railsRuntime
   technology: TypeScript, tree-sitter-ruby, WebAssembly

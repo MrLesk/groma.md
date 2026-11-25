@@ -4,7 +4,7 @@
   "private": false,
   "type": "module",
   "license": "MIT",
-  "description": "Experimental Ruby declarations, code outlines and literal Rails route evidence.",
+  "description": "Experimental Ruby and ERB declarations, code outlines and literal Rails route evidence.",
   "groma": {
     "scanner": {
       "id": "ruby",
@@ -12,6 +12,7 @@
       "include": [
         "**/*.rb",
         "**/*.ru",
+        "**/*.erb",
         "**/config/database.yml",
         "**/config/deploy.yml",
         "**/bin/*",
@@ -39,6 +40,7 @@
             "type": "file",
             "files": [
               "**/*.rb",
+              "**/*.erb",
               "**/*.gemspec",
               "**/Gemfile"
             ],
