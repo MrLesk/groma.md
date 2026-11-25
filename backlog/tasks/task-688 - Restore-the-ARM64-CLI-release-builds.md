@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@codex'
 created_date: '2026-11-25T19:24:00Z'
-updated_date: '2026-11-25T19:28:00Z'
+updated_date: '2026-11-25T19:47:00Z'
 labels: []
 dependencies: []
 references:
@@ -28,8 +28,8 @@ The v0.8.0 release passed repository validation and published its scanner set. T
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The standalone release build installs the locked target dependencies and builds the Linux and Windows ARM64 binaries without compiling unrelated scanner dependencies.
-- [ ] #2 The existing standalone package requirements checks keep their five release targets.
+- [x] #1 The standalone release build installs the locked target dependencies and builds the Linux and Windows ARM64 binaries without compiling unrelated scanner dependencies.
+- [x] #2 The existing standalone package requirements checks keep their five release targets.
 - [ ] #3 A manual CLI build checks all release runners without publishing. A publish run from the existing v0.8.0 release tag uses its exact published scanners and ships that same CLI version.
 <!-- AC:END -->
 
@@ -48,10 +48,14 @@ The v0.8.0 release passed repository validation and published its scanner set. T
 2. Verify a clean install, the compiled binaries and the package smoke checks. Recover the existing release through GitHub Actions once its source commit is confirmed.
 
 Add a manual CLI build check and a publish mode for an existing release whose CLI binaries and packages are still pending. Both use the exact published scanner versions listed in the checkout. Verify each native release runner in the build check. After approval, include PR #247 in the release source, update v0.8.0 and dispatch the corrected workflow from that tag. Confirm GitHub downloads and npm package versions.
+
+Require successful direct inputs throughout the release. Recovery intentionally skips the scanner publishing job. Use check mode to exercise artifact and npm package staging through the same jobs, and skip their external writes. Verify that the real run reaches every publishing step.
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
 Release run 45680357772 failed in the all-target Bun install on Linux and Windows ARM64. Both logs show tree-sitter@0.21.1 running node-gyp against Node 26.12.1. The scanner build jobs on those hosts passed with install scripts disabled. All six 0.8.0 CLI registry endpoints returned 404 and the GitHub release had no assets. The tagged release check accepts the empty v0.8.0 release and rejects a branch or the already-complete v0.7.8 release.
+
+Build-only run 45685548226 passed all five native builds. Tagged run 45687049623 also passed repository validation and all five native builds. It skipped the delivery jobs because GitHub carries skipped ancestors through implicit success conditions. The release still had zero uploaded assets and npm latest still resolved to 0.7.8.
 <!-- SECTION:NOTES:END -->

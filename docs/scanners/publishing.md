@@ -36,9 +36,10 @@ gh workflow run release.yml --ref <fix-branch> -f cli_release=check
 gh workflow run release.yml --ref v0.8.0 -f cli_release=publish
 ```
 
-The check builds and exercises all five CLI binaries without publishing. The
-publish run requires an existing published GitHub release tag with no attached
-binaries. Confirm its CLI package versions are still absent from npm before
+The check builds and tests all five CLI binaries and stages the GitHub
+downloads and npm packages in its runners. The publish run requires an
+existing published GitHub release tag with no attached binaries. Confirm
+its CLI package versions are still absent from npm before
 starting it. Both runs use the exact scanner versions already on npm.
 
 The author contract is `@groma/scanner`. Official packages use
