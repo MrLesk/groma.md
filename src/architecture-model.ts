@@ -1,4 +1,4 @@
-import { elementOverview } from './architecture-markdown.ts'
+import { elementOverview, elementRuntimeConfiguration } from './architecture-markdown.ts'
 import { isExternalPath } from './architecture-path.ts'
 import { codeReferencesOf } from './code-reference.ts'
 import { COLOR_NAMES, isColorName } from './colors.ts'
@@ -163,12 +163,14 @@ function documentToElement(document: ArchitectureDocument): ArchitectureElement 
   const tags = tagsOf(document.frontmatter.tags, sourceFilename)
   const appearance = appearanceOf(groma, message => invalidElement(sourceFilename, message))
   const draft = draftOf(groma, sourceFilename)
+  const runtimeConfiguration = elementRuntimeConfiguration(document)
 
   return {
     id,
     kind,
     title,
     ...(description === undefined ? {} : { description }),
+    ...(runtimeConfiguration === undefined ? {} : { runtimeConfiguration }),
     overview: elementOverview(document, (code, filename, message) => {
       throw new ArchitectureModelError(code, filename, message)
     }),

@@ -19,6 +19,10 @@ groma:
       symbol: sourceUnitGroups
     - scanner: typescript
       file: src/scan-entrypoints.ts
+    - scanner: typescript
+      file: src/scan-runtime.ts
+    - scanner: typescript
+      file: src/scan-world.ts
 description: Folds successful scanner results into stored ownership and records
 ---
 

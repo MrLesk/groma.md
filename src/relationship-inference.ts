@@ -3,6 +3,7 @@ import type { ScanDiagnostic, ScanInvocation, ScanObservation, ScanOperation } f
 import { loadArchitecture } from './architecture-reader.ts'
 import { buildArchitectureModel } from './architecture-model.ts'
 import { httpRelationships } from './http-relationships.ts'
+import { configuredStorageRelationships } from './scan-runtime.ts'
 import { storedRelationships, type StoredRelationship } from './relationship-markdown.ts'
 import { placeRelationships, saveRelationships } from './relationship-storage.ts'
 import { sourceIndex } from './source-index.ts'
@@ -40,7 +41,8 @@ function derivedRows(
   owners: ReadonlyMap<string, string>,
 ): RelationshipConnection[] {
   const rows = new Map<string, RelationshipConnection>()
-  for (const row of [...relationshipsFromClaims(claims, owners), ...httpRelationships(observations, owners)]) {
+  for (const row of [...relationshipsFromClaims(claims, owners), ...httpRelationships(observations, owners),
+    ...configuredStorageRelationships(observations, owners)]) {
     const key = `${row.source}\0${row.target}`
     const existing = rows.get(key)
     rows.set(key, existing === undefined ? row : {

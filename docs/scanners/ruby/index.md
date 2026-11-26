@@ -28,8 +28,8 @@ as Python. Both leave ordinary dynamic call targets unresolved.
 
 ## Inputs and project membership
 
-The manifest selects `**/*.rb`, `**/*.ru`, `**/bin/*`, `**/exe/*`,
-`**/Gemfile` and `**/*.gemspec`. Extensionless commands are Ruby source only
+The manifest selects `**/*.rb`, `**/*.ru`, `**/*.erb`, `**/bin/*`, `**/exe/*`,
+`**/config/database.yml`, `**/config/deploy.yml`, `**/Gemfile` and `**/*.gemspec`. Extensionless commands are Ruby source only
 when their first line is a Ruby shebang. Listing reads that marker without
 parsing or running the command. Other selected bin scripts contribute no Code.
 Gemfiles and gemspecs supply metadata, not Code ownership.
@@ -49,6 +49,28 @@ Projects are transient source groups, not C4 systems or containers. Ordinary
 Markdown and OKF readers retain existing architecture records and Code links.
 Core owns identity, curated source ownership, placement and derived relationships;
 this scanner introduces no new stored metadata or architecture level.
+
+### ERB templates
+
+The scanner selects `.erb` templates, including compound extensions such as `.html.erb`, `.js.erb` and `.yml.erb`. It reads Ruby inside execution tags (`<% ... %>`), output tags (`<%= ... %>`) and whitespace-trimming tags (`<%- ... -%>`). Ruby blocks can span tags. Literal template text, ERB comments (`<%# ... %>`) and escaped tags (`<%% ... %>`) contribute no Ruby declarations.
+
+`src/erb.ts` replaces template text and delimiters with spaces and statement separators before `src/index.ts` sends the embedded code to the existing Ruby parser. It preserves UTF-16 offsets and line breaks, so named Ruby declarations, method calls and Code outlines address the original template. A template containing only markup or expressions still contributes a file reference; expressions do not become named methods.
+
+Templates retain their nearest declared project and join the existing source membership of a proven Rails application under `app/`. A template does not declare a launch entry. The scanner leaves render calls, partial lookup, helper dispatch and route helpers unresolved. It does not infer relationships from HTML links or JavaScript, parse the surrounding language, or evaluate templates. Percent-line shorthand requires an ERB trim-mode setting and is not supported.
+
+Template methods do not supply duplicate-body comparison tokens because literal output affects their behavior and the Ruby projection omits that output. Invalid embedded Ruby and unclosed ERB tags stop the scan with a template-specific error. Tag syntax follows the [Ruby ERB documentation](https://docs.ruby-lang.org/en/master/ERB.html).
+
+## Production runtime configuration
+
+The scanner reads the selected `config/database.yml` and `config/deploy.yml` beside a proven Rails `config.ru` entry. For database configuration, it retains the standard top-level `default` and `production` blocks before parsing, so ERB control flow in other environments does not affect the production result. It uses bundled js-yaml 5.5.0 with YAML merge keys enabled, so anchors and aliases retain their declared values. ERB expressions remain unresolved placeholders; scanning never evaluates Ruby expressions or reads environment values.
+
+Production PostgreSQL configuration supplies literal database names and roles, including inherited adapter settings. Core represents them as one application-owned PostgreSQL storage container with `database.yml` as its Code reference and a configured-storage relationship from the Rails entry. The logical roles describe this reviewed storage boundary; they do not assert a PostgreSQL server count. Other environments, adapters and computed database names do not contribute storage facts.
+
+Hosted Solid Queue evidence requires all three selected declarations: `config.active_job.queue_adapter = :solid_queue` in `config/environments/production.rb`, `plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]` in `config/puma.rb`, and a literal `env.clear.SOLID_QUEUE_IN_PUMA: true` in Kamal's `config/deploy.yml`. Core records Solid Queue through Puma on the existing application. Comments and the mere presence of `bin/jobs` establish no separate worker boundary. The scanner does not interpret arbitrary deployment commands, queue topology or Compose infrastructure.
+
+Core owns the [runtime evidence interpretation](../evidence.md#configured-storage-and-hosted-services), stable source ownership and the derived Markdown section. The section names the production environment, links its declaring files, and states that live deployment is unverified. A current core build is required to interpret these new facts and the storage container's configuration Code reference.
+
+Existing installations keep their configured include lists. Add `**/config/database.yml` and `**/config/deploy.yml` to the Ruby scanner's `include` list, preserving other settings, then scan again.
 
 ## Execution entries
 

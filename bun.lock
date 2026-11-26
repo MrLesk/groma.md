@@ -204,10 +204,11 @@
     },
     "plugins/scanners/ruby": {
       "name": "@groma/scanner-ruby",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "dependencies": {
         "@groma/scanner": "workspace:*",
         "inflection": "3.0.2",
+        "js-yaml": "5.5.0",
         "web-tree-sitter": "0.27.1",
       },
       "devDependencies": {

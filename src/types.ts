@@ -102,6 +102,8 @@ export interface ArchitectureElement {
   title: string
   description?: string
   overview: string
+  /** Read-only supporting configuration parsed from the derived Markdown section. */
+  runtimeConfiguration?: string
   parentId: string | null
   external: boolean
   technology?: string
@@ -152,6 +154,7 @@ export interface AnnotatedElement {
   title: string
   description?: string
   overview: string
+  runtimeConfiguration?: string
   parent: string | null
   children: string[]
   external: boolean
